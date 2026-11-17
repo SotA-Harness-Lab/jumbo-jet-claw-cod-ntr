@@ -281,6 +281,7 @@ trust_level = "trusted"
     let _daemon = if backend == "daemon" {
         let bin = home.join("packages/app-server-daemon/current/bin");
         fs::create_dir_all(&bin)?;
+        // WINDOWS-REMNANT
         let managed = bin.join(if cfg!(windows) { "codex.exe" } else { "codex" });
         // Hard links change the executable's ctime and invalidate Rosetta's translation cache.
         #[cfg(unix)]
@@ -644,6 +645,7 @@ trust_level = "trusted"
             }
         })
         .await;
+        // WINDOWS-REMNANT
         let elevated_handoff = cfg!(windows)
             && output.contains("start the Windows daemon from a non-elevated terminal");
         assert_eq!(exit, i32::from(elevated_handoff), "{output}");
@@ -711,6 +713,7 @@ trust_level = "trusted"
                 ("update_interval_setting", "default"),
                 ("shutdown_grace_setting", "default"),
             ]);
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             if codex_app_server_daemon::is_elevated()? {
                 expected_tags.insert("daemon_selection_reason", "elevated_windows");

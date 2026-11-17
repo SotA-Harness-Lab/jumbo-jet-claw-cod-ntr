@@ -80,6 +80,7 @@ async fn codex_delegate_ignores_legacy_deltas() {
     assert_eq!(reasoning_delta_count, 1, "expected one new reasoning delta");
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn codex_delegate_rejects_escalation_requests_when_parent_can_prompt() {
@@ -341,6 +342,7 @@ async fn codex_delegate_rejects_skill_mcp_dependency_installation_without_prompt
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn guardian_delegate_rejects_escalation_requests_without_prompting() {

@@ -34,6 +34,7 @@ impl AbsolutePathBuf {
                 return home;
             } else if let Some(rest) = rest.strip_prefix('/') {
                 return home.join(rest.trim_start_matches('/'));
+            // WINDOWS-REMNANT
             } else if cfg!(windows)
                 && let Some(rest) = rest.strip_prefix('\\')
             {
@@ -145,6 +146,7 @@ impl AbsolutePathBuf {
 }
 
 fn normalize_path_for_platform(path: &Path) -> Cow<'_, Path> {
+    // WINDOWS-REMNANT
     if cfg!(windows)
         && let Some(path) = path.to_str()
         && let Some(normalized) = normalize_windows_device_path(path)
@@ -256,6 +258,7 @@ pub mod test_support {
     ///
     /// On Windows, `/tmp/example` maps to `C:\tmp\example`.
     pub fn test_path_buf(unix_path: &str) -> PathBuf {
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             let mut path = PathBuf::from(r"C:\");
             path.extend(
@@ -514,6 +517,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn from_absolute_path_strips_windows_verbatim_prefix() {
@@ -761,6 +765,7 @@ mod tests {
         assert_eq!(canonicalized, link);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn home_directory_backslash_subpath_is_expanded_in_deserialization() {
@@ -777,6 +782,7 @@ mod tests {
         assert_eq!(abs_path_buf.as_path(), home.join("code").as_path());
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn canonicalize_preserving_symlinks_avoids_verbatim_prefixes() {

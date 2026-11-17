@@ -299,6 +299,7 @@ impl RouteAwareClientPool {
     }
 
     /// Builds the first transport now so fixed-destination callers still receive setup errors.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(crate) fn with_builder_and_initial_route(
         http_client_factory: HttpClientFactory,

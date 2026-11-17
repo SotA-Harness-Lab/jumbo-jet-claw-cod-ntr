@@ -73,6 +73,7 @@ pub(crate) async fn create_file_system_context(
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn is_unsupported_restricted_token_host<T>(result: &std::io::Result<T>) -> bool {
     result
@@ -103,6 +104,7 @@ pub(crate) fn read_only_sandbox(readable_root: std::path::PathBuf) -> FileSystem
     sandbox_context(entries, cwd)
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 pub(crate) fn workspace_write_sandbox(
     writable_root: std::path::PathBuf,
@@ -119,6 +121,7 @@ pub(crate) fn workspace_write_sandbox(
     sandbox_context(entries, cwd)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn workspace_write_sandbox(
     writable_root: std::path::PathBuf,
@@ -152,6 +155,7 @@ fn sandbox_context(
     mut entries: Vec<FileSystemSandboxEntry>,
     cwd: PathUri,
 ) -> FileSystemSandboxContext {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         // Restricted-token sandboxing cannot enforce read restrictions, so leave the root
         // readable while exercising the requested write restrictions.
@@ -169,6 +173,7 @@ fn sandbox_context(
         ),
         cwd,
     );
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         sandbox.windows_sandbox_selection = WindowsSandboxSelection::RestrictedToken;
     }

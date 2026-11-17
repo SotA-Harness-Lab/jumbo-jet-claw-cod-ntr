@@ -24,6 +24,7 @@ pub async fn start_with_features_classified(
     features: &BTreeMap<String, bool>,
 ) -> Result<LifecycleOutput, StartError> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     crate::backend::windows::ensure_not_elevated()?;
     let mut daemon = Daemon::from_environment()?;
@@ -40,6 +41,7 @@ pub async fn start_with_features_classified(
 /// then verify effective server compatibility after this operation completes.
 pub async fn restart_with_features(features: &BTreeMap<String, bool>) -> Result<LifecycleOutput> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     crate::backend::windows::ensure_not_elevated()?;
     let daemon = Daemon::from_environment()?;

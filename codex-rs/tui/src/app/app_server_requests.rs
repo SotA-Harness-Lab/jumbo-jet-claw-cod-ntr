@@ -727,6 +727,7 @@ mod tests {
                         "turnId": "turn-1",
                         "itemId": "shared-id",
                         "startedAtMs": 0,
+                        // WINDOWS-REMNANT
                         "cwd": if cfg!(windows) { r"C:\tmp" } else { "/tmp" },
                         "permissions": {},
                     },
@@ -771,6 +772,7 @@ mod tests {
         };
         let localization_error =
             RequestPermissionProfile::try_from(permissions.clone()).expect_err("relative path");
+        // WINDOWS-REMNANT
         let cwd = AbsolutePathBuf::try_from(PathBuf::from(if cfg!(windows) {
             r"C:\tmp"
         } else {
@@ -804,11 +806,13 @@ mod tests {
     #[test]
     fn resolves_permissions_and_user_input_through_app_server_request_id() {
         let mut pending = PendingAppServerRequests::default();
+        // WINDOWS-REMNANT
         let read_path = if cfg!(windows) {
             r"C:\tmp\read-only"
         } else {
             "/tmp/read-only"
         };
+        // WINDOWS-REMNANT
         let write_path = if cfg!(windows) {
             r"C:\tmp\write"
         } else {
@@ -827,6 +831,7 @@ mod tests {
                     item_id: "perm-1".to_string(),
                     environment_id: None,
                     started_at_ms: 0,
+                    // WINDOWS-REMNANT
                     cwd: absolute_path(if cfg!(windows) { r"C:\tmp" } else { "/tmp" }).into(),
                     reason: None,
                     permissions: serde_json::from_value(json!({

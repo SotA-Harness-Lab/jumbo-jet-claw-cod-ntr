@@ -26,6 +26,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use portable_pty::CommandBuilder;
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 use portable_pty::native_pty_system;
 use tokio::sync::mpsc;
@@ -62,12 +63,14 @@ impl<'a> ChildFds<'a> {
 }
 
 /// Returns true when ConPTY support is available (Windows only).
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub fn conpty_supported() -> bool {
     crate::win::conpty_supported()
 }
 
 /// Returns true when ConPTY support is available (non-Windows always true).
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 pub fn conpty_supported() -> bool {
     true
@@ -134,11 +137,13 @@ impl ChildTerminator for RawPidTerminator {
 }
 
 fn platform_native_pty_system() -> Box<dyn portable_pty::PtySystem + Send> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         Box::new(crate::win::ConPtySystem::default())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     {
         native_pty_system()
@@ -262,9 +267,11 @@ async fn spawn_process_portable(
         let writer_handle: JoinHandle<()> = tokio::spawn({
             let writer = Arc::clone(&writer);
             async move {
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 let mut windows_input = crate::WindowsTtyInputNormalizer::default();
                 while let Some(bytes) = writer_rx.recv().await {
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     let bytes = windows_input.normalize(&bytes);
                     let mut guard = writer.lock().await;
@@ -295,6 +302,7 @@ async fn spawn_process_portable(
     });
 
     let handles = PtyHandles {
+        // WINDOWS-REMNANT
         _slave: if cfg!(windows) {
             Some(pair.slave)
         } else {

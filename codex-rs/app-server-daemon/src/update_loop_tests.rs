@@ -1176,6 +1176,7 @@ async fn check_manual_update_restart(package_directory: &str) {
     server.abort();
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn powershell_installer_is_noninteractive_and_reports_script_failure() {

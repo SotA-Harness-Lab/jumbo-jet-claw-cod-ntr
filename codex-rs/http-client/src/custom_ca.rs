@@ -252,6 +252,7 @@ fn build_rustls_client_config(
     ))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn build_rustls_root_store_with_custom_ca()
 -> Result<RootCertStore, BuildCustomCaTransportError> {

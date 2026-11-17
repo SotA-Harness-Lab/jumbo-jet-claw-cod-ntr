@@ -308,6 +308,7 @@ mod tests {
         let cwd = TempDir::new().expect("temp cwd");
         let config = test_config(&codex_home, &cwd).await;
         let native_source = PathUri::from_abs_path(&config.cwd.join("AGENTS.md"));
+        // WINDOWS-REMNANT
         let foreign_source = if cfg!(windows) {
             PathUri::parse("file:///remote%20workspace/AGENTS.md")
                 .expect("POSIX instruction source")
@@ -317,6 +318,7 @@ mod tests {
         };
 
         let summary = compose_agents_summary(&config, &[native_source, foreign_source]);
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             insta::assert_snapshot!(summary, @r"AGENTS.md, /remote workspace/AGENTS.md");
         } else {

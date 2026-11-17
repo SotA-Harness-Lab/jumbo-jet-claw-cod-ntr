@@ -353,6 +353,7 @@ impl App {
                 if session.windows_sandbox_host != WindowsSandboxHost::Local {
                     Some("Requires workspace on server host")
                 } else if server.app_server_platform_family() == Some("windows")
+                    // WINDOWS-REMNANT
                     || (cfg!(windows) && !server.uses_remote_workspace())
                     || cwd.as_ref().and_then(PathUri::infer_path_convention)
                         != Some(codex_utils_path_uri::PathConvention::Posix)

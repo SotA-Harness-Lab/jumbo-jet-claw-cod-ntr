@@ -51,6 +51,7 @@ pub(crate) fn discard_pending_terminal_input() -> Result<()> {
             continue;
         }
 
+        // WINDOWS-REMNANT
         #[cfg(any(unix, windows))]
         match terminal_input_is_readable() {
             Ok(true) => continue,
@@ -97,6 +98,7 @@ pub(super) fn terminal_input_is_readable() -> Result<bool> {
 }
 
 /// Check the same Windows console input queue consumed by Crossterm.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn terminal_input_is_readable() -> Result<bool> {
     use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;

@@ -111,6 +111,7 @@ impl ConfiguredCredentialProvider {
             ensure!(
                 valid_environment_key(key)
                     && !config.env.iter().any(|source| {
+                        // WINDOWS-REMNANT
                         source.as_str() == key || cfg!(windows) && source.eq_ignore_ascii_case(key)
                     }),
                 "credential provider `{id}` has an invalid host environment key"

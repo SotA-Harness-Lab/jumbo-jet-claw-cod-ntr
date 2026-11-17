@@ -95,6 +95,7 @@ pub(crate) async fn acquire_install_lock(root: &Path) -> Result<InstallLock> {
     };
     let mut options = OpenOptions::new();
     options.create(true).truncate(false).write(true);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt;
@@ -127,6 +128,7 @@ pub(crate) async fn acquire_install_lock(root: &Path) -> Result<InstallLock> {
             }
             Err(error)
                 if error.kind() == std::io::ErrorKind::WouldBlock
+                    // WINDOWS-REMNANT
                     || cfg!(windows)
                         && (error.raw_os_error() == Some(32)
                             || error.kind() == std::io::ErrorKind::PermissionDenied) => {}

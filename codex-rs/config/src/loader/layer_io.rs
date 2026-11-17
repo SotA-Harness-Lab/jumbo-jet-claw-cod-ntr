@@ -8,6 +8,7 @@ use crate::diagnostics::io_error_from_config_error;
 use crate::state::LoaderOverrides;
 use crate::strict_config::config_error_from_ignored_toml_value_fields;
 use codex_file_system::ExecutorFileSystem;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_file_system::GetMetadataOptions;
 use codex_utils_absolute_path::AbsolutePathBuf;
@@ -62,8 +63,10 @@ pub(super) async fn load_config_layers_internal(
         ..
     } = overrides;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let ignore_default_managed_config = managed_config_path.is_none();
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let ignore_default_managed_config = false;
 
@@ -71,6 +74,7 @@ pub(super) async fn load_config_layers_internal(
         managed_config_path.unwrap_or_else(|| managed_config_default_path(codex_home)),
     )?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let startup_warnings = if ignore_default_managed_config {
         let path_uri = PathUri::from_abs_path(&managed_config_path);
@@ -99,6 +103,7 @@ pub(super) async fn load_config_layers_internal(
     } else {
         Vec::new()
     };
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let startup_warnings = Vec::new();
 

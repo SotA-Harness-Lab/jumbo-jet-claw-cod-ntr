@@ -53,6 +53,7 @@ use toml::Value;
 pub(crate) const TEST_CURATED_PLUGIN_SHA: &str = "0123456789abcdef0123456789abcdef01234567";
 pub(crate) const TEST_CURATED_PLUGIN_CACHE_VERSION: &str = "01234567";
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 /// Model redirected directories without requiring Windows symlink privileges.
 pub(crate) fn create_directory_junction(target: &Path, alias: &Path) {

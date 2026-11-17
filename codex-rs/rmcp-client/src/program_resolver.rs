@@ -37,6 +37,7 @@ pub fn resolve(
 ///
 /// This enables tools like `npx`, `pnpm`, and `yarn` to work correctly on Windows
 /// without requiring users to specify full paths or extensions in their configuration.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub fn resolve(
     program: OsString,
@@ -69,6 +70,7 @@ mod tests {
     use super::*;
     use crate::utils::create_env_for_mcp_server;
     use anyhow::Result;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     use std::fs;
     use std::path::Path;
@@ -93,6 +95,7 @@ mod tests {
     }
 
     /// Windows: Verifies scripts fail to execute without the proper extension.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[tokio::test]
     async fn test_windows_fails_without_extension() -> Result<()> {
@@ -109,6 +112,7 @@ mod tests {
     }
 
     /// Windows: Verifies scripts with an explicit extension execute correctly.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[tokio::test]
     async fn test_windows_succeeds_with_extension() -> Result<()> {
@@ -130,6 +134,7 @@ mod tests {
     #[tokio::test]
     async fn test_resolved_program_executes_successfully() -> Result<()> {
         let env = TestExecutableEnv::new()?;
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let env = {
             let mut env = env;
@@ -178,6 +183,7 @@ mod tests {
             let mut extra_env = HashMap::new();
             extra_env.insert(OsString::from("PATH"), Self::build_path_env_var(dir_path));
 
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             extra_env.insert(OsString::from("PATHEXT"), Self::ensure_cmd_extension());
 
@@ -192,6 +198,7 @@ mod tests {
 
         /// Creates a simple, platform-specific executable script.
         fn create_executable(dir: &Path) -> Result<()> {
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             {
                 let file = dir.join(format!("{}.cmd", Self::TEST_PROGRAM));
@@ -211,6 +218,7 @@ mod tests {
         fn build_path_env_var(dir: &Path) -> OsString {
             let mut path = OsString::from(dir.as_os_str());
             if let Some(current) = std::env::var_os("PATH") {
+                // WINDOWS-REMNANT
                 let sep = if cfg!(windows) { ";" } else { ":" };
                 path.push(sep);
                 path.push(current);
@@ -219,6 +227,7 @@ mod tests {
         }
 
         /// Ensures `.CMD` is in the `PATHEXT` variable on Windows for script discovery.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         fn ensure_cmd_extension() -> OsString {
             let current = std::env::var_os("PATHEXT").unwrap_or_default();

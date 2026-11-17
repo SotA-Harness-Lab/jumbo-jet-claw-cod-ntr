@@ -408,6 +408,7 @@ fn write_file_atomically(path: &Path, contents: &[u8]) -> Result<()> {
     match fs::rename(&tmp_path, path) {
         Ok(()) => Ok(()),
         Err(initial_error) => {
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             {
                 if path.exists() {

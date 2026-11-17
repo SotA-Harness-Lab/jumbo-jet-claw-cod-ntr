@@ -86,15 +86,13 @@ pub use crate::transport::ReqwestTransport;
 pub use crate::transport::StreamResponse;
 pub use crate::transport::bounded_response_bytes;
 
-#[cfg(windows)]
-mod windows_proxy_auth;
-#[cfg(windows)]
-mod windows_tls;
-
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use crate::windows_proxy_auth::WindowsProxyTls;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use crate::windows_proxy_auth::connect_windows_proxy;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use crate::windows_tls::build_windows_platform_tls_config;
 

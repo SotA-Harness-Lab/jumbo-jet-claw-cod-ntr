@@ -125,6 +125,7 @@ impl FileHandleManager {
                     &bytes[written..],
                     position,
                 );
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 let result = std::os::windows::fs::FileExt::seek_write(
                     file.as_ref(),
@@ -205,6 +206,7 @@ fn read_file_at(file: &File, bytes: &mut [u8], offset: u64) -> io::Result<usize>
     std::os::unix::fs::FileExt::read_at(file, bytes, offset)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn read_file_at(file: &File, bytes: &mut [u8], offset: u64) -> io::Result<usize> {
     std::os::windows::fs::FileExt::seek_read(file, bytes, offset)

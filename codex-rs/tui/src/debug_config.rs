@@ -769,11 +769,13 @@ interrupt_message = false
 
     #[test]
     fn debug_config_output_lists_all_layers_including_disabled() {
+        // WINDOWS-REMNANT
         let system_file = if cfg!(windows) {
             absolute_path("C:\\etc\\codex\\config.toml")
         } else {
             absolute_path("/etc/codex/config.toml")
         };
+        // WINDOWS-REMNANT
         let project_folder = if cfg!(windows) {
             absolute_path("C:\\repo\\.codex")
         } else {
@@ -810,26 +812,31 @@ interrupt_message = false
 
     #[test]
     fn debug_config_output_lists_requirement_sources() {
+        // WINDOWS-REMNANT
         let requirements_file = if cfg!(windows) {
             absolute_path("C:\\ProgramData\\OpenAI\\Codex\\requirements.toml")
         } else {
             absolute_path("/etc/codex/requirements.toml")
         };
+        // WINDOWS-REMNANT
         let denied_path = if cfg!(windows) {
             absolute_path("C:\\Users\\alice\\.gitconfig")
         } else {
             absolute_path("/home/alice/.gitconfig")
         };
+        // WINDOWS-REMNANT
         let sqlite_home = if cfg!(windows) {
             absolute_path("C:\\Users\\alice\\.codex\\state")
         } else {
             absolute_path("/home/alice/.codex/state")
         };
+        // WINDOWS-REMNANT
         let log_dir = if cfg!(windows) {
             absolute_path("C:\\Users\\alice\\.codex\\logs")
         } else {
             absolute_path("/home/alice/.codex/logs")
         };
+        // WINDOWS-REMNANT
         let model_catalog_json = if cfg!(windows) {
             absolute_path("C:\\Users\\alice\\.codex\\models.json")
         } else {
@@ -998,6 +1005,7 @@ interrupt_message = false
             models: None,
         };
 
+        // WINDOWS-REMNANT
         let user_file = if cfg!(windows) {
             absolute_path("C:\\users\\alice\\.codex\\config.toml")
         } else {
@@ -1017,6 +1025,7 @@ interrupt_message = false
         .expect("config layer stack");
 
         let rendered = render_stack_to_text(&stack);
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         insta::assert_snapshot!("debug_config_requirement_sources", rendered.as_str());
 
@@ -1075,11 +1084,13 @@ interrupt_message = false
 
     #[test]
     fn debug_config_output_filters_sandbox_modes_blocked_by_deny_read_requirements() {
+        // WINDOWS-REMNANT
         let requirements_file = if cfg!(windows) {
             absolute_path("C:\\ProgramData\\OpenAI\\Codex\\requirements.toml")
         } else {
             absolute_path("/etc/codex/requirements.toml")
         };
+        // WINDOWS-REMNANT
         let denied_path = if cfg!(windows) {
             absolute_path("C:\\Users\\alice\\.gitconfig")
         } else {
@@ -1142,6 +1153,7 @@ interrupt_message = false
         let rendered = render_stack_to_text_with_sandbox_mode_filter(&stack, |mode| {
             sandbox_mode_is_allowed_by_permissions(&permissions, mode)
         });
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         insta::assert_snapshot!(
             "debug_config_effective_sandbox_modes_with_deny_read",
@@ -1284,6 +1296,7 @@ model = "managed_model"
 approval_policy = "never"
 "#;
         let mdm_value = toml::from_str::<TomlValue>(raw_mdm_toml).expect("MDM value");
+        // WINDOWS-REMNANT
         let mdm_base_dir = if cfg!(windows) {
             absolute_path("C:\\codex")
         } else {
@@ -1318,6 +1331,7 @@ model = "enterprise_model"
 approval_policy = "never"
 "#;
         let cloud_value = toml::from_str::<TomlValue>(raw_cloud_toml).expect("cloud value");
+        // WINDOWS-REMNANT
         let cloud_base_dir = if cfg!(windows) {
             absolute_path("C:\\codex")
         } else {
@@ -1402,6 +1416,7 @@ approval_policy = "never"
         let requirements = ConfigRequirements {
             managed_hooks: Some(ConstrainedWithSource::new(
                 Constrained::allow_any(ManagedHooksRequirementsToml {
+                    // WINDOWS-REMNANT
                     managed_dir: Some(if cfg!(windows) {
                         std::path::PathBuf::from(r"C:\enterprise\hooks")
                     } else {

@@ -1,7 +1,5 @@
 #[cfg(target_os = "macos")]
 mod mac;
-#[cfg(target_os = "windows")]
-mod windows;
 
 /// Run the app install/open logic for the current OS.
 #[cfg(target_os = "macos")]
@@ -13,6 +11,7 @@ pub async fn run_app_open_or_install(
 }
 
 /// Run the app install/open logic for the current OS.
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub async fn run_app_open_or_install(
     workspace: std::path::PathBuf,

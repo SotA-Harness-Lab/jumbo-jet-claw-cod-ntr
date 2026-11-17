@@ -588,6 +588,7 @@ async fn send_add_credits_nudge_email_requires_chatgpt_auth() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(target_os = "windows", ignore = "covered by Linux and macOS CI")]
 #[tokio::test]
 async fn send_add_credits_nudge_email_posts_expected_body() -> Result<()> {
@@ -636,6 +637,7 @@ async fn send_add_credits_nudge_email_posts_expected_body() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(target_os = "windows", ignore = "covered by Linux and macOS CI")]
 #[tokio::test]
 async fn send_add_credits_nudge_email_maps_cooldown() -> Result<()> {
@@ -679,6 +681,7 @@ async fn send_add_credits_nudge_email_maps_cooldown() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(target_os = "windows", ignore = "covered by Linux and macOS CI")]
 #[tokio::test]
 async fn send_add_credits_nudge_email_surfaces_backend_failure() -> Result<()> {

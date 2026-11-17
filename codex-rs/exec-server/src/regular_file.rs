@@ -1,6 +1,7 @@
 use std::io;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
 use std::path::Path;
@@ -47,6 +48,7 @@ pub async fn read_sensitive_file_to_string(path: &Path) -> io::Result<String> {
     #[cfg(unix)]
     options.custom_flags(libc::O_NONBLOCK | libc::O_NOFOLLOW);
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
@@ -73,6 +75,7 @@ fn configure_open(options: &mut std::fs::OpenOptions) {
     options.custom_flags(libc::O_NONBLOCK);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn configure_open(options: &mut std::fs::OpenOptions) {
     use windows_sys::Win32::Storage::FileSystem::SECURITY_IDENTIFICATION;
@@ -80,9 +83,11 @@ fn configure_open(options: &mut std::fs::OpenOptions) {
     options.security_qos_flags(SECURITY_IDENTIFICATION);
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn configure_open(_options: &mut std::fs::OpenOptions) {}
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn is_disk_file(file: &impl std::os::windows::io::AsRawHandle) -> bool {
     use windows_sys::Win32::Storage::FileSystem::FILE_TYPE_DISK;
@@ -92,6 +97,7 @@ pub(crate) fn is_disk_file(file: &impl std::os::windows::io::AsRawHandle) -> boo
     unsafe { GetFileType(file.as_raw_handle()) == FILE_TYPE_DISK }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn is_disk_file<T>(_file: &T) -> bool {
     true

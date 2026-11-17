@@ -161,6 +161,7 @@ fn is_powershellish_executable_available(powershell_or_pwsh_exe: &std::path::Pat
 mod tests {
     use super::UTF8_OUTPUT_PREFIX;
     use super::extract_powershell_command;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     use super::parse_powershell_command_into_plain_commands;
     use super::parse_powershell_script_into_plain_commands;
@@ -191,6 +192,7 @@ mod tests {
 
     #[test]
     fn extracts_full_path_powershell_command() {
+        // WINDOWS-REMNANT
         let command = if cfg!(windows) {
             "C:\\windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe".to_string()
         } else {
@@ -255,6 +257,7 @@ mod tests {
         assert_eq!(prefix_powershell_script_with_utf8(&cmd), cmd);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn parses_plain_powershell_commands() {
@@ -269,6 +272,7 @@ mod tests {
         assert_eq!(commands, vec![vec!["echo".to_string(), "hi".to_string()]]);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn parses_multiple_plain_powershell_commands() {

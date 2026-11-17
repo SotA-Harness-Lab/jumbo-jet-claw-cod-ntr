@@ -982,11 +982,14 @@ async fn shell_family_registers_only_unified_exec_tools() {
 
 #[tokio::test]
 async fn exec_command_guidance_follows_executor_platform_and_fallbacks() {
+    // WINDOWS-REMNANT
     let opposite_host_os = if cfg!(windows) { "linux" } else { "windows" };
     for (platform_os, multiple_environments, expect_windows_guidance) in [
         (Some("windows"), false, true),
         (Some("linux"), false, false),
+        // WINDOWS-REMNANT
         (None, false, cfg!(windows)),
+        // WINDOWS-REMNANT
         (Some(opposite_host_os), true, cfg!(windows)),
     ] {
         let plan = probe(|turn| {

@@ -31,6 +31,7 @@ pub(super) fn classify(error: &CredentialStoreError) -> ErrorKind {
                 _ => {}
             }
         }
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if let Some(error) = error.downcast_ref::<keyring::windows::Error>() {
             return match error.0 {

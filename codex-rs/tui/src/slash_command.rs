@@ -317,6 +317,7 @@ impl SlashCommand {
     fn is_visible(self) -> bool {
         match self {
             SlashCommand::Copy => !cfg!(target_os = "android"),
+            // WINDOWS-REMNANT
             SlashCommand::App => cfg!(any(target_os = "macos", target_os = "windows")),
             SlashCommand::Voice => true,
             SlashCommand::Rollout | SlashCommand::TestApproval => cfg!(debug_assertions),

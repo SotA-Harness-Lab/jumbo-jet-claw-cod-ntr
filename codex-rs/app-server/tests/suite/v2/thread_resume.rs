@@ -165,8 +165,10 @@ mod account_tests;
 #[path = "thread_resume_network_tests.rs"]
 mod network_tests;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(25);
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
@@ -1174,6 +1176,7 @@ async fn cold_resume_workspace_roots_validate_foreign_startup_paths() -> Result<
         .join("..")
         .to_string_lossy()
         .into_owned();
+    // WINDOWS-REMNANT
     let (foreign_cwd, foreign_extra) = if cfg!(windows) {
         ("/foreign/project", "/foreign/extra")
     } else {
@@ -5527,6 +5530,7 @@ async fn thread_resume_rejects_mismatched_path_for_running_thread_id() -> Result
     )
     .await??;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let active_path = thread.path.as_ref().expect("thread should have path");

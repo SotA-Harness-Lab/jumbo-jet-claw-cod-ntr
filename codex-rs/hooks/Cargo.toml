@@ -40,5 +40,6 @@ libc = { workspace = true }
 pretty_assertions = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 
+# WINDOWS-REMNANT
 [target.'cfg(any(unix, windows))'.dependencies]
 codex-utils-pty = { workspace = true }

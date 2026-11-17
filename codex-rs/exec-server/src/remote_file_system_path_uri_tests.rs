@@ -411,6 +411,7 @@ async fn remote_file_system_can_read_after_checkout_removal_with_legacy_helper_l
         };
         #[cfg(unix)]
         let mut command = tokio::process::Command::new("cat");
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let mut command = {
             let mut command = tokio::process::Command::new("cmd.exe");
@@ -970,6 +971,7 @@ async fn record_metadata_params(
 fn non_native_cwd() -> PathUri {
     #[cfg(unix)]
     let uri = "file://server/share/checkout";
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let uri = "file:///usr/local/checkout";
 

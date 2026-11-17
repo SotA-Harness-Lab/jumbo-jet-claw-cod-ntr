@@ -1,16 +1,21 @@
 //! Applies the selected server's socket policy on initial connections and reconnects.
 
 use crate::AppServerTarget;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::DEFAULT_IN_PROCESS_CHANNEL_CAPACITY;
 use crate::connect_remote_app_server;
 use codex_app_server_client::AppServerClient;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_app_server_client::RemoteAppServerClient;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_app_server_client::RemoteAppServerConnectArgs;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_app_server_client::RemoteAppServerEndpoint;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_utils_absolute_path::AbsolutePathBuf;
 
@@ -22,6 +27,7 @@ pub(crate) async fn connect(target: &AppServerTarget) -> color_eyre::Result<AppS
         AppServerTarget::Embedded => {
             color_eyre::eyre::bail!("embedded sessions have no remote connection");
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         AppServerTarget::LocalDaemon {
             endpoint: RemoteAppServerEndpoint::UnixSocket { socket_path },

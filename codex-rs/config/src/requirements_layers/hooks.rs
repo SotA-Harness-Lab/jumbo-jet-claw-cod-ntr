@@ -23,6 +23,7 @@ pub(super) enum HookDirectoryField {
 
 impl HookDirectoryField {
     pub(super) fn current_platform() -> Self {
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             Self::WindowsManagedDir
         } else {

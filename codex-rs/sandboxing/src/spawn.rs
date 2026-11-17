@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::Path;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use anyhow::Context;
 use anyhow::Result;
@@ -63,6 +64,7 @@ pub async fn spawn_process(request: SpawnRequest<'_>) -> Result<SpawnedProcess> 
     };
 
     if request.sandbox == SandboxType::WindowsRestrictedToken {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             let windows = request
@@ -116,6 +118,7 @@ pub async fn spawn_process(request: SpawnRequest<'_>) -> Result<SpawnedProcess> 
             .map(finish_spawn);
         }
 
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         anyhow::bail!("Windows sandbox process spawn is unavailable on this platform");
     }

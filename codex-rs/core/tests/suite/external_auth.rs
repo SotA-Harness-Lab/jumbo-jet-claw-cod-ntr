@@ -258,6 +258,7 @@ fn bedrock_credential_export_config(
         )
     };
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (command, args) = {
         let script_path = credentials_path.with_extension("cmd");

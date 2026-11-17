@@ -629,6 +629,7 @@ metrics_exporter = {{ otlp-http = {{ endpoint = "{collector_url}/v1/metrics", pr
     std::fs::remove_file(&manifest)?;
     assert_eq!(client.force_environment_info().await?, expected_info);
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let argv = vec![
         "powershell.exe",
@@ -638,6 +639,7 @@ metrics_exporter = {{ otlp-http = {{ endpoint = "{collector_url}/v1/metrics", pr
         "-Command",
         "if (Test-Path Env:CODEX_EXEC_SERVER_EXIT_ON_STDIN_CLOSE) { exit 1 }; Start-Sleep -Seconds 60",
     ];
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let argv = vec![
         "/bin/sh",
@@ -1113,8 +1115,10 @@ metrics_exporter = {{ otlp-http = {{ endpoint = "{base_url}/v1/metrics", protoco
 
     let cwd = url::Url::from_directory_path(std::env::current_dir()?)
         .map_err(|()| anyhow::anyhow!("could not convert cwd to file URL"))?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let argv = vec!["ping.exe", "-n", "61", "127.0.0.1"];
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let argv = vec!["/bin/sleep", "60"];
     let codex_bin = codex_utils_cargo_bin::cargo_bin("codex")?;

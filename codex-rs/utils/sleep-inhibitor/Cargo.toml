@@ -16,6 +16,7 @@ core-foundation = "0.9"
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = { workspace = true }
 
+# WINDOWS-REMNANT
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { workspace = true, features = [
     "Win32_Foundation",

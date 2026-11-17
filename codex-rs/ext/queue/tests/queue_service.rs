@@ -170,6 +170,7 @@ if payload["prompt"] == "blocked":
     );
     std::fs::write(&script_path, script)
         .unwrap_or_else(|error| panic!("write queue hook script: {error}"));
+    // WINDOWS-REMNANT
     let python = if cfg!(windows) {
         "python.exe"
     } else {

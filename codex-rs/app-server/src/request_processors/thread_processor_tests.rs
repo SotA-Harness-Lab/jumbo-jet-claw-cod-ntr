@@ -48,6 +48,7 @@ mod thread_list_cwd_filter_tests {
 
     #[test]
     fn normalize_thread_list_cwd_filter_preserves_absolute_paths() {
+        // WINDOWS-REMNANT
         let cwd = if cfg!(windows) {
             String::from(r"C:\srv\repo-b")
         } else {
@@ -84,6 +85,7 @@ mod background_terminal_pagination_tests {
     use pretty_assertions::assert_eq;
 
     fn terminal(process_id: &str) -> ThreadBackgroundTerminal {
+        // WINDOWS-REMNANT
         let cwd = if cfg!(windows) { r"C:\tmp" } else { "/tmp" };
 
         ThreadBackgroundTerminal {

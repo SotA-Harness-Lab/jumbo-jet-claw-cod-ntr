@@ -14,6 +14,7 @@ pub fn create_symlink(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub fn create_symlink(
     source: &Path,
@@ -33,5 +34,6 @@ pub fn create_symlink(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 compile_error!("codex-git symlink support is only implemented for Unix and Windows");

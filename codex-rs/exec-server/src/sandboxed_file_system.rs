@@ -485,6 +485,7 @@ fn map_sandbox_error(error: JSONRPCErrorError) -> io::Error {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(all(test, any(unix, windows)))]
 #[path = "sandboxed_file_system_path_uri_tests.rs"]
 mod path_uri_tests;

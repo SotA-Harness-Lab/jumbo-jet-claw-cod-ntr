@@ -464,13 +464,17 @@ async fn connect_remote_app_server(
 
 async fn maybe_probe_default_daemon_socket(codex_home: &Path) -> Option<AbsolutePathBuf> {
     let socket_path = codex_app_server_client::app_server_control_socket_path(codex_home).ok()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (validated_path, _directory) =
         codex_uds::validate_private_socket_path(socket_path.as_path()).ok()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let validated_path = AbsolutePathBuf::from_absolute_path_checked(validated_path).ok()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let probe_path = validated_path.as_path();
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let probe_path = socket_path.as_path();
     match tokio::time::timeout(
@@ -480,6 +484,7 @@ async fn maybe_probe_default_daemon_socket(codex_home: &Path) -> Option<Absolute
     .await
     {
         Ok(Ok(_stream)) => {
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             _stream.ensure_non_elevated_peer().ok()?;
             Some(socket_path)
@@ -1324,6 +1329,7 @@ async fn run_ratatui_app(
     let mut app_server = Some(app_server_session);
     // Folder consent runs after the picker resolves the actual destination.
     let should_show_trust_screen_flag = false;
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let mut trust_decision_was_made = false;
     let mut startup_model_provider = initial_config.model_provider_id.clone();
@@ -1418,6 +1424,7 @@ async fn run_ratatui_app(
                 exit_reason: ExitReason::UserRequested,
             });
         }
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             trust_decision_was_made =
@@ -2043,6 +2050,7 @@ async fn run_ratatui_app(
                 )
                 .with_local_codex_home(&config.codex_home);
             }
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             {
                 trust_decision_was_made = true;
@@ -2122,8 +2130,10 @@ async fn run_ratatui_app(
 
     set_default_client_residency_requirement(config.enforce_residency.value());
     let is_first_run = config.active_project.trust_level.is_none();
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let should_prompt_windows_sandbox_nux_at_startup = trust_decision_was_made;
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     let should_prompt_windows_sandbox_nux_at_startup = false;
 

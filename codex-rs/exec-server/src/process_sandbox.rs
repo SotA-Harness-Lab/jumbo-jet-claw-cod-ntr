@@ -22,6 +22,7 @@ use codex_sandboxing::SandboxCommand;
 use codex_sandboxing::SandboxManager;
 use codex_sandboxing::SandboxTransformRequest;
 use codex_sandboxing::WrappedSandboxCommand;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_shell_command::shell_detect::fallback_powershell_shell_for_windows_sandbox;
 use codex_utils_absolute_path::AbsolutePathBuf;
@@ -138,6 +139,7 @@ pub(crate) async fn prepare_exec_request_with_telemetry(
     let sandbox_manager = SandboxManager::new()
         .with_linux_sandbox_pid_namespace(runtime_paths.linux_sandbox_pid_namespace)
         .with_linux_sandbox_transparent_tcp(runtime_paths.linux_sandbox_transparent_tcp);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let sandbox_manager = sandbox_manager.with_windows_token_session(
         sandbox_context
@@ -173,6 +175,7 @@ pub(crate) async fn prepare_exec_request_with_telemetry(
     );
     #[cfg(not(unix))]
     let (program, args) = (program.into(), args.to_vec());
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let program = if matches!(
         sandbox_context.windows_sandbox_selection,
@@ -205,6 +208,7 @@ pub(crate) async fn prepare_exec_request_with_telemetry(
             environment_id: None,
             network: proxy_handle.as_ref().and_then(NetworkProxyHandle::proxy),
             sandbox_policy_cwd: &sandbox_context.cwd,
+            // WINDOWS-REMNANT
             sandbox_exe: if cfg!(windows) {
                 Some(runtime_paths.codex_self_exe.as_path())
             } else {
@@ -252,6 +256,7 @@ async fn prepare_managed_network(
     let Some(launch) = &params.network_proxy else {
         return without_executor_proxy(env);
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let routing = match params
         .sandbox
@@ -271,6 +276,7 @@ async fn prepare_managed_network(
             | WindowsSandboxSelection::Elevated,
         ) => ManagedProxyRouting::SharedIngress,
     };
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let routing = ManagedProxyRouting::SharedIngress;
     let mut state = NetworkProxyState::from_remote_launch_config(

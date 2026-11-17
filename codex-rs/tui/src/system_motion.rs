@@ -29,6 +29,7 @@ async fn detect() -> Option<MotionMode> {
     })
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 async fn detect() -> Option<MotionMode> {
     use windows_sys::Win32::UI::WindowsAndMessaging::SPI_GETCLIENTAREAANIMATION;
@@ -77,6 +78,7 @@ async fn detect() -> Option<MotionMode> {
     .flatten()
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
 async fn detect() -> Option<MotionMode> {
     None

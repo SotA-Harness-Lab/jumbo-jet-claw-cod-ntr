@@ -22,11 +22,14 @@ use futures::StreamExt;
 use futures::TryStreamExt;
 use pretty_assertions::assert_eq;
 use std::sync::Arc;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use std::time::Duration;
 use tempfile::TempDir;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use tokio::net::windows::named_pipe::ServerOptions;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use tokio::time::timeout;
 use uuid::Uuid;
@@ -269,6 +272,7 @@ async fn file_reads_reject_fifo_without_waiting_for_a_writer(follow_symlinks: bo
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn file_reads_reject_named_pipes() -> Result<()> {

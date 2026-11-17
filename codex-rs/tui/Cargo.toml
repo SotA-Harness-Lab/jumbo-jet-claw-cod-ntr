@@ -141,7 +141,6 @@ urlencoding = { workspace = true }
 webbrowser = { workspace = true }
 uuid = { workspace = true }
 
-codex-windows-sandbox = { workspace = true }
 tokio-util = { workspace = true, features = ["time"] }
 
 [target.'cfg(unix)'.dependencies]
@@ -157,6 +156,7 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = ["s
 # Keep the same executor features as the credential store, which also uses zbus.
 zbus = "4.4.0"
 
+# WINDOWS-REMNANT
 [target.'cfg(windows)'.dependencies]
 which = { workspace = true }
 windows-sys = { workspace = true, features = [

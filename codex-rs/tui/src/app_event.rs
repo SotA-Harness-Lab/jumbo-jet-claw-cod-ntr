@@ -178,6 +178,7 @@ pub(crate) enum ConsolidationScrollbackReflow {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// WINDOWS-REMNANT
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 pub(crate) enum WindowsSandboxEnableMode {
     Elevated,
@@ -185,6 +186,7 @@ pub(crate) enum WindowsSandboxEnableMode {
 }
 
 #[derive(Debug, Clone)]
+// WINDOWS-REMNANT
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 pub(crate) struct ConnectorsSnapshot {
     pub(crate) connectors: Vec<AppInfo>,
@@ -1657,12 +1659,14 @@ pub(crate) enum AppEvent {
     },
 
     /// Refresh server-owned Windows state after selecting a thread or project.
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     RefreshWindowsSandbox {
         thread_id: ThreadId,
     },
 
     /// Prompt to enable the Windows sandbox feature before using Agent mode.
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     OpenWindowsSandboxEnablePrompt {
         preset: ApprovalPreset,
@@ -1670,6 +1674,7 @@ pub(crate) enum AppEvent {
     },
 
     /// Open the Windows sandbox fallback prompt after declining or failing elevation.
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     OpenWindowsSandboxFallbackPrompt {
         preset: ApprovalPreset,
@@ -1677,6 +1682,7 @@ pub(crate) enum AppEvent {
     },
 
     /// Begin the elevated Windows sandbox setup flow.
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     BeginWindowsSandboxElevatedSetup {
         preset: ApprovalPreset,
@@ -1684,6 +1690,7 @@ pub(crate) enum AppEvent {
     },
 
     /// Begin the non-elevated Windows sandbox setup flow.
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     BeginWindowsSandboxLegacySetup {
         preset: ApprovalPreset,
@@ -1691,6 +1698,7 @@ pub(crate) enum AppEvent {
     },
 
     /// Enable the Windows sandbox feature and switch to Agent mode.
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     EnableWindowsSandboxForAgentMode {
         preset: ApprovalPreset,
@@ -1699,6 +1707,7 @@ pub(crate) enum AppEvent {
     },
 
     /// Update the Windows sandbox feature mode without changing approval presets.
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 
     /// Update the current approval policy in the running app and widget.

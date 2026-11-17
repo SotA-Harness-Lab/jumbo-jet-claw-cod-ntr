@@ -75,6 +75,7 @@ pub(super) async fn check(config: &Config) -> DoctorCheck {
     if read_restricted {
         check.summary =
             "configured filesystem paths listed; read restrictions prevent probes".to_string();
+    // WINDOWS-REMNANT
     } else if cfg!(windows) {
         check.summary =
             "configured filesystem paths listed; probes disabled on Windows".to_string();
@@ -101,6 +102,7 @@ pub(super) async fn check(config: &Config) -> DoctorCheck {
         let probe_started = Instant::now();
         let outcome = match path.to_abs_path() {
             Ok(_) if read_restricted => ProbeResult::SkippedReadRestrictions,
+            // WINDOWS-REMNANT
             Ok(_) if cfg!(windows) => ProbeResult::SkippedWindows,
             Ok(native) => {
                 let executable = match std::env::current_exe() {
@@ -367,6 +369,7 @@ async fn probe(command: &mut Command, budget: Duration) -> ProbeResult {
 pub(super) fn probe_exit_code(path: &Path) -> i32 {
     // Even drive-qualified paths can traverse reparse points to network shares.
     // Do not initiate filesystem access on Windows from this unsandboxed helper.
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return 5;
     }

@@ -5,20 +5,23 @@ use std::io;
 use codex_utils_pty::Child;
 use codex_utils_pty::Command;
 
-#[cfg(windows)]
-mod windows;
-
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(super) type Stdin = tokio::net::windows::named_pipe::NamedPipeServer;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(super) type Stdout = tokio::net::windows::named_pipe::NamedPipeServer;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(super) type Stderr = tokio::net::windows::named_pipe::NamedPipeServer;
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 pub(super) type Stdin = tokio::process::ChildStdin;
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 pub(super) type Stdout = tokio::process::ChildStdout;
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 pub(super) type Stderr = tokio::process::ChildStderr;
 
@@ -30,6 +33,7 @@ pub(super) struct LocalStdio {
 }
 
 pub(super) fn spawn(command: Command) -> io::Result<LocalStdio> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let mut command = command;
@@ -41,6 +45,7 @@ pub(super) fn spawn(command: Command) -> io::Result<LocalStdio> {
             stderr: Some(pipes.stderr),
         })
     }
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     {
         let mut child = command.spawn()?;

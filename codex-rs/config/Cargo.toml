@@ -56,8 +56,8 @@ libc = { workspace = true }
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.9"
 
+# WINDOWS-REMNANT
 [target.'cfg(target_os = "windows")'.dependencies]
-codex-windows-sandbox = { workspace = true }
 winapi-util = { workspace = true }
 windows-sys = { workspace = true, features = [
     "Win32_Foundation",

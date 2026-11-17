@@ -165,8 +165,10 @@ const PASTE_BURST_CHAR_INTERVAL: Duration = Duration::from_millis(8);
 
 // Idle timeout before flushing buffered paste content.
 // Slower paste bursts have been observed in Windows environments.
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 const PASTE_BURST_ACTIVE_IDLE_TIMEOUT: Duration = Duration::from_millis(8);
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const PASTE_BURST_ACTIVE_IDLE_TIMEOUT: Duration = Duration::from_millis(60);
 

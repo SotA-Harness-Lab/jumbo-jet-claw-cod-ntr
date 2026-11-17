@@ -108,6 +108,7 @@ fn read_config(path: &Path) -> anyhow::Result<DocumentMut> {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 async fn detect() -> bool {
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -118,6 +119,7 @@ async fn detect() -> bool {
         .spawn(move || {
             #[cfg(target_os = "macos")]
             let detected = objc2_app_kit::NSWorkspace::sharedWorkspace().isVoiceOverEnabled();
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             let detected = {
                 use windows_sys::Win32::UI::WindowsAndMessaging::SPI_GETSCREENREADER;
@@ -179,14 +181,11 @@ async fn detect() -> bool {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
 async fn detect() -> bool {
     false
 }
-
-#[cfg(windows)]
-#[path = "screen_reader_windows.rs"]
-mod windows_screen_reader;
 
 #[cfg(test)]
 #[path = "screen_reader_tests.rs"]

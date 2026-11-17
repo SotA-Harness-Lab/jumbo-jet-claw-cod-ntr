@@ -250,6 +250,7 @@ fn build_state_with_audit_metadata_threads_metadata_to_state() {
     assert_eq!(state.audit_metadata(), &metadata);
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_sandbox_proxy_listeners_preserve_effective_protocol_roles() {

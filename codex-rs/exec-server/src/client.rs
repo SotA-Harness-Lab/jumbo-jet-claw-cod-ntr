@@ -2330,6 +2330,7 @@ mod tests {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     #[tokio::test]
     async fn connect_stdio_command_initializes_json_rpc_client() {
@@ -2353,6 +2354,7 @@ mod tests {
         assert_eq!(client.session_id().as_deref(), Some("stdio-test"));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     #[tokio::test]
     async fn connect_for_transport_initializes_stdio_command() {
@@ -2380,6 +2382,7 @@ mod tests {
         assert_eq!(client.session_id().as_deref(), Some("stdio-test"));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[tokio::test]
     async fn connect_stdio_command_initializes_json_rpc_client_on_windows() {

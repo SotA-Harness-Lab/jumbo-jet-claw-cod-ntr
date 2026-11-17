@@ -235,6 +235,7 @@ impl App {
     }
 
     /// Wait until visible and queued startup decisions cannot consume a delayed OSC response.
+    // WINDOWS-REMNANT
     #[cfg(any(windows, test))]
     pub(super) fn ready_for_terminal_color_probe(&self, has_pending_app_events: bool) -> bool {
         !has_pending_app_events
@@ -1262,8 +1263,10 @@ See the Codex keymap documentation for supported actions and examples."
             );
         }
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let mut terminal_color_probe_pending = true;
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if app.ready_for_terminal_color_probe(!app_event_rx.is_empty()) {
             tui.probe_default_colors_after_protected_startup();
@@ -1860,6 +1863,7 @@ See the Codex keymap documentation for supported actions and examples."
                                 &mut pending_startup_submission,
                             );
                         }
+                        // WINDOWS-REMNANT
                         #[cfg(windows)]
                         if terminal_color_probe_pending
                             && app.ready_for_terminal_color_probe(!app_event_rx.is_empty())

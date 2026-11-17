@@ -24,6 +24,7 @@ use codex_git_utils::SAFE_BARE_REPOSITORY_CONFIG;
 use codex_git_utils::git_config_override_env;
 use codex_protocol::shell_environment::scrub_non_inheritable_env_vars;
 
+// WINDOWS-REMNANT
 const DISABLED_HOOKS_PATH: &str = if cfg!(windows) { "NUL" } else { "/dev/null" };
 
 #[derive(Clone, Copy)]
@@ -72,6 +73,7 @@ where
 {
     let output = git_output(cwd, GitOperation::Metadata, args)?;
     let bytes = output.stdout.strip_suffix(b"\n").unwrap_or(&output.stdout);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let bytes = bytes.strip_suffix(b"\r").unwrap_or(bytes);
     git_path_from_bytes(bytes)

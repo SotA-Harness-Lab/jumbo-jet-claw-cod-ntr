@@ -37,10 +37,6 @@ use tempfile::TempDir;
 use tempfile::tempdir;
 use toml::Value as TomlValue;
 
-#[cfg(windows)]
-#[path = "exec_policy_windows_tests.rs"]
-mod windows_tests;
-
 fn config_stack_for_dot_codex_folder(dot_codex_folder: &Path) -> ConfigLayerStack {
     let dot_codex_folder =
         AbsolutePathBuf::from_absolute_path(dot_codex_folder).expect("absolute dot_codex_folder");
@@ -57,6 +53,7 @@ fn config_stack_for_dot_codex_folder(dot_codex_folder: &Path) -> ConfigLayerStac
 }
 
 fn host_absolute_path(segments: &[&str]) -> String {
+    // WINDOWS-REMNANT
     let mut path = if cfg!(windows) {
         PathBuf::from(r"C:\")
     } else {
@@ -69,6 +66,7 @@ fn host_absolute_path(segments: &[&str]) -> String {
 }
 
 fn host_program_path(name: &str) -> String {
+    // WINDOWS-REMNANT
     let executable_name = if cfg!(windows) {
         format!("{name}.exe")
     } else {
@@ -882,6 +880,7 @@ async fn heredoc_prompt_replaces_inner_requested_prefix_with_full_command() {
 }
 
 #[tokio::test]
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 async fn heredoc_with_variable_assignment_is_not_reduced_to_allowed_prefix() {
     assert_exec_approval_requirement_for_command(
@@ -1105,6 +1104,7 @@ async fn absolute_path_exec_approval_requirement_ignores_disallowed_host_executa
         "opt",
         "homebrew",
         "bin",
+        // WINDOWS-REMNANT
         if cfg!(windows) { "git.exe" } else { "git" },
     ]);
     let allowed_git_path_literal = starlark_string(&allowed_git_path);
@@ -2281,6 +2281,7 @@ async fn verify_approval_requirement_for_unsafe_powershell_command() {
         "-Command",
         "echo hi @(calc)",
     ])));
+    // WINDOWS-REMNANT
     let (pwsh_approval_reason, expected_req) = if cfg!(windows) {
         (
             r#"On Windows, SandboxPolicy::ReadOnly should be assumed to mean

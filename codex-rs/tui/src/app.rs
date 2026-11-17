@@ -17,6 +17,7 @@ use crate::app_event::PluginRemoteSectionError;
 use crate::app_event::RateLimitRefreshOrigin;
 use crate::app_event::RunningTaskExitAction;
 use crate::app_event::ThreadTitleDestination;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use crate::app_event::WindowsSandboxEnableMode;
 use crate::app_event_sender::AppEventSender;
@@ -202,6 +203,7 @@ mod agent_message_consolidation;
 mod agent_navigation;
 mod agent_picker;
 mod agent_status_feed;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 mod agents_overview;
 mod agents_overview_actions;

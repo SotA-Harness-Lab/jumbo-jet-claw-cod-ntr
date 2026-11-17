@@ -323,6 +323,7 @@ impl Session {
             .environment_use_mxc
             .entry(codex_config::DEFAULT_MCP_SERVER_ENVIRONMENT_ID.to_string())
             .or_insert(
+                // WINDOWS-REMNANT
                 cfg!(windows)
                     && settings.effective_local_windows_sandbox_type() == SandboxType::WindowsMxc,
             );

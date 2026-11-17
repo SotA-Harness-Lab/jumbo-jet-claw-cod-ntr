@@ -44,6 +44,7 @@ impl ClaSource {
             vec![home.join("Library/Application Support/Claude")]
         }
 
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             let default_roaming = home.join("AppData/Roaming");
@@ -67,6 +68,7 @@ impl ClaSource {
             roots
         }
 
+        // WINDOWS-REMNANT
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         {
             vec![home.join(".config/Claude")]

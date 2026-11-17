@@ -21,12 +21,15 @@ use url::Url;
 
 use super::CheckStatus;
 use super::DoctorCheck;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use super::DoctorIssue;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use super::desktop::platform::InstalledApp;
 use super::doctor_install_context;
 use super::doctor_managed_by_npm;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use super::network;
 
@@ -41,6 +44,7 @@ const DESKTOP_UPDATE_URL: &str = "https://persistent.oaistatic.com/codex-app-pro
 const DESKTOP_UPDATE_URL: &str = "https://persistent.oaistatic.com/codex-app-prod/appcast.xml";
 #[cfg(target_os = "macos")]
 const BACKEND_DESKTOP_UPDATE_URL: &str = "https://chatgpt.com/backend-api/wham/app/appcast";
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 const DESKTOP_UPDATE_URL: &str =
     "https://persistent.oaistatic.com/codex-app-prod/windows-store-update.json";
@@ -93,6 +97,7 @@ pub(super) async fn updates_check(config: &Config) -> DoctorCheck {
     DoctorCheck::new("updates.status", "updates", status, summary).details(details)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 pub(super) async fn append_desktop_update(
     checks: &mut [DoctorCheck],
@@ -135,6 +140,7 @@ pub(super) async fn append_desktop_update(
             macos_desktop_update_url(&home, application, &os_info::get().version().to_string())
         })
         .unwrap_or_else(|| DESKTOP_UPDATE_URL.to_string());
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let desktop_update_url = DESKTOP_UPDATE_URL;
     #[cfg(target_os = "macos")]
@@ -154,6 +160,7 @@ pub(super) async fn append_desktop_update(
     {
         Ok(response) => {
             let status = response.status().as_u16();
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             if status == 404 && response.url().scheme() == "https" {
                 checks[reachability_index].details.push(format!(
@@ -161,6 +168,7 @@ pub(super) async fn append_desktop_update(
                 ));
                 return;
             }
+            // WINDOWS-REMNANT
             if cfg!(target_os = "windows") && response.url().scheme() != "https" {
                 Err("update manifest redirected to a non-HTTPS URL".to_string())
             } else if status == 407 {
@@ -171,6 +179,7 @@ pub(super) async fn append_desktop_update(
                 checks[reachability_index].details.push(format!(
                     "desktop assets CDN: {desktop_update_display_url} reachable (HTTP {status})"
                 ));
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 if let Some(update) = checks.iter_mut().find(|check| check.id == "updates.status") {
                     match response.bytes().await {
@@ -279,6 +288,7 @@ fn macos_desktop_update_url(home: &Path, application: &InstalledApp, os_version:
     url.to_string()
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "windows", test))]
 fn windows_store_update(
     manifest: &[u8],

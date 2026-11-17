@@ -65,6 +65,7 @@ fn shell_approval_command<'a>(command: &'a [String], configured_shell: &Shell) -
     };
     let executable_path = Path::new(executable);
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let is_system_shell = std::env::var_os("SystemRoot").is_some_and(|system_root| {
         let system_directory = Path::new(&system_root).join("System32");
@@ -79,16 +80,19 @@ fn shell_approval_command<'a>(command: &'a [String], configured_shell: &Shell) -
         })
     });
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let is_system_shell = executable_path
         .parent()
         .is_some_and(|parent| parent == Path::new("/bin") || parent == Path::new("/usr/bin"));
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let is_configured_shell = executable_path
         .as_os_str()
         .eq_ignore_ascii_case(configured_shell.shell_path.as_os_str());
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let is_configured_shell = executable_path == configured_shell.shell_path.as_path();
 

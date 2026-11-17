@@ -85,6 +85,7 @@ pub(crate) fn apply_defaults(
             .map_or(granular, |policy| policy.to_core());
         let _ = config.permissions.approval_policy.set(granular);
     }
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     if config.effective_local_windows_sandbox_type() == codex_sandboxing::SandboxType::None {
         applied.prompt_windows_sandbox = true;

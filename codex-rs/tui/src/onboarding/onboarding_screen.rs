@@ -157,6 +157,7 @@ impl OnboardingScreen {
             tui.frame_requester(),
             local_settings.tui.animations && local_settings.tui.effects.welcome,
         )));
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let show_windows_create_sandbox_hint = if show_trust_screen
             && remote_project_trust.is_none()
@@ -171,6 +172,7 @@ impl OnboardingScreen {
         } else {
             false
         };
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         let show_windows_create_sandbox_hint = false;
         if show_login_screen {

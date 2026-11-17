@@ -1186,6 +1186,7 @@ fn parse_data_url(url: &str) -> Option<(String, String)> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if std::env::var_os("MCP_TEST_DESCENDANT_ROLE").is_some() {
         tokio::time::sleep(Duration::from_secs(30)).await;
@@ -1196,6 +1197,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Ok(pid_file) = std::env::var("MCP_TEST_PID_FILE") {
         std::fs::write(pid_file, std::process::id().to_string())?;
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if let Ok(console_state_file) = std::env::var("MCP_TEST_CONSOLE_STATE_FILE") {
         #[link(name = "kernel32")]
@@ -1205,6 +1207,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let has_console = unsafe { !GetConsoleWindow().is_null() };
         std::fs::write(console_state_file, has_console.to_string())?;
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if let Ok(marker_file) = std::env::var("MCP_TEST_BREAKAWAY_DENIED_FILE") {
         use std::os::windows::process::CommandExt;
@@ -1231,6 +1234,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if let Ok(pid_file) = std::env::var("MCP_TEST_DESCENDANT_PID_FILE") {
         let child = std::process::Command::new(std::env::current_exe()?)

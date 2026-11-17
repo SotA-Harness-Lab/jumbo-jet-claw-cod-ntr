@@ -17,10 +17,12 @@ pub(super) fn restored_input_mode(mode: u32, original: VirtualTerminalInput) -> 
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 static ORIGINAL_VT_INPUT: std::sync::Mutex<Vec<VirtualTerminalInput>> =
     std::sync::Mutex::new(Vec::new());
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn current_input_mode() -> Option<(windows_sys::Win32::Foundation::HANDLE, u32)> {
     use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
@@ -41,6 +43,7 @@ fn current_input_mode() -> Option<(windows_sys::Win32::Foundation::HANDLE, u32)>
     Some((handle, mode))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(super) fn set_input_record_mode() -> std::io::Result<()> {
     use windows_sys::Win32::System::Console::SetConsoleMode;
@@ -65,6 +68,7 @@ pub(super) fn set_input_record_mode() -> std::io::Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(super) fn ensure_input_record_mode() -> std::io::Result<()> {
     use windows_sys::Win32::System::Console::SetConsoleMode;
@@ -80,6 +84,7 @@ pub(super) fn ensure_input_record_mode() -> std::io::Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(super) fn restore_input_mode() -> std::io::Result<()> {
     use windows_sys::Win32::System::Console::SetConsoleMode;

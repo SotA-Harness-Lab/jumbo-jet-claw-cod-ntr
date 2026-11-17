@@ -2253,8 +2253,10 @@ mod tests {
                 move_path: Some(PathBuf::from("new.txt")),
             },
         );
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let (foreign_path, foreign_move_path) = ("/remote/old.txt", "/remote/new.txt");
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         let (foreign_path, foreign_move_path) = (r"C:\workspace\old.txt", r"C:\workspace\new.txt");
         changes.insert(

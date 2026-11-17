@@ -96,6 +96,7 @@ pub fn assert_regex_match<'s>(pattern: &str, actual: &'s str) -> regex_lite::Cap
 }
 
 pub fn test_path_buf_with_windows(unix_path: &str, windows_path: Option<&str>) -> PathBuf {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         if let Some(windows) = windows_path {
             PathBuf::from(windows)
@@ -136,6 +137,7 @@ pub fn create_directory_symlink(source: &Path, link: &Path) {
     std::os::unix::fs::symlink(source, link).expect("create directory symlink");
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[allow(clippy::expect_used)]
 pub fn create_directory_symlink(source: &Path, link: &Path) {
@@ -773,6 +775,7 @@ macro_rules! codex_linux_sandbox_exe_or_skip {
 #[macro_export]
 macro_rules! skip_if_host_windows {
     ($return_value:expr $(,)?) => {{
+        // WINDOWS-REMNANT
         if cfg!(target_os = "windows") {
             println!("Skipping test because it cannot execute on Windows.");
             return $return_value;

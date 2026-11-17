@@ -2905,6 +2905,7 @@ async fn command_gateway_stops_after_a_second_unauthorized_websocket_upgrade() {
         .expect(2)
         .mount(&server)
         .await;
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "command = 'cmd.exe', args = ['/D', '/C', 'echo', 'exported']"
     } else {

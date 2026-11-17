@@ -3325,6 +3325,7 @@ async fn deferred_executor_guardian_uses_newly_ready_step_environment(
                     .expect("enable Guardian v2");
                 config.mcp_servers.set(serde_json::from_value(json!({
                     "cua_repl": {
+                        // WINDOWS-REMNANT
                         "command": if cfg!(windows) { "python" } else { "python3" },
                         "args": ["-u", "-c", super::guardian_mcp_elicitation::ELICITATION_SERVER,
                             "[{}]", "forward"],

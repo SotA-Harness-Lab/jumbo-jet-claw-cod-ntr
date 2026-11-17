@@ -621,6 +621,7 @@ impl TestCodexBuilder {
     }
 
     pub fn with_windows_cmd_shell(self) -> Self {
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             self.with_user_shell(get_shell_by_model_provided_path(&PathBuf::from("cmd.exe")))
         } else {

@@ -215,6 +215,7 @@ fn voice_toggle_chord_dispatches_in_overview_without_an_active_voice_session() {
 fn voice_toggle_reserves_text_input() {
     for binding in ["v", "shift-v", "2", "space"]
         .into_iter()
+        // WINDOWS-REMNANT
         .chain(cfg!(windows).then_some("ctrl-alt-q"))
     {
         let config =

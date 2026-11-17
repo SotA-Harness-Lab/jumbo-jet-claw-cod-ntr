@@ -1391,6 +1391,7 @@ impl App {
         true
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     pub(super) async fn verify_windows_sandbox_mode_after_setup(
         &mut self,

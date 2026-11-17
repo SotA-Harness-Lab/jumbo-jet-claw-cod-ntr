@@ -241,6 +241,7 @@ impl NetworkProxyConfig {
         &mut self,
         environment: &HashMap<String, String>,
     ) {
+        // WINDOWS-REMNANT
         if cfg!(windows)
             && self.credential_broker
             && self.has_ambiguous_windows_credential_environment(environment)
@@ -839,6 +840,7 @@ mod tests {
     }
 
     #[test]
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn ambiguous_credential_environment_preserves_remote_proxy_support() {
         let mut config = NetworkProxyConfig {

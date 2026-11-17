@@ -28,8 +28,10 @@ use codex_protocol::permissions::NetworkSandboxPolicy;
 use codex_utils_absolute_path::AbsolutePathBuf;
 #[cfg(not(any(target_os = "linux", target_os = "macos")))]
 use codex_utils_absolute_path::canonicalize_preserving_symlinks;
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 use codex_utils_path_uri::LegacyAppPathString;
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 use codex_utils_path_uri::PathConvention;
 use codex_utils_path_uri::PathUri;
@@ -38,6 +40,7 @@ pub(super) struct WindowsSessionPolicy {
     pub(super) workspace_roots: Vec<AbsolutePathBuf>,
     pub(super) filesystem_overrides: Option<WindowsSandboxFilesystemOverrides>,
     pub(super) proxy_enforced: bool,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(super) restricting_sid: Option<String>,
     pub(super) proxy_settings_mode: WindowsSandboxProxySettingsMode,
@@ -168,8 +171,10 @@ impl WrappedSandboxCommand {
                     workspace_roots: &session.workspace_roots,
                     windows_sandbox_level: request.windows_sandbox_level,
                     proxy_enforced: session.proxy_enforced,
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     network_proxy_restricting_sid: session.restricting_sid.as_deref(),
+                    // WINDOWS-REMNANT
                     #[cfg(not(windows))]
                     network_proxy_restricting_sid: None,
                     proxy_settings_mode: session.proxy_settings_mode,
@@ -247,6 +252,7 @@ pub(super) enum SandboxOperation {
 #[derive(Debug)]
 pub(super) struct PreparedLaunchPolicy {
     pub(super) permissions: PermissionProfile,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(super) workspace_roots: Vec<AbsolutePathBuf>,
 }
@@ -270,6 +276,7 @@ impl PreparedLaunchPolicy {
             }
             return Ok(Self {
                 permissions,
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 workspace_roots: Vec::new(),
             });
@@ -313,6 +320,7 @@ impl PreparedLaunchPolicy {
             // also block the executor runtime thread on their filesystems.
             #[cfg(not(target_os = "linux"))]
             normalize_helper_policy_root_aliases(&mut file_system)?;
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             bind_windows_cwd_relative_deny_read_globs(&mut file_system, policy_cwd)?;
             PermissionProfile::from_runtime_permissions(
@@ -330,6 +338,7 @@ impl PreparedLaunchPolicy {
         };
         Ok(Self {
             permissions,
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             workspace_roots,
         })
@@ -342,6 +351,7 @@ fn native_path(path: &PathUri, field: &str) -> io::Result<AbsolutePathBuf> {
 }
 
 /// The Windows wrapper interprets the policy from the helper's cwd, which can be a drive root.
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 fn bind_windows_cwd_relative_deny_read_globs(
     file_system: &mut FileSystemSandboxPolicy,

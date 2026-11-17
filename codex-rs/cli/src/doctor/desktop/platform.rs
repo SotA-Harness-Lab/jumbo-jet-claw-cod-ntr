@@ -6,10 +6,13 @@ use std::ffi::OsStr;
 use std::fs;
 #[cfg(target_os = "macos")]
 use std::os::unix::ffi::OsStrExt;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::os::windows::io::AsRawHandle;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::os::windows::io::FromRawHandle;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::os::windows::io::OwnedHandle;
 #[cfg(target_os = "macos")]
@@ -27,18 +30,25 @@ use serde_json::Value;
 use tokio::process::Command;
 #[cfg(target_os = "macos")]
 use tokio::time::timeout;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::ERROR_INSUFFICIENT_BUFFER;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::ERROR_SUCCESS;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Storage::Packaging::Appx::FindPackagesByPackageFamily;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Storage::Packaging::Appx::GetPackageFamilyName;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Storage::Packaging::Appx::PACKAGE_FILTER_HEAD;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Threading::OpenProcess;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Threading::PROCESS_QUERY_LIMITED_INFORMATION;
 
@@ -48,6 +58,7 @@ use super::super::DoctorCheck;
 pub(in crate::doctor) struct InstalledApp {
     pub(in crate::doctor) identity: &'static str,
     pub(in crate::doctor) version: String,
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     package_family: &'static str,
     #[cfg(target_os = "macos")]
@@ -60,6 +71,7 @@ pub(in crate::doctor) struct InstalledApp {
 pub(in crate::doctor) struct DiscoveryError;
 
 pub(super) async fn installed_app() -> Result<Option<InstalledApp>, DiscoveryError> {
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     {
         installed_windows_app()
@@ -68,6 +80,7 @@ pub(super) async fn installed_app() -> Result<Option<InstalledApp>, DiscoveryErr
     {
         installed_macos_app().await
     }
+    // WINDOWS-REMNANT
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         Ok(None)
@@ -93,11 +106,13 @@ fn process_executable_path(pid: u32) -> Option<PathBuf> {
     Some(PathBuf::from(OsStr::from_bytes(executable.to_bytes())))
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub(super) fn application_running(application: &InstalledApp, candidate_pid: u32) -> bool {
     process_package_family(candidate_pid).as_deref() == Some(application.package_family)
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn process_package_family(pid: u32) -> Option<String> {
     let handle = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
@@ -134,6 +149,7 @@ fn process_package_family(pid: u32) -> Option<String> {
     String::from_utf16(&family[..end]).ok()
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub(super) fn application_running(_application: &InstalledApp, _candidate_pid: u32) -> bool {
     false
@@ -147,6 +163,7 @@ pub(super) fn desktop_check(
     DoctorCheck::new(id, "desktop", status, summary)
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn installed_windows_app() -> Result<Option<InstalledApp>, DiscoveryError> {
     const PACKAGE_FAMILY: &str = "OpenAI.Codex_2p2nqsd0c76g0";

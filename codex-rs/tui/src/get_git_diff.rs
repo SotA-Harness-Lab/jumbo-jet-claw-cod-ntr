@@ -16,6 +16,7 @@ use codex_git_utils::FsmonitorProbeRunner;
 use codex_git_utils::detect_fsmonitor_override;
 
 const DIFF_COMMAND_TIMEOUT: Duration = Duration::from_secs(/*secs*/ 30);
+// WINDOWS-REMNANT
 const DISABLE_HOOKS_CONFIG: &str = if cfg!(windows) {
     "core.hooksPath=NUL"
 } else {
@@ -89,6 +90,7 @@ pub(crate) async fn get_git_diff(
     let untracked_output = untracked_output_res?;
 
     let mut untracked_diff = String::new();
+    // WINDOWS-REMNANT
     let null_device: &Path = if cfg!(windows) {
         Path::new("NUL")
     } else {
@@ -799,6 +801,7 @@ mod tests {
     }
 
     fn null_device() -> &'static str {
+        // WINDOWS-REMNANT
         if cfg!(windows) { "NUL" } else { "/dev/null" }
     }
 

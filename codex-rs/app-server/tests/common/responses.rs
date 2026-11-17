@@ -65,6 +65,7 @@ pub fn create_apply_patch_sse_response(
 }
 
 pub fn create_exec_command_sse_response(call_id: &str) -> anyhow::Result<String> {
+    // WINDOWS-REMNANT
     let (cmd, args) = if cfg!(windows) {
         ("cmd.exe", vec!["/d", "/c", "echo hi"])
     } else {

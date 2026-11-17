@@ -21,6 +21,7 @@ use crossterm::cursor::SetCursorStyle;
 use crossterm::event::DisableBracketedPaste;
 use crossterm::event::DisableFocusChange;
 use crossterm::event::EnableBracketedPaste;
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 use crossterm::event::EnableFocusChange;
 use crossterm::event::KeyEvent;
@@ -95,8 +96,10 @@ mod terminal_stderr;
 #[cfg(test)]
 pub(crate) mod test_support;
 mod tmux;
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 mod windows_console;
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 mod windows_key_sequence;
 
@@ -261,6 +264,7 @@ fn set_modes() -> Result<tmux::Options> {
     execute!(stdout(), EnableBracketedPaste)?;
 
     enable_raw_mode()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     windows_console::set_input_record_mode()?;
     // Enable keyboard enhancement flags so modifiers for keys like Enter are disambiguated.
@@ -271,8 +275,10 @@ fn set_modes() -> Result<tmux::Options> {
     // gracefully if unsupported.
     let options = keyboard_modes::enable_keyboard_enhancement(&mut stdout());
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let _ = execute!(stdout(), EnableFocusChange);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _ = execute!(stdout(), DisableFocusChange);
     Ok(options)
@@ -286,6 +292,7 @@ impl Command for EnableAlternateScroll {
         write!(f, "\x1b[?1007h")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> Result<()> {
         Err(std::io::Error::other(
@@ -293,6 +300,7 @@ impl Command for EnableAlternateScroll {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         true
@@ -307,6 +315,7 @@ impl Command for DisableAlternateScroll {
         write!(f, "\x1b[?1007l")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> Result<()> {
         Err(std::io::Error::other(
@@ -314,6 +323,7 @@ impl Command for DisableAlternateScroll {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         true
@@ -376,6 +386,7 @@ fn restore_common(
     {
         first_error.get_or_insert(err);
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if let Err(err) = windows_console::restore_input_mode() {
         first_error.get_or_insert(err);
@@ -476,6 +487,7 @@ fn flush_terminal_input_buffer() {
 
 /// Flush the underlying stdin buffer to clear any input that may be buffered at the terminal level.
 /// For example, clears any user input that occurred while the crossterm EventStream was dropped.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn flush_terminal_input_buffer() {
     use windows_sys::Win32::Foundation::GetLastError;
@@ -498,6 +510,7 @@ fn flush_terminal_input_buffer() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 pub(crate) fn flush_terminal_input_buffer() {}
 
@@ -593,6 +606,7 @@ pub(crate) fn init() -> Result<InitializedTerminal> {
     let enhanced_keys_supported =
         !keyboard_modes::keyboard_enhancement_disabled() && detect_keyboard_enhancement_supported();
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     // OSC replies can arrive after their deadline. Do not issue terminal queries before directory
     // trust and other protected startup screens have finished accepting their security decisions.
@@ -642,6 +656,7 @@ fn detect_keyboard_enhancement_supported() -> bool {
     supports_keyboard_enhancement().unwrap_or(/*default*/ false)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn probe_windows_default_colors() {
     let started_at = std::time::Instant::now();
@@ -971,6 +986,7 @@ impl Tui {
     }
 
     /// Discover the visible Windows theme only after protected startup decisions have completed.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(crate) fn probe_default_colors_after_protected_startup(&mut self) {
         self.pause_events();
@@ -1707,6 +1723,7 @@ impl Tui {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn ensure_virtual_terminal_processing() -> Result<()> {
     use windows_sys::Win32::Foundation::HANDLE;
@@ -1750,6 +1767,7 @@ fn ensure_virtual_terminal_processing() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn ensure_virtual_terminal_processing() -> Result<()> {
     Ok(())

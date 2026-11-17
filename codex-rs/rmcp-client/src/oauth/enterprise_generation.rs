@@ -52,6 +52,7 @@ impl EnterpriseOAuthGenerationFile {
                 .mode(0o600)
                 .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             use std::os::windows::fs::OpenOptionsExt;

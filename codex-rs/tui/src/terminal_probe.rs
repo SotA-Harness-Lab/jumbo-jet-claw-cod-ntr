@@ -19,6 +19,7 @@ mod startup_replay;
 #[cfg(unix)]
 mod terminal_identity;
 
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 #[path = "terminal_probe/windows_replay.rs"]
 mod windows_replay;
@@ -854,10 +855,7 @@ mod imp {
     }
 }
 
-#[cfg(windows)]
-#[path = "terminal_probe/windows.rs"]
-mod imp;
-
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows, test))]
 fn parse_osc_color(buffer: &[u8], slot: u8) -> Option<(u8, u8, u8)> {
     let prefix = format!("\x1B]{slot};");
@@ -876,6 +874,7 @@ fn parse_default_colors(buffer: &[u8]) -> Option<DefaultColors> {
     Some(DefaultColors { fg, bg })
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows, test))]
 fn osc_payload_end(buffer: &[u8]) -> Option<(usize, usize)> {
     let mut idx = 0;
@@ -889,6 +888,7 @@ fn osc_payload_end(buffer: &[u8]) -> Option<(usize, usize)> {
     None
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows, test))]
 fn parse_osc_rgb(payload: &str) -> Option<(u8, u8, u8)> {
     let (prefix, values) = payload.trim().split_once(':')?;
@@ -906,6 +906,7 @@ fn parse_osc_rgb(payload: &str) -> Option<(u8, u8, u8)> {
     parts.next().is_none().then_some((r, g, b))
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows, test))]
 fn parse_osc_component(component: &str) -> Option<u8> {
     if !(1..=4).contains(&component.len()) {
@@ -917,6 +918,7 @@ fn parse_osc_component(component: &str) -> Option<u8> {
     Some((value * u32::from(u8::MAX) / maximum) as u8)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows, test))]
 fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack
@@ -924,6 +926,7 @@ fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         .position(|window| window == needle)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 pub(crate) use imp::*;
 

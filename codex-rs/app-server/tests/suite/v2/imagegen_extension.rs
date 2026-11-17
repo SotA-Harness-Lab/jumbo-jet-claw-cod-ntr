@@ -64,8 +64,10 @@ enum ImagegenTestMode {
 
 // macOS and Windows Bazel CI can spend tens of seconds starting app-server
 // subprocesses or processing test RPCs under load.
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(60);
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", windows)))]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -1004,6 +1006,7 @@ async fn standalone_image_generation_is_exposed_in_code_mode_only() -> Result<()
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[test_case(Some(true), "transparent"; "transparent")]
 #[test_case(Some(false), "opaque"; "opaque")]
@@ -1106,6 +1109,7 @@ generatedImage(result);
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn gif_edit_from_code_mode_preserves_animation_and_api_defaults() -> Result<()> {

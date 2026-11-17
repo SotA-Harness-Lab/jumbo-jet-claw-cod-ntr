@@ -37,6 +37,7 @@ use crate::RestartMode;
 use crate::managed_install::ExecutableIdentity;
 use crate::managed_install::executable_identity;
 use crate::managed_install::resolved_managed_codex_bin;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "linux", target_os = "macos", windows))]
 use crate::settings::DaemonSettings;
 use crate::settings::UpdaterSettings;
@@ -73,6 +74,7 @@ const INSTALLER_STDERR_TAIL_BYTES: usize = 2 * 1024;
 const INSTALLER_STDERR_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
 #[cfg(unix)]
 const INSTALL_URL: &str = "https://chatgpt.com/codex/install.sh";
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const INSTALL_URL: &str = "https://chatgpt.com/codex/install.ps1";
 
@@ -115,15 +117,19 @@ async fn run_with_http(
             let _ = backend.promote_legacy_identity().await;
         }
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let updater = {
         // Updater ownership needs only paths, not settings that may be mid-edit.
         crate::backend::pid_update_loop_backend(daemon.backend_paths(&DaemonSettings::default()))
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     updater.wait_for_ownership().await?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let mut terminate = Signal;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _installer_job = crate::backend::windows::updater_job()?;
     let socket_path = daemon.manual_update_socket_path();
@@ -136,6 +142,7 @@ async fn run_with_http(
     #[cfg(unix)]
     let (listener, _socket_guard) =
         codex_app_server_transport::bind_private_daemon_socket(&socket_path).await?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let listener = {
         if socket_path.exists() {
@@ -144,6 +151,7 @@ async fn run_with_http(
         codex_uds::UnixListener::bind(&socket_path).await?
     };
     let mut listener = Some(listener);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     updater.mark_ready().await?;
     let needs_managed_handoff =
@@ -208,6 +216,7 @@ async fn run_with_http(
                 }
                 // Failed successor cleanup leaves its PID published. The predecessor
                 // must stop instead of installing again without ownership.
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 updater.wait_for_ownership().await?;
                 if manual_handoff_pending {
@@ -291,6 +300,7 @@ async fn adopt_managed_updater(
         )
         .map(|_| UpdateLoopControl::Stop)
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let replacement = crate::backend::pid_update_loop_backend(
@@ -416,6 +426,7 @@ async fn update_once(
     ) {
         return Ok((UpdateLoopControl::Stop, None));
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     tokio::select! {
         result = run_installer_script(&script, installer_mode, &package_root) => { crate::diagnostics::result("installer_run", started, result)?; },
@@ -586,6 +597,7 @@ async fn run_installer_script(
         command.process_group(0);
         command
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let mut command = {
         let mut command = Command::new("powershell.exe");
@@ -662,6 +674,7 @@ async fn run_installer_script(
             }
         }
     });
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _installer_job = crate::backend::windows::installer_job(&child)?;
     let mut stdin = child
@@ -675,6 +688,7 @@ async fn run_installer_script(
         result = stdin.write_all(script) => Some(result),
         _ = &mut terminate => None,
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let write_result = Some(stdin.write_all(script).await);
     drop(stdin);
@@ -696,6 +710,7 @@ async fn run_installer_script(
             return Ok(UpdateLoopControl::Stop);
         }
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let status = child.wait().await;
     let status = match status {
@@ -796,9 +811,11 @@ impl InstallerHttp for RouteAwareClientPool {
 #[path = "update_loop_tests.rs"]
 mod tests;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 struct Signal;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 impl Signal {
     async fn recv(&mut self) -> Option<()> {

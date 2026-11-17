@@ -59,6 +59,7 @@ fn sleep_argv() -> Vec<String> {
 }
 
 fn shell_argv(unix_script: &str, windows_script: &str) -> Vec<String> {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         vec![
             windows_command_processor(),

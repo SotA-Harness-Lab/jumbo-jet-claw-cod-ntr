@@ -542,6 +542,7 @@ async fn startup_enforces_requirements_at_the_correct_load_stage(
         .build()
         .await?;
 
+    // WINDOWS-REMNANT
     if cfg!(windows) && fetch_cloud && (!local_mxc || !codex_sandboxing::windows_mxc_available()) {
         assert!(
             !timeout(DEFAULT_READ_TIMEOUT, mcp.wait_for_exit())

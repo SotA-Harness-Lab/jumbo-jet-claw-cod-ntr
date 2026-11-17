@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 use std::time::Duration;
 
@@ -14,8 +15,10 @@ use codex_utils_pty::Command;
 #[cfg(target_os = "macos")]
 use codex_utils_pty::DescriptorPolicy;
 use codex_utils_pty::SpawnFallback;
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 use tokio::io::AsyncBufReadExt;
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
@@ -30,8 +33,10 @@ use crate::rpc::internal_error;
 use crate::rpc::invalid_request;
 
 const FS_HELPER_ENV_ALLOWLIST: &[&str] = &["PATH", "TMPDIR", "TMP", "TEMP"];
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 const FS_HELPER_EXIT_TIMEOUT: Duration = Duration::from_secs(/*secs*/ 2);
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 const MAX_FS_HELPER_STDERR_BYTES: u64 = 4096;
 #[cfg(debug_assertions)]
@@ -134,6 +139,7 @@ impl FileSystemSandboxRunner {
                 network: None,
                 environment_id: None,
                 sandbox_policy_cwd: &sandbox.cwd,
+                // WINDOWS-REMNANT
                 sandbox_exe: if cfg!(windows) {
                     Some(helper.as_path())
                 } else {
@@ -181,6 +187,7 @@ fn helper_env_key_is_allowed(key: &str) -> bool {
         || bazel_bwrap_env_key_is_allowed(key)
         // MXC needs SystemDrive to resolve platform directories, and SystemRoot and
         // LOCALAPPDATA to create the sandboxed helper process.
+        // WINDOWS-REMNANT
         || (cfg!(windows)
             && ["PATH", "SystemDrive", "SystemRoot", "LOCALAPPDATA"]
                 .iter()
@@ -208,12 +215,15 @@ async fn run_command(
         .take()
         .ok_or_else(|| internal_error("failed to open fs sandbox helper stdin".to_string()))?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let mut request_json = request_json;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     request_json.push(b'\n');
     stdin.write_all(&request_json).await.map_err(io_error)?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let response = {
         stdin.flush().await.map_err(io_error)?;
@@ -228,6 +238,7 @@ async fn run_command(
         response?
     };
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let response = {
         stdin.shutdown().await.map_err(io_error)?;
@@ -242,6 +253,7 @@ async fn run_command(
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 pub(crate) async fn read_helper_response(
     stdout: impl tokio::io::AsyncRead + Unpin,
@@ -259,6 +271,7 @@ pub(crate) async fn read_helper_response(
     Ok(response)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 pub(crate) fn drain_helper_stderr(
     child: &mut Child,
@@ -277,6 +290,7 @@ pub(crate) fn drain_helper_stderr(
     })
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 pub(crate) async fn reap_helper_after_response(
     mut child: Child,
@@ -310,6 +324,7 @@ pub(crate) async fn reap_helper_after_response(
     )))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 pub(crate) async fn wait_for_helper_output(
     child: Child,
@@ -452,6 +467,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn helper_env_preserves_windows_runtime_variables_without_leaking_secrets() {
@@ -485,6 +501,7 @@ mod tests {
     fn sandbox_exec_request_carries_helper_env() {
         let Some((path_key, path)) = std::env::vars_os().find(|(key, _)| {
             let key = key.to_string_lossy();
+            // WINDOWS-REMNANT
             key == "PATH" || (cfg!(windows) && key.eq_ignore_ascii_case("PATH"))
         }) else {
             return;
@@ -499,11 +516,13 @@ mod tests {
         let native_cwd = AbsolutePathBuf::current_dir().expect("cwd");
         let cwd = PathUri::from_abs_path(&native_cwd);
         let file_system_policy = restricted_policy(vec![
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             special_entry(FileSystemSpecialPath::Root, FileSystemAccessMode::Read),
             path_entry(native_cwd, FileSystemAccessMode::Write),
         ]);
         let sandbox_context = sandbox_context_with_cwd(&file_system_policy, cwd);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let sandbox_context = {
             let Err(error) = runner.sandbox_command(&sandbox_context) else {
@@ -531,6 +550,7 @@ mod tests {
     fn sandbox_command_rejects_non_native_policy_cwd() {
         #[cfg(unix)]
         let foreign_uri = "file://server/share/checkout";
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let foreign_uri = "file:///usr/local/checkout";
         let cwd = PathUri::parse(foreign_uri).expect("valid foreign URI");
@@ -571,6 +591,7 @@ mod tests {
         let mut sandbox_context =
             sandbox_context_with_cwd(&policy, PathUri::from_abs_path(&selected_cwd));
         sandbox_context.sandbox_override = SandboxOverride::EscalatedSandboxWithRestrictions;
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let sandbox_context = crate::FileSystemSandboxContext {
             windows_sandbox_selection: codex_file_system::WindowsSandboxSelection::RestrictedToken,
@@ -597,6 +618,7 @@ mod tests {
     }
 
     /// Windows wrapper policy checks must keep cwd-relative denials anchored to the selection.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn sandbox_exec_request_binds_windows_relative_globs_to_policy_cwd() {
@@ -671,6 +693,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_helper_binds_executable_and_workspace_grants() {

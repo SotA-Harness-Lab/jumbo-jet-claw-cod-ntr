@@ -1,9 +1,11 @@
 use super::*;
 use pretty_assertions::assert_eq;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::ffi::OsString;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStringExt;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::ffi::OsStringExt;
 use std::path::PathBuf;
@@ -60,6 +62,7 @@ fn file_uri_round_trips_an_absolute_path() {
 fn non_native_uri_io_conversion_is_invalid_input() {
     #[cfg(unix)]
     let uris = ["file://server/share/file.txt", "file:///C:/workspace"];
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let uris = ["file:///usr/local/file.txt"];
 
@@ -92,6 +95,7 @@ fn windows_uri_native_conversion_rejects_encoded_separators() {
         assert_eq!(uri.infer_path_convention(), Some(PathConvention::Windows));
         assert!(containment_path_segments(&uri.0, PathConvention::Windows).is_none());
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         assert_eq!(
             uri.to_abs_path()
@@ -342,6 +346,7 @@ fn relative_path_from_treats_fallback_uris_as_opaque() {
     assert_eq!(path.relative_path_from(&root), None);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn file_uri_falls_back_for_windows_prefixes_without_a_uri_representation() {
@@ -369,6 +374,7 @@ fn file_uri_falls_back_for_windows_prefixes_without_a_uri_representation() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn file_uri_fallback_round_trips_non_unicode_windows_paths() {
@@ -532,6 +538,7 @@ fn file_uri_round_trips_literal_percent_characters() {
     assert_eq!(uri.basename(), Some("file".to_string()));
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn host_windows_paths_round_trip_through_file_uris() {
@@ -565,6 +572,7 @@ fn host_windows_paths_round_trip_through_file_uris() {
 }
 
 #[test]
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn file_uri_round_trips_windows_unc_paths() {
     let path = AbsolutePathBuf::from_absolute_path_checked(r"\\server\share\src\main.rs")

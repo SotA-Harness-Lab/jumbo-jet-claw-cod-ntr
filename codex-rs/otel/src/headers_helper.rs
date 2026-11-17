@@ -133,8 +133,10 @@ async fn refresh_headers(
 }
 
 async fn run_helper(command: &str, cwd: &Path) -> HeaderResult {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let mut process = codex_http_headers_helper::shell_command(command);
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let mut process = {
         // Executable paths containing spaces need no shell quoting.

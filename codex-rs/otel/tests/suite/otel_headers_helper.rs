@@ -58,6 +58,7 @@ fn check_all_signals(protocol: OtelHttpProtocol, managed_logs: bool) {
         protocol: protocol.clone(),
         tls: None,
     };
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "type headers.json"
     } else {

@@ -15,6 +15,7 @@ pub enum DangerousCommandPlatform {
 impl DangerousCommandPlatform {
     /// Returns the platform where the classifier is running.
     pub fn host() -> Self {
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             Self::Windows
         } else {
@@ -317,6 +318,7 @@ mod tests {
     fn direct_powershell_words_return_other_match_on_windows() {
         let command = vec_str(&["Remove-Item", "test", "-Force"]);
 
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             assert_eq!(
                 dangerous_powershell_words_match(&command, DangerousCommandPlatform::host()),

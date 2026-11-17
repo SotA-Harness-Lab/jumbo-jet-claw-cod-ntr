@@ -1212,6 +1212,7 @@ impl ChatComposer {
     fn image_paste_enabled(&self) -> bool {
         self.config.image_paste_enabled
     }
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     pub fn set_windows_degraded_sandbox_active(&mut self, enabled: bool) {
         self.update_slash_command_catalog(|composer| {
@@ -12126,6 +12127,7 @@ mod tests {
             composer
                 .handle_input_basic_with_time(KeyEvent::new(KeyCode::Char('@'), modifiers), now);
 
+            // WINDOWS-REMNANT
             if cfg!(windows) {
                 assert!(composer.is_in_paste_burst());
                 assert!(

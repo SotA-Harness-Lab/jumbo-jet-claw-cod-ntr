@@ -71,6 +71,7 @@ use codex_protocol::protocol::AdditionalContextEntry;
 use codex_protocol::protocol::AdditionalContextKind;
 use codex_protocol::protocol::EnvironmentConfigState;
 use codex_protocol::protocol::EventMsg;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 use codex_protocol::protocol::MultiAgentVersion;
 use codex_protocol::protocol::Op;
@@ -232,6 +233,7 @@ mod mcp_sharing;
 #[path = "scenarios_guardian_agent_messages_tests.rs"]
 mod guardian_agent_messages;
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[path = "scenarios_guardian_handoff.rs"]
 mod guardian_handoff;
@@ -2339,6 +2341,7 @@ async fn multi_agent_catalog_parameters(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "the fixture uses a Unix shell command")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn astra_settings_release_check_with_direct_and_code_mode_tools() -> Result<()> {
@@ -3093,6 +3096,7 @@ async fn guardian_nested_elicitation_request_history() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test]
 async fn guardian_elastic_budgeting_request_history() -> Result<()> {
@@ -3268,6 +3272,7 @@ max_total_section_tokens = {SELECTED_EXEC_TOKENS}
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn guardian_code_mode_messaging_request_history() -> Result<()> {
@@ -3635,6 +3640,7 @@ async fn app_tool_exposure_request_history() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn model_catalog_refresh_preserves_tools_and_history() -> Result<()> {

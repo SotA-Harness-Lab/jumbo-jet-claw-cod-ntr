@@ -3013,16 +3013,19 @@ mod tests {
 
     #[test]
     fn request_permissions_response_deserializes_network_and_file_system_grants() {
+        // WINDOWS-REMNANT
         let input_path = if cfg!(target_os = "windows") {
             r"C:\tmp\input"
         } else {
             "/tmp/input"
         };
+        // WINDOWS-REMNANT
         let output_path = if cfg!(target_os = "windows") {
             r"C:\tmp\output"
         } else {
             "/tmp/output"
         };
+        // WINDOWS-REMNANT
         let extra_path = if cfg!(target_os = "windows") {
             r"C:\tmp\extra"
         } else {

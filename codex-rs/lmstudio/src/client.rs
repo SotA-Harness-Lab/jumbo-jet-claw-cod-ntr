@@ -147,6 +147,7 @@ impl LMStudioClient {
                 {
                     std::env::var("HOME").unwrap_or_default()
                 }
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 {
                     std::env::var("USERPROFILE").unwrap_or_default()
@@ -157,6 +158,7 @@ impl LMStudioClient {
         #[cfg(unix)]
         let fallback_path = format!("{home}/.lmstudio/bin/lms");
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let fallback_path = format!("{home}/.lmstudio/bin/lms.exe");
 
@@ -413,6 +415,7 @@ mod tests {
             }
         }
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             let result = LMStudioClient::find_lms_with_home_dir(Some("C:\\test\\home"));

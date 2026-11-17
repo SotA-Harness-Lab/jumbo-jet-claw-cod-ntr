@@ -12,6 +12,7 @@ async fn permission_shortcuts_cycle_builtin_modes() {
     chat.set_feature_enabled(Feature::GuardianApproval, /*enabled*/ true);
     chat.chat_keymap.next_permission_mode = vec![crate::key_hint::plain(KeyCode::F(8))];
     chat.chat_keymap.previous_permission_mode = vec![crate::key_hint::plain(KeyCode::F(7))];
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     {
         chat.set_windows_sandbox_mode(Some(WindowsSandboxSetupMode::Unelevated));
@@ -75,6 +76,7 @@ async fn permission_shortcuts_cycle_builtin_modes() {
         );
         chat.complete_permission_shortcut(thread_id);
     }
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     {
         chat.set_windows_sandbox_mode(/*mode*/ None);

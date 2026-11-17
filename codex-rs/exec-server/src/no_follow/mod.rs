@@ -1,18 +1,19 @@
 use crate::FileMetadata;
 use std::io;
 use std::path::Path;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::time::SystemTime;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::time::UNIX_EPOCH;
 
 #[cfg(unix)]
 mod unix;
-#[cfg(windows)]
-mod windows;
 
 #[cfg(unix)]
 use unix as imp;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use windows as imp;
 
@@ -36,11 +37,13 @@ impl BoundOutput {
         // Check raw syntax before absolute() or components() discards directory markers.
         let bytes = path.as_os_str().as_encoded_bytes();
         let leaf = bytes
+            // WINDOWS-REMNANT
             .rsplit(|b| *b == b'/' || (cfg!(windows) && *b == b'\\'))
             .next();
         if matches!(leaf, None | Some(b"" | b"." | b"..")) {
             return Err(invalid_output("output must name a file"));
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if bytes.eq_ignore_ascii_case(b"NUL") || bytes.eq_ignore_ascii_case(br"\\.\NUL") {
             return Ok(Self {
@@ -54,6 +57,7 @@ impl BoundOutput {
         }
         #[cfg(unix)]
         let path = unix::output_path(path)?;
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let path = std::path::absolute(path)?;
         let file = imp::open_output(&path)?;
@@ -102,6 +106,7 @@ pub(crate) async fn metadata(path: &Path) -> io::Result<FileMetadata> {
     imp::metadata(path.to_path_buf()).await
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) async fn metadata(path: &Path) -> io::Result<FileMetadata> {
     imp::metadata(path.to_path_buf())
@@ -116,6 +121,7 @@ pub(crate) async fn metadata(path: &Path) -> io::Result<FileMetadata> {
         })
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn system_time_to_unix_ms(time: SystemTime) -> i64 {
     time.duration_since(UNIX_EPOCH)
@@ -173,6 +179,7 @@ mod output_tests {
         Ok(())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_output_binds_the_chosen_stream_until_write() -> std::io::Result<()> {
@@ -230,6 +237,7 @@ mod output_tests {
         Ok(())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn nul_discards_output_without_accepting_other_devices() -> std::io::Result<()> {
@@ -240,6 +248,7 @@ mod output_tests {
         Ok(())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn unavailable_full_ids_use_directory_entries_only_on_fat_volumes() -> std::io::Result<()> {
@@ -291,6 +300,7 @@ mod output_tests {
         Ok(())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     #[ignore = "requires CODEX_TEST_EXFAT_DIR on a writable exFAT volume"]

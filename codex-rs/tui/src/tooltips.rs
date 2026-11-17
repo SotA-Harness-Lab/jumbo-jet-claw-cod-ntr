@@ -17,6 +17,7 @@ const ANNOUNCEMENT_TIP_URL: &str =
     "https://raw.githubusercontent.com/openai/codex/main/announcement_tip.toml";
 
 const IS_MACOS: bool = cfg!(target_os = "macos");
+// WINDOWS-REMNANT
 const IS_WINDOWS: bool = cfg!(target_os = "windows");
 
 const WINDOWS_APP_TOOLTIP: &str = "Use the **desktop app**. Install it from https://chatgpt.com/codex?app-landing-page=true and run `codex app`.";
@@ -239,6 +240,7 @@ pub(crate) mod announcement {
         const fn current() -> Self {
             if cfg!(target_os = "macos") {
                 Self::Macos
+            // WINDOWS-REMNANT
             } else if cfg!(target_os = "windows") {
                 Self::Windows
             } else {
@@ -651,6 +653,7 @@ target_oses = ["windows"]
 
         let expected = if cfg!(target_os = "macos") {
             "macos announcement"
+        // WINDOWS-REMNANT
         } else if cfg!(target_os = "windows") {
             "windows announcement"
         } else {

@@ -476,6 +476,7 @@ fn composition_strategy_applies_to_non_cloud_layers() {
         domain: "com.openai.codex".to_string(),
         key: "requirements_toml_base64".to_string(),
     };
+    // WINDOWS-REMNANT
     let system_file = if cfg!(windows) {
         "C:\\requirements.toml"
     } else {
@@ -484,11 +485,13 @@ fn composition_strategy_applies_to_non_cloud_layers() {
     let system_source = RequirementSource::SystemRequirementsToml {
         file: AbsolutePathBuf::from_absolute_path(system_file).expect("absolute path"),
     };
+    // WINDOWS-REMNANT
     let high_path = if cfg!(windows) {
         "C:\\secret"
     } else {
         "/secret"
     };
+    // WINDOWS-REMNANT
     let low_path = if cfg!(windows) {
         "C:\\other-secret"
     } else {
@@ -1675,11 +1678,13 @@ command = "low"
 
 #[test]
 fn permissions_deny_read_unions_while_profiles_use_regular_toml_merge() {
+    // WINDOWS-REMNANT
     let high_path = if cfg!(windows) {
         "C:\\secret"
     } else {
         "/secret"
     };
+    // WINDOWS-REMNANT
     let low_path = if cfg!(windows) {
         "C:\\other-secret"
     } else {
@@ -1734,6 +1739,7 @@ extends = ":workspace"
 
 #[test]
 fn permissions_network_merges_with_higher_precedence_filesystem_requirements() {
+    // WINDOWS-REMNANT
     let denied_path = if cfg!(windows) {
         "C:\\secret"
     } else {
@@ -1805,6 +1811,7 @@ extends = ":workspace"
 
 #[test]
 fn deny_read_only_layers_do_not_leave_empty_permissions_tables() {
+    // WINDOWS-REMNANT
     let path = if cfg!(windows) {
         "C:\\secret"
     } else {

@@ -84,6 +84,7 @@ async fn daemon_auto_start_preserves_bedrock_onboarding() -> Result<()> {
 }
 
 #[tokio::test]
+// WINDOWS-REMNANT
 #[cfg(windows)]
 async fn elevated_local_tui_uses_embedded_without_starting_daemon() -> Result<()> {
     if !codex_app_server_daemon::is_elevated()? {
@@ -115,6 +116,7 @@ async fn elevated_local_tui_uses_embedded_without_starting_daemon() -> Result<()
 }
 
 #[tokio::test]
+// WINDOWS-REMNANT
 #[cfg(windows)]
 async fn restrictive_launcher_uses_embedded_if_daemon_cannot_start() -> Result<()> {
     const CHILD: &str = "CODEX_TEST_RESTRICTIVE_DAEMON_START";
@@ -153,8 +155,10 @@ async fn bedrock_onboarding_discovers_credentials_on_the_running_daemon() -> Res
 }
 
 async fn daemon_startup(command: &str) -> Result<()> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let elevated = codex_app_server_daemon::is_elevated()?;
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let elevated = false;
     let elevated_launch = command.starts_with("elevated");
@@ -250,6 +254,7 @@ async fn daemon_startup(command: &str) -> Result<()> {
         let managed = home
             .path()
             .join("packages/app-server-daemon/current/bin")
+            // WINDOWS-REMNANT
             .join(if cfg!(windows) { "codex.exe" } else { "codex" });
         fs::create_dir_all(home.path().join("packages/app-server-daemon/current/bin"))?;
         // Hard links change the executable's ctime and invalidate Rosetta's translation cache.
@@ -404,6 +409,7 @@ async fn daemon_startup(command: &str) -> Result<()> {
                 "Runningwithoutthesharedbackgroundserver:--strict-config"
             }
         };
+        // WINDOWS-REMNANT
         let program = if cfg!(windows) && command == "restrictive-job" {
             env.insert("CODEX_TEST_RESTRICTIVE_DAEMON_START".into(), "1".into());
             args = vec![

@@ -60,11 +60,13 @@ impl ManagedHooksRequirementsToml {
     }
 
     pub fn managed_dir_for_current_platform(&self) -> Option<&Path> {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             self.windows_managed_dir.as_deref()
         }
 
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         {
             self.managed_dir.as_deref()

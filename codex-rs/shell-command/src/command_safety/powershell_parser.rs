@@ -266,6 +266,7 @@ fn kill_child(child: &mut Child) {
     let _ = child.wait();
 }
 
+// WINDOWS-REMNANT
 #[cfg(all(test, windows))]
 mod tests {
     use super::*;

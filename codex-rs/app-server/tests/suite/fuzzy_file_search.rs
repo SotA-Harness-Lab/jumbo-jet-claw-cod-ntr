@@ -13,8 +13,10 @@ use tokio::time::timeout;
 
 // macOS arm64 and Windows Bazel CI can spend tens of seconds in app-server
 // startup before the initialize response or fuzzy-search notifications arrive.
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", windows)))]
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 const SHORT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(500);

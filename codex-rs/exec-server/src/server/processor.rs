@@ -649,6 +649,7 @@ mod tests {
     }
 
     fn sleep_then_print_argv() -> Vec<String> {
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             vec![
                 std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string()),

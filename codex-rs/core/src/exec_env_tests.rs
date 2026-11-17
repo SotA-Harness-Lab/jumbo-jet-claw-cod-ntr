@@ -57,6 +57,7 @@ fn inject_apply_patch_env_enables_older_executables_despite_stale_values() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test]
 fn inject_permission_profile_env_replaces_differently_cased_windows_key() {
@@ -237,6 +238,7 @@ fn test_inherit_all_with_default_excludes() {
 }
 
 #[test]
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn test_core_inherit_respects_case_insensitive_names_on_windows() {
     let vars = make_vars(&[
@@ -265,6 +267,7 @@ fn test_core_inherit_respects_case_insensitive_names_on_windows() {
 }
 
 #[test]
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn create_env_inserts_pathext_on_windows_when_missing() {
     let vars = make_vars(&[]);
@@ -284,6 +287,7 @@ fn create_env_inserts_pathext_on_windows_when_missing() {
 }
 
 #[test]
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn create_env_preserves_existing_pathext_case_insensitively_on_windows() {
     let vars = make_vars(&[("PathExt", ".COM;.EXE;.BAT;.CMD;.PS1")]);

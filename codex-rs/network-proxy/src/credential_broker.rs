@@ -241,6 +241,7 @@ enum CredentialEnvironment {
 }
 
 fn env_key_matches(candidate: &str, expected: &str) -> bool {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         candidate.eq_ignore_ascii_case(expected)
     } else {
@@ -259,6 +260,7 @@ pub(super) fn env_value<'a>(env: &'a HashMap<String, String>, key: &str) -> Opti
 }
 
 pub(super) fn set_env_value(env: &mut HashMap<String, String>, key: &str, value: String) {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         env.retain(|candidate, _| !env_key_matches(candidate, key));
     }
@@ -266,6 +268,7 @@ pub(super) fn set_env_value(env: &mut HashMap<String, String>, key: &str, value:
 }
 
 pub(super) fn remove_env_value(env: &mut HashMap<String, String>, key: &str) {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         env.retain(|candidate, _| !env_key_matches(candidate, key));
     } else {

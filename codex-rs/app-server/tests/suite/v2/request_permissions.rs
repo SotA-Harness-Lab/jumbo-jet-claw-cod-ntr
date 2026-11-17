@@ -142,6 +142,7 @@ text(await tools.exec_command({{cmd: "{command}"}}));"#,
     loop {
         match timeout(DEFAULT_READ_TIMEOUT, app.read_next_message()).await?? {
             JSONRPCMessage::Request(request)
+                // WINDOWS-REMNANT
                 if cfg!(windows) && !strict_auto_review && !command_approved =>
             {
                 // Without a Windows sandbox backend, command approval is still required.

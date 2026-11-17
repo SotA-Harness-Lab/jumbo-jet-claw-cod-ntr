@@ -458,6 +458,7 @@ fn failed_mouse_cleanup_still_leaves_owned_screen_and_remains_retryable() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[test]
 fn pager_capture_restores_picker_input_without_a_screen_transition() {
@@ -522,6 +523,7 @@ fn pager_capture_restores_picker_input_without_a_screen_transition() {
     screen.leave(&mut output).unwrap();
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[test]
 fn failed_pager_capture_setup_restores_requested_and_actual_picker_policy() {
@@ -561,6 +563,7 @@ fn failed_pager_capture_setup_restores_requested_and_actual_picker_policy() {
     screen.leave(&mut writer).unwrap();
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[test]
 fn identical_default_request_retries_after_failed_fallback_cleanup() {

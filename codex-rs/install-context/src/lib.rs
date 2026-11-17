@@ -8,6 +8,7 @@ use semver::Version;
 use serde::Deserialize;
 
 const BIN_DIRNAME: &str = "bin";
+// WINDOWS-REMNANT
 const CODE_MODE_HOST_EXECUTABLE_NAME: &str = if cfg!(windows) {
     "codex-code-mode-host.exe"
 } else {
@@ -235,6 +236,7 @@ impl CodexPackageLayout {
         let exe_dir = canonical_exe.parent()?;
         // WinGet preserves a target-qualified executable at the package root.
         // Only recognize that layout when metadata names this exact executable.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if let Ok(contents) = std::fs::read(exe_dir.join(PACKAGE_METADATA_FILENAME))
             && let Ok(metadata) = serde_json::from_slice::<serde_json::Value>(&contents)
@@ -339,6 +341,7 @@ fn canonical_absolute_path(path: &Path) -> Option<AbsolutePathBuf> {
 }
 
 fn standalone_platform() -> StandalonePlatform {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         StandalonePlatform::Windows
     } else {
@@ -351,6 +354,7 @@ fn existing_dir(path: AbsolutePathBuf) -> Option<AbsolutePathBuf> {
 }
 
 fn default_rg_command() -> PathBuf {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         PathBuf::from("rg.exe")
     } else {

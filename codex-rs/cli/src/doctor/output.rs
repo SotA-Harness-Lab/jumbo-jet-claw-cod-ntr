@@ -1186,6 +1186,7 @@ fn looks_copyable(text: &str) -> bool {
         return true;
     }
 
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         return text.starts_with(r"\\") // unc and win32 paths
             || text.starts_with(r"\??\") // NT DOS paths
@@ -2007,6 +2008,7 @@ Run codex doctor without --summary for detailed diagnostics.
             );
         }
 
+        // WINDOWS-REMNANT
         let snapshot_name = if cfg!(windows) {
             "copyable_items_color_windows"
         } else {

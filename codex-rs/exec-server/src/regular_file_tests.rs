@@ -28,6 +28,7 @@ async fn read_sensitive_file_rejects_directory() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 #[tokio::test]
 async fn read_sensitive_file_rejects_symlink() {
@@ -40,6 +41,7 @@ async fn read_sensitive_file_rejects_symlink() {
 
     #[cfg(unix)]
     std::os::unix::fs::symlink(&target, &link).expect("create symlink");
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     std::os::windows::fs::symlink_file(&target, &link).expect("create symlink");
 

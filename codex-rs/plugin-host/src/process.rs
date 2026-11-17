@@ -95,6 +95,7 @@ pub struct PluginProcess {
     child: Child,
     stderr: Option<tokio::task::JoinHandle<(Vec<u8>, Option<io::ErrorKind>)>>,
     exit: Option<Arc<PluginExit>>,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     job: codex_utils_pty::JobObject,
     input: FramedWrite<ChildStdin, LengthDelimitedCodec>,
@@ -150,12 +151,14 @@ impl PluginProcess {
         if stop.is_cancelled() {
             return Err(canceled().into());
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let (mut child, job) = {
             let job = codex_utils_pty::JobObject::create_without_breakaway()?;
             let child = job.spawn_contained(&mut command)?;
             (child, job)
         };
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         let mut child = command.spawn()?;
         let input = child
@@ -193,6 +196,7 @@ impl PluginProcess {
             child,
             stderr: Some(stderr),
             exit: None,
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             job,
             input,
@@ -265,6 +269,7 @@ impl PluginProcess {
         if let Some(pid) = self.child.id() {
             codex_utils_pty::process_group::kill_process_group(pid)?;
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         self.job.terminate()?;
         Ok(())

@@ -1,6 +1,7 @@
 use super::spawn_git_command;
 use super::wait_for_git_command_with_timeout_output;
 use pretty_assertions::assert_eq;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::process::Stdio;
 use std::time::Duration;
@@ -35,6 +36,7 @@ async fn assert_timed_out_git_wrapper_does_not_leave_child_process_running(
         command.args(["-c", wrapper_command]);
         command
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let mut command = {
         let script = temp_dir.path().join("git_wrapper.py");
@@ -128,6 +130,7 @@ else:
     let _ = std::process::Command::new("kill")
         .args(["-KILL", &child_pid])
         .status();
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _ = std::process::Command::new("taskkill")
         .args(["/PID", &child_pid, "/T", "/F"])

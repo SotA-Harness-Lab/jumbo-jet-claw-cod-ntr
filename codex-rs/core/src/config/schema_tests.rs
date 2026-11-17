@@ -42,8 +42,10 @@ Run `just write-config-schema` to overwrite with your changes.\n\n{diff}"
     write_config_schema(&tmp_path).expect("write config schema to temp path");
     let tmp_contents =
         std::fs::read_to_string(&tmp_path).expect("read back config schema from temp path");
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let fixture = fixture.replace("\r\n", "\n");
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let tmp_contents = tmp_contents.replace("\r\n", "\n");
 

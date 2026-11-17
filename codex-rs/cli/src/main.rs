@@ -52,11 +52,13 @@ use supports_color::Stream;
 #[global_allocator]
 static ALLOCATOR: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod app_cmd;
 mod config_override_args;
 mod daemon_install;
 mod daemon_telemetry;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod desktop_app;
 mod doctor;
@@ -74,10 +76,9 @@ mod migrate_rollouts;
 mod plugin_cmd;
 mod queue_cmd;
 mod remote_control_cmd;
-#[cfg(target_os = "windows")]
-mod sandbox_setup;
 mod sandbox_uninstall;
 mod state_db_recovery;
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 mod wsl_paths;
 
@@ -182,6 +183,7 @@ enum Subcommand {
     RemoteControl(RemoteControlCommand),
 
     /// Launch the Desktop app (opens the app installer if missing).
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     App(app_cmd::AppCommand),
 
@@ -491,12 +493,15 @@ enum SandboxSubcommand {
 type HostSandboxArgs = codex_cli::SeatbeltCommand;
 #[cfg(target_os = "linux")]
 type HostSandboxArgs = codex_cli::LandlockCommand;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 type HostSandboxArgs = codex_cli::WindowsCommand;
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 type HostSandboxArgs = UnsupportedSandboxArgs;
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 #[derive(Debug, Parser)]
 struct UnsupportedSandboxArgs {
@@ -833,6 +838,7 @@ fn run_update_action(
     let cmd_str = action.command_str();
     println!("Updating Codex via `{cmd_str}`...");
     let status = {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             let (cmd, args) = action.command_args();
@@ -857,6 +863,7 @@ fn run_update_action(
                 .current_dir(update_cwd.path())
                 .status()?
         }
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         {
             let (cmd, args) = action.command_args();
@@ -879,6 +886,7 @@ fn run_update_action(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn resolve_windows_update_command_from_path(
     command: &str,
@@ -1569,6 +1577,7 @@ async fn dispatch_cli(
             )
             .await?;
         }
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         Some(Subcommand::App(app_cli)) => {
             reject_remote_mode_for_subcommand(
@@ -1823,6 +1832,7 @@ async fn dispatch_cli(
                 &mut sandbox_cli.config_overrides,
                 root_config_overrides.clone(),
             );
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             if let Some(setup_cli) = sandbox_setup::parse_setup_command(&sandbox_cli.command)? {
                 reject_remote_mode_for_subcommand(
@@ -1861,6 +1871,7 @@ async fn dispatch_cli(
                 loader_overrides,
             )
             .await?;
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             codex_cli::run_command_under_windows_sandbox(
                 sandbox_cli,
@@ -1868,6 +1879,7 @@ async fn dispatch_cli(
                 loader_overrides,
             )
             .await?;
+            // WINDOWS-REMNANT
             #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
             {
                 let _ = loader_overrides;
@@ -2446,6 +2458,7 @@ fn unsupported_subcommand_name_for_strict_config(
         Some(Subcommand::Plugin(_)) => Some("plugin"),
         Some(Subcommand::MigrateRollouts(_)) => Some("migrate-rollouts"),
         Some(Subcommand::MigrateNfsDb(_)) => Some("migrate-nfs-db"),
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         Some(Subcommand::App(_)) => Some("app"),
         Some(Subcommand::Login(_)) => Some("login"),
@@ -2836,6 +2849,7 @@ mod tests {
         assert!(size < 64 * 1024, "interactive TUI future is {size} bytes");
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_update_command_resolution_ignores_relative_path_entries() {
@@ -3692,6 +3706,7 @@ enabled = true
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn sandbox_parses_permission_profile() {
@@ -3713,6 +3728,7 @@ enabled = true
         assert_eq!(command.command, vec!["echo"]);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn sandbox_parses_legacy_permissions_profile_alias() {
@@ -3734,6 +3750,7 @@ enabled = true
         assert_eq!(command.command, vec!["echo"]);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn sandbox_help_only_shows_singular_permission_profile() {
@@ -3742,6 +3759,7 @@ enabled = true
         assert!(!help.contains("--permissions-profile"), "{help}");
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn sandbox_parses_permissions_profile_short_alias() {
@@ -3757,6 +3775,7 @@ enabled = true
         assert_eq!(command.command, vec!["echo"]);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn sandbox_parses_config_profile() {
@@ -3772,6 +3791,7 @@ enabled = true
         assert_eq!(command.command, vec!["echo"]);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     #[test]
     fn sandbox_rejects_explicit_profile_controls_without_profile() {

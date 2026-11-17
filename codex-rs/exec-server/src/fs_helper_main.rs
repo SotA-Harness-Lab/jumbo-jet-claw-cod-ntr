@@ -49,9 +49,11 @@ async fn run_main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 crate::sandboxed_file_open::transfer_file(&file)?;
                 let response = FsHelperOpenResponse {
                     // Windows duplicates from the helper process instead.
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     process_id: std::process::id(),
                     // The parent needs the raw handle to duplicate it.
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     file_handle: {
                         use std::os::windows::io::AsRawHandle;
@@ -79,6 +81,7 @@ async fn run_main() -> Result<(), Box<dyn Error + Send + Sync>> {
     stdout.flush().await?;
 
     // Keep the Windows handle alive until the parent duplicates it.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if opened_file.is_some() {
         use tokio::io::AsyncReadExt;

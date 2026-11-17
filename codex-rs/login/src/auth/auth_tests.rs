@@ -2098,6 +2098,7 @@ impl ProviderAuthScript {
         let tempdir = tempfile::tempdir()?;
         let token_file = tempdir.path().join("tokens.txt");
         // `cmd.exe`'s `set /p` treats LF-only input as one line, so use CRLF on Windows.
+        // WINDOWS-REMNANT
         let token_line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
         let mut token_file_contents = String::new();
         for token in tokens {
@@ -2125,6 +2126,7 @@ mv tokens.next tokens.txt
             ("./print-token.sh".to_string(), Vec::new())
         };
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let (command, args) = {
             let script_path = tempdir.path().join("print-token.cmd");
@@ -2179,6 +2181,7 @@ exit 1
             ("./fail.sh".to_string(), Vec::new())
         };
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let (command, args) = (
             "cmd.exe".to_string(),

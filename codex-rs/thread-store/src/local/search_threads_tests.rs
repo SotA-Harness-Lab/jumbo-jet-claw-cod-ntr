@@ -88,6 +88,7 @@ async fn search_matches_selected_rollout_across_path_spellings_and_compression()
         .expect("write unselected rollout");
 
         let home_paths = [home.path().to_path_buf()];
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let home_paths = {
             let verbatim = std::fs::canonicalize(&home_paths[0]).expect("canonicalize home");
@@ -101,6 +102,7 @@ async fn search_matches_selected_rollout_across_path_spellings_and_compression()
             .strip_prefix(home.path())
             .expect("relative rollout path");
         let selected_paths = home_paths.each_ref().map(|home| home.join(relative_path));
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         assert_ne!(selected_paths[0], selected_paths[1]);
 

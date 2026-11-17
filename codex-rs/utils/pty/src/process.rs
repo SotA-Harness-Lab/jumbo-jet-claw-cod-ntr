@@ -243,6 +243,7 @@ impl ProcessHandle {
         };
 
         let result = killer.signal(signal);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if result.is_ok() {
             killer_opt.take();
@@ -283,12 +284,14 @@ impl Drop for ProcessHandle {
 /// Adapts a closure into a `ChildTerminator` implementation.
 struct ClosureTerminator {
     inner: Option<Box<dyn FnMut() + Send + Sync>>,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     interrupt_terminates: bool,
 }
 
 impl ChildTerminator for ClosureTerminator {
     fn signal(&mut self, signal: ProcessSignal) -> io::Result<()> {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if self.interrupt_terminates {
             return self.kill();
@@ -374,6 +377,7 @@ pub struct ProcessDriver {
     pub writer_handle: Option<JoinHandle<()>>,
     pub resizer: Option<ResizeFn>,
     /// Whether this Windows process is attached to a pseudo-console.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub tty: bool,
 }
@@ -388,10 +392,12 @@ pub fn spawn_from_driver(driver: ProcessDriver) -> SpawnedProcess {
         terminator,
         writer_handle,
         resizer,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         tty,
     } = driver;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let interrupt_terminates = terminator.is_some() && !tty;
 
@@ -460,6 +466,7 @@ pub fn spawn_from_driver(driver: ProcessDriver) -> SpawnedProcess {
         writer_tx,
         Box::new(ClosureTerminator {
             inner: terminator,
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             interrupt_terminates,
         }),

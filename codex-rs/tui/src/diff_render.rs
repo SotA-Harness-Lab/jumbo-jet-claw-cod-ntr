@@ -1592,6 +1592,7 @@ mod tests {
 
     #[test]
     fn display_path_prefers_cwd_without_git_repo() {
+        // WINDOWS-REMNANT
         let cwd = if cfg!(windows) {
             PathBuf::from(r"C:\workspace\codex")
         } else {

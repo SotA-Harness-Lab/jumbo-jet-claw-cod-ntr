@@ -1,3 +1,4 @@
+// WINDOWS-REMNANT
 #![cfg(windows)]
 
 use codex_utils_pty::RawConPty;

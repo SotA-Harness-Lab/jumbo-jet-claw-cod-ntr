@@ -100,6 +100,7 @@ fn read_clipboard_image(
 
     let _span = tracing::debug_span!("get_image").entered();
     let bitmap = clipboard.get_image().map_err(|e| {
+        // WINDOWS-REMNANT
         if cfg!(windows) && !matches!(e, arboard::Error::ContentNotAvailable) {
             PasteImageError::ClipboardUnavailable(e.to_string())
         } else {
@@ -422,6 +423,7 @@ mod pasted_paths_tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     #[test]
     fn normalize_file_url() {

@@ -10,6 +10,7 @@ use super::app_server_requests::BufferedServerRequest;
 use crate::app_command::AppCommand;
 use crate::app_event::AppEvent;
 use crate::app_event::RateLimitRefreshOrigin;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "windows", test))]
 use crate::app_event::WindowsSandboxEnableMode;
 use crate::app_info::app_info_from_api;
@@ -582,6 +583,7 @@ impl App {
             ServerNotificationThreadTarget::Global => {}
         }
 
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         if let ServerNotification::WindowsSandboxSetupCompleted(result) = notification {
             let Some((mode, preset, profile_selection)) =

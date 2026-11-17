@@ -686,16 +686,21 @@ mod tests {
     use codex_protocol::models::PermissionProfile;
     use codex_utils_absolute_path::AbsolutePathBuf;
     use pretty_assertions::assert_eq;
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     use tokio::time::Duration;
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     use tokio::time::timeout;
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     use tokio_util::sync::CancellationToken;
 
     use super::*;
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     use crate::outgoing_message::OutgoingEnvelope;
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     use crate::outgoing_message::OutgoingMessage;
 
@@ -750,6 +755,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     #[tokio::test]
     async fn windows_sandbox_non_streaming_exec_uses_execution_path() {
@@ -799,6 +805,7 @@ mod tests {
         assert!(error.error.message.starts_with("exec failed:"));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     #[tokio::test]
     async fn cancellation_expiration_keeps_process_alive_until_terminated() {
@@ -887,6 +894,7 @@ mod tests {
         // replying, so shell startup noise is allowed here.
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     #[tokio::test]
     async fn timeout_or_cancellation_reports_cancellation_without_timeout_exit_code() {

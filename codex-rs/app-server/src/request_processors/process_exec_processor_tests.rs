@@ -155,6 +155,7 @@ async fn timed_out_stderr_closes_while_stdout_is_still_open() {
 }
 
 /// The client must receive the root's exit while a surviving Windows console child can still run.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn windows_terminal_reports_exit_before_closing_the_console() {

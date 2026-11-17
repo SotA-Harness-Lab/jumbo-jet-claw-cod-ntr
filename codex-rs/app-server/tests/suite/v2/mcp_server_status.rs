@@ -461,6 +461,7 @@ async fn oauth_login_validates_callback_issuer_and_uses_http_headers_helper(
         .await;
 
     let codex_home = TempDir::new()?;
+    // WINDOWS-REMNANT
     let helper_command = if cfg!(windows) {
         r#"echo {"X-Gateway":"gateway-token"}"#
     } else {

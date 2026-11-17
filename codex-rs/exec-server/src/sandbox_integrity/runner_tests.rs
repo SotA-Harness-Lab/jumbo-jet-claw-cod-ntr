@@ -87,6 +87,7 @@ fn records_every_outcome_and_times_preparation_without_paths() -> anyhow::Result
     request.permission_profile = PermissionProfile::Disabled;
     runtime.block_on(run_checks_with_metrics((&request).into(), Some(&metrics)));
     let mut expected_preparations = 1;
+    // WINDOWS-REMNANT
     if cfg!(any(target_os = "linux", target_os = "windows")) {
         let policy = FileSystemSandboxPolicy::restricted(vec![
             FileSystemSandboxEntry::new(

@@ -110,6 +110,7 @@ async fn user_shell_cmd_ls_and_cat_in_temp_dir() {
         unreachable!()
     };
     assert_eq!(exit_code, 0);
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         // Windows shells emit CRLF line endings; normalize so the assertion remains portable.
         aggregated_output = aggregated_output.replace("\r\n", "\n");
@@ -287,6 +288,7 @@ async fn user_shell_command_does_not_replace_active_turn() -> anyhow::Result<()>
     let fixture = builder.build(&server).await?;
 
     let call_id = "active-turn-shell-call";
+    // WINDOWS-REMNANT
     let args = if cfg!(windows) {
         serde_json::json!({
             "cmd": "Start-Sleep -Seconds 2; Write-Output model-shell",
@@ -348,8 +350,10 @@ async fn user_shell_command_does_not_replace_active_turn() -> anyhow::Result<()>
     })
     .await;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let user_shell_command = "Write-Output user-shell".to_string();
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let user_shell_command = "printf user-shell".to_string();
     fixture
@@ -414,8 +418,10 @@ async fn user_shell_command_history_is_persisted_and_shared_with_model() -> anyh
     });
     let test = builder.build(&server).await?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let command = r#"$val = $env:CODEX_SANDBOX; if ([string]::IsNullOrEmpty($val)) { $val = 'not-set' } ; [System.Console]::Write($val)"#.to_string();
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let command = r#"sh -c "printf '%s' \"${CODEX_SANDBOX:-not-set}\"""#.to_string();
 
@@ -501,8 +507,10 @@ async fn user_shell_command_does_not_set_network_sandbox_env_var() -> anyhow::Re
     });
     let test = builder.build(&server).await?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let command = r#"$val = $env:CODEX_SANDBOX_NETWORK_DISABLED; if ([string]::IsNullOrEmpty($val)) { $val = 'not-set' } ; [System.Console]::Write($val)"#.to_string();
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let command =
         r#"sh -c "printf '%s' \"${CODEX_SANDBOX_NETWORK_DISABLED:-not-set}\"""#.to_string();
@@ -534,6 +542,7 @@ async fn user_shell_command_does_not_set_network_sandbox_env_var() -> anyhow::Re
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))] // TODO: unignore on windows
 async fn user_shell_command_output_is_truncated_in_history() -> anyhow::Result<()> {
     let server = responses::start_mock_server().await;
@@ -545,8 +554,10 @@ async fn user_shell_command_output_is_truncated_in_history() -> anyhow::Result<(
         .build(&server)
         .await?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let command = r#"for ($i=1; $i -le 400; $i++) { Write-Output $i }"#.to_string();
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let command = "seq 1 400".to_string();
 
@@ -610,6 +621,7 @@ async fn user_shell_command_is_truncated_only_once() -> anyhow::Result<()> {
     let fixture = builder.build(&server).await?;
 
     let call_id = "user-shell-double-truncation";
+    // WINDOWS-REMNANT
     let args = if cfg!(windows) {
         serde_json::json!({
             "cmd": "for ($i=1; $i -le 2000; $i++) { Write-Output $i }",

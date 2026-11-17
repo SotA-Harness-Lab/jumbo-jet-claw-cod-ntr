@@ -301,12 +301,14 @@ pub(crate) fn has_ctrl_or_alt(mods: KeyModifiers) -> bool {
     (mods.contains(KeyModifiers::CONTROL) || mods.contains(KeyModifiers::ALT)) && !is_altgr(mods)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[inline]
 pub(crate) fn is_altgr(mods: KeyModifiers) -> bool {
     mods.contains(KeyModifiers::ALT) && mods.contains(KeyModifiers::CONTROL)
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[inline]
 pub(crate) fn is_altgr(_mods: KeyModifiers) -> bool {
@@ -485,8 +487,10 @@ mod tests {
         assert!(has_ctrl_or_alt(KeyModifiers::CONTROL));
         assert!(has_ctrl_or_alt(KeyModifiers::ALT));
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         assert!(!has_ctrl_or_alt(KeyModifiers::CONTROL | KeyModifiers::ALT));
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         assert!(has_ctrl_or_alt(KeyModifiers::CONTROL | KeyModifiers::ALT));
     }

@@ -2,10 +2,13 @@
 
 mod backend;
 mod background_command;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use backend::windows::DetachedLaunchRestricted;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use backend::windows::is_elevated;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use backend::windows::try_lock_file;
 mod client;
@@ -42,6 +45,7 @@ use codex_app_server_protocol::RemoteControlPairingStartResponse;
 use codex_app_server_transport::app_server_control_socket_path;
 use codex_utils_home_dir::find_codex_home;
 use managed_install::managed_codex_bin;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use managed_install::managed_codex_version;
 use serde::Serialize;
@@ -214,6 +218,7 @@ pub struct RemoteControlOutput {
     pub app_server_version: Option<String>,
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RestartIfRunningOutcome {
@@ -224,6 +229,7 @@ pub(crate) enum RestartIfRunningOutcome {
     Restarted,
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RestartMode {
@@ -232,6 +238,7 @@ pub(crate) enum RestartMode {
     Always,
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RestartDecision {
@@ -242,6 +249,7 @@ enum RestartDecision {
 
 pub async fn run(command: LifecycleCommand) -> Result<LifecycleOutput> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if matches!(
         command,
@@ -255,6 +263,7 @@ pub async fn run(command: LifecycleCommand) -> Result<LifecycleOutput> {
 
 pub async fn bootstrap(options: BootstrapOptions) -> Result<BootstrapOutput> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     backend::windows::ensure_not_elevated()?;
     Box::pin(Daemon::from_environment()?.bootstrap(options)).await
@@ -262,6 +271,7 @@ pub async fn bootstrap(options: BootstrapOptions) -> Result<BootstrapOutput> {
 
 pub async fn ensure_remote_control_ready() -> Result<RemoteControlReadyOutput> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     backend::windows::ensure_not_elevated()?;
     Box::pin(Daemon::from_environment()?.ensure_remote_control_ready()).await
@@ -290,6 +300,7 @@ pub async fn start_remote_control_pairing() -> Result<RemoteControlPairingStartR
 
 pub async fn set_remote_control(mode: RemoteControlMode) -> Result<RemoteControlOutput> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     backend::windows::ensure_not_elevated()?;
     Box::pin(Daemon::from_environment()?.set_remote_control(mode)).await
@@ -300,6 +311,7 @@ pub async fn run_pid_update_loop(
     restore_release: Option<String>,
 ) -> Result<()> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     backend::windows::ensure_not_elevated()?;
     update_loop::run(http_client_factory, restore_release).await
@@ -323,16 +335,19 @@ pub async fn update(
     http_client_factory: codex_http_client::HttpClientFactory,
 ) -> Result<UpdateOutput> {
     ensure_supported_platform()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     backend::windows::ensure_not_elevated()?;
     update_loop::request_manual_update(&Daemon::from_environment()?, http_client_factory).await
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn ensure_supported_platform() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn ensure_supported_platform() -> Result<()> {
     Err(anyhow!(
@@ -555,6 +570,7 @@ impl Daemon {
             .await)
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     pub(crate) async fn try_restart_if_running(
         &self,
@@ -605,6 +621,7 @@ impl Daemon {
                 }
                 RestartDecision::AlreadyCurrent => RestartIfRunningOutcome::AlreadyCurrent,
                 RestartDecision::Restart => {
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     backend::windows::ensure_detached_launch(managed_codex_bin)?;
                     if let Err(err) = thread_recovery::discard_pending(self) {
@@ -1099,6 +1116,7 @@ impl Daemon {
 
     fn ensure_managed_codex_bin(&self) -> Result<()> {
         if self.managed_codex_bin.is_file() {
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             backend::windows::ensure_detached_launch(&self.managed_codex_bin)?;
             return Ok(());
@@ -1110,11 +1128,13 @@ impl Daemon {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     async fn managed_codex_version_best_effort(&self) -> Option<String> {
         managed_codex_version(&self.managed_codex_bin).await.ok()
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     async fn managed_codex_version_best_effort(&self) -> Option<String> {
         None
@@ -1242,6 +1262,7 @@ fn already_remote_control_status(mode: RemoteControlMode) -> RemoteControlStatus
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn restart_decision(
     mode: RestartMode,
@@ -1278,11 +1299,13 @@ fn try_lock_file(file: &tokio::fs::File) -> Result<bool> {
     Err(err).context("failed to lock daemon operation")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn try_lock_file(_file: &tokio::fs::File) -> Result<bool> {
     Ok(true)
 }
 
+// WINDOWS-REMNANT
 #[cfg(all(test, any(unix, windows)))]
 mod tests {
     use pretty_assertions::assert_eq;

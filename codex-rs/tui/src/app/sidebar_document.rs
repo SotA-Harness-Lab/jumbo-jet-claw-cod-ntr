@@ -425,6 +425,7 @@ impl App {
             && self.sidebar_chooser_available()
             && server.thread_params_mode() != crate::app_server_session::ThreadParamsMode::Cloud
             && server.app_server_platform_family() != Some("windows")
+            // WINDOWS-REMNANT
             && (server.uses_remote_workspace() || !cfg!(windows))
             && self.current_displayed_thread_id().is_some()
     }

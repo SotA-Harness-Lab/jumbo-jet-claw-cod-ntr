@@ -155,11 +155,13 @@ fn normalize_agent_plugin_stdio_server(
     plugin_root: &Path,
     plugin_data_root: &Path,
 ) -> Result<JsonMap<String, JsonValue>, String> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let has_windows_path_prefix = matches!(
         Path::new(&command).components().next(),
         Some(std::path::Component::Prefix(_))
     );
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let has_windows_path_prefix = false;
     let is_bare_command = !command.is_empty()
@@ -184,6 +186,7 @@ fn normalize_agent_plugin_stdio_server(
             ));
         }
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let mut normalized_env = BTreeMap::new();
@@ -255,6 +258,7 @@ fn reject_explicit_null(object: &JsonMap<String, JsonValue>, field: &str) -> Res
 }
 
 fn environment_variable_names_match(left: &str, right: &str) -> bool {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         left.eq_ignore_ascii_case(right)
     } else {
@@ -483,6 +487,7 @@ fn resolve_existing_path_prefix(path: &Path) -> Result<PathBuf, String> {
 
 fn host_path_string(path: &Path) -> String {
     let rendered = path.to_string_lossy();
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if let Some(path) = rendered.strip_prefix(r"\\?\") {
         return path

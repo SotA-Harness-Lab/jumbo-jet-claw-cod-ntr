@@ -437,6 +437,7 @@ async fn copy_on_select_respects_terminal_defaults_and_config_overrides() -> any
                 TerminalName::VsCode,
                 None,
                 None,
+                // WINDOWS-REMNANT
                 !cfg!(target_os = "windows"),
             ),
             (TerminalName::Alacritty, None, None, true),

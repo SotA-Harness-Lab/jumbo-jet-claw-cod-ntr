@@ -248,6 +248,7 @@ fn git_command(mode: PluginGitMode) -> Command {
     command
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn git_path_arg(path: &Path) -> PathBuf {
     strip_windows_verbatim_path_prefix(&path.to_string_lossy())
@@ -255,11 +256,13 @@ fn git_path_arg(path: &Path) -> PathBuf {
         .unwrap_or_else(|| path.to_path_buf())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn git_path_arg(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 fn strip_windows_verbatim_path_prefix(path: &str) -> Option<String> {
     let stripped = path.strip_prefix(r"\\?\")?;

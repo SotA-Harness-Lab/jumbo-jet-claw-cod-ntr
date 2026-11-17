@@ -18,6 +18,7 @@ pub(crate) struct WindowsSandboxConfig {
     pub(crate) requirements: Option<Option<Vec<WindowsSandboxSetupMode>>>,
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 impl WindowsSandboxConfig {
     pub(crate) fn from_responses(

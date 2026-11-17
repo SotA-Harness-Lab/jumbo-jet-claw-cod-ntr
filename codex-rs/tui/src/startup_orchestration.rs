@@ -23,6 +23,7 @@ pub(super) async fn run_main_inner(
             "--add-dir is not supported with --remote. Configure additional workspace roots on the server.",
         ));
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let elevated_warning = if explicit_remote_endpoint.is_none()
         && !cli.no_daemon
@@ -33,6 +34,7 @@ pub(super) async fn run_main_inner(
     } else {
         None
     };
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let elevated_warning: Option<&str> = None;
     let strict_config = cli.strict_config;
@@ -568,6 +570,7 @@ pub(super) async fn run_main_inner(
     } else {
         None
     };
+    // WINDOWS-REMNANT
     let auto_start_daemon = cfg!(any(unix, windows))
         && (cli.agents_overview || config.features.enabled(Feature::DaemonAutoStart))
         && implicit_connection
@@ -626,6 +629,7 @@ pub(super) async fn run_main_inner(
                 daemon_telemetry::record_start(&config, &result).await;
                 match result.map_err(|err| err.error) {
                     Ok(output) => Ok(Some(output)),
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     Err(err) if err.is::<codex_app_server_daemon::DetachedLaunchRestricted>() => {
                         Ok(None)

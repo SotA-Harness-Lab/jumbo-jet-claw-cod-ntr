@@ -29,8 +29,10 @@ use tokio::io::BufReader;
 use tokio::process::Command;
 use tokio::time::timeout;
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(/*secs*/ 60);
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", windows)))]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(/*secs*/ 10);
 

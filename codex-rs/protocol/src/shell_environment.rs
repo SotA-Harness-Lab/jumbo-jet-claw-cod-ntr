@@ -35,8 +35,10 @@ pub fn is_non_inheritable_env_var(name: &str) -> bool {
 }
 
 pub fn set_tool_call_id_env_var(env: &mut HashMap<String, String>, tool_call_id: Option<&str>) {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     env.retain(|name, _| !name.eq_ignore_ascii_case(CODEX_TOOL_CALL_ID_ENV_VAR));
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     env.remove(CODEX_TOOL_CALL_ID_ENV_VAR);
     if let Some(tool_call_id) = tool_call_id.filter(|tool_call_id| !tool_call_id.contains('\0')) {
@@ -90,6 +92,7 @@ where
 {
     let mut env_map = populate_env(vars, policy, thread_id);
 
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         // This is a workaround to address the failures we are seeing in the
         // following tests when run via Bazel on Windows:
@@ -123,8 +126,10 @@ where
         ShellEnvironmentPolicyInherit::All => vars.into_iter().collect(),
         ShellEnvironmentPolicyInherit::None => HashMap::new(),
         ShellEnvironmentPolicyInherit::Core => {
+            // WINDOWS-REMNANT
             #[cfg(not(target_os = "windows"))]
             let core_env_vars = UNIX_CORE_ENV_VARS;
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             let core_env_vars = WINDOWS_CORE_ENV_VARS;
 
@@ -159,6 +164,7 @@ where
 
     // Step 4 - Apply user-provided overrides.
     for (key, val) in &policy.r#set {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         env_map.retain(|existing, _| !existing.eq_ignore_ascii_case(key));
         env_map.insert(key.clone(), val.clone());
@@ -181,12 +187,14 @@ where
     env_map
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 const UNIX_CORE_ENV_VARS: &[&str] = &[
     "PATH", "SHELL", "TMPDIR", "TEMP", "TMP", "HOME", "LANG", "LC_ALL", "LC_CTYPE", "LOGNAME",
     "USER",
 ];
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub const WINDOWS_CORE_ENV_VARS: &[&str] = &[
     // Core path resolution
@@ -225,6 +233,7 @@ pub const WINDOWS_CORE_ENV_VARS: &[&str] = &[
 #[path = "shell_environment_tests.rs"]
 mod tests;
 
+// WINDOWS-REMNANT
 #[cfg(all(test, target_os = "windows"))]
 mod windows_tests {
     use super::*;
@@ -238,6 +247,7 @@ mod windows_tests {
     }
 
     #[test]
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     fn core_inherit_preserves_windows_startup_vars_case_insensitively() {
         let vars = make_vars(&[
@@ -290,6 +300,7 @@ mod windows_tests {
     }
 
     #[test]
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     fn create_env_inserts_pathext_on_windows_when_missing() {
         let policy = ShellEnvironmentPolicy {
@@ -305,6 +316,7 @@ mod windows_tests {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(all(test, not(target_os = "windows")))]
 mod non_windows_tests {
     use super::*;

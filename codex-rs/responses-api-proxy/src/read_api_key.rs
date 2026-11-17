@@ -24,6 +24,7 @@ fn read_api_key_with(
     })
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn read_from_stdin(buffer: &mut [u8]) -> std::io::Result<usize> {
     use std::io::Read;

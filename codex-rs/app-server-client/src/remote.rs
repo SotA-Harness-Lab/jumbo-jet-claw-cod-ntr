@@ -178,6 +178,7 @@ pub struct RemoteAppServerRequestHandle {
 
 enum SocketPeerPolicy {
     ExplicitEndpoint,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     NonElevatedCurrentUser,
 }
@@ -189,6 +190,7 @@ impl RemoteAppServerClient {
 
     /// Connects to an implicitly discovered Windows daemon, verifying its peer
     /// token before the WebSocket handshake or any session requests.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub async fn connect_local_daemon(args: RemoteAppServerConnectArgs) -> IoResult<Self> {
         if !matches!(args.endpoint, RemoteAppServerEndpoint::UnixSocket { .. }) {
@@ -810,6 +812,7 @@ async fn connect_unix_socket_endpoint(
         })?;
     match peer_policy {
         SocketPeerPolicy::ExplicitEndpoint => {}
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         SocketPeerPolicy::NonElevatedCurrentUser => stream.ensure_non_elevated_peer()?,
     }

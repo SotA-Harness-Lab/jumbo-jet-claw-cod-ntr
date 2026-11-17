@@ -364,6 +364,7 @@ fn rejects_unix_suspend_key_in_any_chord_stroke() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn rejects_windows_altgr_prefixes_outside_vim() {

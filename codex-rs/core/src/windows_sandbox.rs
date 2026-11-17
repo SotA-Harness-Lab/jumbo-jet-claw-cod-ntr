@@ -22,6 +22,7 @@ use std::time::Instant;
 
 /// Records local MXC availability and the selected backend at startup.
 pub fn log_windows_sandbox_startup(config: &Config) {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let sandbox_dir = codex_windows_sandbox::sandbox_dir(config.codex_home.as_path());
@@ -37,6 +38,7 @@ pub fn log_windows_sandbox_startup(config: &Config) {
             WindowsSandboxLevel::from_config(config),
         );
     }
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let _ = config;
 }
@@ -47,6 +49,7 @@ pub(crate) fn log_windows_sandbox_change(
     sandbox_type: SandboxType,
     sandbox_level: WindowsSandboxLevel,
 ) {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let codex_home = codex_home.to_owned();
@@ -54,10 +57,12 @@ pub(crate) fn log_windows_sandbox_change(
             log_windows_sandbox_selection(&codex_home, sandbox_type, sandbox_level);
         });
     }
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let _ = (codex_home, sandbox_type, sandbox_level);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn log_windows_sandbox_selection(
     codex_home: &Path,
@@ -96,6 +101,7 @@ pub fn local_binding_policy_for_sandbox(
 pub fn managed_proxy_routing_for_windows_sandbox(
     sandbox_type: SandboxType,
 ) -> codex_network_proxy::ManagedProxyRouting {
+    // WINDOWS-REMNANT
     if cfg!(windows) && sandbox_type == SandboxType::WindowsMxc {
         codex_network_proxy::ManagedProxyRouting::DedicatedListeners
     } else {
@@ -182,16 +188,19 @@ pub fn legacy_windows_sandbox_mode_from_entries(
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub fn sandbox_setup_is_complete(codex_home: &Path) -> bool {
     codex_windows_sandbox::sandbox_setup_is_complete(codex_home)
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 pub fn sandbox_setup_is_complete(_codex_home: &Path) -> bool {
     false
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub fn prepare_elevated_sandbox(
     permission_profile: &PermissionProfile,
@@ -224,7 +233,8 @@ pub fn prepare_elevated_sandbox(
     )
 }
 
-#[cfg(any(target_os = "windows", test))]
+// WINDOWS-REMNANT
+#[cfg(target_os = "windows")]
 fn provisioning_settings(
     network: Option<&crate::config::NetworkProxySpec>,
 ) -> std::io::Result<codex_windows_sandbox::WindowsSandboxProvisioningSettings> {
@@ -237,6 +247,7 @@ fn provisioning_settings(
     })
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub fn run_elevated_provisioning_setup(
     codex_home: &Path,
@@ -250,6 +261,7 @@ pub fn run_elevated_provisioning_setup(
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 pub fn prepare_elevated_sandbox(
     _permission_profile: &PermissionProfile,
@@ -261,6 +273,7 @@ pub fn prepare_elevated_sandbox(
     anyhow::bail!("elevated Windows sandbox setup is only supported on Windows")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 pub fn run_elevated_provisioning_setup(
     _codex_home: &Path,
@@ -270,6 +283,7 @@ pub fn run_elevated_provisioning_setup(
     anyhow::bail!("elevated Windows sandbox setup is only supported on Windows")
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub fn run_legacy_setup_preflight(
     permission_profile: &PermissionProfile,
@@ -287,6 +301,7 @@ pub fn run_legacy_setup_preflight(
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub fn run_setup_refresh_with_extra_read_roots(
     permission_profile: &PermissionProfile,
@@ -307,6 +322,7 @@ pub fn run_setup_refresh_with_extra_read_roots(
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 pub fn run_legacy_setup_preflight(
     _permission_profile: &PermissionProfile,
@@ -318,6 +334,7 @@ pub fn run_legacy_setup_preflight(
     anyhow::bail!("legacy Windows sandbox setup is only supported on Windows")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 pub fn run_setup_refresh_with_extra_read_roots(
     _permission_profile: &PermissionProfile,
@@ -468,6 +485,7 @@ pub fn emit_windows_sandbox_setup_failure_metrics(
     );
 
     if matches!(mode, WindowsSandboxSetupMode::Elevated) {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             let mut failure_tags: Vec<(&str, &str)> = vec![("originator", originator_tag)];

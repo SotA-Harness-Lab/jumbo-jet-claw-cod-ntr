@@ -333,6 +333,7 @@ fn exec_server_params_use_path_uri_and_env_policy_overlay_contract() {
     assert!(!proxy.transparent_tcp);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn initial_exec_yield_time_uses_windows_floor() {
@@ -357,6 +358,7 @@ fn initial_exec_yield_time_uses_windows_floor() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[test]
 fn initial_exec_yield_time_has_no_platform_floor() {

@@ -357,7 +357,9 @@ async fn copy_hooks_follow_source_and_target(swap_endpoints: bool) -> Result<()>
         let hook = |marker, output: &serde_json::Value| {
             let output = output
                 .to_string()
+                // WINDOWS-REMNANT
                 .replace('\'', if cfg!(windows) { "''" } else { "'\\''" });
+            // WINDOWS-REMNANT
             let command = if cfg!(windows) {
                 // The hook receives its event on the PowerShell pipeline.
                 format!(

@@ -1868,6 +1868,7 @@ impl RuntimeKeymap {
     /// both `?` and `shift-?`) because terminals disagree on whether SHIFT is
     /// preserved for certain printable/control chords.
     fn built_in_defaults() -> Self {
+        // WINDOWS-REMNANT
         let undo_modifier = if cfg!(windows) {
             KeyModifiers::CONTROL
         } else {
@@ -3384,6 +3385,7 @@ mod tests {
             keymap.chat.prompt_stack_back = Some(one(binding));
             assert!(RuntimeKeymap::from_config(&keymap).is_err());
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             let mut keymap = TuiKeymap::default();
@@ -4197,6 +4199,7 @@ mod tests {
                 .contains("backspace")
         );
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             keymap.agents.stop = Some(one("ctrl-alt-@"));

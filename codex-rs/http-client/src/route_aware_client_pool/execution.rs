@@ -9,14 +9,17 @@ use futures::future::BoxFuture;
 use http::header::PROXY_AUTHORIZATION;
 
 use super::RouteAwareClientPool;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use super::RouteAwareClientPoolError;
 use super::RouteAwareRequestError;
 use super::SelectedTlsBackend;
 use crate::HttpResponse;
 use crate::OutboundProxyRoute;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::RouteFailureClass;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::client::TransportClient;
 use crate::client::apply_default_headers;
@@ -28,6 +31,7 @@ use crate::route_aware_redirect::redirect_request;
 use crate::route_aware_redirect::redirect_url;
 use crate::route_aware_redirect::remove_sensitive_headers;
 use crate::tls_backend_fallback::should_retry_with_rustls;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::windows_proxy_auth::ProxyPipe;
 
@@ -130,6 +134,7 @@ impl RouteAwareClientPool {
                 .map_err(RouteAwareRequestError::from);
                 let result = match result {
                     // A failed CONNECT identifies a proxy challenge. An origin 407 is a response.
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     Err(error)
                         if error.is_connect()
@@ -150,6 +155,7 @@ impl RouteAwareClientPool {
                             &current_route,
                             selected_tls_backend,
                             replay.as_ref(),
+                            // WINDOWS-REMNANT
                             #[cfg(windows)]
                             /*proxy_pipe*/
                             None,
@@ -228,6 +234,7 @@ impl RouteAwareClientPool {
         current_route: &OutboundProxyRoute,
         selected_tls_backend: SelectedTlsBackend,
         replay: Option<&reqwest::Request>,
+        // WINDOWS-REMNANT
         #[cfg(windows)] proxy_pipe: Option<&ProxyPipe>,
         error: reqwest::Error,
         timeout_deadline: Option<tokio::time::Instant>,
@@ -252,6 +259,7 @@ impl RouteAwareClientPool {
         };
 
         let candidate = rustls_clients.client_for_route(current_route);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let candidate = match proxy_pipe {
             Some(pipe) => Some(self.windows_proxy_client(
@@ -283,6 +291,7 @@ impl RouteAwareClientPool {
         );
 
         // A Windows auth pipe serves this destination alone, so it cannot enter the route cache.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if proxy_pipe.is_some() {
             return Ok(response);
@@ -291,6 +300,7 @@ impl RouteAwareClientPool {
         Ok(response)
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     async fn retry_windows_proxy(
         &self,
@@ -344,6 +354,7 @@ impl RouteAwareClientPool {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn windows_proxy_client(
         &self,

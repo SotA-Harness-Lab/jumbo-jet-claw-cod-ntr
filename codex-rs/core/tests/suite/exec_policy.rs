@@ -466,6 +466,7 @@ async fn deeply_nested_forced_rm_is_rejected_before_execution_when_approvals_are
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn unified_exec_disabled_windows_sandbox_rejects_managed_read_only_command() -> Result<()> {
@@ -539,6 +540,7 @@ async fn unified_exec_disabled_windows_sandbox_rejects_managed_read_only_command
 }
 
 #[tokio::test]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), ignore = "requires native Windows PowerShell execution")]
 async fn powershell_independent_literal_commands_preserve_url_launch_checks() -> Result<()> {
     core_test_support::skip_if_remote!(Ok(()), "requires local Windows PowerShell execution");

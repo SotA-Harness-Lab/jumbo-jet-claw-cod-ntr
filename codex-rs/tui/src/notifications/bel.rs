@@ -23,6 +23,7 @@ impl Command for PostNotification {
         write!(f, "\x07")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> io::Result<()> {
         Err(std::io::Error::other(
@@ -30,6 +31,7 @@ impl Command for PostNotification {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         true

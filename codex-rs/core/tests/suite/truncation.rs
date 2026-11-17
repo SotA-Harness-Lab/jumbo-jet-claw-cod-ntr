@@ -1,3 +1,4 @@
+// WINDOWS-REMNANT
 #![cfg(not(target_os = "windows"))]
 #![allow(clippy::unwrap_used)]
 
@@ -68,6 +69,7 @@ async fn tool_call_output_configured_limit_chars_type() -> Result<()> {
     let fixture = builder.build(&server).await?;
 
     let call_id = "shell-too-large";
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "for ($i=1; $i -le 100000; $i++) { Write-Output $i }"
     } else {
@@ -147,6 +149,7 @@ async fn tool_call_output_exceeds_limit_truncated_chars_limit() -> Result<()> {
     let fixture = builder.build(&server).await?;
 
     let call_id = "shell-too-large";
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "for ($i=1; $i -le 100000; $i++) { Write-Output $i }"
     } else {
@@ -223,6 +226,7 @@ async fn tool_call_output_exceeds_limit_truncated_for_model() -> Result<()> {
     let fixture = builder.build(&server).await?;
 
     let call_id = "shell-too-large";
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "for ($i=1; $i -le 100000; $i++) { Write-Output $i }"
     } else {
@@ -305,6 +309,7 @@ async fn tool_call_output_truncated_only_once() -> Result<()> {
     let mut builder = test_codex().with_model("gpt-5.5");
     let fixture = builder.build(&server).await?;
     let call_id = "shell-single-truncation";
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "for ($i=1; $i -le 10000; $i++) { Write-Output $i }"
     } else {

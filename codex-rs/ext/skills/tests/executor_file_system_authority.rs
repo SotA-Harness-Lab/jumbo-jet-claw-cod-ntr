@@ -14,6 +14,7 @@ use codex_exec_server::CopyOptions;
 use codex_exec_server::CreateDirectoryOptions;
 use codex_exec_server::DiscoveredSkillFiles;
 use codex_exec_server::EnvironmentManager;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_exec_server::ExecServerRuntimeOptions;
 use codex_exec_server::ExecutorCapabilityDiscoveryCache;
@@ -26,6 +27,7 @@ use codex_exec_server::FileSystemReadStream;
 use codex_exec_server::FileSystemSandboxContext;
 use codex_exec_server::GetMetadataOptions;
 use codex_exec_server::LOCAL_FS;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_exec_server::LocalFileSystem;
 use codex_exec_server::ReadDirectoryEntry;
@@ -35,6 +37,7 @@ use codex_exec_server::WalkEntry;
 use codex_exec_server::WalkEntryKind;
 use codex_exec_server::WalkOptions;
 use codex_exec_server::WalkOutcome;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_exec_server::WindowsSandboxSelection;
 use codex_exec_server::WriteFileOptions;
@@ -54,6 +57,7 @@ use codex_skills_extension::catalog::SkillCatalog;
 use codex_skills_extension::catalog::SkillCatalogEntry;
 use codex_skills_extension::catalog::SkillPackageId;
 use codex_skills_extension::catalog::SkillProviderError;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_skills_extension::catalog::SkillReadResult;
 use codex_skills_extension::catalog::SkillResourceId;
@@ -427,6 +431,7 @@ async fn executor_skill_reads_reject_invalid_resource_handles() {
 }
 
 /// Restricted skill reads must fail closed when the Windows executor has no sandbox selected.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn windows_executor_skill_read_requires_a_requested_sandbox() -> io::Result<()> {
@@ -500,6 +505,7 @@ async fn selected_root_id_distinguishes_identical_executor_paths() {
     };
     let test_root = create_local_skill_root(root_label).expect("create local skill root");
     let selected_root = test_root.to_string_lossy().into_owned();
+    // WINDOWS-REMNANT
     let selected_root = if cfg!(windows) {
         selected_root.replace('\\', "/")
     } else {

@@ -85,6 +85,7 @@ fn project_config_uses_platform_case_for_custom_credential_environment_keys() {
         &["STRIPE_API_KEY".to_string(), "STRIPE_HOST".to_string()],
     );
 
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         assert_eq!(
             ignored,
@@ -836,6 +837,7 @@ async fn multi_agent_warns_for_explicit_user_and_project_settings() -> std::io::
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn default_windows_managed_config_is_ignored_with_warning() {
@@ -887,6 +889,7 @@ sandbox_mode = "danger-full-access"
     assert_eq!(stack.startup_warnings(), Some(expected_warnings.as_slice()));
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn windows_local_managed_configuration_ignores_legacy_file_but_detects_requirements() {

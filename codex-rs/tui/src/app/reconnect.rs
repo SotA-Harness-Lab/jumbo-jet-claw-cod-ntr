@@ -234,6 +234,7 @@ impl App {
             return false;
         }
         if !self.reconnect.offline {
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             if self.windows_sandbox_setup_is_local()
                 && let Some(message) = self.chat_widget.initial_user_message.take()
@@ -447,8 +448,10 @@ impl App {
         session.worktree_source_config_builder = app_server.worktree_source_config_builder.clone();
         session.inherit_task_tool_capabilities(app_server);
         *app_server = session;
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         let interrupted_windows_setup = self.windows_sandbox.pending_setup.take().is_some();
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         {
             if interrupted_windows_setup {
@@ -638,6 +641,7 @@ impl App {
                 self.render_startup_frame(tui, app_event_rx)?;
             }
         }
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         if interrupted_windows_setup {
             self.chat_widget.add_error_message(

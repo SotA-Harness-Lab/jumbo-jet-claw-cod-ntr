@@ -483,6 +483,7 @@ fn local_redirect_uri(server: &Server) -> Result<String> {
             let port = addr.port();
             Ok(format!("http://[{ip}]:{port}/callback"))
         }
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         _ => Err(anyhow!("unable to determine callback address")),
     }

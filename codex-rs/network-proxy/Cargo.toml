@@ -67,6 +67,7 @@ rama-unix = { version = "=0.3.0-alpha.4" }
 rama-dns = { version = "=0.3.0-alpha.4" }
 security-framework = "3"
 
+# WINDOWS-REMNANT
 [target.'cfg(windows)'.dependencies]
 schannel = "0.1"
 windows-sys = { workspace = true, features = [
@@ -77,6 +78,3 @@ windows-sys = { workspace = true, features = [
     "Win32_Security_Authorization",
     "Win32_System_Threading",
 ] }
-
-[target.'cfg(windows)'.dev-dependencies]
-codex-windows-sandbox = { path = "../windows-sandbox-rs" }

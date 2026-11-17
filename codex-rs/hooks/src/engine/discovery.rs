@@ -474,11 +474,13 @@ fn config_toml_source_path(layer: &ConfigLayerEntry) -> AbsolutePathBuf {
 }
 
 fn synthetic_layer_path(path: &str) -> AbsolutePathBuf {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         AbsolutePathBuf::resolve_path_against_base(path, r"C:\")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     {
         AbsolutePathBuf::resolve_path_against_base(path, "/")
@@ -657,6 +659,7 @@ fn append_matcher_groups(
                     status_message,
                     additional_context_limit,
                 } => {
+                    // WINDOWS-REMNANT
                     let command = if cfg!(windows) {
                         command_windows.unwrap_or(command)
                     } else {
@@ -1874,6 +1877,7 @@ mod tests {
         assert_eq!(
             handlers[0].kind,
             ConfiguredHandlerKind::Command {
+                // WINDOWS-REMNANT
                 command: if cfg!(windows) {
                     "echo windows"
                 } else {

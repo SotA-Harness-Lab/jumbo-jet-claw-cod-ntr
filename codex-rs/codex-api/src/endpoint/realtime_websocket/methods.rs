@@ -1114,6 +1114,7 @@ impl RealtimeWebsocketClient {
             .map_err(|err| ApiError::Stream(format!("failed to configure websocket TLS: {err}")))?;
         // A fresh Windows install may not have downloaded the server's trusted root yet.
         // Use platform validation only for system trust, preserving custom CA semantics.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let tls_config = match tls_config {
             Some(tls_config) => Some(tls_config),

@@ -626,6 +626,7 @@ async fn stale_history_completions_preserve_the_current_request_and_failure_can_
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[tokio::test]
 async fn closing_the_first_preview_populates_the_files_chooser() -> Result<()> {
@@ -681,6 +682,7 @@ async fn closing_the_first_preview_populates_the_files_chooser() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[tokio::test]
 async fn sidebar_files_load_older_items_without_advancing_transcript_history() -> Result<()> {

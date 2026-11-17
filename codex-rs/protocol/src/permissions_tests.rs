@@ -129,6 +129,7 @@ fn writable_root_presence_matches_materialized_roots() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn permission_paths_preserve_native_slash_unc_strings() {
@@ -498,6 +499,7 @@ fn unknown_special_paths_are_ignored_by_legacy_bridge() -> std::io::Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn workspace_write_ignores_slash_tmp_special_path_but_preserves_literal_path() {

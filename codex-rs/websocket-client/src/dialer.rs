@@ -6,9 +6,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use codex_http_client::OutboundProxyRoute;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_http_client::WindowsProxyTls;
 use codex_http_client::build_rustls_client_config_with_custom_ca;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_http_client::connect_windows_proxy;
 use futures::StreamExt;
@@ -30,6 +32,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_tungstenite::tungstenite::handshake::client::Response;
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
 use tokio_tungstenite::tungstenite::proxy::ProxyConfig;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use tokio_tungstenite::tungstenite::proxy::ProxyScheme;
 
@@ -67,6 +70,7 @@ pub(crate) async fn connect(
             no_proxy: None,
         } => Some(url),
         // Use the explicit CONNECT path so it can retry a proxy 407.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         OutboundProxyRoute::Proxy {
             url,
@@ -143,6 +147,7 @@ pub(crate) async fn connect(
             };
             match connect_via_proxy(stream, &proxy.config, host, port).await {
                 Ok(stream) => stream,
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 Err(WebSocketError::Url(UrlError::ProxyConnect(message)))
                     if proxy.config.scheme == ProxyScheme::Http

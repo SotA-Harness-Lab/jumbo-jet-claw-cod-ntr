@@ -3,12 +3,16 @@ use anyhow::Result;
 use anyhow::ensure;
 use codex_core::StartThreadOptions;
 use codex_core::TurnInputRequest;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 use codex_core::config::Constrained;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 use codex_core::sandboxing::SandboxPermissions;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 use codex_protocol::config_types::ApprovalsReviewer;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 use codex_protocol::protocol::AskForApproval;
 use codex_protocol::protocol::EventMsg;
@@ -244,6 +248,7 @@ async fn user_turn_git_enrichment_redacts_remote_credentials(partial_clone: bool
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn guardian_prewarm_and_review_skip_redundant_git_enrichment() -> Result<()> {

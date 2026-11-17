@@ -57,6 +57,7 @@ impl Runtime {
                 "libgst",
                 ".so",
             )
+        // WINDOWS-REMNANT
         } else if cfg!(all(windows, target_env = "msvc")) {
             ("bin/gstreamer-1.0-0.dll", "bin", "gst", ".dll")
         } else {
@@ -106,6 +107,7 @@ impl Runtime {
                 use std::os::unix::ffi::OsStrExt;
                 CString::new(plugin.as_os_str().as_bytes())
             };
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             let filename = CString::new(plugin.to_str().ok_or_else(runtime_error)?);
             let filename = filename.map_err(|_| runtime_error())?;
@@ -144,6 +146,7 @@ fn load(path: &Path) -> io::Result<ManuallyDrop<Library>> {
         )
         .map(Library::from)
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let library = unsafe {
         libloading::os::windows::Library::load_with_flags(

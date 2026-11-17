@@ -137,6 +137,7 @@ pub fn default_bg() -> Option<(u8, u8, u8)> {
     default_colors().map(|c| c.bg)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 pub(crate) fn set_default_colors_from_startup_probe(
     colors: Option<crate::terminal_probe::DefaultColors>,
@@ -144,6 +145,7 @@ pub(crate) fn set_default_colors_from_startup_probe(
     imp::set_default_colors_from_startup_probe(colors);
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(all(unix, not(test)), windows))]
 mod imp {
     use super::DefaultColors;
@@ -213,6 +215,7 @@ mod imp {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(all(unix, not(test)), windows)))]
 mod imp {
     use super::DefaultColors;
@@ -221,6 +224,7 @@ mod imp {
         None
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     pub(super) fn set_default_colors_from_startup_probe(
         _colors: Option<crate::terminal_probe::DefaultColors>,

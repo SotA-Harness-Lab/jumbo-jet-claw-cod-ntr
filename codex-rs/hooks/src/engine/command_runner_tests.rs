@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::fs;
 #[cfg(unix)]
@@ -199,6 +200,7 @@ async fn hook_shell_startup_does_not_stop_on_controlling_terminal() {
     assert_eq!(result.error, None);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn cmd_shell_runs_quoted_hook_command_path() {
@@ -318,6 +320,7 @@ time.sleep(30)
     let (runtime, _result_receiver) = runtime();
 
     // Keep user shell startup files out of the pipe I/O timeout test.
+    // WINDOWS-REMNANT
     let runtime = runtime.reconfigured(if cfg!(windows) {
         CommandShell {
             program: "cmd.exe".to_string(),
@@ -347,6 +350,7 @@ async fn command_hook_does_not_expose_configured_noise_auth_token() {
     let temp = tempdir().expect("create temp dir");
     let source_path = AbsolutePathBuf::try_from(temp.path().join("hooks.json"))
         .expect("absolute hook configuration path");
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) { "set" } else { "env" };
     let env = HashMap::from([
         (
@@ -414,12 +418,14 @@ async fn build_command_replays_snapshot_before_hook_overrides_and_scrubbing() {
             "configured-noise-token".to_string(),
         ),
     ]);
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let (program, args, command_line) = (
         "/bin/sh",
         vec!["-c".to_string()],
         "printf '%s\\n' \"$CODEX_HOOK_SNAPSHOT\" \"$CODEX_HOOK_OVERRIDE\" \"$CODEX_HOOK_SAFE_ENV\" \"${CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN-absent}\" \"$CODEX_HOOK_NON_UNICODE\"",
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (program, args, command_line) = (
         "cmd.exe",
@@ -449,6 +455,7 @@ async fn build_command_replays_snapshot_before_hook_overrides_and_scrubbing() {
         output.stdout,
         b"captured\nconfigured\nvisible\nabsent\nv\xff\n"
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     assert_eq!(
         output.stdout,
@@ -458,8 +465,10 @@ async fn build_command_replays_snapshot_before_hook_overrides_and_scrubbing() {
 
 #[test]
 fn fallback_shell_uses_snapshot() {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (name, program) = ("comspec", r"C:\captured\cmd.exe");
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let (name, program) = ("SHELL", "/captured/shell");
     assert_eq!(

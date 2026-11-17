@@ -11,8 +11,6 @@ mod tests;
 #[cfg(test)]
 #[path = "projectless_directory_tests.rs"]
 mod projectless_directory_tests;
-#[cfg(windows)]
-mod windows;
 
 pub use application::LocalApplicationRequirements;
 pub use application::load_local_application_requirements;
@@ -64,6 +62,7 @@ use dunce::canonicalize as normalize_path;
 use serde::Deserialize;
 use std::io;
 use std::path::Path;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::path::PathBuf;
 use toml::Value as TomlValue;
@@ -73,14 +72,17 @@ pub use local::LocalTomlLayer;
 pub use local::LocalTomlLayerStack;
 pub use local::load_local_config_layers;
 pub use managed_requirements::load_managed_requirements_state;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use windows::WindowsSystemConfigNamespaceProbe;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use windows::probe_windows_system_config_namespace;
 
 #[cfg(unix)]
 const SYSTEM_CONFIG_TOML_FILE_UNIX: &str = "/etc/codex/config.toml";
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const DEFAULT_PROGRAM_DATA_DIR_WINDOWS: &str = r"C:\ProgramData";
 
@@ -775,6 +777,7 @@ fn system_requirements_toml_file() -> io::Result<AbsolutePathBuf> {
     AbsolutePathBuf::from_absolute_path(Path::new("/etc/codex/requirements.toml"))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn system_requirements_toml_file() -> io::Result<AbsolutePathBuf> {
     windows_system_requirements_toml_file()
@@ -805,9 +808,11 @@ fn has_local_managed_configuration_with_system_requirements_path(
     codex_home: &Path,
     system_requirements_path: &Path,
 ) -> io::Result<bool> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _ = codex_home;
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     if layer_io::managed_config_default_path(codex_home).try_exists()? {
         return Ok(true);
@@ -830,6 +835,7 @@ pub fn system_config_toml_file() -> io::Result<AbsolutePathBuf> {
     AbsolutePathBuf::from_absolute_path(Path::new(SYSTEM_CONFIG_TOML_FILE_UNIX))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub fn system_config_toml_file() -> io::Result<AbsolutePathBuf> {
     windows_system_config_toml_file()
@@ -844,6 +850,7 @@ fn system_config_toml_file_with_overrides(
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn windows_codex_system_dir() -> PathBuf {
     let program_data = windows_program_data_dir_from_known_folder().unwrap_or_else(|err| {
@@ -856,6 +863,7 @@ fn windows_codex_system_dir() -> PathBuf {
     program_data.join("OpenAI").join("Codex")
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn windows_system_requirements_toml_file() -> io::Result<AbsolutePathBuf> {
     if let Ok(path) = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
@@ -872,12 +880,14 @@ fn windows_system_requirements_toml_file() -> io::Result<AbsolutePathBuf> {
     AbsolutePathBuf::try_from(requirements_toml_file)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn windows_system_config_toml_file() -> io::Result<AbsolutePathBuf> {
     let config_toml_file = windows_codex_system_dir().join("config.toml");
     AbsolutePathBuf::try_from(config_toml_file)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn windows_program_data_dir_from_known_folder() -> io::Result<PathBuf> {
     use std::ffi::OsString;
@@ -1417,6 +1427,7 @@ fn sanitize_project_config(
             ignored_keys.push("shell_environment_policy.experimental_use_profile".to_string());
         }
         let environment_keys_match = |left: &str, right: &str| {
+            // WINDOWS-REMNANT
             left == right || cfg!(windows) && left.eq_ignore_ascii_case(right)
         };
         if let Some(overrides) = policy.get_mut("set").and_then(TomlValue::as_table_mut) {
@@ -1615,6 +1626,7 @@ pub fn normalized_project_trust_keys(path: &Path) -> Vec<String> {
 }
 
 fn normalize_project_trust_lookup_key(key: String) -> String {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         key.to_ascii_lowercase()
     } else {
@@ -1630,12 +1642,14 @@ fn project_trust_for_lookup_key(
     }
 
     // Only Windows folds project keys. On other platforms the exact lookup is exhaustive.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     return projects_trust
         .iter()
         .filter(|(key, _)| key.eq_ignore_ascii_case(lookup_key))
         .min_by_key(|(key, _)| *key)
         .map(|(key, trust_level)| (key.clone(), *trust_level));
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     None
 }
@@ -2088,6 +2102,7 @@ struct LegacyManagedConfigToml {
 #[cfg(test)]
 mod unit_tests {
     use super::*;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     use std::path::Path;
     use tempfile::tempdir;
@@ -2189,6 +2204,7 @@ foo = "xyzzy"
         Ok(())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_codex_system_dir_uses_expected_suffix() {
@@ -2200,6 +2216,7 @@ foo = "xyzzy"
         assert!(windows_codex_system_dir().ends_with(Path::new("OpenAI").join("Codex")));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_system_config_toml_file_uses_expected_suffix() {

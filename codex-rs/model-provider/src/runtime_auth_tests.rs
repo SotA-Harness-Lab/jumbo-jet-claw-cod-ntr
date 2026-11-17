@@ -69,6 +69,7 @@ async fn explicit_keys_and_commands_use_their_own_shared_runtime() {
         };
         #[cfg(unix)]
         let (command, args) = ("sh", vec!["-c".into(), "printf command-key".into()]);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let (command, args) = (
             "cmd.exe",

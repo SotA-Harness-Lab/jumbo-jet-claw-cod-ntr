@@ -269,6 +269,7 @@ mod tests {
         assert_eq!(root, Some(source_root));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn local_marketplace_matches_canonical_and_legacy_windows_sources() {
@@ -301,6 +302,7 @@ mod tests {
         assert!(!metadata.matches_config(&config));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn installed_local_root_does_not_follow_retargeted_configured_junction() {

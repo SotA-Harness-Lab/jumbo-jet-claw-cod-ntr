@@ -13,6 +13,7 @@ use crate::http_headers::with_http_headers_helper;
 
 use super::*;
 
+// WINDOWS-REMNANT
 const PROXY_HEADERS_HELPER: &str = if cfg!(windows) {
     r#"echo {"Proxy-Authorization":"Bearer proxy-token"}"#
 } else {

@@ -257,6 +257,7 @@ fn full_buffer_capture_policy_disables_caps_and_exec_expiration() {
 
 #[tokio::test]
 async fn exec_full_buffer_capture_ignores_expiration() -> Result<()> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let command = vec![
         "powershell.exe".to_string(),
@@ -265,6 +266,7 @@ async fn exec_full_buffer_capture_ignores_expiration() -> Result<()> {
         "-Command".to_string(),
         "Start-Sleep -Milliseconds 50; [Console]::Out.Write('hello')".to_string(),
     ];
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let command = vec![
         "/bin/sh".to_string(),
@@ -485,6 +487,7 @@ async fn process_exec_tool_call_preserves_full_buffer_capture_policy(
     timeout_ms: u64,
 ) -> Result<()> {
     let byte_count = EXEC_OUTPUT_MAX_BYTES.saturating_add(128 * 1024);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let command = vec![
         "powershell.exe".to_string(),
@@ -493,6 +496,7 @@ async fn process_exec_tool_call_preserves_full_buffer_capture_policy(
         "-Command".to_string(),
         format!("Start-Sleep -Milliseconds 50; [Console]::Out.Write('a' * {byte_count})"),
     ];
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let command = vec![
         "/bin/sh".to_string(),
@@ -979,6 +983,7 @@ fn windows_elevated_supports_split_write_read_carveouts() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_workspace_defaults_do_not_hide_explicit_metadata_carveouts() {
@@ -1261,6 +1266,7 @@ async fn build_exec_request_projects_workspace_roots_only_for_windows_sandbox() 
     .await?;
     assert_eq!(
         request.windows_sandbox_workspace_roots,
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             native_roots
         } else {
@@ -1268,6 +1274,7 @@ async fn build_exec_request_projects_workspace_roots_only_for_windows_sandbox() 
         },
     );
 
+    // WINDOWS-REMNANT
     let foreign_root = PathUri::parse(if cfg!(windows) {
         "file:///workspace"
     } else {
@@ -1282,6 +1289,7 @@ async fn build_exec_request_projects_workspace_roots_only_for_windows_sandbox() 
         Vec::new(),
     );
     let request = build_request(&PermissionProfile::read_only(), &roots).await;
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         let error = request.expect_err("native Windows sandbox must reject foreign roots");
         assert!(matches!(
@@ -1314,6 +1322,7 @@ fn command_runs_after_integrity_check_failure(time_out: bool) -> anyhow::Result<
     // a native sandbox installation to test the checker's failure isolation.
     let request = SandboxExecRequest {
         native_program: None,
+        // WINDOWS-REMNANT
         command: if cfg!(windows) {
             vec![
                 "cmd.exe".into(),
@@ -1655,6 +1664,7 @@ fn long_running_command() -> Vec<String> {
     ]
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn long_running_command() -> Vec<String> {
     vec![

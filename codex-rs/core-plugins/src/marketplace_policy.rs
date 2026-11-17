@@ -531,6 +531,7 @@ fn is_expected_managed_path(path: &Path, expected: &Path) -> bool {
                 .strip_prefix("/private/var")
                 .is_ok_and(|suffix| Path::new("/var").join(suffix) == path)
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let path = path.to_string_lossy();
@@ -548,6 +549,7 @@ fn is_expected_managed_path(path: &Path, expected: &Path) -> bool {
                 path.eq_ignore_ascii_case(&expected.replace('/', "\\"))
             })
     }
+    // WINDOWS-REMNANT
     #[cfg(not(any(target_os = "macos", windows)))]
     {
         false
@@ -562,11 +564,13 @@ pub(crate) fn primary_runtime_marketplace_root() -> Option<PathBuf> {
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn primary_runtime_cache_dir() -> Option<PathBuf> {
     primary_runtime_cache_dir_from_user_profile(std::env::var_os("USERPROFILE").map(PathBuf::from))
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn primary_runtime_cache_dir_from_user_profile(user_profile: Option<PathBuf>) -> Option<PathBuf> {
     user_profile.map(|profile| profile.join(".cache"))
@@ -577,6 +581,7 @@ fn primary_runtime_cache_dir() -> Option<PathBuf> {
     dirs::home_dir().map(|home| home.join(".cache"))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn primary_runtime_cache_dir() -> Option<PathBuf> {
     dirs::cache_dir()

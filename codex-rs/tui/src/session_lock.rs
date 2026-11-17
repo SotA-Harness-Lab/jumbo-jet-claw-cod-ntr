@@ -10,11 +10,10 @@ use std::pin::Pin;
 mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
-#[cfg(windows)]
-mod windows;
 
 #[cfg(target_os = "macos")]
 use macos::is_locked;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use windows::is_locked;
 
@@ -24,6 +23,7 @@ pub(crate) async fn observe() -> anyhow::Result<Activation> {
     #[cfg(target_os = "linux")]
     return linux::observe().await;
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", windows))]
     {
         let initially_locked = is_locked()?;
@@ -40,6 +40,7 @@ pub(crate) async fn observe() -> anyhow::Result<Activation> {
         }))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     Ok(Box::pin(std::future::pending()))
 }

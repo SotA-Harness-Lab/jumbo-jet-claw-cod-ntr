@@ -12,6 +12,7 @@ pub(crate) fn handle_exit_status(status: std::process::ExitStatus) -> ! {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn handle_exit_status(status: std::process::ExitStatus) -> ! {
     if let Some(code) = status.code() {

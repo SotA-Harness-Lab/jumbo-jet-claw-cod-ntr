@@ -44,6 +44,7 @@ async fn streaming_output_harness() -> anyhow::Result<StreamingOutputHarness> {
         terminator: None,
         writer_handle: None,
         resizer: None,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         tty: false,
     });

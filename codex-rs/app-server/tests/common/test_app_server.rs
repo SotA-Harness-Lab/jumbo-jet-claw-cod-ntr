@@ -176,8 +176,10 @@ pub const DEFAULT_APP_SERVER_TEST_ARGS: [&str; 5] = [
     "features.recommended_plugins=false",
 ];
 const DISABLE_MANAGED_CONFIG_ENV_VAR: &str = "CODEX_APP_SERVER_DISABLE_MANAGED_CONFIG";
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(25);
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 

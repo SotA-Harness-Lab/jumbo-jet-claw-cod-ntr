@@ -47,6 +47,7 @@ fn bundle_executable_preserves_package_layout_and_install_method() -> std::io::R
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn winget_root_requires_metadata_for_the_actual_executable() -> std::io::Result<()> {

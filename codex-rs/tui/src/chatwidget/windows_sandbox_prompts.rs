@@ -1,10 +1,12 @@
 //! Windows sandbox prompts and warning surfaces for `ChatWidget`.
 
 use super::*;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "windows", test))]
 use crate::render::renderable::ColumnRenderable;
 
 impl ChatWidget {
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(super) fn elevated_windows_sandbox_setup_required(&self) -> bool {
         self.windows_sandbox_config.requires_elevated()
@@ -12,6 +14,7 @@ impl ChatWidget {
                 || !self.windows_sandbox_elevated_setup_complete)
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(crate) fn open_windows_sandbox_enable_prompt(
         &mut self,
@@ -129,6 +132,7 @@ impl ChatWidget {
         });
     }
 
+    // WINDOWS-REMNANT
     #[cfg(all(not(target_os = "windows"), not(test)))]
     pub(crate) fn open_windows_sandbox_enable_prompt(
         &mut self,
@@ -137,6 +141,7 @@ impl ChatWidget {
     ) {
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(crate) fn open_windows_sandbox_fallback_prompt(
         &mut self,
@@ -263,6 +268,7 @@ impl ChatWidget {
         });
     }
 
+    // WINDOWS-REMNANT
     #[cfg(all(not(target_os = "windows"), not(test)))]
     pub(crate) fn open_windows_sandbox_fallback_prompt(
         &mut self,
@@ -271,6 +277,7 @@ impl ChatWidget {
     ) {
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(crate) fn maybe_prompt_windows_sandbox_enable(&mut self, show_now: bool) {
         let setup_is_required = !self.windows_sandbox_config.is_enabled()
@@ -290,6 +297,7 @@ impl ChatWidget {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(crate) fn show_windows_sandbox_setup_status(&mut self) {
         // While elevated sandbox setup runs, prevent typing so the user doesn't
@@ -311,10 +319,12 @@ impl ChatWidget {
         self.request_redraw();
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(target_os = "windows", test)))]
     #[allow(dead_code)]
     pub(crate) fn show_windows_sandbox_setup_status(&mut self) {}
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(crate) fn clear_windows_sandbox_setup_status(&mut self) {
         self.bottom_pane
@@ -323,6 +333,7 @@ impl ChatWidget {
         self.request_redraw();
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(target_os = "windows", test)))]
     pub(crate) fn clear_windows_sandbox_setup_status(&mut self) {}
 }

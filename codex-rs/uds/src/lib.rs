@@ -61,6 +61,7 @@ pub struct UnixStream {
 impl UnixStream {
     /// Requires the Windows peer to belong to the current user, with neither
     /// process elevated. Call before sending any application data.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub fn ensure_non_elevated_peer(&self) -> IoResult<()> {
         self.inner.ensure_non_elevated_peer()
@@ -182,6 +183,7 @@ mod platform {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 mod platform {
     use std::io;
@@ -363,13 +365,6 @@ mod platform {
 #[cfg(test)]
 mod lib_tests;
 
-#[cfg(windows)]
-mod windows_security;
-
-#[cfg(windows)]
-mod windows_socket_validation;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use windows_socket_validation::validate_private_socket_path;
-
-#[cfg(windows)]
-mod windows_peer;

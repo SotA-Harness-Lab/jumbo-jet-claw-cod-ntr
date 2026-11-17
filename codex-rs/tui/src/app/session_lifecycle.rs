@@ -601,6 +601,7 @@ impl App {
         chat_widget.set_local_worktree_operations(self.chat_widget.local_worktree_operations);
         chat_widget.windows_sandbox_local_server = self.chat_widget.windows_sandbox_local_server;
         chat_widget.windows_sandbox_host = WindowsSandboxHost::Unknown;
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         {
             chat_widget.windows_sandbox_elevated_setup_complete =

@@ -1,8 +1,11 @@
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 use rama_tls_rustls::dep::pki_types::CertificateDer;
 use rustls_native_certs::CertificateResult;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 use rustls_native_certs::Error;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 use rustls_native_certs::ErrorKind;
 
@@ -75,6 +78,7 @@ pub(crate) fn load_platform_native_certs() -> CertificateResult {
     result
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn load_platform_native_certs() -> CertificateResult {
     use schannel::cert_store::CertStore;
@@ -121,6 +125,7 @@ pub(crate) fn load_platform_native_certs() -> CertificateResult {
     result
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(all(unix, not(target_os = "macos")), target_os = "macos", windows)))]
 pub(crate) fn load_platform_native_certs() -> CertificateResult {
     rustls_native_certs::load_native_certs()
@@ -248,6 +253,7 @@ const PLATFORM_CERTIFICATE_FILE_NAMES: &[&str] = &["/boot/system/data/ssl/CARoot
 ))]
 const PLATFORM_CERTIFICATE_FILE_NAMES: &[&str] = &["/etc/ssl/certs/ca-certificates.crt"];
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn usable_for_rustls(uses: schannel::cert_context::ValidUses) -> bool {
     match uses {
@@ -256,5 +262,6 @@ fn usable_for_rustls(uses: schannel::cert_context::ValidUses) -> bool {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const PKIX_SERVER_AUTH: &str = "1.3.6.1.5.5.7.3.1";

@@ -32,6 +32,7 @@ async fn driver_backed_terminal_queries_are_answered() -> anyhow::Result<()> {
         terminator: None,
         writer_handle: None,
         resizer: None,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         tty: true,
     }));

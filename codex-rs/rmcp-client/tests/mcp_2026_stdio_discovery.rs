@@ -29,6 +29,7 @@ fn local_stdio_inherits_ca_certificate_variables() -> anyhow::Result<()> {
     std::fs::create_dir_all(source_dir.join("certs"))?;
     std::fs::create_dir_all(&server_dir)?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let requests_ca_bundle = match source_dir.components().next() {
         Some(std::path::Component::Prefix(prefix)) => match prefix.kind() {
@@ -39,6 +40,7 @@ fn local_stdio_inherits_ca_certificate_variables() -> anyhow::Result<()> {
         },
         _ => "certs/custom-ca.pem".to_string(),
     };
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let requests_ca_bundle = "certs/custom-ca.pem";
 

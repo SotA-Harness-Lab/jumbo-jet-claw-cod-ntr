@@ -329,8 +329,10 @@ async fn run_command_under_sandbox(
             #[cfg(target_os = "macos")]
             SandboxType::Seatbelt => SandboxBackend::MacosSeatbelt,
             SandboxType::Landlock { .. } => SandboxBackend::LinuxSeccomp,
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             SandboxType::Windows if windows_sandbox_type == WindowsMxc => WindowsMxc,
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             SandboxType::Windows => {
                 let session_profile = if sandbox_state.is_none() {
@@ -354,6 +356,7 @@ async fn run_command_under_sandbox(
                 )
                 .await;
             }
+            // WINDOWS-REMNANT
             #[cfg(not(windows))]
             SandboxType::Windows => anyhow::bail!("Windows sandbox is only available on Windows"),
         },
@@ -476,6 +479,7 @@ async fn run_command_under_sandbox(
     handle_exit_status(status);
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 async fn run_command_under_windows_session(
     config: &Config,
@@ -940,6 +944,7 @@ enabled = true
         )
         .await?;
 
+        // WINDOWS-REMNANT
         if cfg!(target_os = "windows") {
             assert_eq!(
                 workspace_write_config

@@ -48,6 +48,7 @@ esac
             vec![script.to_string_lossy().into_owned()],
         )
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (command, mut args) = {
         let script = directory.path().join("export.cmd");

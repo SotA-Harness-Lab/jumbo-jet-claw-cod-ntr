@@ -166,6 +166,7 @@ pub(super) use crossterm::event::KeyEvent;
 pub(super) use crossterm::event::KeyModifiers;
 pub(super) use insta::assert_snapshot;
 pub(super) use serde_json::json;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub(super) use serial_test::serial;
 pub(super) use std::collections::HashMap;

@@ -2593,6 +2593,7 @@ async fn copy_shortcut_can_be_remapped() {
         assert_matches!(
             chat.handle_key_event(paste),
             crate::chatwidget::KeyEventAction::PasteImage { text_fallback, .. }
+                // WINDOWS-REMNANT
                 if text_fallback == (cfg!(windows) && modifiers == KeyModifiers::CONTROL)
                     .then_some(code)
         );
@@ -2603,6 +2604,7 @@ async fn copy_shortcut_can_be_remapped() {
     }
     // Crossterm maps VK_INSERT + SHIFT_PRESSED directly to Insert + Shift on Windows.
     let shift_insert = KeyEvent::new(KeyCode::Insert, KeyModifiers::SHIFT);
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         chat.bottom_pane.set_disable_paste_burst(/*disabled*/ false);
         chat.handle_key_event(KeyEvent::from(KeyCode::Char('q')));

@@ -130,6 +130,7 @@ impl PathUri {
             use std::os::unix::ffi::OsStrExt;
             path.as_path().as_os_str().as_bytes().to_vec()
         };
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let path_bytes = {
             use std::os::windows::ffi::OsStrExt;
@@ -582,6 +583,7 @@ impl PathUri {
                     path_bytes,
                 )))
             };
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             let decoded_path = {
                 use std::os::windows::ffi::OsStringExt;
@@ -994,6 +996,7 @@ pub enum PathConvention {
 
 impl PathConvention {
     /// Returns the path convention used by the current process.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub const fn native() -> Self {
         Self::Windows
