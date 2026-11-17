@@ -46,8 +46,8 @@ pub struct SkillsConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub include_instructions: Option<bool>,
 
-    /// Maximum tokens used by the available-skills catalog. Defaults to 2% of
-    /// the model context window and is capped at 10,000 tokens when set.
+    /// Maximum tokens used by the available-skills catalog. Defaults to 5% of
+    /// the model context window and is capped at 100,000 tokens when set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_context_tokens: Option<NonZeroUsize>,
 

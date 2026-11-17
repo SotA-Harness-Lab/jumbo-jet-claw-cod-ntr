@@ -606,7 +606,7 @@ async fn persisted_host_snapshot_deduplicates_warning_after_reinitialization() -
         })
         .await;
     let mut model_info = model_info_from_slug("test-model");
-    model_info.context_window = Some(50);
+    model_info.context_window = Some(20);
     let turn_store = ExtensionData::new("turn-1");
     turn_store.insert(host_snapshot.clone());
     let sections = prepared_world_state(
@@ -648,7 +648,7 @@ async fn persisted_host_snapshot_deduplicates_warning_after_reinitialization() -
         })
         .await;
     let mut model_info = model_info_from_slug("test-model");
-    model_info.context_window = Some(50);
+    model_info.context_window = Some(20);
     let resumed_turn_store = ExtensionData::new("turn-2");
     resumed_turn_store.insert(host_snapshot);
     let sections = prepared_world_state(
@@ -1950,7 +1950,7 @@ async fn catalog_rebalances_only_to_avoid_omissions_and_retains_the_allocation()
         (40, 5, true, true),
         (40, 160, false, false),
     ] {
-        for context_window in [None, Some(100_000)] {
+        for context_window in [None, Some(40_000)] {
             let description = "x".repeat(1_025);
             let executor_entries: Vec<_> = (0..executor_count)
                 .map(|index| {
@@ -2064,7 +2064,7 @@ async fn catalog_rebalances_only_to_avoid_omissions_and_retains_the_allocation()
                         .await;
                 }
                 if matches!(phase, Phase::BudgetChanged) {
-                    model.context_window = Some(200_000);
+                    model.context_window = Some(80_000);
                 }
                 let ready = matches!(
                     phase,
@@ -3107,7 +3107,7 @@ async fn model_context_window_scales_executor_and_cloud_catalogs() -> TestResult
         .await;
     refresh_registered_catalogs_for_step(&registry, &session_store, &thread_store, "turn-1").await;
     let mut model_info = model_info_from_slug("test-model");
-    model_info.context_window = Some(10_000);
+    model_info.context_window = Some(4_000);
 
     let thread_fragments = registry.context_contributors()[0]
         .contribute_thread_context(&session_store, &thread_store)
@@ -3374,7 +3374,7 @@ async fn host_catalog_compacts_shared_paths_under_budget_pressure() -> TestResul
         })
         .await;
     let mut model_info = model_info_from_slug("test-model");
-    model_info.context_window = Some(10_000);
+    model_info.context_window = Some(4_000);
     thread_store.insert(model_info);
     let turn_store = ExtensionData::new("turn-1");
     turn_store.insert(snapshot);

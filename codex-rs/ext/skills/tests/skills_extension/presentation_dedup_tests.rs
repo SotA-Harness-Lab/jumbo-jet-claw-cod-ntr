@@ -101,7 +101,7 @@ async fn cloud_preference_preserves_aliases_reads_and_executor_fallback() -> Tes
         let mut previous = serde_json::Map::new();
         let mut initial_cloud_body = None;
         let model_info = ModelInfo {
-            context_window: Some(70_000),
+            context_window: Some(28_000),
             ..catalog_model_info()
         };
         for (stage, ready) in [
