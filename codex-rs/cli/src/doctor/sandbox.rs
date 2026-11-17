@@ -1,46 +1,63 @@
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::fs;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::io;
 
 use codex_arg0::Arg0DispatchPaths;
 use codex_config::RequirementSource;
 use codex_core::config::Config;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_core::windows_sandbox::WindowsSandboxLevelExt;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_protocol::config_types::WindowsSandboxLevel;
 use codex_protocol::permissions::FileSystemAccessMode;
 use codex_protocol::permissions::FileSystemPath;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_sandboxing::windows_sandbox_uses_elevated_backend;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_windows_sandbox::SetupErrorCode;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::ERROR_ACCESS_DENIED;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::NERR_Success as NERR_SUCCESS;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::NERR_UserNotFound as NERR_USER_NOT_FOUND;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::NetApiBufferFree;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::NetUserGetInfo;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::UF_ACCOUNTDISABLE;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::UF_LOCKOUT;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::UF_PASSWORD_EXPIRED;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::NetworkManagement::NetManagement::USER_INFO_23;
 
 use super::CheckStatus;
 use super::DoctorCheck;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use super::DoctorIssue;
 use super::push_path_detail;
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 const WINDOWS_SETUP_REMEDIATION: &str = "run codex sandbox setup --elevated --user <end-user> --codex-home <authoritative-home> from an elevated shell";
 
@@ -112,9 +129,11 @@ pub(super) fn sandbox_check(config: &Config, arg0_paths: &Arg0DispatchPaths) -> 
 
     let check = DoctorCheck::new("sandbox.helpers", "sandbox", status, summary).details(details);
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let mut check = check;
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     {
         let configured_level = WindowsSandboxLevel::from_config(config);

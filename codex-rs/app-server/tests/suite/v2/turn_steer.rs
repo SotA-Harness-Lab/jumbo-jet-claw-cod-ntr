@@ -146,12 +146,14 @@ async fn turn_steer_rejects_oversized_text_input() -> Result<()> {
         "uses a host-local command and cwd fixture unavailable to remote executors"
     );
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let shell_command = vec![
         "powershell".to_string(),
         "-Command".to_string(),
         "Start-Sleep -Seconds 10".to_string(),
     ];
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     let shell_command = vec!["sleep".to_string(), "10".to_string()];
 
@@ -262,12 +264,14 @@ async fn turn_steer_returns_active_turn_id(tool_outputs: bool) -> Result<()> {
         "uses a host-local command and cwd fixture unavailable to remote executors"
     );
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let shell_command = vec![
         "powershell".to_string(),
         "-Command".to_string(),
         "Start-Sleep -Seconds 2".to_string(),
     ];
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     let shell_command = vec!["sleep".to_string(), "2".to_string()];
 

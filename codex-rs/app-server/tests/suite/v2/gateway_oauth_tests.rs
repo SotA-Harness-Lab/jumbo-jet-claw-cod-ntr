@@ -146,6 +146,7 @@ async fn working_gateway_exporter_allows_model_list_without_an_oauth_session() -
     let token_file = home.path().join("exported-token");
     std::fs::write(&token_file, "")?;
     let file_arg = serde_json::to_string(&token_file)?;
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         format!("command = 'cmd.exe', args = ['/D', '/C', 'type', {file_arg}]")
     } else {

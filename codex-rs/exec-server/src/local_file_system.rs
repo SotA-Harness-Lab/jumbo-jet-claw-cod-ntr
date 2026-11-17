@@ -1260,6 +1260,7 @@ fn copy_symlink(source: &Path, target: &Path) -> io::Result<()> {
     {
         std::os::unix::fs::symlink(&link_target, target)
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         if symlink_points_to_directory(source)? {
@@ -1268,6 +1269,7 @@ fn copy_symlink(source: &Path, target: &Path) -> io::Result<()> {
             std::os::windows::fs::symlink_file(&link_target, target)
         }
     }
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     {
         let _ = link_target;
@@ -1279,6 +1281,7 @@ fn copy_symlink(source: &Path, target: &Path) -> io::Result<()> {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn symlink_points_to_directory(source: &Path) -> io::Result<bool> {
     use std::os::windows::fs::FileTypeExt;
@@ -1295,6 +1298,7 @@ fn system_time_to_unix_ms(time: SystemTime) -> i64 {
         .unwrap_or(0)
 }
 
+// WINDOWS-REMNANT
 #[cfg(all(test, any(unix, windows)))]
 #[path = "local_file_system_path_uri_tests.rs"]
 mod path_uri_tests;
@@ -1330,6 +1334,7 @@ mod tests {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(all(test, windows))]
 mod tests {
     use super::*;

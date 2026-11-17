@@ -530,6 +530,7 @@ printf '%s\n' '{"AccessKeyId":"exported","SecretAccessKey":"secret"}'
             "export-credentials".to_string(),
         ],
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (command, mut args) = {
         let script = fixture.path().join("export.cmd");

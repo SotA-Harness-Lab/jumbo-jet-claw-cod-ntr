@@ -1,9 +1,11 @@
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use std::process::Stdio;
 use std::time::Duration;
 
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use tokio::time::sleep;
 
@@ -20,6 +22,7 @@ use super::read_stderr_log_tail;
 use super::stderr_log_file_for_pid_file;
 use super::try_lock_file;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn is_elevated_test_process() -> anyhow::Result<bool> {
     let output = std::process::Command::new("powershell.exe")
@@ -259,6 +262,7 @@ async fn start_retries_stale_empty_pid_file_under_its_own_lock() {
     );
 
     let err = backend.start().await.expect_err("start");
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if is_elevated_test_process().expect("query administrator membership") {
         assert!(err.to_string().contains("non-elevated terminal"));
@@ -470,6 +474,7 @@ async fn stop_reaps_untracked_app_server_child() {
     assert!(!pid_file.exists());
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 #[tokio::test]
 async fn shutdown_grace_child() {
@@ -485,6 +490,7 @@ async fn shutdown_grace_child() {
     let _ = tokio::time::timeout(Duration::from_secs(/*secs*/ 30), async {
         #[cfg(unix)]
         terminate.recv().await;
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         loop {
             if ready.with_extension("shutdown").exists() {
@@ -504,6 +510,7 @@ async fn shutdown_grace_child() {
     .await;
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 #[tokio::test]
 async fn shutdown_grace_handles_process_exit() {
@@ -552,6 +559,7 @@ async fn shutdown_grace_handles_process_exit() {
             pid_file,
             /*remote_control_enabled*/ false,
         );
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let backend = PidBackend::new_update_loop(
             temp.path().join("codex"),
@@ -824,6 +832,7 @@ async fn stale_creation_time_never_stops_reused_pid() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn managed_children_launch_in_workdir_without_changing_private_state_directory() {
@@ -879,6 +888,7 @@ async fn managed_children_launch_in_workdir_without_changing_private_state_direc
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn failed_updater_handoff_preserves_predecessor_record() {
@@ -926,6 +936,7 @@ async fn failed_updater_handoff_preserves_predecessor_record() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
@@ -1075,6 +1086,7 @@ async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn inaccessible_pid_preserves_identity_check_error() {

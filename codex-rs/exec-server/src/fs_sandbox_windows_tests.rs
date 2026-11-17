@@ -1,23 +1,32 @@
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::collections::HashMap;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::path::Path;
 use std::time::Duration;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_protocol::config_types::WindowsSandboxLevel;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_protocol::models::PermissionProfile;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_protocol::sandbox::SandboxOverride;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_sandboxing::SandboxExecRequest;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_sandboxing::SandboxType;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_utils_path_uri::PathUri;
 use codex_utils_pty::Command;
 use pretty_assertions::assert_eq;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
@@ -25,12 +34,16 @@ use tokio::io::AsyncWriteExt;
 use super::drain_helper_stderr;
 use super::read_helper_response;
 use super::reap_helper_after_response;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use super::run_command;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::fs_helper::FsHelperPayload;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::protocol::FsReadFileResponse;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::protocol::FsWriteFileResponse;
 
@@ -71,6 +84,7 @@ async fn noisy_failing_helper_preserves_exit_status_and_bounded_stderr() {
         );
         command
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let mut command = {
         let system_root = std::env::var("SystemRoot").expect("Windows system root");
@@ -119,6 +133,7 @@ async fn helper_stderr_is_drained_before_the_response() {
         );
         command
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let mut command = {
         let system_root = std::env::var("SystemRoot").expect("Windows system root");
@@ -152,6 +167,7 @@ async fn helper_stderr_is_drained_before_the_response() {
         .expect("noisy helper should be cleaned up after its response");
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn completed_windows_image_read_does_not_wait_for_a_stuck_helper() {
@@ -190,6 +206,7 @@ async fn completed_windows_image_read_does_not_wait_for_a_stuck_helper() {
     assert_eq!(std::fs::read(&path).expect("created file"), b"image");
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn duplicated_windows_file_handle_survives_bounded_helper_cleanup() {
@@ -224,6 +241,7 @@ $handle = $file.SafeFileHandle.DangerousGetHandle().ToInt64()
     assert_eq!(data, b"image");
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn powershell_command(script: &str, path: &Path) -> anyhow::Result<SandboxExecRequest> {
     let system_root = std::env::var("SystemRoot")?;

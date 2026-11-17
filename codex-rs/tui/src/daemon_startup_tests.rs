@@ -238,6 +238,7 @@ async fn daemon_feature_compatibility_respects_required_and_optional_attachment(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn daemon_connection_rejects_unprotected_socket_before_handshake() -> color_eyre::Result<()> {

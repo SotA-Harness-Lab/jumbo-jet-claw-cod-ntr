@@ -320,6 +320,7 @@ async fn mcp_hooks_preserve_ownership_with_same_named_servers() -> Result<()> {
             "updatedInput": updated_input
         }});
         // Both executors run on this host, including in remote-executor test runs.
+        // WINDOWS-REMNANT
         let command = if cfg!(target_os = "windows") {
             format!("ForEach-Object {{ '{output}' }}")
         } else {

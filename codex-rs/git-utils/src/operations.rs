@@ -7,6 +7,7 @@ use codex_protocol::shell_environment::scrub_non_inheritable_env_vars;
 
 use crate::GitToolingError;
 
+// WINDOWS-REMNANT
 const DISABLED_HOOKS_PATH: &str = if cfg!(windows) { "NUL" } else { "/dev/null" };
 
 /// Encodes Git overrides without treating equals signs in keys as separators.

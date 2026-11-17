@@ -19,8 +19,10 @@ use codex_network_proxy::NetworkUnixSocketPermissions;
 use codex_network_proxy::PROXY_ATTRIBUTION_TOKEN_ENV_KEY;
 use codex_network_proxy::RemoteNetworkProxyConfig;
 use codex_network_proxy::RemoteNetworkProxyLaunchConfig;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_protocol::config_types::WindowsSandboxLevel;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use codex_protocol::models::PermissionProfile;
 use codex_sandboxing::WrappedSandboxCommand;
@@ -41,6 +43,7 @@ use super::prepare_exec_request_with_telemetry;
 use crate::CODEX_ARG0_EXEC_HELPER_ARG1;
 use crate::ExecParams;
 use crate::ExecServerRuntimeOptions;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use crate::FileSystemSandboxContext;
 use crate::ProcessId;
@@ -695,6 +698,7 @@ async fn native_request_handles_remote_proxy_config_for_platform(
         );
     }
 
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert_eq!(prepared_env.get("HTTP_PROXY"), None);
         assert_eq!(prepared_env.get("TEST_ENV"), Some(&"value"));
@@ -726,6 +730,7 @@ async fn native_request_handles_remote_proxy_config_for_platform(
     assert!(String::from_utf8_lossy(&response[..response_len]).starts_with("HTTP/1.1 403"));
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test]
 async fn disabled_remote_proxy_config_is_rejected_before_exporting_ports() {
@@ -777,6 +782,7 @@ async fn disabled_remote_proxy_config_is_rejected_before_exporting_ports() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test_case(WindowsSandboxLevel::RestrictedToken ; "unelevated is rejected")]
 #[test_case(WindowsSandboxLevel::Elevated ; "elevated is accepted")]

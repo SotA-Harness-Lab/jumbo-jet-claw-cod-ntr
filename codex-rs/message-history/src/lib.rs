@@ -318,6 +318,7 @@ async fn ensure_owner_only_permissions(file: &File) -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 // On Windows, simply succeed.
 async fn ensure_owner_only_permissions(_file: &File) -> Result<()> {
@@ -428,12 +429,14 @@ fn log_identity(metadata: &std::fs::Metadata) -> Option<u64> {
     Some(metadata.ino())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn log_identity(metadata: &std::fs::Metadata) -> Option<u64> {
     use std::os::windows::fs::MetadataExt;
     Some(metadata.creation_time())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn log_identity(_metadata: &std::fs::Metadata) -> Option<u64> {
     None

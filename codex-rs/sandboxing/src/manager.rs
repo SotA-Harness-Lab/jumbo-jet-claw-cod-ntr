@@ -1,11 +1,14 @@
 use self::launch::PreparedLaunchPolicy;
 use self::launch::SandboxOperation;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use self::launch::WindowsSessionPolicy;
 use self::launch::WrappedSandboxCommand;
 use crate::LinuxSandboxPidNamespace;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::WindowsSandboxFilesystemOverrides;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::WindowsSandboxProxySettingsMode;
 #[cfg(target_os = "linux")]
@@ -35,6 +38,7 @@ use std::path::Path;
 #[path = "launch.rs"]
 pub(super) mod launch;
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 const WINDOWS_SANDBOX_WRAPPER_SETUP_ENV_ALLOWLIST: &[&str] = &[
     "USERNAME",
@@ -55,6 +59,7 @@ pub fn get_platform_sandbox(windows_sandbox_enabled: bool) -> Option<SandboxType
         Some(SandboxType::MacosSeatbelt)
     } else if cfg!(target_os = "linux") {
         Some(SandboxType::LinuxSeccomp)
+    // WINDOWS-REMNANT
     } else if cfg!(target_os = "windows") {
         if windows_sandbox_enabled {
             Some(SandboxType::WindowsRestrictedToken)
@@ -228,6 +233,7 @@ pub enum SandboxTransformError {
     Wsl1UnsupportedForBubblewrap,
     #[cfg(not(target_os = "macos"))]
     SeatbeltUnavailable,
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     WindowsSandboxPreparation(String),
 }
@@ -266,6 +272,7 @@ impl std::fmt::Display for SandboxTransformError {
             Self::Wsl1UnsupportedForBubblewrap => write!(f, "{WSL1_BWRAP_WARNING}"),
             #[cfg(not(target_os = "macos"))]
             Self::SeatbeltUnavailable => write!(f, "seatbelt sandbox is only available on macOS"),
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             Self::WindowsSandboxPreparation(err) => {
                 write!(f, "failed to prepare Windows sandbox: {err}")
@@ -289,6 +296,7 @@ impl std::error::Error for SandboxTransformError {
             Self::Wsl1UnsupportedForBubblewrap => None,
             #[cfg(not(target_os = "macos"))]
             Self::SeatbeltUnavailable => None,
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             Self::WindowsSandboxPreparation(_) => None,
         }
@@ -297,6 +305,7 @@ impl std::error::Error for SandboxTransformError {
 
 #[derive(Clone, Default)]
 pub struct SandboxManager {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     windows_token_session: Option<WindowsSandboxProxySettingsMode>,
     linux_sandbox_pid_namespace: LinuxSandboxPidNamespace,
@@ -335,6 +344,7 @@ impl SandboxManager {
 
     /// Prepare the Windows token session for `WrappedSandboxCommand::spawn`.
     /// By default the caller supplies its own token launcher.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub fn with_windows_token_session(
         mut self,
@@ -374,12 +384,14 @@ impl SandboxManager {
         windows_sandbox_type: SandboxType,
         has_managed_network_requirements: bool,
     ) -> SandboxType {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         crate::windows_mxc::record_availability_once();
 
         if !self.should_sandbox(permission_profile, pref, has_managed_network_requirements) {
             return SandboxType::None;
         }
+        // WINDOWS-REMNANT
         if cfg!(windows) && windows_sandbox_type == SandboxType::WindowsMxc {
             return SandboxType::WindowsMxc;
         }
@@ -442,6 +454,7 @@ impl SandboxManager {
         let backend = match request.selection {
             SandboxSelection::Explicit(sandbox) => sandbox,
             SandboxSelection::RequirePlatform => {
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 crate::windows_mxc::record_availability_once();
                 get_platform_sandbox(request.windows_sandbox_level != WindowsSandboxLevel::Disabled)
@@ -451,6 +464,7 @@ impl SandboxManager {
         if is_file_system_helper && backend == SandboxType::None {
             return Err(SandboxTransformError::SandboxUnavailable);
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if backend == SandboxType::WindowsRestrictedToken
             && request.enforce_managed_network
@@ -465,6 +479,7 @@ impl SandboxManager {
             SandboxType::LinuxSeccomp | SandboxType::WindowsMxc => {
                 request.sandbox_exe.map(Path::as_os_str)
             }
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             SandboxType::WindowsRestrictedToken if is_file_system_helper => {
                 request.sandbox_exe.map(Path::as_os_str)
@@ -614,10 +629,12 @@ impl SandboxManager {
             SandboxType::WindowsRestrictedToken => {
                 let pending = pending?;
                 exec.permission_profile = pending.effective_permission_profile;
+                // WINDOWS-REMNANT
                 #[cfg(not(windows))]
                 if is_file_system_helper {
                     return Err(SandboxTransformError::SandboxUnavailable);
                 }
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 if is_file_system_helper {
                     let codex_home = codex_utils_home_dir::find_codex_home().map_err(|err| {
@@ -702,6 +719,7 @@ impl SandboxManager {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn windows_proxy_restricting_sid(
     proxy: Option<&NetworkProxy>,
@@ -720,6 +738,7 @@ fn windows_proxy_restricting_sid(
         .transpose()
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn wrap_windows_file_system_helper(
     request: &mut SandboxExecRequest,
@@ -822,6 +841,7 @@ fn wrap_windows_file_system_helper(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn add_windows_sandbox_wrapper_setup_env(env: &mut HashMap<String, String>) {
     add_windows_sandbox_wrapper_setup_env_from_vars(
@@ -831,6 +851,7 @@ fn add_windows_sandbox_wrapper_setup_env(env: &mut HashMap<String, String>) {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn add_windows_sandbox_wrapper_setup_env_from_vars(
     env: &mut HashMap<String, String>,

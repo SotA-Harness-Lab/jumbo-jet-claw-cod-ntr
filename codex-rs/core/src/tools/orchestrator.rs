@@ -363,6 +363,7 @@ impl ToolOrchestrator {
             .sandbox_cwd(req)
             .cloned()
             .unwrap_or_else(|| environment.cwd().clone());
+        // WINDOWS-REMNANT
         let codex_sandbox_exe = if cfg!(windows) {
             turn_ctx.config.codex_self_exe.as_ref()
         } else {

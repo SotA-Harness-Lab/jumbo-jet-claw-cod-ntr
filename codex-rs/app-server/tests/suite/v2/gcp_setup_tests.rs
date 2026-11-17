@@ -43,8 +43,10 @@ printf '%s\n' "$GOOGLE_APPLICATION_CREDENTIALS" >> credential-log
 printf '%s\n' setup-token
 "#,
     )?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let script = home.join("gcloud.cmd");
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     std::fs::write(
         &script,

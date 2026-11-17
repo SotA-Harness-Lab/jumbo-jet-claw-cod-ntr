@@ -1017,6 +1017,7 @@ fn disabling_ordinary_undo_discards_vim_redo_on_mode_change() {
     assert_eq!(composer.current_text(), answer);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn altgr_delete_word_is_an_undoable_deletion() {

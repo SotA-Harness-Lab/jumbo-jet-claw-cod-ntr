@@ -884,6 +884,7 @@ fn render_decision_for_unmatched_command_for_platform(
     // restrictions are only a policy shape; there is no platform sandbox to
     // enforce the boundary. Keep that legacy case conservative while still
     // relying on the real Windows sandbox when it is enabled.
+    // WINDOWS-REMNANT
     let windows_managed_fs_restrictions_without_sandbox_backend = cfg!(windows)
         && windows_sandbox_level == WindowsSandboxLevel::Disabled
         && profile_has_managed_filesystem_restrictions(permission_profile);

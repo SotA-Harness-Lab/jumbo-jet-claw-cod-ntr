@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 fn read_command() -> &'static str {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         "type headers.json"
     } else {

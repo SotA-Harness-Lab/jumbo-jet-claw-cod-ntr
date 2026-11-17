@@ -147,6 +147,7 @@ fn process_snapshot() -> ProcessSnapshot {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn process_snapshot() -> ProcessSnapshot {
     #[repr(C)]
@@ -191,6 +192,7 @@ fn process_snapshot() -> ProcessSnapshot {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 fn process_snapshot() -> ProcessSnapshot {
     empty_process_snapshot()

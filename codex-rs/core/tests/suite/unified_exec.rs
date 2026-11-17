@@ -1363,6 +1363,7 @@ async fn unified_exec_short_lived_network_denial_emits_failed_end_event() -> Res
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn unified_exec_rejects_unelevated_windows_sandbox_with_managed_network() -> Result<()> {
@@ -1437,6 +1438,7 @@ allow_local_binding = true
                 .permissions
                 .set_permission_profile(permission_profile_for_config)
                 .expect("set permission profile");
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             config.set_windows_sandbox_enabled(/*value*/ true);
         });

@@ -762,6 +762,7 @@ async fn default_daemon_auto_connect_skips_missing_socket() -> color_eyre::Resul
 async fn default_daemon_auto_connect_probes_socket_only() -> color_eyre::Result<()> {
     let codex_home = TempDir::new()?;
     let socket_path = codex_app_server_client::app_server_control_socket_path(codex_home.path())?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let parent = socket_path.as_path().parent().expect("socket parent");
@@ -782,6 +783,7 @@ async fn default_daemon_auto_connect_probes_socket_only() -> color_eyre::Result<
     let _listener = codex_uds::UnixListener::bind(socket_path.as_path()).await?;
 
     let expected = Some(socket_path);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let expected = {
         // Existing Windows CI may run elevated; an elevated listener must
@@ -1236,6 +1238,7 @@ async fn latest_session_lookup_falls_back_for_rollout_missing_from_state_db()
 
 #[tokio::test]
 async fn config_cwd_for_app_server_target_omits_cwd_for_remote_sessions() -> std::io::Result<()> {
+    // WINDOWS-REMNANT
     let remote_only_cwd = if cfg!(windows) {
         Path::new(r"C:\definitely\not\local\to\this\test")
     } else {
@@ -1336,6 +1339,7 @@ async fn config_cwd_for_app_server_target_errors_for_missing_embedded_cli_cwd()
 #[tokio::test]
 async fn config_cwd_for_app_server_target_omits_cwd_for_remote_exec_server() -> std::io::Result<()>
 {
+    // WINDOWS-REMNANT
     let remote_only_cwd = if cfg!(windows) {
         Path::new(r"C:\definitely\not\local\to\this\test")
     } else {

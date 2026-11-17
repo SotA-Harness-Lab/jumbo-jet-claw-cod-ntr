@@ -486,6 +486,7 @@ async fn control_socket_file_is_private_after_bind() {
     assert!(!physical_path.exists());
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn control_socket_pins_directory_until_shutdown() {
@@ -546,6 +547,7 @@ fn assert_socket_path_removed(socket_path: &Path) {
     assert!(!socket_path.exists());
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn assert_socket_path_removed(_socket_path: &Path) {
     // uds_windows uses a regular filesystem path as its rendezvous point,

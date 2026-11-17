@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 #[test]
 fn parent_directory_traversal_is_not_a_trusted_system_shell() {
+    // WINDOWS-REMNANT
     let (configured_executable, unfamiliar_executable) = if cfg!(windows) {
         let system_root = std::env::var_os("SystemRoot").expect("Windows SystemRoot");
         let system_directory = PathBuf::from(system_root).join("System32");
@@ -23,6 +24,7 @@ fn parent_directory_traversal_is_not_a_trusted_system_shell() {
         )
     };
     let shell = Shell {
+        // WINDOWS-REMNANT
         shell_type: if cfg!(windows) {
             ShellType::Cmd
         } else {
@@ -39,6 +41,7 @@ fn parent_directory_traversal_is_not_a_trusted_system_shell() {
     assert_eq!(shell_approval_command(&command, &shell), &command[..1],);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn windows_shell_identity_is_case_insensitive() {

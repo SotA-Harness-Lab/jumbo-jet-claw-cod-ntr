@@ -18,6 +18,7 @@ pub async fn run_app(cmd: AppCommand) -> anyhow::Result<()> {
     {
         crate::desktop_app::run_app_open_or_install(workspace, cmd.download_url_override).await
     }
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     {
         crate::desktop_app::run_app_open_or_install(workspace, cmd.download_url_override).await

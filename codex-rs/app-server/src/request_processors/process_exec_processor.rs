@@ -606,6 +606,7 @@ async fn run_process(params: RunProcessParams) {
         .await;
 
     // On older Windows, ClosePseudoConsole can block until surviving clients disconnect.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     tokio::task::spawn_blocking(move || drop(session));
 }

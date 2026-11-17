@@ -35,6 +35,7 @@ fn tool_call_id_replaces_platform_equivalent_names() {
         set_tool_call_id_env_var(&mut env, call_id);
 
         let mut expected = HashMap::from([("OTHER".to_string(), "unchanged".to_string())]);
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         expected.extend([
             (
@@ -162,6 +163,7 @@ fn command_scrubber_removes_names_from_real_child_environment() {
     assert_eq!(restricted_names, Vec::<&str>::new());
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn environment_command() -> Command {
     let mut command = Command::new("cmd.exe");
@@ -169,6 +171,7 @@ fn environment_command() -> Command {
     command
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn environment_command() -> Command {
     Command::new("env")

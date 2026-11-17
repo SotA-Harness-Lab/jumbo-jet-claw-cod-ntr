@@ -259,6 +259,7 @@ fn editor_directory_uses_next_protected_candidate_after_creation_error() {
 }
 
 #[test]
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn editor_directory_rejects_windows_temporary_directory_outside_tmpdir_policy_root() {
     let paths = EditorPaths::new();

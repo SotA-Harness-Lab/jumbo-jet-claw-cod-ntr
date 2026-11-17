@@ -296,6 +296,7 @@ fn recursive_registration_downgrades_to_non_recursive_after_drop() {
     drop(non_recursive);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn native_watcher_reports_changes_after_unwatch_and_rewatch() {

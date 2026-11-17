@@ -304,6 +304,7 @@ fn agent_plugin_mcp_rejects_explicit_null_optional_fields() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn agent_plugin_mcp_rejects_reserved_environment_aliases_case_insensitively() {
@@ -322,6 +323,7 @@ fn agent_plugin_mcp_rejects_reserved_environment_aliases_case_insensitively() {
     assert_eq!(outcome.errors.len(), 1);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn agent_plugin_mcp_overlays_windows_environment_case_insensitively() {
@@ -456,6 +458,7 @@ fn agent_plugin_mcp_enforces_closed_transport_and_path_semantics() {
     assert_eq!(outcome.errors.len(), 8);
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn agent_plugin_mcp_rejects_drive_relative_windows_command() {

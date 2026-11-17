@@ -50,6 +50,7 @@ async fn mcp_server_enforces_sandbox_state_with_codex_sandbox() -> Result<()> {
     let denied_path = outside_workspace.path().canonicalize()?.join("denied.txt");
     // Establish that this is an existing, writable file before applying the sandbox.
     std::fs::write(&denied_path, "original")?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     std::fs::write(
         sandbox_home.path().join("config.toml"),
@@ -195,12 +196,14 @@ impl Respond for SandboxMcpServer {
                     .env("CODEX_TEST_WRITE_PATH", target_path)
                     .stdin(Stdio::null())
                     .args(["sandbox", "--sandbox-state-json", &state.to_string(), "--"]);
+                // WINDOWS-REMNANT
                 #[cfg(not(windows))]
                 command.args([
                     "/bin/sh",
                     "-c",
                     "printf sandboxed > \"$CODEX_TEST_WRITE_PATH\"",
                 ]);
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 command.args([
                     "powershell.exe",

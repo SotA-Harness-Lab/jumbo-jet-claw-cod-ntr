@@ -76,6 +76,7 @@ impl ChatWidget {
                     continue;
                 }
                 // These modes still need explicit Windows setup.
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 if preset.id == "auto"
                     && (matches!(

@@ -113,6 +113,7 @@ fn system_directories(scope: ExecutableScope) -> Vec<PathBuf> {
             .into_iter()
             .flatten(),
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let directories = installation_roots().into_iter().flat_map(|root| {
         vec![
@@ -129,6 +130,7 @@ fn system_directories(scope: ExecutableScope) -> Vec<PathBuf> {
         .collect()
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn installation_roots() -> Vec<PathBuf> {
     use std::os::windows::ffi::OsStringExt;

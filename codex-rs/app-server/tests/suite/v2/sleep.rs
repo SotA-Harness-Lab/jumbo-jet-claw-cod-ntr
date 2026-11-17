@@ -22,8 +22,10 @@ use super::analytics::captured_analytics_events;
 use super::analytics::mount_analytics_capture;
 use super::analytics::wait_for_matching_analytics_event;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(25);
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(10);
 

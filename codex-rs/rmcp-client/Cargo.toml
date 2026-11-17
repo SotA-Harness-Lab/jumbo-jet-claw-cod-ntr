@@ -90,6 +90,7 @@ keyring = { workspace = true, features = ["linux-native-async-persistent"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 keyring = { workspace = true, features = ["apple-native"] }
 
+# WINDOWS-REMNANT
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { workspace = true, features = ["windows-native"] }
 uuid = { workspace = true, features = ["v4"] }
@@ -100,6 +101,7 @@ windows-sys = { workspace = true, features = [
     "Win32_Storage_FileSystem",
 ] }
 
+# WINDOWS-REMNANT
 [target.'cfg(target_os = "windows")'.dev-dependencies]
 windows-sys = { workspace = true, features = ["Win32_System_Pipes"] }
 

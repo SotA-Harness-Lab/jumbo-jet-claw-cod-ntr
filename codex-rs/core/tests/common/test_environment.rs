@@ -20,6 +20,7 @@ impl TestTargetOs {
     const fn host() -> Self {
         if cfg!(target_os = "macos") {
             Self::MacOs
+        // WINDOWS-REMNANT
         } else if cfg!(target_os = "windows") {
             Self::Windows
         } else if cfg!(target_os = "linux") {

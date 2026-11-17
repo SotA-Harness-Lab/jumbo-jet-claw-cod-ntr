@@ -5559,6 +5559,7 @@ impl ThreadRequestProcessor {
 
         // Persist Windows sandbox mode.
         let mut cli_overrides = cli_overrides.unwrap_or_default();
+        // WINDOWS-REMNANT
         if cfg!(windows) && !experimental_prediction_mode {
             let mode = self.config.permissions.windows_sandbox_mode.or_else(|| {
                 match WindowsSandboxLevel::from_config(&self.config) {

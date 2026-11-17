@@ -122,6 +122,7 @@ mod native_workdir {
     use pretty_assertions::assert_eq;
     use std::path::PathBuf;
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn windows_verbatim_paths_are_simplified() {
@@ -168,6 +169,7 @@ mod path_comparison {
         ));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn matches_windows_verbatim_paths() -> std::io::Result<()> {

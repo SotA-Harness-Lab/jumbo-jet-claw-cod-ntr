@@ -91,6 +91,7 @@ pub(super) async fn apply_codex_env_overlay(
 }
 
 fn environment_names_match(left: &str, right: &str) -> bool {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         left.eq_ignore_ascii_case(right)
     } else {

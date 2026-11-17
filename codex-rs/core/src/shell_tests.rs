@@ -47,6 +47,7 @@ fn detects_sh() {
 #[test]
 fn can_run_on_shell_test() {
     let cmd = "echo \"Works\"";
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         assert!(shell_works(
             get_shell(ShellType::PowerShell),
@@ -228,6 +229,7 @@ async fn test_current_shell_detects_zsh() {
 
 #[tokio::test]
 async fn detects_powershell_as_default() {
+    // WINDOWS-REMNANT
     if !cfg!(windows) {
         return;
     }
@@ -240,6 +242,7 @@ async fn detects_powershell_as_default() {
 
 #[test]
 fn finds_powershell() {
+    // WINDOWS-REMNANT
     if !cfg!(windows) {
         return;
     }

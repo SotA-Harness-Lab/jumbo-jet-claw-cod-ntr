@@ -12,6 +12,7 @@ use codex_exec_server::CODEX_FS_HELPER_ARG1;
 use codex_install_context::InstallContext;
 use codex_sandboxing::landlock::CODEX_LINUX_SANDBOX_ARG0;
 use codex_utils_home_dir::find_codex_home;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_windows_sandbox::CODEX_WINDOWS_SANDBOX_ARG1;
 #[cfg(unix)]
@@ -84,6 +85,7 @@ pub fn arg0_dispatch() -> Option<Arg0PathEntryGuard> {
     if argv1 == CODEX_FS_HELPER_ARG1 {
         codex_exec_server::run_fs_helper_main();
     }
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     if argv1 == CODEX_WINDOWS_SANDBOX_ARG1 {
         codex_windows_sandbox::run_windows_sandbox_wrapper_main();
@@ -388,6 +390,7 @@ fn prepare_aliases_in_home(
             symlink(&exe, &link)?;
         }
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             let batch_script = path.join(format!("{filename}.bat"));
@@ -426,6 +429,7 @@ fn prepare_aliases_in_home(
     ))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn windows_batch_executable_path(executable: &Path, alias_directory: &Path) -> String {
     pathdiff::diff_paths(executable, alias_directory)
@@ -449,6 +453,7 @@ fn path_env_with_entry(path_entry: &Path, existing_path: Option<OsString>) -> Os
     #[cfg(unix)]
     const PATH_SEPARATOR: &str = ":";
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     const PATH_SEPARATOR: &str = ";";
 
@@ -541,6 +546,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::fs::File;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     use std::os::windows::process::CommandExt;
     use std::path::Path;
@@ -596,6 +602,7 @@ mod tests {
         })
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_batch_alias_preserves_unicode_executable_paths() -> anyhow::Result<()> {
@@ -628,6 +635,7 @@ mod tests {
         Ok(())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_batch_alias_preserves_cross_volume_executable_paths() {
@@ -765,6 +773,7 @@ mod tests {
         let home = tempfile::tempdir()?;
         let temporary = home.path().join("tmp");
         let own_root = temporary.join(format!("arg0-{}", std::env::consts::OS));
+        // WINDOWS-REMNANT
         let foreign_os = if cfg!(windows) { "linux" } else { "windows" };
         let foreign_root = temporary.join(format!("arg0-{foreign_os}"));
         let legacy_root = temporary.join("arg0");
@@ -790,6 +799,7 @@ mod tests {
         // Older versions clean only this root. Run that cleanup while a new
         // helper is live, then confirm the advertised helper remains usable.
         janitor_cleanup(&legacy_root)?;
+        // WINDOWS-REMNANT
         let helper = guard._temp_dir.path().join(if cfg!(windows) {
             "apply_patch.bat"
         } else {

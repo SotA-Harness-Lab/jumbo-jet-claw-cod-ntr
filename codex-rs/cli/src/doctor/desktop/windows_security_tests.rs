@@ -6,6 +6,7 @@ use super::MAX_RENDERED_EVENTS;
 use super::classify;
 use super::parse_events;
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test]
 async fn an_unavailable_reader_is_not_reported_as_clean() {

@@ -34,6 +34,7 @@ impl ChatWidget {
     }
 
     pub(super) fn open_legacy_permissions_popup(&mut self) {
+        // WINDOWS-REMNANT
         let include_read_only = cfg!(target_os = "windows");
         let current_approval =
             AskForApproval::from(self.config.permissions.approval_policy.value());
@@ -43,13 +44,16 @@ impl ChatWidget {
         let mut items: Vec<SelectionItem> = Vec::new();
         let presets: Vec<ApprovalPreset> = builtin_approval_presets();
 
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let windows_sandbox_level = self.windows_sandbox_config.level();
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let windows_degraded_sandbox_enabled =
             matches!(windows_sandbox_level, WindowsSandboxLevel::RestrictedToken)
                 && self.windows_sandbox_local_server
                 && self.windows_sandbox_host == crate::app::WindowsSandboxHost::Local;
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         let windows_degraded_sandbox_enabled = false;
 
@@ -338,6 +342,7 @@ impl ChatWidget {
             )
         };
         let requires_confirmation = preset.id == "full-access";
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if preset.id == "auto"
             && matches!(
@@ -364,6 +369,7 @@ impl ChatWidget {
             })];
         }
         if approvals_reviewer == ApprovalsReviewer::User && preset.id == "auto" {
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             {
                 if self.windows_sandbox_host == crate::app::WindowsSandboxHost::Remote {

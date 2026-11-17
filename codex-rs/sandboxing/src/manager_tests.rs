@@ -83,6 +83,7 @@ fn explicit_mxc_only_overrides_the_windows_sandbox() {
         SandboxType::WindowsMxc,
         /*has_managed_network_requirements*/ false,
     );
+    // WINDOWS-REMNANT
     let expected = if cfg!(windows) {
         SandboxType::WindowsMxc
     } else {
@@ -94,6 +95,7 @@ fn explicit_mxc_only_overrides_the_windows_sandbox() {
 #[test]
 fn unsandboxed_transform_preserves_foreign_cwd_and_unrestricted_file_system_policy() {
     let manager = SandboxManager::new();
+    // WINDOWS-REMNANT
     let cwd_uri = if cfg!(windows) {
         PathUri::parse("file:///workspace/remote").expect("POSIX path URI")
     } else {
@@ -759,6 +761,7 @@ async fn check_linux_managed_policy(transparent_tcp: bool) -> anyhow::Result<()>
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_wrapper_preserves_only_setup_environment() {
@@ -798,6 +801,7 @@ fn windows_wrapper_preserves_only_setup_environment() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test]
 fn wrapper_runtime_selection_uses_the_parent_not_environment_overrides() {
@@ -819,6 +823,7 @@ fn wrapper_runtime_selection_uses_the_parent_not_environment_overrides() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test]
 fn windows_file_system_wrapper_materializes_inner_helper() {

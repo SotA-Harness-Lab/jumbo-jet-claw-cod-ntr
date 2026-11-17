@@ -12,6 +12,7 @@ use codex_protocol::permissions::FileSystemSpecialPath;
 use codex_protocol::permissions::NetworkSandboxPolicy;
 use pretty_assertions::assert_eq;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test_case::test_case(false; "invalid_disabled_proxy")]
 #[test_case::test_case(true; "valid_enabled_proxy")]
@@ -81,6 +82,7 @@ async fn native_windows_skips_owned_proxy_before_brokering(proxy_enabled: bool) 
 #[test_case::test_case("PWSH.exe"; "uppercase_pwsh")]
 #[test_case::test_case("powershell.exe"; "lowercase_powershell")]
 #[test_case::test_case("PowerShell.exe"; "mixed_case_powershell")]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), ignore = "requires a native Windows sandbox")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[serial_test::serial(remote_exec_server)]
@@ -146,6 +148,7 @@ async fn powershell_alias_falls_back_without_primary_runtime_over_rpc(
 #[test_case::test_case(WindowsSandboxSelection::Mxc, codex_sandboxing::SandboxType::WindowsMxc, NetworkSandboxPolicy::Restricted; "mxc")]
 #[test_case::test_case(WindowsSandboxSelection::Elevated, codex_sandboxing::SandboxType::WindowsRestrictedToken, NetworkSandboxPolicy::Restricted; "elevated")]
 #[test_case::test_case(WindowsSandboxSelection::Elevated, codex_sandboxing::SandboxType::WindowsRestrictedToken, NetworkSandboxPolicy::Enabled; "elevated_with_managed_proxy")]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), ignore = "requires a native Windows sandbox")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[serial_test::serial(remote_exec_server)]
@@ -157,6 +160,7 @@ async fn tmpdir_uses_command_environment_over_rpc(
     if selection == WindowsSandboxSelection::Mxc {
         crate::skip_if_mxc_unavailable!(Ok(()));
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _account_guard = if selection == WindowsSandboxSelection::Elevated {
         let guard = codex_windows_sandbox_test_support::WindowsSandboxAccountTestGuard::acquire()?;

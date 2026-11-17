@@ -46,6 +46,7 @@ pub(super) async fn run(http: &impl InstallerHttp, legacy: &Daemon) -> Result<Up
             _ = terminate.recv() => {},
             _ = tokio::signal::ctrl_c() => {},
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let _ = tokio::signal::ctrl_c().await;
         Some(())
@@ -75,6 +76,7 @@ pub(super) async fn run(http: &impl InstallerHttp, legacy: &Daemon) -> Result<Up
             return Err(std::io::Error::from(std::io::ErrorKind::Interrupted).into());
         }
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     tokio::select! {
         result = run_installer_script(&script, InstallerMode::Migration, &root) => { result?; },
@@ -94,6 +96,7 @@ pub(super) async fn run(http: &impl InstallerHttp, legacy: &Daemon) -> Result<Up
             && std::fs::read_to_string(root.join("auto-update-version"))? == name.to_string_lossy(),
         "installer did not prepare a latest-channel daemon package"
     );
+    // WINDOWS-REMNANT
     let entrypoint = if cfg!(windows) {
         "bin/codex.exe"
     } else {
@@ -114,6 +117,7 @@ pub(super) async fn run(http: &impl InstallerHttp, legacy: &Daemon) -> Result<Up
         .await,
         "the latest production release does not support daemon migration yet; the legacy daemon was left running"
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     backend::windows::ensure_detached_launch(&binary)?;
     anyhow::ensure!(

@@ -4,6 +4,7 @@ use codex_git_utils::diff_since_latest_init;
 use codex_git_utils::ensure_git_baseline_repository;
 use codex_git_utils::reset_git_repository;
 use codex_protocol::MemoryVersion;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::fs::FileTypeExt;
 use std::path::Path;
@@ -138,12 +139,14 @@ pub(crate) async fn remove_memory_symlinks(root: &Path) -> std::io::Result<usize
             let path = entry.path();
             let file_type = entry.file_type().await?;
             if file_type.is_symlink() {
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 if file_type.is_symlink_dir() {
                     tokio::fs::remove_dir(&path).await?;
                 } else {
                     tokio::fs::remove_file(&path).await?;
                 }
+                // WINDOWS-REMNANT
                 #[cfg(not(windows))]
                 tokio::fs::remove_file(&path).await?;
 

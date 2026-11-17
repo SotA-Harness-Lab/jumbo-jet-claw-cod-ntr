@@ -45,6 +45,7 @@ fn create_symlink_loop(path: &Path) {
     .expect("create symlink loop");
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn create_symlink_loop(path: &Path) {
     std::os::windows::fs::symlink_file(

@@ -12,6 +12,7 @@ use std::sync::atomic::Ordering;
 
 use crossterm::Command;
 use crossterm::event::DisableMouseCapture;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crossterm::event::EnableMouseCapture;
 use crossterm::event::PopKeyboardEnhancementFlags;
@@ -64,11 +65,13 @@ impl Command for EnablePointerCapture {
         writer.write_str("\x1b[?1000h\x1b[?1002h\x1b[?1003h")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> Result<()> {
         EnableMouseCapture.execute_winapi()
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         false
@@ -102,6 +105,7 @@ impl AlternateScreen {
             .store(keyboard_modes::reports_key_releases(), Ordering::Relaxed);
         let mouse_capture = keyboard_modes::enable_keyboard_enhancement(writer).mouse_capture;
         self.keyboard_active.store(
+            // WINDOWS-REMNANT
             !cfg!(windows) && !keyboard_modes::keyboard_enhancement_disabled(),
             Ordering::Relaxed,
         );
@@ -146,6 +150,7 @@ impl AlternateScreen {
             .restore(writer, codex_terminal_detection::terminal_info().name);
         if self.mouse_active.load(Ordering::Relaxed) {
             let result = execute!(writer, DisableMouseCapture);
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             let result = {
                 // Attempt this even when restoring the console mode fails.
@@ -157,6 +162,7 @@ impl AlternateScreen {
             if result.is_err() {
                 // A partial combined write must not skip the remaining mode resets. Keep the
                 // cleanup flag armed because delivery of these best-effort writes is uncertain.
+                // WINDOWS-REMNANT
                 #[cfg(not(windows))]
                 for sequence in [
                     b"\x1b[?1003l",

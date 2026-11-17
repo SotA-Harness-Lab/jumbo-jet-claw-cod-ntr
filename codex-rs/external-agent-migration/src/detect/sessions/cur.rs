@@ -98,9 +98,11 @@ fn cur_project_cwd(project_storage: &Path, external_agent_home: &Path) -> Option
 }
 
 fn decode_cur_project_path(encoded: &str) -> Option<PathBuf> {
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let mut path = PathBuf::from("/");
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (encoded, mut path) = {
         let (drive, encoded) = decode_cur_windows_project_drive(encoded)?;
@@ -209,6 +211,7 @@ fn decode_cur_project_path(encoded: &str) -> Option<PathBuf> {
     matched_path
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(windows, test))]
 fn decode_cur_windows_project_drive(encoded: &str) -> Option<(char, &str)> {
     let drive = encoded.as_bytes().first().copied()?;

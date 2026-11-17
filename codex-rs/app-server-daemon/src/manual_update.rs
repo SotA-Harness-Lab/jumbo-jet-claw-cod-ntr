@@ -101,6 +101,7 @@ pub(crate) async fn request(daemon: &Daemon) -> Result<UpdateOutput> {
         };
         let mut response = Vec::new();
         let transport = async {
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             connection.ensure_non_elevated_peer()?;
             connection.write_all(b"update\n").await?;
@@ -185,6 +186,7 @@ pub(super) async fn handle_request(
     terminate: &mut Signal,
     trigger: UpdateTrigger<'_>,
 ) -> Result<RequestDisposition> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if connection.ensure_non_elevated_peer().is_err() {
         return Ok(RequestDisposition::Unchanged);

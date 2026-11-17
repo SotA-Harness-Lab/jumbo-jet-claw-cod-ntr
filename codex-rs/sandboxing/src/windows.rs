@@ -230,11 +230,13 @@ pub fn resolve_windows_elevated_filesystem_overrides(
     // deny-write sentinels.
     file_system_sandbox_policy.remove_skip_missing_path_entries();
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     codex_windows_sandbox::resolve_workload_temp_paths(
         &mut file_system_sandbox_policy,
         workload_env,
     );
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     let _ = workload_env;
 

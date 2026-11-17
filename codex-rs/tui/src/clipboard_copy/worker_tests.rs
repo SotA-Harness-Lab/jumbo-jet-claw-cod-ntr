@@ -419,6 +419,7 @@ async fn right_click_paste_uses_normal_input_and_discards_stale_reads() {
             }
             if change == "none" {
                 // Shift+Insert is a native paste shortcut only on Windows.
+                // WINDOWS-REMNANT
                 let other = if cfg!(windows) && key == ctrl_v {
                     KeyEvent::new(shift_insert, KeyModifiers::SHIFT)
                 } else {

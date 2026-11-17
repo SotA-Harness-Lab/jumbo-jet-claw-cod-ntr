@@ -19,6 +19,7 @@ keyring = { workspace = true, features = ["linux-native-async-persistent"] }
 security-framework = "3"
 keyring = { workspace = true, features = ["apple-native"] }
 
+# WINDOWS-REMNANT
 [target.'cfg(target_os = "windows")'.dependencies]
 keyring = { workspace = true, features = ["windows-native"] }
 

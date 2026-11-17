@@ -44,6 +44,7 @@ fn normalize_path(path: &Path) -> PathBuf {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn path_with_base(path: &Path, base_path: &Path) -> PathBuf {
     if path.is_absolute() {
@@ -53,6 +54,7 @@ fn path_with_base(path: &Path, base_path: &Path) -> PathBuf {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn path_with_base(path: &Path, base_path: &Path) -> PathBuf {
     if path.is_absolute() || path.has_root() {
@@ -151,6 +153,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_root_relative_path_uses_base_prefix() {
@@ -160,6 +163,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn windows_drive_relative_path_uses_path_prefix_and_base_tail() {

@@ -34,6 +34,7 @@ pub static CODEX_ALIASES_TEMP_DIR: Option<TestBinaryDispatchGuard> = {
 };
 
 mod abort_lifecycle;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod abort_tasks;
 #[path = "actor_access_program_tests.rs"]
@@ -51,6 +52,7 @@ mod apply_patch_cli;
 mod apply_patch_serialization;
 #[cfg(target_os = "macos")]
 mod apply_patch_system_aliases;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod approvals;
 mod audio_duration_store;
@@ -86,6 +88,7 @@ mod direct_tool_metadata;
 mod dynamic_tool_cancellation;
 mod exec;
 mod exec_policy;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod extension_sandbox;
 mod external_auth;
@@ -105,32 +108,41 @@ mod canonical_plugin_connectors;
 mod critical_path_runtime;
 mod gateway_auth;
 mod guardian_connector_trust;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod guardian_context_budget;
 #[path = "guardian_cyber_access_program_tests.rs"]
 mod guardian_cyber_access_program;
 mod guardian_history;
 mod guardian_mcp_elicitation;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[path = "guardian_persistence_tests.rs"]
 mod guardian_persistence;
 mod guardian_retained_context;
 mod guardian_retry;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod guardian_review;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod guardian_review_cancellation;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod guardian_subagent_authorization;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod hooks;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod hooks_executor;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod hooks_mcp;
 mod hooks_plugin_policy_refresh;
 mod image_rollout;
 mod injected_models_cache;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod interrupt_hooks;
 mod items;
@@ -191,8 +203,10 @@ mod reasoning_effort_override;
 mod remote_env;
 mod remote_models;
 mod request_compression;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod request_permissions;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod request_permissions_tool;
 mod request_plugin_install;

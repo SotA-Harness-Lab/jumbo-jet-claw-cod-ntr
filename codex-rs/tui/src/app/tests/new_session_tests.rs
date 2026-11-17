@@ -822,6 +822,7 @@ async fn plan_implementation_reads_approved_plan_file_in_fresh_session() -> Resu
     assert!(dirs.next().is_none());
     assert_eq!(std::fs::read(&path)?, plan.as_bytes());
     let path = path.to_str().expect("UTF-8 attachment path");
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         format!(
             "Get-Content -LiteralPath '{}' -Tail 1",

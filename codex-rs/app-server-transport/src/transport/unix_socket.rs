@@ -111,6 +111,7 @@ pub async fn bind_private_daemon_socket(
             lock,
         )
     };
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (socket_path, directory_guard) = {
         if let Some(parent) = socket_path.as_path().parent() {
@@ -131,6 +132,7 @@ pub async fn bind_private_daemon_socket(
         rendezvous_path,
         #[cfg(unix)]
         _startup_lock: startup_lock,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         _directory_guard: directory_guard,
     };
@@ -268,10 +270,13 @@ async fn run_daemon_shutdown(
 
 // Unix callers hold the physical socket's startup lock through bind and publication.
 async fn prepare_control_socket_path(socket_path: &Path) -> IoResult<()> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (socket_path, _directory_guard) = codex_uds::validate_private_socket_path(socket_path)?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let socket_path = AbsolutePathBuf::from_absolute_path_checked(socket_path)?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let socket_path = socket_path.as_path();
 
@@ -341,6 +346,7 @@ pub fn verified_local_daemon_socket(socket_path: &Path) -> IoResult<Option<Absol
         }
         Ok(None)
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         // The TUI revalidates this directory and verifies the peer at connection time,
@@ -517,6 +523,7 @@ pub struct DaemonSocketFileGuard {
     #[cfg(unix)]
     _startup_lock: AppServerStartupLock,
     // Keep the directory pinned until after the socket file is removed in Drop.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     _directory_guard: std::os::windows::io::OwnedHandle,
 }

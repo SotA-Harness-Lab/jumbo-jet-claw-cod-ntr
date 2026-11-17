@@ -13,6 +13,7 @@ use std::ffi::OsString;
 use std::io;
 use std::path::Path;
 use std::process::Stdio as TokioStdio;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use winapi::um::winbase::CREATE_NO_WINDOW;
 
@@ -67,6 +68,7 @@ pub enum ChildStdin {
     Null,
     #[cfg(unix)]
     File(std::os::fd::OwnedFd),
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     File(std::os::windows::io::OwnedHandle),
 }
@@ -103,6 +105,7 @@ impl Command {
             .stdin(TokioStdio::piped())
             .stdout(TokioStdio::piped())
             .stderr(TokioStdio::piped());
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         inner.creation_flags(CREATE_NO_WINDOW);
         Self {
@@ -189,6 +192,7 @@ impl Command {
     }
 
     /// Supply the child endpoint of a Windows output pipe.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub fn stdout_handle(&mut self, handle: std::os::windows::io::OwnedHandle) -> &mut Self {
         self.inner.stdout(TokioStdio::from(handle));
@@ -196,6 +200,7 @@ impl Command {
     }
 
     /// Supply the child endpoint of a Windows diagnostic pipe.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub fn stderr_handle(&mut self, handle: std::os::windows::io::OwnedHandle) -> &mut Self {
         self.inner.stderr(TokioStdio::from(handle));
@@ -255,6 +260,7 @@ impl Command {
     }
 
     /// Preserve Job Object assignment before the child begins executing on Windows.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub fn prepare_suspended_spawn(&mut self, job: &crate::JobObject) {
         job.prepare_suspended_spawn(&mut self.inner);
@@ -305,6 +311,7 @@ impl Command {
             ChildStdin::Null => TokioStdio::null(),
             #[cfg(unix)]
             ChildStdin::File(fd) => TokioStdio::from(fd),
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             ChildStdin::File(handle) => TokioStdio::from(handle),
         });

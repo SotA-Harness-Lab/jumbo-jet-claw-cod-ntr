@@ -59,6 +59,7 @@ impl ChatWidget {
         {
             return;
         }
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         if self.windows_sandbox_host == crate::app::WindowsSandboxHost::Local
             && self.elevated_windows_sandbox_setup_required()

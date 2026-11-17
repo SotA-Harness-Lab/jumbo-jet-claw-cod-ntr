@@ -32,11 +32,13 @@ pub(crate) fn create_env_for_mcp_server(
             continue;
         }
         let value = std::path::absolute(value)?.into_os_string();
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         env.retain(|key, _| !key.to_string_lossy().eq_ignore_ascii_case(name));
         env.insert(OsString::from(name), value);
     }
     for (name, value) in extra_env.unwrap_or_default() {
+        // WINDOWS-REMNANT
         if cfg!(windows)
             || name.to_str().is_some_and(|name| {
                 CUSTOM_CA_ENV_KEYS
@@ -174,6 +176,7 @@ pub(crate) const DEFAULT_ENV_VARS: &[&str] = &[
     "TZ",
 ];
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) const DEFAULT_ENV_VARS: &[&str] =
     codex_protocol::shell_environment::WINDOWS_CORE_ENV_VARS;

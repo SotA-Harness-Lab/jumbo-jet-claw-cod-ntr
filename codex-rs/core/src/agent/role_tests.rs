@@ -388,6 +388,7 @@ async fn apply_role_preserves_existing_service_tier_without_override() {
 }
 
 #[tokio::test]
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 async fn apply_role_preserves_parent_sandbox_permissions() {
     let (home, mut config) = test_config_with_cli_overrides(vec![
@@ -631,6 +632,7 @@ async fn apply_role_takes_precedence_over_existing_session_flags_for_same_key() 
     assert_eq!(session_flags_layer_count(&config), before_layers + 1);
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore)]
 #[tokio::test]
 async fn apply_role_skills_config_disables_skill_for_spawned_agent() {

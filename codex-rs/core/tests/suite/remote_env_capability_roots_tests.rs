@@ -10,6 +10,7 @@ use pretty_assertions::assert_eq;
 use test_case::test_case;
 
 /// A Linux/macOS executor can exercise the old Windows enum boundary without launching MXC.
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn host_skill_discovery_reports_unsupported_remote_sandbox() -> Result<()> {

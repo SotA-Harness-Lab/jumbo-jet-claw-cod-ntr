@@ -30,6 +30,7 @@ tracing = { workspace = true, features = ["log"] }
 url = { workspace = true }
 which = { workspace = true }
 
+# WINDOWS-REMNANT
 [target.'cfg(windows)'.dependencies]
 codex-otel = { workspace = true }
 codex-utils-home-dir = { workspace = true }

@@ -64,6 +64,7 @@ fn filled_tabs_truncate_unicode_without_hiding_active_tab() {
 }
 
 // Non-Windows tests have an unprobed default palette; Windows retains its console probe.
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[test]
 fn filled_tab_unknown_palette_uses_readable_underlined_defaults() {

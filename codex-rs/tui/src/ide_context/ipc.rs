@@ -5,8 +5,10 @@ use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use serde_json::Value;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows, test))]
 use serde_json::json;
 use thiserror::Error;
@@ -17,44 +19,57 @@ use super::IdeContext;
 // fetching IDE context includes router discovery and extension event-loop work, so a shorter TUI
 // deadline can incorrectly skip context even though the IDE answers normally.
 const IDE_CONTEXT_REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 const MAX_IPC_FRAME_BYTES: usize = 256 * 1024 * 1024;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 const TUI_SOURCE_CLIENT_ID: &str = "codex-tui";
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 const OPEN_IDE_HINT: &str =
     "Open this project in VS Code or Cursor with the Codex extension active.";
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 const IDE_DID_NOT_PROVIDE_CONTEXT_HINT: &str = "The IDE extension did not provide context.";
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 const KEEP_TRYING_HINT: &str = "Codex will keep trying on future messages.";
 
 #[derive(Debug, Error)]
 pub(crate) enum IdeContextError {
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     #[error("failed to connect to IDE context provider: {0}")]
     Connect(std::io::Error),
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     #[error("failed to request IDE context: {0}")]
     Send(std::io::Error),
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     #[error("failed to read IDE context: {0}")]
     Read(std::io::Error),
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     #[error("invalid IDE context response: {0}")]
     InvalidResponse(String),
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     #[error("IDE context response exceeded maximum size")]
     ResponseTooLarge,
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     #[error("IDE context request failed")]
     RequestFailed(String),
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     #[error("IDE context is not supported on this platform")]
     UnsupportedPlatform,
 }
 
 impl IdeContextError {
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     pub(crate) fn user_facing_hint(&self) -> String {
         match self {
@@ -77,6 +92,7 @@ impl IdeContextError {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     pub(crate) fn prompt_skip_hint(&self) -> String {
         match self {
@@ -116,17 +132,20 @@ impl IdeContextError {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     pub(crate) fn user_facing_hint(&self) -> String {
         self.to_string()
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     pub(crate) fn prompt_skip_hint(&self) -> String {
         self.to_string()
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn hint_with_retry(message: &str) -> String {
     format!("{message} {KEEP_TRYING_HINT}")
@@ -135,6 +154,7 @@ fn hint_with_retry(message: &str) -> String {
 #[cfg(unix)]
 type IdeContextStream = UnixDeadlineStream;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 type IdeContextStream = super::windows_pipe::WindowsPipeStream;
 
@@ -155,6 +175,7 @@ pub(crate) fn fetch_ide_context(
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn fetch_ide_context(
     workspace_root: &Path,
@@ -167,6 +188,7 @@ pub(crate) fn fetch_ide_context(
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 pub(crate) fn fetch_ide_context(
     _workspace_root: &Path,
@@ -190,16 +212,19 @@ fn legacy_ipc_socket_paths(temp_dir: &Path, uid: libc::uid_t) -> Vec<PathBuf> {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn default_ipc_socket_path() -> PathBuf {
     PathBuf::from(r"\\.\pipe\codex-ipc")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn default_ipc_socket_path() -> PathBuf {
     PathBuf::new()
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn fetch_ide_context_from_socket(
     socket_path: PathBuf,
@@ -637,6 +662,7 @@ fn ensure_peer_uid_matches_current_user(peer_uid: libc::uid_t) -> std::io::Resul
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn connect_stream(
     socket_path: PathBuf,
@@ -646,6 +672,7 @@ fn connect_stream(
         .map_err(IdeContextError::Connect)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn answer_unsupported_request<T: std::io::Write + ?Sized>(
     stream: &mut T,
@@ -663,6 +690,7 @@ fn answer_unsupported_request<T: std::io::Write + ?Sized>(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn fetch_ide_context_from_stream(
     stream: &mut IdeContextStream,
@@ -676,6 +704,7 @@ fn fetch_ide_context_from_stream(
     extract_ide_context(response)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn write_ide_context_request<T: std::io::Write + ?Sized>(
     stream: &mut T,
@@ -695,6 +724,7 @@ fn write_ide_context_request<T: std::io::Write + ?Sized>(
     write_frame(stream, &ide_context_request)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn write_frame<T: std::io::Write + ?Sized>(stream: &mut T, message: &Value) -> std::io::Result<()> {
     let payload = serde_json::to_vec(message).map_err(|err| {
@@ -714,6 +744,7 @@ fn write_frame<T: std::io::Write + ?Sized>(stream: &mut T, message: &Value) -> s
     stream.flush()
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn read_frame<T: std::io::Read + ?Sized>(
     stream: &mut T,
@@ -732,6 +763,7 @@ fn read_frame<T: std::io::Read + ?Sized>(
         .map_err(|err| IdeContextError::InvalidResponse(format!("invalid JSON payload: {err}")))
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn read_exact_before_deadline<T: std::io::Read + ?Sized>(
     stream: &mut T,
@@ -761,6 +793,7 @@ fn read_exact_before_deadline<T: std::io::Read + ?Sized>(
     ensure_deadline_not_expired(deadline)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn read_response_frame(
     stream: &mut IdeContextStream,
@@ -809,6 +842,7 @@ fn read_response_frame(
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn ensure_deadline_not_expired(deadline: Instant) -> Result<(), IdeContextError> {
     if Instant::now() >= deadline {
@@ -818,11 +852,13 @@ fn ensure_deadline_not_expired(deadline: Instant) -> Result<(), IdeContextError>
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn timeout_error() -> IdeContextError {
     IdeContextError::Read(deadline_timeout_io_error())
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn deadline_timeout_io_error() -> std::io::Error {
     std::io::Error::new(
@@ -836,6 +872,7 @@ fn permission_denied_io_error(message: &'static str) -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::PermissionDenied, message)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn extract_ide_context(response: Value) -> Result<IdeContext, IdeContextError> {
     ensure_success_response(&response)?;
@@ -852,6 +889,7 @@ fn extract_ide_context(response: Value) -> Result<IdeContext, IdeContextError> {
         .map_err(|err| IdeContextError::InvalidResponse(err.to_string()))
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn ensure_success_response(response: &Value) -> Result<(), IdeContextError> {
     match response.get("resultType").and_then(Value::as_str) {

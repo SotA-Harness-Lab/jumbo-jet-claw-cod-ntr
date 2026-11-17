@@ -140,6 +140,7 @@ use codex_protocol::config_types::CollaborationMode;
 use codex_protocol::config_types::CollaborationModeMask;
 use codex_protocol::config_types::ModeKind;
 use codex_protocol::config_types::Settings;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_protocol::config_types::WindowsSandboxLevel;
 use codex_protocol::items::AgentMessageContent;
@@ -587,6 +588,7 @@ pub(crate) struct ChatWidget {
     pub(crate) windows_sandbox_local_server: bool,
     pub(crate) windows_sandbox_config: crate::windows_sandbox::WindowsSandboxConfig,
     pub(crate) windows_sandbox_host: crate::app::WindowsSandboxHost,
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(crate) windows_sandbox_elevated_setup_complete: bool,
     token_info: Option<TokenUsageInfo>,
@@ -1081,12 +1083,14 @@ impl ChatWidget {
         can_save: bool,
     ) {
         let snapshot = self.feedback.snapshot(self.thread_id);
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let include_windows_sandbox_log =
             codex_windows_sandbox::current_log_file_path_for_codex_home(
                 &self.local_settings.codex_home,
             )
             .is_file();
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         let include_windows_sandbox_log = false;
         let params = crate::bottom_pane::feedback_consent_params(

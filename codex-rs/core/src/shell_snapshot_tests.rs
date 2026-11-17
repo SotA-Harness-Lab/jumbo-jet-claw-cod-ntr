@@ -88,6 +88,7 @@ impl Drop for BlockingStdinPipe {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 fn assert_posix_snapshot_sections(snapshot: &str) {
     assert!(snapshot.contains("# Snapshot file"));
@@ -100,6 +101,7 @@ fn assert_posix_snapshot_sections(snapshot: &str) {
     assert!(snapshot.contains("setopts "));
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 #[test]
 fn preserved_provider_context_respects_unix_environment_casing() {
@@ -121,6 +123,7 @@ fn preserved_provider_context_respects_unix_environment_casing() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn inherited_provider_context_matches_windows_environment_casing() {
@@ -1908,6 +1911,7 @@ async fn linux_sh_snapshot_includes_sections() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[ignore]
 #[tokio::test]

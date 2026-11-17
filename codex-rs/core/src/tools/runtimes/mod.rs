@@ -207,6 +207,7 @@ pub(crate) fn prepare_brokered_shell_snapshot_env(
             .get(CREDENTIAL_BROKER_ACTIVE_ENV_KEY)
             .is_some_and(|active| active == "1")
     {
+        // WINDOWS-REMNANT
         if !cfg!(windows) {
             env.retain(|key, _| {
                 !key.starts_with(SNAPSHOT_BROKERED_VALUE_ENV_PREFIX)
@@ -235,6 +236,7 @@ pub(crate) fn prepare_brokered_shell_snapshot_env(
             }
         }
         let bash_env = env.remove("BASH_ENV");
+        // WINDOWS-REMNANT
         if !cfg!(windows)
             && let Some(bash_env) = bash_env
             && !bash_env.is_empty()
@@ -291,6 +293,7 @@ pub(crate) fn maybe_wrap_shell_lc_with_snapshot(
     env: &HashMap<String, String>,
     runtime_path_prepends: &RuntimePathPrepends,
 ) -> Vec<String> {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return command.to_vec();
     }

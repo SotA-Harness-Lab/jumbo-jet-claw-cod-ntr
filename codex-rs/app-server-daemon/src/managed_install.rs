@@ -62,6 +62,7 @@ pub(crate) fn managed_codex_bin(codex_home: &Path) -> PathBuf {
     let packaged = current.join("bin").join(managed_codex_file_name());
     let legacy = current.join(managed_codex_file_name());
     if packaged.is_file()
+        // WINDOWS-REMNANT
         || !legacy.is_file() && (cfg!(windows) || root.ends_with("app-server-daemon"))
     {
         packaged
@@ -123,6 +124,7 @@ pub(crate) async fn supports_daemon_update_loop(codex_bin: &Path) -> bool {
 /// Probe an internal daemon command without running a long-lived process.
 pub(crate) async fn supports_daemon_command(codex_bin: &Path, args: &[&str]) -> bool {
     let mut command = Command::new(codex_bin);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     command.creation_flags(windows_sys::Win32::System::Threading::CREATE_NO_WINDOW);
     timeout(
@@ -151,6 +153,7 @@ pub(crate) async fn resolved_managed_codex_bin(codex_bin: &Path) -> Result<PathB
 
 pub(crate) async fn managed_codex_version(codex_bin: &Path) -> Result<String> {
     let mut command = Command::new(codex_bin);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     command.creation_flags(windows_sys::Win32::System::Threading::CREATE_NO_WINDOW);
     let output = command
@@ -229,6 +232,7 @@ pub(crate) fn path_digest(path: &Path) -> [u8; 32] {
         use std::os::unix::ffi::OsStrExt;
         hasher.update(path.as_os_str().as_bytes());
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         use std::os::windows::ffi::OsStrExt;
@@ -240,6 +244,7 @@ pub(crate) fn path_digest(path: &Path) -> [u8; 32] {
 }
 
 fn managed_codex_file_name() -> &'static str {
+    // WINDOWS-REMNANT
     if cfg!(windows) { "codex.exe" } else { "codex" }
 }
 

@@ -696,6 +696,7 @@ async fn command_token_rotation_between_batches_reauthenticates_the_housekeeper(
     let credentials = tempfile::tempdir()?;
     let token = credentials.path().join("token.txt");
     std::fs::write(&token, "first-token")?;
+    // WINDOWS-REMNANT
     let (command, args): (&str, &[&str]) = if cfg!(windows) {
         ("cmd.exe", &["/D", "/C", "type", "token.txt"])
     } else {

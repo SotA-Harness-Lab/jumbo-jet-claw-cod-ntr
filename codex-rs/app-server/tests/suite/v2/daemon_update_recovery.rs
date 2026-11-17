@@ -845,6 +845,7 @@ async fn request_shutdown(server: &Child, _socket_path: &Path) -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 async fn request_shutdown(server: &Child, socket_path: &Path) -> Result<()> {
     let pid = server.id().context("server pid")?.to_string();

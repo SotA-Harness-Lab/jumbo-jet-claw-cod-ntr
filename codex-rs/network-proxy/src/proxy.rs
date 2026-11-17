@@ -21,10 +21,13 @@ use crate::runtime::HostBlockReason;
 use crate::runtime::unix_socket_permissions_supported;
 use crate::socks5;
 use crate::state::NetworkProxyState;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use crate::windows_proxy_ingress::WindowsProxyIngress;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use crate::windows_proxy_ingress::WindowsProxyRoute;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use crate::windows_proxy_ingress::WindowsRouteService;
 use anyhow::Context;
@@ -36,6 +39,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::net::TcpListener as StdTcpListener;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::ops::RangeInclusive;
 use std::sync::Arc;
@@ -45,8 +49,10 @@ use tracing::warn;
 
 use self::execution_scope::ExecutionScope;
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 const WINDOWS_MANAGED_HTTP_PROXY_PORTS: RangeInclusive<u16> = 3128..=3159;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 const WINDOWS_MANAGED_SOCKS_PROXY_PORTS: RangeInclusive<u16> = 8081..=8112;
 
@@ -121,6 +127,7 @@ impl ReservedListenerSet {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     pub(super) fn into_listeners(self) -> (StdTcpListener, Option<StdTcpListener>) {
         (self.http_listener, self.socks_listener)
@@ -228,6 +235,7 @@ impl NetworkProxyBuilder {
             .await;
         let (current_cfg, _, executor_os) = state.current_cfg_with_brokerage_provenance().await?;
         let current_cfg = state.local_binding_policy.resolved_config(&current_cfg);
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let (current_cfg, runtime_settings, mut windows_ingress) = {
             let current_cfg = config::NetworkProxyConfig {
@@ -242,6 +250,7 @@ impl NetworkProxyBuilder {
             .managed_by_codex
         {
             let runtime = config::resolve_runtime(&current_cfg, executor_os)?;
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             let shared_ingress_addrs = if self.managed_proxy_routing
                 == ManagedProxyRouting::SharedIngress
@@ -260,6 +269,7 @@ impl NetworkProxyBuilder {
             } else {
                 None
             };
+            // WINDOWS-REMNANT
             #[cfg(not(target_os = "windows"))]
             let shared_ingress_addrs: Option<(SocketAddr, SocketAddr)> = None;
             if let Some((http_addr, socks_addr)) = shared_ingress_addrs {
@@ -288,6 +298,7 @@ impl NetworkProxyBuilder {
         let (http_addr, socks_addr) =
             config::clamp_bind_addrs(requested_http_addr, requested_socks_addr, &current_cfg);
 
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let windows_runtime = windows_ingress.map(|ingress| {
             let http = http_proxy::http_proxy_service(
@@ -311,6 +322,7 @@ impl NetworkProxyBuilder {
             })
         });
 
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         let runtime_settings = NetworkProxyRuntimeSettings::from_config(&current_cfg)?;
 
@@ -326,6 +338,7 @@ impl NetworkProxyBuilder {
             policy_decider: self.policy_decider,
             environment_proxies: Arc::new(Mutex::new(HashMap::new())),
             execution_scope: None,
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             windows_runtime,
         })
@@ -345,6 +358,7 @@ fn reserve_loopback_ephemeral_listeners(
     Ok(ReservedListenerSet::new(http_listener, socks_listener))
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub(super) fn reserve_windows_managed_listeners(
     http_addr: SocketAddr,
@@ -367,6 +381,7 @@ pub(super) fn reserve_windows_managed_listeners(
     Ok(ReservedListenerSet::new(http_listener, socks_listener))
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub(super) fn reserve_windows_managed_socks_listener(
     socks_addr: SocketAddr,
@@ -378,6 +393,7 @@ pub(super) fn reserve_windows_managed_socks_listener(
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn reserve_windows_managed_listener(
     requested_addr: SocketAddr,
@@ -424,6 +440,7 @@ fn reserve_windows_managed_listener(
         .with_context(|| format!("reserve fallback loopback Windows {protocol} proxy listener"))
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub(super) fn windows_managed_loopback_addr(addr: SocketAddr) -> SocketAddr {
     if !addr.ip().is_loopback() {
@@ -466,11 +483,13 @@ impl NetworkProxyRuntimeSettings {
         Ok(Self {
             transparent_tcp: config.transparent_tcp,
             allow_local_binding: config.allow_local_binding(),
+            // WINDOWS-REMNANT
             allow_unix_sockets: if cfg!(target_os = "windows") {
                 Arc::default()
             } else {
                 config.allow_unix_sockets().into()
             },
+            // WINDOWS-REMNANT
             dangerously_allow_all_unix_sockets: !cfg!(target_os = "windows")
                 && config.dangerously_allow_all_unix_sockets.unwrap_or(false),
             mitm_ca_trust_bundle,
@@ -527,6 +546,7 @@ enum EnvironmentProxyClient {
 
 enum ProxyRuntime {
     Listeners(ProxyListeners),
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     SharedIngress {
         route: Arc<WindowsProxyRoute>,
@@ -534,6 +554,7 @@ enum ProxyRuntime {
 }
 
 impl ProxyRuntime {
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     fn network_proxy_restricting_sid(&self) -> Option<String> {
         match self {
@@ -545,6 +566,7 @@ impl ProxyRuntime {
     async fn wait(&mut self) -> Result<()> {
         match self {
             Self::Listeners(listeners) => listeners.wait().await,
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             Self::SharedIngress { .. } => std::future::pending().await,
         }
@@ -557,12 +579,14 @@ impl ProxyRuntime {
                 Some(listeners)
             }
             // Shared ingress owns its listeners; dropping the route unregisters it.
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             Self::SharedIngress { .. } => None,
         }
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 struct WindowsSharedProxyRuntime {
     ingress: Arc<WindowsProxyIngress>,
@@ -584,6 +608,7 @@ pub struct NetworkProxy {
     policy_decider: Option<Arc<dyn NetworkPolicyDecider>>,
     environment_proxies: Arc<Mutex<HashMap<String, EnvironmentProxy>>>,
     execution_scope: Option<Arc<ExecutionScope>>,
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     windows_runtime: Option<Arc<WindowsSharedProxyRuntime>>,
 }
@@ -635,6 +660,7 @@ pub const ALLOW_LOCAL_BINDING_ENV_KEY: &str = "CODEX_NETWORK_ALLOW_LOCAL_BINDING
 // Internal wire format shared with windows-sandbox-rs/src/setup.rs. The value is a
 // comma-separated, sorted list of non-zero loopback proxy ports used only when computing the
 // Windows offline sandbox setup marker.
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 const WINDOWS_SANDBOX_PROXY_PORTS_ENV_KEY: &str = "CODEX_WINDOWS_SANDBOX_PROXY_PORTS";
 const ELECTRON_GET_USE_PROXY_ENV_KEY: &str = "ELECTRON_GET_USE_PROXY";
@@ -646,6 +672,7 @@ pub const PROXY_ENV_KEYS: &[&str] = &[
     CREDENTIAL_BROKER_ACTIVE_ENV_KEY,
     BROKERED_CREDENTIALS_ENV_KEY,
     ALLOW_LOCAL_BINDING_ENV_KEY,
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     WINDOWS_SANDBOX_PROXY_PORTS_ENV_KEY,
     PROXY_ATTRIBUTION_TOKEN_ENV_KEY,
@@ -935,6 +962,7 @@ impl NetworkProxy {
     }
 
     pub fn socks_addr(&self) -> SocketAddr {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if let Some(runtime) = self.windows_runtime.as_ref() {
             return runtime.ingress.socks_addr();
@@ -944,6 +972,7 @@ impl NetworkProxy {
 
     /// Returns the restricting SID that identifies this logical proxy route to the shared
     /// Windows ingress. Environment routes are available after their proxy settings are prepared.
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     pub fn network_proxy_restricting_sid(&self, environment_id: Option<&str>) -> Option<String> {
         match environment_id {
@@ -1196,6 +1225,7 @@ impl NetworkProxy {
         client: EnvironmentProxyClient,
         environment_id: Option<&str>,
     ) -> PreparedManagedNetwork {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let shared_socks_addr = (client == EnvironmentProxyClient::SandboxedProcess)
             .then(|| {
@@ -1204,6 +1234,7 @@ impl NetworkProxy {
                     .and_then(|runtime| runtime.ingress.active_socks_addr())
             })
             .flatten();
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let addrs = EnvironmentProxyAddrs {
             socks_addr: shared_socks_addr.unwrap_or(addrs.socks_addr),
@@ -1247,6 +1278,7 @@ impl NetworkProxy {
             env.remove(PROXY_ATTRIBUTION_TOKEN_ENV_KEY);
         }
         let expose_socks_port = self.socks_enabled;
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let expose_socks_port = expose_socks_port || shared_socks_addr.is_some();
         let mut loopback_ports = [
@@ -1260,6 +1292,7 @@ impl NetworkProxy {
         .collect::<Vec<_>>();
         loopback_ports.sort_unstable();
         loopback_ports.dedup();
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if client == EnvironmentProxyClient::SandboxedProcess && self.windows_runtime.is_some() {
             env.insert(
@@ -1496,6 +1529,7 @@ impl NetworkProxy {
     fn environment_proxy_addrs(
         &self,
         environment_id: &str,
+        // WINDOWS-REMNANT
         #[cfg_attr(not(target_os = "windows"), allow(unused_variables))]
         client: EnvironmentProxyClient,
     ) -> Result<EnvironmentProxyAddrs> {
@@ -1512,9 +1546,11 @@ impl NetworkProxy {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         if let Some(proxy) = proxies.get(environment_id) {
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             let uses_shared_ingress = client == EnvironmentProxyClient::SandboxedProcess
                 && self.windows_runtime.is_some();
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             anyhow::ensure!(
                 matches!(
@@ -1527,6 +1563,7 @@ impl NetworkProxy {
             return Ok(proxy.addrs);
         }
 
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if client == EnvironmentProxyClient::SandboxedProcess
             && let Some(windows_runtime) = self.windows_runtime.as_ref()
@@ -1699,12 +1736,14 @@ impl NetworkProxy {
             return Ok(NetworkProxyHandle::noop());
         }
 
+        // WINDOWS-REMNANT
         if !cfg!(target_os = "windows") && !unix_socket_permissions_supported() {
             warn!(
                 "allowUnixSockets and dangerouslyAllowAllUnixSockets are macOS-only; requests will be rejected on this platform"
             );
         }
 
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if let Some(windows_runtime) = self.windows_runtime.as_ref() {
             let mut active_route = windows_runtime
@@ -1799,6 +1838,7 @@ impl NetworkProxy {
             runtime: Some(ProxyRuntime::Listeners(listeners)),
             proxy: Some(self.clone()),
             environment_proxies: Some(Arc::clone(&self.environment_proxies)),
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             windows_active_route: None,
         })
@@ -1809,6 +1849,7 @@ pub struct NetworkProxyHandle {
     runtime: Option<ProxyRuntime>,
     proxy: Option<NetworkProxy>,
     environment_proxies: Option<Arc<Mutex<HashMap<String, EnvironmentProxy>>>>,
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     windows_active_route: Option<Arc<Mutex<Option<Arc<WindowsProxyRoute>>>>>,
 }
@@ -1819,11 +1860,13 @@ impl NetworkProxyHandle {
             runtime: None,
             proxy: None,
             environment_proxies: None,
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             windows_active_route: None,
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     fn windows_shared(
         proxy: NetworkProxy,
@@ -1861,6 +1904,7 @@ impl NetworkProxyHandle {
     }
 
     fn stop_runtimes(&mut self) -> Vec<ProxyListeners> {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if let Some(active_route) = self.windows_active_route.take() {
             active_route
@@ -1909,6 +1953,7 @@ mod tests {
     use std::net::Ipv4Addr;
     use std::path::Path;
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     static WINDOWS_INGRESS_TEST_LOCK: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
 
@@ -1946,6 +1991,7 @@ mod tests {
                 runtime: Some(ProxyRuntime::Listeners(listeners)),
                 proxy: None,
                 environment_proxies: Some(Arc::new(Mutex::new(HashMap::new()))),
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 windows_active_route: None,
             };
@@ -1998,6 +2044,7 @@ mod tests {
         })
         .await;
         let proxy = result?;
+        // WINDOWS-REMNANT
         let expected_bind_host = if cfg!(target_os = "windows") {
             "0.0.0.0"
         } else {
@@ -2017,6 +2064,7 @@ mod tests {
             crate::Platform::native(),
         )?;
         proxy.replace_config_state(replacement).await?;
+        // WINDOWS-REMNANT
         let expected_unix_sockets = if cfg!(target_os = "windows") {
             Vec::new()
         } else {
@@ -2028,6 +2076,7 @@ mod tests {
         );
         assert_eq!(
             proxy.dangerously_allow_all_unix_sockets(),
+            // WINDOWS-REMNANT
             !cfg!(target_os = "windows")
         );
         assert_eq!(proxy.current_cfg().await?, config);
@@ -2048,6 +2097,7 @@ mod tests {
                     || message.contains("allowUnixSockets")
             })
         });
+        // WINDOWS-REMNANT
         assert_eq!(emitted_unix_socket_warning, !cfg!(target_os = "windows"));
 
         Ok(())
@@ -2201,6 +2251,7 @@ mod tests {
 
     #[tokio::test]
     async fn managed_proxy_builder_uses_loopback_ports() {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let _permit = WINDOWS_INGRESS_TEST_LOCK.acquire().await.unwrap();
         let http_listener = StdTcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0))).unwrap();
@@ -2231,6 +2282,7 @@ mod tests {
 
         assert!(proxy.http_addr.ip().is_loopback());
         assert!(proxy.socks_addr.ip().is_loopback());
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             assert_eq!(proxy.http_addr, http_addr);
@@ -2314,6 +2366,7 @@ mod tests {
             handle.shutdown().await.expect("stop stable ingress route");
             assert_eq!(proxy.network_proxy_restricting_sid(None), None);
         }
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         {
             assert_ne!(proxy.http_addr.port(), 0);
@@ -2392,11 +2445,13 @@ mod tests {
                     transparent_tcp: false,
                     loopback_ports: vec![43128, 48081],
                     allow_local_binding: true,
+                    // WINDOWS-REMNANT
                     allow_unix_sockets: if cfg!(target_os = "windows") {
                         Vec::new()
                     } else {
                         vec!["/tmp/allowed.sock".to_string()]
                     },
+                    // WINDOWS-REMNANT
                     dangerously_allow_all_unix_sockets: !cfg!(target_os = "windows") && allow_all,
                 }
             );
@@ -2407,6 +2462,7 @@ mod tests {
 
     #[tokio::test]
     async fn prepare_for_environment_keeps_env_and_sandbox_ports_in_sync() -> Result<()> {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let _permit = WINDOWS_INGRESS_TEST_LOCK.acquire().await.unwrap();
         let state = Arc::new(network_proxy_state_for_policy(NetworkProxyConfig {
@@ -2424,6 +2480,7 @@ mod tests {
             local.env.get("PRESERVED").map(String::as_str),
             Some("value")
         );
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             assert_eq!(
@@ -2434,6 +2491,7 @@ mod tests {
             assert!(proxy.network_proxy_restricting_sid(Some("local")).is_some());
             assert_eq!(proxy.network_proxy_restricting_sid(Some("remote")), None);
         }
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         {
             assert_ne!(local.env.get("HTTP_PROXY"), remote.env.get("HTTP_PROXY"));
@@ -2483,6 +2541,7 @@ mod tests {
 
     #[tokio::test]
     async fn private_credential_context_prepares_spawn_ready_env() -> Result<()> {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let _permit = WINDOWS_INGRESS_TEST_LOCK.acquire().await.unwrap();
         let mut config = NetworkProxyConfig {
@@ -2543,6 +2602,7 @@ mod tests {
     }
 
     async fn check_remote_launch_config_execution_scope() -> Result<()> {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let _permit = WINDOWS_INGRESS_TEST_LOCK.acquire().await.unwrap();
         let mut config = NetworkProxyConfig {
@@ -2726,6 +2786,7 @@ mod tests {
 
     #[tokio::test]
     async fn managed_proxy_builder_lazily_upgrades_disabled_socks() {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let _permit = WINDOWS_INGRESS_TEST_LOCK.acquire().await.unwrap();
         let http_listener = StdTcpListener::bind(SocketAddr::from(([127, 0, 0, 1], 0))).unwrap();
@@ -2757,6 +2818,7 @@ mod tests {
         assert!(proxy.http_addr.ip().is_loopback());
         assert_ne!(proxy.http_addr.port(), 0);
         assert_eq!(proxy.socks_addr, socks_addr);
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             assert_eq!(proxy.http_addr, http_addr);
@@ -2882,6 +2944,7 @@ mod tests {
                 .expect("stop HTTP-only stable route");
             assert_eq!(proxy.network_proxy_restricting_sid(None), None);
         }
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         assert!(
             proxy
@@ -2895,6 +2958,7 @@ mod tests {
         drop(occupied_socks);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn windows_managed_loopback_addr_clamps_non_loopback_inputs() {
@@ -2908,6 +2972,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn reserve_windows_managed_listeners_falls_back_when_http_port_is_busy() {
@@ -2935,6 +3000,7 @@ mod tests {
         assert!(WINDOWS_MANAGED_HTTP_PROXY_PORTS.contains(&fallback_port));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn reserve_windows_managed_listeners_preserves_http_when_socks_port_is_busy() {
@@ -2963,6 +3029,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn reserve_windows_managed_listener_uses_ephemeral_port_when_preferred_ports_are_busy() {

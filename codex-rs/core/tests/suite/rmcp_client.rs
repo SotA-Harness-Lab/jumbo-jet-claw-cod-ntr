@@ -2692,6 +2692,7 @@ async fn stdio_mcp_tool_call_includes_sandbox_state_meta(
             .into_iter()
             .find(|selection| selection.environment_id == remote_aware_environment_id())
             .context("thread should select the MCP server's executor environment")?;
+        // WINDOWS-REMNANT
         let workspace_roots = vec![PathUri::parse(if cfg!(windows) {
             "file:///foreign/workspace"
         } else {
@@ -2851,6 +2852,7 @@ async fn stdio_mcp_tool_call_includes_sandbox_state_meta(
         codex_linux_sandbox_exe: fixture.config.codex_linux_sandbox_exe.clone(),
         sandbox_cwd: PathUri::from_abs_path(&fixture.config.cwd),
         use_legacy_landlock: false,
+        // WINDOWS-REMNANT
         use_mxc: prefer_mxc && cfg!(windows) && !attachment_owned_permissions,
     })?;
     let expected_launcher = (remote_aware_environment_id()
@@ -4287,6 +4289,7 @@ async fn streamable_http_tool_call_round_trip(mode: HeadersHelperMode) -> anyhow
                     .display(),
                 helper_invocations.display(),
             )
+        // WINDOWS-REMNANT
         } else if cfg!(windows) {
             r#"echo {"Proxy-Authorization":"Bearer gateway-token"}"#.to_string()
         } else {

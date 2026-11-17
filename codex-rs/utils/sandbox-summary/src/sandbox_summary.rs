@@ -134,6 +134,7 @@ mod tests {
 
     #[test]
     fn workspace_write_summary_still_includes_network_access() {
+        // WINDOWS-REMNANT
         let root = if cfg!(windows) { "C:\\repo" } else { "/repo" };
         let writable_root = AbsolutePathBuf::try_from(root).unwrap();
         let cwd = PathUri::from_abs_path(&writable_root.join("workdir"));
@@ -157,13 +158,16 @@ mod tests {
     #[test]
     fn permission_profile_summary_uses_runtime_workspace_roots_and_hides_internal_writes() {
         let cwd =
+            // WINDOWS-REMNANT
             AbsolutePathBuf::try_from(if cfg!(windows) { "C:\\repo" } else { "/repo" }).unwrap();
+        // WINDOWS-REMNANT
         let extra_root = AbsolutePathBuf::try_from(if cfg!(windows) {
             "C:\\repo-extra"
         } else {
             "/repo-extra"
         })
         .unwrap();
+        // WINDOWS-REMNANT
         let hidden_root = AbsolutePathBuf::try_from(if cfg!(windows) {
             "C:\\Users\\test\\.codex\\memories"
         } else {

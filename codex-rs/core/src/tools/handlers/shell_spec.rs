@@ -7,6 +7,7 @@ use serde_json::json;
 use std::collections::BTreeMap;
 
 pub(crate) fn create_exec_command_tool(options: ExecCommandHandlerOptions) -> ToolSpec {
+    // WINDOWS-REMNANT
     let yield_time_ms_description = if cfg!(windows) {
         "Maximum time to wait before returning a session ID for a still-running command. Commands that finish sooner return immediately. For ordinary commands, omit this parameter to use the 10000 ms default. Effective range on Windows is 10000-30000 ms."
     } else {

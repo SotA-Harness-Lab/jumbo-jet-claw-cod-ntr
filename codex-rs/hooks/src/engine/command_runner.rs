@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::future::Future;
 use std::io::ErrorKind;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::path::Path;
@@ -18,6 +19,7 @@ use async_channel::Sender;
 use codex_protocol::shell_environment::is_non_inheritable_env_var;
 #[cfg(unix)]
 use codex_utils_pty::Command;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_utils_pty::JobObject;
 use futures::future::try_join;
@@ -30,6 +32,7 @@ use tokio::task::JoinSet;
 use tokio::time::timeout;
 use tracing::Span;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -283,11 +286,13 @@ pub(crate) async fn run_command(
     let mut command = build_command(&runtime.shell, command_line, &runtime.environment, env);
     command.current_dir(cwd);
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (child, process_tree_job) = match JobObject::spawn_background(&mut command) {
         Ok((child, job)) => (Ok(child), job),
         Err(error) => (Err(error), None),
     };
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let child = command.spawn();
 
@@ -310,6 +315,7 @@ pub(crate) async fn run_command(
 
     let mut process_tree_guard = ProcessTreeGuard {
         process_id: child.id(),
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         job: process_tree_job,
     };
@@ -341,6 +347,7 @@ pub(crate) async fn run_command(
     {
         Ok(Ok(((), output))) => {
             // Successfully completed hooks may intentionally leave detached helpers running.
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             if let Some(job) = process_tree_guard.job.as_ref() {
                 let _ = job.preserve_descendants();
@@ -386,6 +393,7 @@ pub(crate) async fn run_command(
 // Needed only until command hooks move to the exec server, which owns process-tree cleanup.
 struct ProcessTreeGuard {
     process_id: Option<u32>,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     job: Option<JobObject>,
 }
@@ -401,6 +409,7 @@ impl Drop for ProcessTreeGuard {
             let _ = codex_utils_pty::process_group::kill_process_group(process_id);
         }
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             if let Some(job) = self.job.as_ref() {
@@ -457,24 +466,29 @@ fn build_command(
         Command::new(&shell.program)
     };
     if shell.program.is_empty() {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         command.arg("/C");
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         command.arg("-lc");
     } else {
         command.args(&shell.args);
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     if shell.program.is_empty() || shell.args.iter().any(|arg| arg.eq_ignore_ascii_case("/c")) {
         command.raw_arg(format!(r#""{command_line}""#));
     } else {
         command.arg(command_line);
     }
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     command.arg(command_line);
 
     #[cfg(unix)]
     command.process_mode(codex_utils_pty::ProcessMode::NewSession);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     command.creation_flags(CREATE_NO_WINDOW);
     #[cfg(not(unix))]
@@ -501,21 +515,25 @@ fn build_command(
 }
 
 fn default_shell_program(environment: &[(OsString, OsString)]) -> OsString {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (environment_variable, fallback_program) = ("COMSPEC", "cmd.exe");
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let (environment_variable, fallback_program) = ("SHELL", "/bin/sh");
 
     environment
         .iter()
         .find(|(key, _)| {
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             {
                 key.to_str()
                     .is_some_and(|key| key.eq_ignore_ascii_case(environment_variable))
             }
 
+            // WINDOWS-REMNANT
             #[cfg(not(windows))]
             {
                 key == OsStr::new(environment_variable)

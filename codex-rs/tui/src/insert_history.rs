@@ -350,11 +350,13 @@ impl Command for SetScrollRegion {
         write!(f, "\x1b[{};{}r", self.0.start, self.0.end)
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> std::io::Result<()> {
         panic!("tried to execute SetScrollRegion command using WinAPI, use ANSI instead");
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         // TODO(nornagon): is this supported on Windows?
@@ -370,11 +372,13 @@ impl Command for ResetScrollRegion {
         write!(f, "\x1b[r")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> std::io::Result<()> {
         panic!("tried to execute ResetScrollRegion command using WinAPI, use ANSI instead");
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         // TODO(nornagon): is this supported on Windows?

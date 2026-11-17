@@ -139,6 +139,7 @@ fn available_space(path: &Path) -> io::Result<u64> {
         .map_err(|_| io::Error::other("available disk space exceeds u64"))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn available_space(path: &Path) -> io::Result<u64> {
     use std::os::windows::ffi::OsStrExt;
@@ -165,6 +166,7 @@ fn available_space(path: &Path) -> io::Result<u64> {
     Ok(available)
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn available_space(_path: &Path) -> io::Result<u64> {
     Err(io::Error::new(

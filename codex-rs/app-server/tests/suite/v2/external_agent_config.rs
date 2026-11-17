@@ -71,10 +71,12 @@ fn connector_metadata_root(home: &Path) -> PathBuf {
     {
         home.join("Library/Application Support/Claude")
     }
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     {
         home.join("AppData/Roaming/Claude")
     }
+    // WINDOWS-REMNANT
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         home.join(".config/Claude")

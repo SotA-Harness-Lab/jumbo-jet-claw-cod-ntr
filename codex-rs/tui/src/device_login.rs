@@ -26,8 +26,10 @@ pub(crate) async fn prefer_device_login() -> bool {
     {
         return true;
     }
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let browser_available = webbrowser::Browser::is_available;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let browser_available = has_http_handler;
     !tokio::task::spawn_blocking(browser_available)
@@ -35,6 +37,7 @@ pub(crate) async fn prefer_device_login() -> bool {
         .unwrap_or(false)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn has_http_handler() -> bool {
     use windows_sys::Win32::Foundation::S_FALSE;

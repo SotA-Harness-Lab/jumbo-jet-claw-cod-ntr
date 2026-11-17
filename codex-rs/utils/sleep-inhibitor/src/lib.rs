@@ -7,6 +7,7 @@
 //!   `PowerRequestSystemRequired`.
 //! - Other platforms: No-op backend.
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 mod dummy;
 #[cfg(target_os = "linux")]
@@ -14,12 +15,14 @@ mod linux_inhibitor;
 #[cfg(target_os = "macos")]
 mod macos;
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 use dummy as imp;
 #[cfg(target_os = "linux")]
 use linux_inhibitor as imp;
 #[cfg(target_os = "macos")]
 use macos as imp;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use windows_inhibitor as imp;
 

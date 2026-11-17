@@ -532,6 +532,7 @@ async fn cached_http_mcp_starts_lazily_for_subagents(
         else {
             unreachable!("expected HTTP transport");
         };
+        // WINDOWS-REMNANT
         *http_headers_helper = Some(if cfg!(windows) {
             r#"echo {"X-Cache-Test":"helper"}"#.to_string()
         } else {

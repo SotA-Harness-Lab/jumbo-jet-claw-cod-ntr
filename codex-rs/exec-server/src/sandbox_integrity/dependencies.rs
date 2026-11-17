@@ -59,6 +59,7 @@ pub(super) fn codex_executable() -> Dependency {
     ("codex", std::env::current_exe())
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 pub(super) fn codex_and_launcher_dependencies(request: &IntegrityCommand) -> Vec<Dependency> {
     let mut dependencies = vec![codex_executable()];

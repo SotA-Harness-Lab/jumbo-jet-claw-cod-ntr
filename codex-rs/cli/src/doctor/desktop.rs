@@ -17,6 +17,7 @@ use super::DoctorCheck;
 #[cfg(target_os = "macos")]
 mod macos_security;
 pub(super) mod platform;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "windows", test))]
 mod windows_security;
 
@@ -28,6 +29,7 @@ const HANDSHAKE_CHECK_ID: &str = "desktop.app_server.handshake";
 
 pub(super) struct DesktopDiagnostics {
     pub(super) checks: Vec<DoctorCheck>,
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     pub(super) application: Option<platform::InstalledApp>,
 }
@@ -66,9 +68,11 @@ pub(super) async fn collect() -> Option<DesktopDiagnostics> {
                         "desktop.app.version",
                         "the desktop application installation could not be inspected",
                     ),
+                    // WINDOWS-REMNANT
                     #[cfg(target_os = "windows")]
                     windows_security::collect().await,
                 ],
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "macos", target_os = "windows"))]
                 application: None,
             });
@@ -101,9 +105,11 @@ pub(super) async fn collect() -> Option<DesktopDiagnostics> {
             handshake,
             #[cfg(target_os = "macos")]
             macos_security::collect(&application.bundle).await,
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             windows_security::collect().await,
         ],
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         application: Some(application),
     })

@@ -336,6 +336,7 @@ fn viewer_reuses_path_and_refreshes_static_document() {
             original_viewer_metadata.ino()
         );
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;

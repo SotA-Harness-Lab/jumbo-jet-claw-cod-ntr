@@ -257,6 +257,7 @@ impl EnvironmentInfo {
     }
 
     fn local_temporary_directories_with_cwd(cwd: Option<&std::path::Path>) -> Vec<PathUri> {
+        // WINDOWS-REMNANT
         let temporary_directory_env_vars: &[&str] = if cfg!(windows) {
             &["TEMP", "TMP"]
         } else {
@@ -287,8 +288,10 @@ impl EnvironmentInfo {
 
     /// Returns information about the current local exec-server process.
     pub fn local() -> Self {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let windows_mxc = codex_mxc_sandbox::is_available();
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         let windows_mxc = false;
         let cwd = std::env::current_dir().ok();
@@ -1777,6 +1780,7 @@ mod tests {
     #[test]
     fn local_environment_info_reads_platform_temporary_directories() {
         let cwd = std::env::current_dir().expect("current directory");
+        // WINDOWS-REMNANT
         let names: &[&str] = if cfg!(windows) {
             &["TEMP", "TMP"]
         } else {

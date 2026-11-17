@@ -17,6 +17,7 @@ use wiremock::matchers::body_string_contains;
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires tmux and a locally built codex binary; run with --ignored for manual resize smoke"]
 async fn tmux_split_preserves_fresh_session_composer_row_after_resize_reflow() -> Result<()> {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return Ok(());
     }
@@ -164,6 +165,7 @@ async fn tmux_split_preserves_fresh_session_composer_row_after_resize_reflow() -
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires tmux and a locally built codex binary; run with --ignored for manual resize smoke"]
 async fn tmux_repeated_resizes_do_not_push_composer_down() -> Result<()> {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return Ok(());
     }
@@ -181,6 +183,7 @@ async fn tmux_repeated_resizes_do_not_push_composer_down() -> Result<()> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires tmux and a locally built codex binary; run with --ignored for manual resize smoke"]
 async fn tmux_width_resize_restore_keeps_visible_content_anchored() -> Result<()> {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return Ok(());
     }
@@ -309,6 +312,7 @@ async fn tmux_width_resize_restore_keeps_visible_content_anchored() -> Result<()
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires tmux and a locally built codex binary; run with --ignored for manual resize smoke"]
 async fn tmux_scrolled_composer_resize_preserves_visible_draft_text() -> Result<()> {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return Ok(());
     }

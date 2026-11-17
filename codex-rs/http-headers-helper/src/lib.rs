@@ -10,6 +10,7 @@ use serde::de::Deserializer as _;
 use serde::de::MapAccess;
 use serde::de::Visitor;
 use std::fmt;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::process::Command;
@@ -25,6 +26,7 @@ struct HelperProcess {
     child: Child,
     #[cfg(unix)]
     process_group_id: u32,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     job: codex_utils_pty::JobObject,
 }
@@ -33,6 +35,7 @@ impl Drop for HelperProcess {
     fn drop(&mut self) {
         #[cfg(unix)]
         let _ = codex_utils_pty::process_group::kill_process_group(self.process_group_id);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let _ = self.job.terminate();
         let _ = self.child.start_kill();
@@ -41,8 +44,10 @@ impl Drop for HelperProcess {
 
 /// Builds a background shell command using the platform's command interpreter.
 pub fn shell_command(command: &str) -> Command {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let shell = std::env::var_os("COMSPEC").unwrap_or_else(|| "cmd.exe".into());
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let shell = "sh";
 
@@ -50,11 +55,13 @@ pub fn shell_command(command: &str) -> Command {
     // configuration and may be visible in local process metadata; credentials belong in the
     // JSON output rather than in the command text.
     let mut process = codex_utils_process::background_command(shell);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         process.args(["/Q", "/D", "/C"]);
         process.raw_arg(format!(r#""{command}""#));
     }
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     process.args(["-c", command]);
     process
@@ -71,6 +78,7 @@ pub async fn run(command: Command) -> Result<HeaderMap> {
         .stderr(Stdio::null())
         .kill_on_drop(true);
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (child, job) = {
         let job = codex_utils_pty::JobObject::create_without_breakaway()
@@ -80,6 +88,7 @@ pub async fn run(command: Command) -> Result<HeaderMap> {
             .map_err(|error| anyhow!("headers helper failed to start: {error}"))?;
         (child, job)
     };
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let child = process
         .spawn()
@@ -90,6 +99,7 @@ pub async fn run(command: Command) -> Result<HeaderMap> {
             .id()
             .ok_or_else(|| anyhow!("headers helper process id was unavailable"))?,
         child,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         job,
     };

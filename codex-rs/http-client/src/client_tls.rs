@@ -2,25 +2,34 @@
 //! Explicit roots replace shared environment roots; PEM identities require HTTPS and rustls.
 
 use std::fmt;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::io;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::sync::Arc;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_utils_rustls_provider::ensure_rustls_crypto_provider;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use rustls::ClientConfig;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use rustls::RootCertStore;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use rustls_pki_types::CertificateDer;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use rustls_pki_types::PrivateKeyDer;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use rustls_pki_types::pem::PemObject;
 
 use crate::HttpError;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::WindowsProxyTls;
 
@@ -36,6 +45,7 @@ pub struct HttpClientTlsConfig {
 pub(crate) struct TlsMaterial<T> {
     pub(crate) reqwest: T,
     // Reqwest does not expose its TLS material to the Windows proxy connector.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pem: Arc<[u8]>,
 }
@@ -47,6 +57,7 @@ impl<T> TlsMaterial<T> {
     ) -> Result<Self, HttpError> {
         Ok(Self {
             reqwest: parse(pem)?,
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             pem: pem.into(),
         })
@@ -75,6 +86,7 @@ impl HttpClientTlsConfig {
         Ok(self)
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(crate) fn windows_proxy_tls(&self) -> io::Result<WindowsProxyTls> {
         if self.root_certificate.is_none() && self.client_identity.is_none() {

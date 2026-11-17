@@ -6,6 +6,7 @@ use tokio::io::AsyncWriteExt;
 
 use super::*;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn private_directory_rejects_volume_roots() {
@@ -20,6 +21,7 @@ async fn private_directory_rejects_volume_roots() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn private_directory_rejects_junctions() {
@@ -52,6 +54,7 @@ async fn private_directory_rejects_junctions() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn socket_validation_pins_private_directory_without_creating_missing_paths() {
@@ -65,6 +68,7 @@ async fn socket_validation_pins_private_directory_without_creating_missing_paths
     assert!(std::fs::rename(&directory, temp.path().join("moved")).is_err());
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn socket_validation_rejects_broad_acl_without_repairing_it() {
@@ -116,6 +120,7 @@ Set-Acl -LiteralPath $env:CODEX_TEST_DIRECTORY -AclObject $acl
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn private_directory_supports_extended_length_paths() {
@@ -130,6 +135,7 @@ async fn private_directory_supports_extended_length_paths() {
     assert!(directory.is_dir());
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn private_directory_acl_is_user_only_and_inherited_by_files() {
@@ -282,6 +288,7 @@ async fn stream_round_trips_data_between_listener_and_client() {
     server_task.await.expect("server task should join");
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn implicit_peer_validation_rejects_elevated_listener() {

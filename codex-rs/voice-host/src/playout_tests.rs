@@ -38,6 +38,7 @@ fn init_audio_runtime() {
         {
             let relative = if cfg!(target_os = "macos") {
                 format!("plugins/libgst{plugin}.dylib")
+            // WINDOWS-REMNANT
             } else if cfg!(windows) {
                 format!("bin/gst{plugin}.dll")
             } else {

@@ -285,6 +285,7 @@ fn sources(provider: &TomlValue) -> impl Iterator<Item = &str> {
 }
 
 fn same_source(left: &str, right: &str) -> bool {
+    // WINDOWS-REMNANT
     left == right || cfg!(windows) && left.eq_ignore_ascii_case(right)
 }
 

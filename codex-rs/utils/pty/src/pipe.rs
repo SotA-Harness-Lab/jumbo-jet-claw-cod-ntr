@@ -31,6 +31,7 @@ use crate::process::ProcessSignal;
 use crate::process::SpawnedProcess;
 use crate::process::exit_code_from_status;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 enum WindowsChildTerminator {
     Job(Arc<crate::win::JobObject>),
@@ -38,6 +39,7 @@ enum WindowsChildTerminator {
 }
 
 struct PipeChildTerminator {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     windows: WindowsChildTerminator,
     #[cfg(unix)]
@@ -53,11 +55,13 @@ impl ChildTerminator for PipeChildTerminator {
                     crate::process_group::interrupt_process_group(self.process_group_id)
                 }
 
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 {
                     self.kill()
                 }
 
+                // WINDOWS-REMNANT
                 #[cfg(not(any(unix, windows)))]
                 {
                     Err(crate::process::unsupported_signal(signal))
@@ -72,6 +76,7 @@ impl ChildTerminator for PipeChildTerminator {
             crate::process_group::kill_process_group(self.process_group_id)
         }
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             match &self.windows {
@@ -80,6 +85,7 @@ impl ChildTerminator for PipeChildTerminator {
             }
         }
 
+        // WINDOWS-REMNANT
         #[cfg(not(any(unix, windows)))]
         {
             Ok(())
@@ -87,6 +93,7 @@ impl ChildTerminator for PipeChildTerminator {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn kill_process(pid: u32) -> io::Result<()> {
     unsafe {
@@ -170,6 +177,7 @@ async fn spawn_process_with_stdin_mode(
             PipeStdinMode::Null => ChildStdin::Null,
         });
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let job = crate::win::JobObject::create().map(Arc::new);
     #[cfg(target_os = "linux")]
@@ -180,6 +188,7 @@ async fn spawn_process_with_stdin_mode(
         };
     #[cfg(not(target_os = "linux"))]
     let mut child = command.spawn()?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let windows_terminator = {
         // Accept the small race: a descendant created between spawn and
@@ -248,6 +257,7 @@ async fn spawn_process_with_stdin_mode(
     let wait_exit_status = Arc::clone(&exit_status);
     let exit_code = Arc::new(StdMutex::new(None));
     let wait_exit_code = Arc::clone(&exit_code);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let wait_job = match &windows_terminator {
         WindowsChildTerminator::Job(job) => Some(Arc::clone(job)),
@@ -256,6 +266,7 @@ async fn spawn_process_with_stdin_mode(
     let wait_handle: JoinHandle<()> = tokio::spawn(async move {
         let code = match child.wait().await {
             Ok(status) => {
+                // WINDOWS-REMNANT
                 #[cfg(windows)]
                 if let Some(job) = wait_job
                     && let Err(err) = job.preserve_descendants()
@@ -278,6 +289,7 @@ async fn spawn_process_with_stdin_mode(
     let handle = ProcessHandle::new(
         writer_tx,
         Box::new(PipeChildTerminator {
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             windows: windows_terminator,
             #[cfg(unix)]

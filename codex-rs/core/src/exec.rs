@@ -4,6 +4,7 @@ use std::os::unix::process::ExitStatusExt;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::io;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::path::Path;
 use std::path::PathBuf;
@@ -51,6 +52,7 @@ use codex_sandboxing::record_filesystem_sandbox_violation;
 use codex_sandboxing::resolve_windows_elevated_filesystem_overrides;
 #[cfg(test)]
 use codex_sandboxing::resolve_windows_restricted_token_filesystem_overrides;
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 use codex_sandboxing::windows_sandbox_uses_elevated_backend;
 use codex_utils_absolute_path::AbsolutePathBuf;
@@ -204,6 +206,7 @@ impl ExecExpiration {
     }
 
     /// If ExecExpiration is a timeout, returns the timeout in milliseconds.
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     pub(crate) fn timeout_ms(&self) -> Option<u64> {
         match self {
@@ -216,6 +219,7 @@ impl ExecExpiration {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub(crate) fn cancellation_token(&self) -> Option<CancellationToken> {
         match self {
@@ -417,6 +421,7 @@ pub async fn build_exec_request(
             environment_id: network_environment_id.as_deref(),
             network: network.as_ref(),
             sandbox_policy_cwd: &sandbox_policy_cwd_uri,
+            // WINDOWS-REMNANT
             sandbox_exe: if cfg!(windows) {
                 codex_self_exe.as_deref()
             } else {
@@ -526,15 +531,21 @@ async fn get_raw_output_result(
     network_sandbox_policy: NetworkSandboxPolicy,
     stdout_stream: Option<StdoutStream>,
     after_spawn: Option<Box<dyn FnOnce() + Send>>,
+    // WINDOWS-REMNANT
     #[cfg_attr(not(windows), allow(unused_variables))] sandbox: SandboxType,
+    // WINDOWS-REMNANT
     #[cfg_attr(not(windows), allow(unused_variables))] permission_profile: &PermissionProfile,
+    // WINDOWS-REMNANT
     #[cfg_attr(not(windows), allow(unused_variables))] windows_sandbox_policy_cwd: &AbsolutePathBuf,
+    // WINDOWS-REMNANT
     #[cfg_attr(not(windows), allow(unused_variables))]
     windows_sandbox_workspace_roots: &[AbsolutePathBuf],
+    // WINDOWS-REMNANT
     #[cfg_attr(not(windows), allow(unused_variables))] windows_sandbox_filesystem_overrides: Option<
         &WindowsSandboxFilesystemOverrides,
     >,
 ) -> Result<RawExecToolCallOutput> {
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     if sandbox == SandboxType::WindowsRestrictedToken {
         return exec_windows_sandbox(
@@ -557,6 +568,7 @@ async fn get_raw_output_result(
     .await
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn extract_create_process_as_user_error_code(err: &str) -> Option<String> {
     let marker = "CreateProcessAsUserW failed: ";
@@ -570,6 +582,7 @@ fn extract_create_process_as_user_error_code(err: &str) -> Option<String> {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn windowsapps_path_kind(path: &str) -> &'static str {
     let lower = path.to_ascii_lowercase();
@@ -585,6 +598,7 @@ fn windowsapps_path_kind(path: &str) -> &'static str {
     "other"
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn record_windows_sandbox_spawn_failure(
     command_path: Option<&str>,
@@ -623,6 +637,7 @@ fn record_windows_sandbox_spawn_failure(
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 async fn exec_windows_sandbox(
     params: ExecParams,
@@ -1275,6 +1290,7 @@ fn synthetic_exit_status_for_code(code: i32) -> ExitStatus {
     std::process::ExitStatus::from_raw(code << 8)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn synthetic_exit_status(code: i32) -> ExitStatus {
     use std::os::windows::process::ExitStatusExt;
@@ -1283,6 +1299,7 @@ fn synthetic_exit_status(code: i32) -> ExitStatus {
     std::process::ExitStatus::from_raw(code as u32)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn synthetic_exit_status_for_code(code: i32) -> ExitStatus {
     synthetic_exit_status(code)

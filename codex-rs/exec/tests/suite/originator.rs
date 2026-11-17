@@ -1,3 +1,4 @@
+// WINDOWS-REMNANT
 #![cfg(not(target_os = "windows"))]
 #![allow(clippy::unwrap_used)]
 

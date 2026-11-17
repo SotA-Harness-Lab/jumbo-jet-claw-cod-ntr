@@ -10,6 +10,7 @@ use codex_protocol::permissions::NetworkSandboxPolicy;
 use codex_protocol::sandbox::SandboxType;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_path_uri::PathUri;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use core_test_support::PathExt;
 use core_test_support::TestTargetOs;
@@ -44,6 +45,7 @@ fn workspace_roots_profile() -> PermissionProfile {
 
 async fn workspace_roots_test(server: &MockServer) -> Result<TestCodex> {
     let mut builder = test_codex().with_config(|config| {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             config.cwd = dunce::canonicalize(config.cwd.as_path())
@@ -216,6 +218,7 @@ async fn workspace_roots_allow_file_and_command_writes_in_secondary_root(
     let server = start_mock_server().await;
     let mut builder = test_codex()
         .with_config(move |config| {
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             {
                 config.cwd = dunce::canonicalize(config.cwd.as_path())

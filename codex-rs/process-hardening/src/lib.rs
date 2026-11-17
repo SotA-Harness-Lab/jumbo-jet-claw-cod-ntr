@@ -20,6 +20,7 @@ pub fn pre_main_hardening() {
     #[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
     pre_main_hardening_bsd();
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pre_main_hardening_windows();
 }
@@ -116,6 +117,7 @@ fn set_core_file_size_limit_to_zero() {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(crate) fn pre_main_hardening_windows() {
     // TODO(mbolin): Perform the appropriate configuration for Windows.

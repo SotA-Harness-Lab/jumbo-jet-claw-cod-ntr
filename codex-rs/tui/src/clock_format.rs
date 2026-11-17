@@ -120,6 +120,7 @@ fn detect() -> Option<ClockFormat> {
     parse_native_pattern(&pattern.to_string(), "hHKk")
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn detect() -> Option<ClockFormat> {
     use windows_sys::Win32::Globalization::GetLocaleInfoEx;
@@ -153,6 +154,7 @@ fn detect() -> Option<ClockFormat> {
     parse_native_pattern(&pattern, "hH")
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows, test))]
 fn parse_native_pattern(pattern: &str, hour_symbols: &str) -> Option<ClockFormat> {
     let mut quoted = false;

@@ -123,6 +123,7 @@ fn derives_target_operating_system_and_placement() {
     let expected_local_target_os = TestTargetOs::Linux;
     #[cfg(target_os = "macos")]
     let expected_local_target_os = TestTargetOs::MacOs;
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let expected_local_target_os = TestTargetOs::Windows;
 

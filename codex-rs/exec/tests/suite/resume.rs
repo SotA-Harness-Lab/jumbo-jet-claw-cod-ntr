@@ -811,6 +811,7 @@ async fn exec_resume_preserves_cli_configuration_overrides() -> anyhow::Result<(
         stderr.contains("model: gpt-5.1-high"),
         "stderr missing model override: {stderr}"
     );
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert!(
             stderr.contains("sandbox: read-only"),

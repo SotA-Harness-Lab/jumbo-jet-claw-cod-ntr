@@ -394,6 +394,7 @@ async fn build_report(
     checks.push(run_sync_check("disk", progress.clone(), || {
         disk::check(config_result.as_ref().ok(), &cwd)
     }));
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     checks.push(run_sync_check("dev drive", progress.clone(), || {
         windows_dev_drive::check(&cwd)
@@ -567,6 +568,7 @@ async fn build_report(
 
     progress.begin("desktop");
     if let Some(desktop) = desktop::collect().await {
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "macos", target_os = "windows"))]
         if let Some(application) = desktop.application.as_ref() {
             updates::append_desktop_update(&mut checks, config_result.as_ref().ok(), application)
@@ -1759,6 +1761,7 @@ fn terminal_check(no_color_flag: bool) -> DoctorCheck {
     terminal_check_from_inputs(TerminalCheckInputs::detect(no_color_flag))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn windows_console_details() -> Vec<String> {
     use windows_sys::Win32::Foundation::HANDLE;
@@ -1800,6 +1803,7 @@ fn windows_console_details() -> Vec<String> {
     details
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn windows_console_details() -> Vec<String> {
     Vec::new()
@@ -3059,6 +3063,7 @@ fn stdio_command_resolves(
         if executable_path_exists(&candidate).is_ok() {
             return Ok(());
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             let pathext = env::var("PATHEXT").unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string());
@@ -4287,8 +4292,10 @@ mod tests {
 
     #[tokio::test]
     async fn mcp_check_skips_host_path_checks_for_remote_stdio() {
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         let cwd = r"C:\Users\openai\share";
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let cwd = "/home/openai/share";
         let cwd = toml::Value::String(cwd.to_string());

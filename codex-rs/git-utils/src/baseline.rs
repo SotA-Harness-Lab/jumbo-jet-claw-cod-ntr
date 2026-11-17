@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::fs::FileTypeExt;
 use std::path::Path;
@@ -155,6 +156,7 @@ fn baseline_control(root: &Path) -> PathBuf {
 
 fn discard_baseline_path(path: &Path) -> anyhow::Result<()> {
     match path.symlink_metadata() {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         Ok(meta) if meta.file_type().is_symlink_dir() => fs::remove_dir(path)?,
         Ok(meta) if meta.is_dir() => {

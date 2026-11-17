@@ -524,6 +524,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     #[test]
     fn app_command_popup_snapshot() {
@@ -543,6 +544,7 @@ mod tests {
         insta::assert_snapshot!("command_popup_app", format!("{buf:?}"));
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     #[test]
     fn voice_command_popup_snapshot() {

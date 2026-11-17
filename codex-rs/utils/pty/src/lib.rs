@@ -46,12 +46,16 @@ pub type SpawnedPty = SpawnedProcess;
 pub use pty::conpty_supported;
 /// Spawn a process attached to a PTY for interactive use.
 pub use pty::spawn_process as spawn_pty_process;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use win::JobObject;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use win::PsuedoCon;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use win::conpty::RawConPty;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub use windows_input::WindowsTtyInputNormalizer;
 

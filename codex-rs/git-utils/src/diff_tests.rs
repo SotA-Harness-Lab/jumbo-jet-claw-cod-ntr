@@ -33,6 +33,7 @@ async fn tracked_and_untracked_patches_preserve_order_and_apply() {
             "-c",
             "commit.gpgsign=false",
             "-c",
+            // WINDOWS-REMNANT
             if cfg!(windows) {
                 "core.hooksPath=NUL"
             } else {

@@ -31,6 +31,7 @@ zstd = { workspace = true }
 [target.'cfg(target_os = "macos")'.dependencies]
 system-configuration = { workspace = true }
 
+# WINDOWS-REMNANT
 [target.'cfg(target_os = "windows")'.dependencies]
 curl = { version = "0.4.50", features = ["static-curl", "ntlm"] }
 rustls-platform-verifier = "0.7.0"

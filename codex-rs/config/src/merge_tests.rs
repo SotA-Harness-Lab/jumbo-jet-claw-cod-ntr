@@ -366,6 +366,7 @@ fn higher_priority_credential_provider_replaces_overlapping_sources() {
             "VENDOR_TOKEN",
             false,
         ),
+        // WINDOWS-REMNANT
         ("features", "vendor_token", "VENDOR_TOKEN", !cfg!(windows)),
     ] {
         let default_provider = format!(

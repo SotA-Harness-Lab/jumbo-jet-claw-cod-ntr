@@ -5670,11 +5670,13 @@ mod tests {
 
     #[test]
     fn file_system_policy_rejects_legacy_bridge_for_non_workspace_writes() {
+        // WINDOWS-REMNANT
         let cwd = if cfg!(windows) {
             Path::new(r"C:\workspace")
         } else {
             Path::new("/tmp/workspace")
         };
+        // WINDOWS-REMNANT
         let external_write_path = if cfg!(windows) {
             AbsolutePathBuf::from_absolute_path(r"C:\temp").expect("absolute windows temp path")
         } else {

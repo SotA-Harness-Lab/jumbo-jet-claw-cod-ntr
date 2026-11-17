@@ -70,6 +70,7 @@ impl ChatWidget {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub(crate) fn set_permission_profile_from_session_snapshot(
         &mut self,
@@ -107,9 +108,11 @@ impl ChatWidget {
         self.config.permissions.network = network;
     }
 
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub(crate) fn set_windows_sandbox_mode(&mut self, mode: Option<WindowsSandboxSetupMode>) {
         self.windows_sandbox_config.mode = mode;
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             let enabled = self.builtin_command_flags().allow_elevate_sandbox;
@@ -118,6 +121,7 @@ impl ChatWidget {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     pub(crate) fn set_feature_enabled(&mut self, feature: Feature, enabled: bool) -> bool {
         if let Err(err) = self.config.features.set_enabled(feature, enabled) {
@@ -592,6 +596,7 @@ impl ChatWidget {
         self.refresh_status_surfaces();
         self.sync_service_tier_commands();
         if cwd_changed {
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             if self.windows_sandbox_local_server
                 && let Some(thread_id) = self.thread_id

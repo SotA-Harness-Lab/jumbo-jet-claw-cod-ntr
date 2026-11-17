@@ -32,6 +32,7 @@ impl PasteEnvironment {
     pub(crate) fn detect() -> Self {
         Self {
             primary: crate::clipboard_copy::primary::available(),
+            // WINDOWS-REMNANT
             platform_default: cfg!(any(target_os = "windows", target_os = "linux")),
             ssh: crate::clipboard_copy::is_ssh_session(),
             wsl: crate::clipboard_copy::is_wsl_session(),

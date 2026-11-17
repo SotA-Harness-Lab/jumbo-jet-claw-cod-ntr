@@ -4,10 +4,13 @@
 //! and Windows sandbox helper actions that are compiled only on Windows.
 
 use super::*;
+// WINDOWS-REMNANT
 #[cfg(all(test, not(target_os = "windows")))]
 use crate::app_event::WindowsSandboxEnableMode;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_app_server_protocol::WindowsSandboxSetupMode;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "windows", test))]
 use codex_utils_approval_presets::ApprovalPreset;
 
@@ -22,8 +25,10 @@ pub(crate) enum WindowsSandboxHost {
 #[derive(Default)]
 pub(super) struct WindowsSandboxState {
     pub(super) setup_started_at: Option<Instant>,
+    // WINDOWS-REMNANT
     #[cfg_attr(not(any(target_os = "windows", test)), allow(dead_code))]
     pub(super) prompt_after_trust: bool,
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(super) pending_setup: Option<(
         WindowsSandboxEnableMode,
@@ -32,6 +37,7 @@ pub(super) struct WindowsSandboxState {
     )>,
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 pub(super) async fn windows_sandbox_ready(app_server: &mut AppServerSession) -> bool {
     let request_id = app_server.next_request_id();
@@ -70,6 +76,7 @@ impl App {
     }
 
     pub(super) fn windows_sandbox_blocks_thread_switch(&self) -> bool {
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         {
             self.windows_sandbox_setup_is_local()
@@ -79,12 +86,14 @@ impl App {
                         && self.chat_widget.windows_sandbox_config.requires_elevated()
                         && !self.chat_widget.windows_sandbox_elevated_setup_complete)
         }
+        // WINDOWS-REMNANT
         #[cfg(not(any(target_os = "windows", test)))]
         {
             false
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(super) async fn refresh_windows_sandbox_for_thread(
         &mut self,
@@ -95,6 +104,7 @@ impl App {
             && !self.app_server_target.uses_remote_workspace()
             && self.refresh_windows_sandbox_config(app_server).await
         {
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             if self.windows_sandbox_setup_is_local()
                 && self.chat_widget.windows_sandbox_config.requires_elevated()
@@ -122,6 +132,7 @@ impl App {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(super) async fn refresh_windows_sandbox_config(
         &mut self,
@@ -150,6 +161,7 @@ impl App {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     pub(super) async fn begin_windows_sandbox_setup(
         &mut self,
@@ -204,6 +216,7 @@ impl App {
         self.finish_windows_sandbox_setup_start(response);
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     pub(super) fn finish_windows_sandbox_setup_start(
         &mut self,

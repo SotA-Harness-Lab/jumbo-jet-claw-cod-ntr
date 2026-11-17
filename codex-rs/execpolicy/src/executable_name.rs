@@ -1,9 +1,11 @@
 use std::path::Path;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const WINDOWS_EXECUTABLE_SUFFIXES: [&str; 4] = [".exe", ".cmd", ".bat", ".com"];
 
 pub(crate) fn executable_lookup_key(raw: &str) -> String {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let raw = raw.to_ascii_lowercase();
@@ -16,6 +18,7 @@ pub(crate) fn executable_lookup_key(raw: &str) -> String {
         raw
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     {
         raw.to_string()

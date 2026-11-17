@@ -262,6 +262,7 @@ pub async fn run_main<T: Reporter>(
                 .stderr(std::process::Stdio::inherit())
                 .status()
                 .await?;
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             {
                 Command::new("cmd")

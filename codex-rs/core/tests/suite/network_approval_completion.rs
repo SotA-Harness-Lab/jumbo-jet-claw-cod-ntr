@@ -260,6 +260,7 @@ mode = "full"
             config.approvals_reviewer = ApprovalsReviewer::AutoReview;
             config.permissions.windows_sandbox_type = sandbox_type;
             config.prefer_mxc = prefer_mxc;
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             config.set_windows_sandbox_enabled(/*value*/ true);
         })

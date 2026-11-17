@@ -1278,6 +1278,7 @@ fn open_fallback_file_for_write(path: &std::path::Path) -> Result<fs::File> {
             .mode(0o600)
             .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt;
@@ -1600,11 +1601,13 @@ mod tests {
         Ok(())
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     #[test]
     fn fallback_file_write_does_not_follow_symlinks() -> Result<()> {
         #[cfg(unix)]
         use std::os::unix::fs::symlink;
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         use std::os::windows::fs::symlink_file as symlink;
 
@@ -1613,6 +1616,7 @@ mod tests {
         let target = env.path().join("symlink-target");
         fs::write(&target, "synthetic credentials")?;
         let linked = symlink(&target, &path);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if linked
             .as_ref()

@@ -5,15 +5,19 @@
 use std::io;
 use std::io::Read;
 use std::path::Path;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::path::PathBuf;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::time::Duration;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub const DAEMON_SHUTDOWN_FILE_ENV: &str = "CODEX_DAEMON_SHUTDOWN_FILE";
 
 /// Waits for and consumes one updater shutdown request.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub async fn daemon_shutdown_signal() -> io::Result<()> {
     let Some(path) = std::env::var_os(DAEMON_SHUTDOWN_FILE_ENV).map(PathBuf::from) else {

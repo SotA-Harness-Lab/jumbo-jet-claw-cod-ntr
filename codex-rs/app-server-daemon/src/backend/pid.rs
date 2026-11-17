@@ -4,6 +4,7 @@
 #[path = "pid_identity.rs"]
 mod identity;
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -16,6 +17,7 @@ use crate::managed_install::ExecutableIdentity;
 use anyhow::Context;
 use anyhow::Result;
 use anyhow::bail;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use codex_app_server_transport::REMOTE_CONTROL_DISABLED_ENV_VAR;
 use serde::Deserialize;
@@ -35,6 +37,7 @@ const START_TIMEOUT: Duration = Duration::from_secs(10);
 const STDERR_LOG_TAIL_BYTES: u64 = 4096;
 
 #[derive(Debug)]
+// WINDOWS-REMNANT
 #[cfg_attr(not(any(unix, windows)), allow(dead_code))]
 pub(crate) struct PidBackend {
     pub(super) feature_overrides: BTreeMap<String, bool>,
@@ -84,6 +87,7 @@ enum PidFileState {
 }
 
 #[derive(Debug, Clone)]
+// WINDOWS-REMNANT
 #[cfg_attr(not(any(unix, windows)), allow(dead_code))]
 enum PidCommandKind {
     AppServer { remote_control_enabled: bool },
@@ -155,11 +159,13 @@ impl PidBackend {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     pub(crate) async fn start(&self) -> Result<Option<u32>> {
         self.start_inner(/*replacement*/ None).await
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     pub(crate) async fn start(&self) -> Result<Option<u32>> {
         bail!("pid-managed app-server startup is unsupported on this platform")
@@ -188,6 +194,7 @@ impl PidBackend {
             let deadline = started_at + force_after + STOP_FORCE_TIMEOUT;
             #[cfg(unix)]
             self.terminate_process(pid)?;
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             let process = {
                 let Some(process) = super::windows::Process::open(pid)? else {
@@ -241,6 +248,7 @@ impl PidBackend {
                     crate::diagnostics::event("shutdown_forced", serde_json::json!({ "pid": pid }));
                     #[cfg(unix)]
                     self.force_terminate_process(pid)?;
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     process.terminate()?;
                     forced = true;
@@ -362,6 +370,7 @@ impl PidBackend {
         Ok(reservation_lock)
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     async fn open_stderr_log(&self) -> Result<fs::File> {
         let stderr_log_file = stderr_log_file_for_pid_file(&self.pid_file);
@@ -389,6 +398,7 @@ impl PidBackend {
         })
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     fn command_args(&self) -> Vec<Cow<'_, str>> {
         let mut args = match &self.command_kind {
@@ -425,6 +435,7 @@ impl PidBackend {
         args
     }
 
+    // WINDOWS-REMNANT
     #[cfg(any(unix, windows))]
     fn command_env(&self) -> Option<(&'static str, &'static str)> {
         match self.command_kind {
@@ -448,6 +459,7 @@ impl PidBackend {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     fn force_terminate_process(&self, pid: u32) -> Result<()> {
         match self.command_kind {
@@ -594,16 +606,19 @@ fn force_terminate_process_group(pid: u32) -> Result<()> {
     Err(err).with_context(|| format!("failed to force terminate pid-managed updater group {pid}"))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn terminate_process(_pid: u32) -> Result<()> {
     bail!("pid-managed app-server shutdown is unsupported on this platform")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn force_terminate_process(_pid: u32) -> Result<()> {
     bail!("pid-managed app-server shutdown is unsupported on this platform")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn force_terminate_process_group(_pid: u32) -> Result<()> {
     bail!("pid-managed updater shutdown is unsupported on this platform")
@@ -652,12 +667,14 @@ async fn process_matches_record(record: &PidRecord) -> Result<bool> {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 async fn process_matches_record(_record: &PidRecord) -> Result<bool> {
     Ok(false)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+// WINDOWS-REMNANT
 #[cfg_attr(not(any(unix, windows)), allow(dead_code))]
 enum EmptyPidReservation {
     Active,
@@ -681,11 +698,13 @@ fn try_lock_file(file: &fs::File) -> Result<bool> {
     Err(err).context("failed to lock pid reservation")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn try_lock_file(_file: &fs::File) -> Result<bool> {
     bail!("pid-managed app-server startup is unsupported on this platform")
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 async fn reservation_lock_is_active(path: &Path) -> Result<bool> {
     let file = match fs::OpenOptions::new()
@@ -707,6 +726,7 @@ async fn reservation_lock_is_active(path: &Path) -> Result<bool> {
     probe_reservation_lock(file)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 fn probe_reservation_lock(file: fs::File) -> Result<bool> {
     if !try_lock_file(&file)? {
@@ -726,11 +746,13 @@ fn probe_reservation_lock(file: fs::File) -> Result<bool> {
     Ok(false)
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 async fn reservation_lock_is_active(_path: &Path) -> Result<bool> {
     Ok(false)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 async fn inspect_empty_pid_reservation(
     pid_path: &Path,
@@ -770,6 +792,7 @@ impl Drop for EmptyPidProbeLock {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 async fn inspect_empty_pid_reservation_with_file(
     pid_path: &Path,
@@ -801,6 +824,7 @@ async fn inspect_empty_pid_reservation_with_file(
     Ok(EmptyPidReservation::Record(record))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 async fn inspect_empty_pid_reservation(
     _pid_path: &Path,
@@ -838,13 +862,16 @@ async fn read_process_details(pid: u32) -> Result<(String, String)> {
     Ok((state.to_string(), start_time.to_string()))
 }
 
+// WINDOWS-REMNANT
 #[cfg(all(test, any(unix, windows)))]
 #[path = "pid_tests.rs"]
 mod tests;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use super::windows::try_lock_file;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 async fn read_process_start_time(pid: u32) -> Result<String> {
     super::windows::Process::open(pid)?
@@ -852,6 +879,7 @@ async fn read_process_start_time(pid: u32) -> Result<String> {
         .start_time()
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 async fn process_matches_record(record: &PidRecord) -> Result<bool> {
     let Some(process) = super::windows::Process::open(record.pid)? else {
@@ -860,6 +888,7 @@ async fn process_matches_record(record: &PidRecord) -> Result<bool> {
     Ok(process.is_running()? && process.start_time()? == record.process_start_time)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn force_terminate_process(pid: u32) -> Result<()> {
     if let Some(process) = super::windows::Process::open(pid)? {
@@ -868,9 +897,11 @@ fn force_terminate_process(pid: u32) -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use force_terminate_process as terminate_process;
 
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 #[path = "pid_start.rs"]
 mod start;

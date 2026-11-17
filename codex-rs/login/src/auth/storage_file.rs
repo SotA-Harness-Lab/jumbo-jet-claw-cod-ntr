@@ -1,6 +1,7 @@
 //! Atomic credential-file replacement without broadening existing file permissions.
 //! Symlinks retain their target; hard links and read-only files fail rather than split identity.
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 use std::fs::File;
 use std::io;
@@ -58,6 +59,7 @@ pub(super) fn check_replaceable(path: &Path) -> io::Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 pub(super) fn replacement(path: &Path) -> io::Result<tempfile::NamedTempFile<File>> {
     tempfile::Builder::new().prefix(".auth-").tempfile_in(
@@ -66,5 +68,6 @@ pub(super) fn replacement(path: &Path) -> io::Result<tempfile::NamedTempFile<Fil
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 pub(super) use windows::replacement;

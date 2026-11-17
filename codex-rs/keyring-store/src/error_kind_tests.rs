@@ -52,8 +52,10 @@ fn classifies_native_backend_errors() {
     );
     #[cfg(target_os = "linux")]
     let native: Box<dyn Error + Send + Sync> = Box::new(secret_service::Error::Locked);
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let native: Box<dyn Error + Send + Sync> = Box::new(keyring::windows::Error(1312));
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     assert_eq!(
         classify(&CredentialStoreError::new(keyring::Error::NoStorageAccess(

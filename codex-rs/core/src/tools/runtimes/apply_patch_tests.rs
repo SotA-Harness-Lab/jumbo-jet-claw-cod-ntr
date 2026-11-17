@@ -275,6 +275,7 @@ async fn file_system_sandbox_context_preserves_executor_workspace_permissions() 
     );
     assert_eq!(
         sandbox.windows_sandbox_selection,
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             codex_file_system::WindowsSandboxSelection::RestrictedToken
         } else {

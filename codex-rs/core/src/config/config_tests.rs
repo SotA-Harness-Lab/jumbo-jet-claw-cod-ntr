@@ -1360,6 +1360,7 @@ async fn load_config_uses_resolved_cwd_for_default_gcp_auth() {
         let mut expected_provider = ModelProviderInfo::create_gcp_provider();
         expected_provider.base_url = base_url.map(str::to_string);
         expected_provider.auth = Some(ModelProviderAuthInfo {
+            // WINDOWS-REMNANT
             command: if cfg!(windows) {
                 "gcloud.cmd"
             } else {
@@ -3977,12 +3978,14 @@ async fn empty_config_defaults_to_builtin_profile_for_trusted_project(
             .active_permission_profile()
             .as_ref()
             .map(|active| active.id.as_str()),
+        // WINDOWS-REMNANT
         Some(if cfg!(target_os = "windows") && !mxc_selected {
             BUILT_IN_PERMISSION_PROFILE_READ_ONLY
         } else {
             BUILT_IN_PERMISSION_PROFILE_WORKSPACE
         })
     );
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") && !mxc_selected {
         assert!(
             !policy.can_write_local_path_with_cwd(cwd.path(), cwd.path()),
@@ -4032,6 +4035,7 @@ async fn empty_config_defaults_to_builtin_profile_for_untrusted_project() -> std
             .active_permission_profile()
             .as_ref()
             .map(|active| active.id.as_str()),
+        // WINDOWS-REMNANT
         Some(if cfg!(target_os = "windows") {
             BUILT_IN_PERMISSION_PROFILE_READ_ONLY
         } else {
@@ -4042,6 +4046,7 @@ async fn empty_config_defaults_to_builtin_profile_for_untrusted_project() -> std
         policy.can_read_local_path_with_cwd(cwd.path(), cwd.path()),
         "expected untrusted project fallback to allow reads, policy: {policy:?}"
     );
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert!(
             !policy.can_write_local_path_with_cwd(cwd.path(), cwd.path()),
@@ -5163,6 +5168,7 @@ trust_level = "trusted"
         /*permission_profile_constraint*/ None,
     )
     .await;
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert_eq!(resolution, SandboxPolicy::new_read_only_policy());
     } else {
@@ -5202,6 +5208,7 @@ exclude_slash_tmp = true
         /*permission_profile_constraint*/ None,
     )
     .await;
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert_eq!(resolution, SandboxPolicy::new_read_only_policy());
     } else {
@@ -5295,6 +5302,7 @@ exclude_slash_tmp = true
                 );
             }
             "workspace-write" => {
+                // WINDOWS-REMNANT
                 if cfg!(target_os = "windows") {
                     assert_eq!(
                         sandbox_policy,
@@ -6502,7 +6510,9 @@ async fn add_dir_override_extends_workspace_writable_roots() -> std::io::Result<
     let overrides = ConfigOverrides {
         cwd: Some(frontend),
         // Preserve Windows coverage of the default read-only fallback.
+        // WINDOWS-REMNANT
         sandbox_mode: cfg!(target_os = "windows").then_some(SandboxMode::WorkspaceWrite),
+        // WINDOWS-REMNANT
         permission_profile: (!cfg!(target_os = "windows")).then_some(
             PermissionProfile::workspace_write_with(
                 &[],
@@ -6523,6 +6533,7 @@ async fn add_dir_override_extends_workspace_writable_roots() -> std::io::Result<
     .await?;
 
     let expected_backend = backend.abs();
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert_eq!(
             config.permissions.permission_profile(),
@@ -6665,6 +6676,7 @@ async fn workspace_write_includes_configured_writable_root_once_without_memories
     )
     .await?;
 
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert_eq!(
             config.permissions.permission_profile(),
@@ -6742,6 +6754,7 @@ async fn memory_tool_makes_memories_root_readable_without_creating_or_widening_w
         !file_system_policy.can_write_local_path_with_cwd(memories_root_abs.as_path(), cwd.path())
     );
 
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert_eq!(
             config.permissions.permission_profile(),
@@ -11323,6 +11336,7 @@ trust_level = "untrusted"
     .await;
 
     // Verify that untrusted projects get WorkspaceWrite (or ReadOnly on Windows due to downgrade)
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert!(
             matches!(resolution, SandboxPolicy::ReadOnly { .. }),
@@ -11430,6 +11444,7 @@ async fn derive_sandbox_policy_preserves_windows_downgrade_for_unsupported_fallb
     )
     .await;
 
+    // WINDOWS-REMNANT
     if cfg!(target_os = "windows") {
         assert_eq!(resolution, SandboxPolicy::new_read_only_policy());
     } else {
@@ -11722,6 +11737,7 @@ async fn test_untrusted_project_gets_unless_trusted_approval_policy() -> anyhow:
 
     assert_eq!(
         config.permissions.permission_profile(),
+        // WINDOWS-REMNANT
         &if cfg!(target_os = "windows") {
             PermissionProfile::read_only()
         } else {
@@ -11868,6 +11884,7 @@ async fn local_mxc_preference_preserves_configured_backend(
             caller_config
                 .validate_windows_mxc_requirement_from(&config)
                 .is_err(),
+            // WINDOWS-REMNANT
             cfg!(windows) && require_mxc,
         );
         let result = config.validate_windows_mxc_requirement();
@@ -11878,6 +11895,7 @@ async fn local_mxc_preference_preserves_configured_backend(
                 .is_err(),
             result.is_err(),
         );
+        // WINDOWS-REMNANT
         if cfg!(windows)
             && require_mxc
             && mode != "mxc"

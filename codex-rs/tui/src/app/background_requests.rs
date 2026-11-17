@@ -1494,6 +1494,7 @@ mod tests {
 
     #[test]
     fn marketplace_add_source_for_request_resolves_relative_local_paths() {
+        // WINDOWS-REMNANT
         let cwd = if cfg!(windows) {
             PathBuf::from(r"C:\workspace\project")
         } else {

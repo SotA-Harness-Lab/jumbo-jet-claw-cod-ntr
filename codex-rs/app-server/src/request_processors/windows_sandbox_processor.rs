@@ -1,4 +1,5 @@
 use super::*;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use anyhow::Context as _;
 use codex_protocol::sandbox::SandboxType;
@@ -9,6 +10,7 @@ pub(crate) struct WindowsSandboxRequestProcessor {
     outgoing: Arc<OutgoingMessageSender>,
     config: Arc<Config>,
     config_manager: ConfigManager,
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     registration_refresh: Arc<tokio::sync::OnceCell<()>>,
 }
@@ -24,6 +26,7 @@ impl WindowsSandboxRequestProcessor {
             outgoing,
             config,
             config_manager,
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             registration_refresh: Arc::default(),
         }
@@ -33,6 +36,7 @@ impl WindowsSandboxRequestProcessor {
         &self,
         request_id: &ConnectionRequestId,
     ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if codex_windows_sandbox::registered_core_requested()
             && self.config.effective_local_windows_sandbox_type() != SandboxType::WindowsMxc
@@ -81,6 +85,7 @@ impl WindowsSandboxRequestProcessor {
             });
             return Ok(None);
         }
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         let _ = request_id;
         Ok(Some(
@@ -152,6 +157,7 @@ impl WindowsSandboxRequestProcessor {
             let setup_result = async {
                 // Workload identity is process-local, so use the existing helper path with
                 // the caller's resolved configuration instead of loading auth in the service.
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 if setup_mode == CoreWindowsSandboxSetupMode::Elevated
                     && (codex_windows_sandbox::registered_core_requested()
@@ -316,6 +322,7 @@ fn resolve_allowed_windows_sandbox_setup_mode(
 }
 
 fn determine_windows_sandbox_readiness(config: &Config) -> WindowsSandboxReadinessResponse {
+    // WINDOWS-REMNANT
     if !cfg!(windows) {
         return WindowsSandboxReadinessResponse {
             status: WindowsSandboxReadiness::NotConfigured,

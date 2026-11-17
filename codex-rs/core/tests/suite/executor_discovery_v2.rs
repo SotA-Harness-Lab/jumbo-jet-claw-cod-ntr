@@ -205,6 +205,7 @@ pub(super) enum DiscoveryFailure {
     None,
     Server,
     Disconnect,
+    // WINDOWS-REMNANT
     #[cfg_attr(windows, expect(dead_code, reason = "executor hook tests run on Unix"))]
     TurnGrant,
 }

@@ -657,6 +657,7 @@ pub(super) fn model_input(request: &ResponsesRequest, parent: ThreadId) -> Resul
     ))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test]
 async fn direct_exec_review_applies_hook_rewrite_before_policy_check() -> Result<()> {
@@ -761,6 +762,7 @@ prefix_rule(pattern=["git", "init", "guardian-rewritten"], decision="prompt")
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 #[tokio::test]
 async fn direct_exec_review_honors_hook_denial_before_policy_skip() -> Result<()> {

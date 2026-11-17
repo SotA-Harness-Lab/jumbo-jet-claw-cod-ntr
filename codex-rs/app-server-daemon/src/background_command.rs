@@ -32,6 +32,7 @@ pub(crate) fn set_working_directory(command: &mut Command, state_dir: &Path) -> 
     }
     // Preserve process-scoped paths before changing cwd; CA names match CUSTOM_CA_ENV_KEYS.
     for name in [
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         "CODEX_SQLITE_HOME",
         "CODEX_CA_CERTIFICATE",
@@ -86,6 +87,7 @@ pub(crate) fn set_working_directory(command: &mut Command, state_dir: &Path) -> 
     if cwd_missing {
         command.current_dir(state_dir);
     }
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     command.current_dir(state_dir);
     Ok(())

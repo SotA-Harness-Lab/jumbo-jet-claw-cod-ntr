@@ -735,6 +735,7 @@ fn startup_draft_allows_local_editor_shortcuts_without_startup_actions() {
     assert!(pump.app_event_rx.try_recv().is_err());
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[tokio::test]
 async fn startup_draft_preserves_windows_altgr_text_input() {

@@ -8,11 +8,14 @@ use crate::fs_helper::FsHelperOpenResponse;
 use crate::fs_helper::FsHelperPayload;
 use crate::fs_helper::FsHelperRequest;
 use crate::fs_helper::FsHelperResponse;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::fs_sandbox::drain_helper_stderr;
 use crate::fs_sandbox::io_error;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::fs_sandbox::read_helper_response;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use crate::fs_sandbox::reap_helper_after_response;
 use crate::fs_sandbox::spawn_command;
@@ -69,6 +72,7 @@ async fn open_platform(
 }
 
 // Windows duplicates the helper's handle before letting it exit.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 async fn open_platform(
     command: SandboxExecRequest,
@@ -170,6 +174,7 @@ fn receive_file_descriptor(
 }
 
 // Windows file handles must be duplicated across processes.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn duplicate_file_handle(process_id: u32, file_handle: u64) -> io::Result<std::fs::File> {
     use std::os::windows::io::AsRawHandle;

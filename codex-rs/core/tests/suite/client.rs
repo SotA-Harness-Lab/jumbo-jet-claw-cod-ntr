@@ -939,6 +939,7 @@ impl ProviderAuthCommandFixture {
     pub(super) fn fixed_token(token: &str) -> std::io::Result<Self> {
         let tempdir = tempfile::tempdir()?;
         std::fs::write(tempdir.path().join("token.txt"), token)?;
+        // WINDOWS-REMNANT
         let (command, args): (&str, &[&str]) = if cfg!(windows) {
             ("cmd.exe", &["/D", "/C", "type", "token.txt"])
         } else {
@@ -980,6 +981,7 @@ mv tokens.next tokens.txt
             ("./print-token.sh".to_string(), Vec::new())
         };
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let (command, args) = {
             let script_path = tempdir.path().join("print-token.cmd");
@@ -1032,6 +1034,7 @@ move /y tokens.next tokens.txt >nul
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn provider_auth_command_logs_credential_paths_with_cmd_metacharacters() -> anyhow::Result<()> {
@@ -2740,6 +2743,7 @@ async fn omits_environment_context_when_configured_off() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn powershell_shell_version_is_model_visible_only_when_enabled() -> anyhow::Result<()> {

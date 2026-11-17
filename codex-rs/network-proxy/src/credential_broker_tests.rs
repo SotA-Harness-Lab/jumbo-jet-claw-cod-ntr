@@ -465,6 +465,7 @@ fn unsupported_children_restore_credentials_and_disable_brokerage() {
     assert!(!env.contains_key(BROKERED_CREDENTIALS_ENV_KEY));
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn brokered_credentials_match_environment_keys_case_insensitively_on_windows() {

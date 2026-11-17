@@ -61,6 +61,7 @@ mod environment_add;
 mod environment_info;
 mod environment_status;
 mod exec_server_test_support;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod executor_mcp;
 mod executor_skills;
@@ -142,10 +143,12 @@ mod review;
 mod rollout_compress;
 mod rollout_migration;
 mod safety_check_downgrade;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod selected_capability_stack;
 mod selected_environment;
 mod server_diagnostics;
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 mod session_end;
 mod skills_list;

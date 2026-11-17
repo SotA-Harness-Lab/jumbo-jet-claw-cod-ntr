@@ -13,6 +13,7 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::time::Duration;
 use std::time::Instant;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 use tokio::sync::Semaphore;
 
@@ -29,6 +30,7 @@ use thiserror::Error;
 const SYSTEM_PROXY_SUCCESS_CACHE_TTL: Duration = Duration::from_secs(60);
 const SYSTEM_PROXY_UNAVAILABLE_CACHE_TTL: Duration = Duration::from_secs(5);
 const SYSTEM_PROXY_CACHE_MAX_ENTRIES: usize = 256;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 static ASYNC_SYSTEM_PROXY_RESOLUTION_PERMIT: Semaphore = Semaphore::const_new(1);
 
@@ -306,9 +308,11 @@ impl HttpClientFactory {
             return Ok(route);
         }
 
+        // WINDOWS-REMNANT
         #[cfg(not(any(target_os = "windows", target_os = "macos")))]
         return Ok(self.resolve_proxy_route(&request_url));
 
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", target_os = "macos"))]
         {
             let permit = ASYNC_SYSTEM_PROXY_RESOLUTION_PERMIT
@@ -586,11 +590,13 @@ fn resolve_platform_system_proxy(request_url: &str, origin: &RequestOrigin) -> S
     macos::resolve(request_url, origin)
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn resolve_platform_system_proxy(request_url: &str, origin: &RequestOrigin) -> SystemProxyDecision {
     windows::resolve(request_url, origin)
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 fn resolve_platform_system_proxy(
     _request_url: &str,
@@ -688,6 +694,7 @@ fn system_proxy_cache_key(request_url: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 fn no_proxy_matches_origin(no_proxy: &str, origin: &RequestOrigin) -> bool {
     no_proxy
@@ -697,6 +704,7 @@ fn no_proxy_matches_origin(no_proxy: &str, origin: &RequestOrigin) -> bool {
         .any(|entry| no_proxy_entry_matches_origin(entry, origin))
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 fn no_proxy_entry_matches_origin(entry: &str, origin: &RequestOrigin) -> bool {
     if entry == "*" {
@@ -738,6 +746,7 @@ fn no_proxy_entry_matches_origin(entry: &str, origin: &RequestOrigin) -> bool {
     origin.host == entry
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 fn wildcard_host_match(pattern: &str, host: &str) -> bool {
     let mut remaining = host;
@@ -762,6 +771,7 @@ fn wildcard_host_match(pattern: &str, host: &str) -> bool {
     pattern.ends_with('*') || remaining.is_empty()
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum ParsedProxyListDecision {
@@ -771,6 +781,7 @@ enum ParsedProxyListDecision {
     Unavailable,
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 fn parse_proxy_list(input: &str, target_scheme: &str) -> ParsedProxyListDecision {
     let mut saw_unsupported = false;
@@ -825,6 +836,7 @@ fn parse_proxy_list(input: &str, target_scheme: &str) -> ParsedProxyListDecision
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 fn parse_proxy_token(token: &str, target_scheme: &str) -> ParsedProxyListDecision {
     if token.eq_ignore_ascii_case("DIRECT") {
@@ -853,6 +865,7 @@ fn parse_proxy_token(token: &str, target_scheme: &str) -> ParsedProxyListDecisio
     proxy_url_from_hostport("http", token)
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 fn parse_proxy_key_token(token: &str, target_scheme: &str) -> Option<ParsedProxyListDecision> {
     let (key, value) = token.split_once('=')?;
@@ -863,6 +876,7 @@ fn parse_proxy_key_token(token: &str, target_scheme: &str) -> Option<ParsedProxy
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(test, target_os = "windows"))]
 fn proxy_url_from_hostport(proxy_scheme: &str, hostport: &str) -> ParsedProxyListDecision {
     if hostport.is_empty() {

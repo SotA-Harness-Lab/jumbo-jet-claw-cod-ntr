@@ -195,6 +195,7 @@ impl InitializeRequestProcessor {
             *suffix = Some(user_agent_suffix);
         }
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if matches!(session.origin, ConnectionOrigin::Stdio) && name == "Codex Desktop" {
             // Uninstall ownership must not depend on account sign-in or sandbox setup.

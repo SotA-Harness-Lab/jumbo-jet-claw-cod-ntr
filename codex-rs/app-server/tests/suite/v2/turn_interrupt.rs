@@ -47,12 +47,14 @@ async fn turn_interrupt_aborts_running_turn() -> Result<()> {
     );
 
     // Use a portable sleep command to keep the turn running.
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let shell_command = vec![
         "powershell".to_string(),
         "-Command".to_string(),
         "Start-Sleep -Seconds 10".to_string(),
     ];
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     let shell_command = vec!["sleep".to_string(), "10".to_string()];
 
@@ -249,12 +251,14 @@ async fn turn_interrupt_resolves_pending_command_approval_request() -> Result<()
         "uses a host-local command and cwd fixture unavailable to remote executors"
     );
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let shell_command = vec![
         "powershell".to_string(),
         "-Command".to_string(),
         "Start-Sleep -Seconds 10".to_string(),
     ];
+    // WINDOWS-REMNANT
     #[cfg(not(target_os = "windows"))]
     let shell_command = vec![
         "python3".to_string(),

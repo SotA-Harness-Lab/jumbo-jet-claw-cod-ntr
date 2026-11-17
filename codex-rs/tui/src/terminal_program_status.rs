@@ -272,6 +272,7 @@ impl Command for SetTerminalProgramStatus<'_> {
         write!(f, "\x1b\\")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> io::Result<()> {
         Err(io::Error::other(
@@ -279,6 +280,7 @@ impl Command for SetTerminalProgramStatus<'_> {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         true
@@ -298,6 +300,7 @@ impl Command for ClearTerminalProgramStatus {
         write!(f, "\x1b]7501;state=clear\x1b\\")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> io::Result<()> {
         Err(io::Error::other(
@@ -305,6 +308,7 @@ impl Command for ClearTerminalProgramStatus {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         true

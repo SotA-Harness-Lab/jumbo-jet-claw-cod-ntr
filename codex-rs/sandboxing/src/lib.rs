@@ -108,6 +108,7 @@ impl From<SandboxTransformError> for CodexErr {
             SandboxTransformError::SeatbeltUnavailable => CodexErr::UnsupportedOperation(
                 "seatbelt sandbox is only available on macOS".to_string(),
             ),
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             SandboxTransformError::WindowsSandboxPreparation(message) => {
                 CodexErr::UnsupportedOperation(message)

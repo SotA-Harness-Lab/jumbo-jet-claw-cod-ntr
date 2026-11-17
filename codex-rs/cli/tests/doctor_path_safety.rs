@@ -92,6 +92,7 @@ wire_api = "responses"
                     "#!/bin/sh\nprintf 'helper ran\\n' >> \"$CODEX_TEST_HELPER_MARKER\"\nexit 0\n",
                 )?;
             }
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             std::fs::write(
                 bin.join(format!("{name}.cmd")),
@@ -100,6 +101,7 @@ wire_api = "responses"
         }
         // Windows selects rg.exe explicitly, so rg.cmd cannot satisfy discovery.
         // An invalid image still counts as found: doctor must not execute it.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         std::fs::write(bin.join("rg.exe"), "not an executable image")?;
         let path = std::env::join_paths(std::iter::once(bin).chain(std::env::split_paths(
@@ -461,6 +463,7 @@ extends = ":read-only"
     )?;
     let output = fixture.command()?.args(["doctor", "--json"]).output()?;
     let report: Value = serde_json::from_slice(&output.stdout)?;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     assert_eq!(report["checks"]["sandbox.filesystem_paths"]["status"], "ok");
     let mut details = report["checks"]["sandbox.filesystem_paths"]["details"].clone();
@@ -479,6 +482,7 @@ extends = ":read-only"
             .replace('\\', "/");
         *value = Value::String(detail);
     }
+    // WINDOWS-REMNANT
     let snapshot_name = if cfg!(windows) {
         "doctor_configured_filesystem_paths_windows"
     } else {
@@ -503,6 +507,7 @@ fn filesystem_probe_does_not_load_configuration() -> Result<()> {
             .output()?;
         assert_eq!(
             output.status.code(),
+            // WINDOWS-REMNANT
             Some(if cfg!(windows) { 5 } else { expected })
         );
         assert!(output.stdout.is_empty());

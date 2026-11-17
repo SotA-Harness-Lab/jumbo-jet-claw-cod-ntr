@@ -7,6 +7,7 @@ use codex_config::RequirementsLayerEntry;
 use codex_config::compose_requirements;
 use pretty_assertions::assert_eq;
 use std::fs;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -18,6 +19,7 @@ fn config_layer_stack(requirements_toml: &str) -> ConfigLayerStack {
     config_layer_stack_with_user_config(requirements_toml, /*user_config*/ None)
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test]
 fn primary_runtime_cache_uses_user_profile_on_windows() {
@@ -31,6 +33,7 @@ fn primary_runtime_cache_uses_user_profile_on_windows() {
     ));
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn managed_windows_root_accepts_redirected_target_but_not_unowned_alias() {

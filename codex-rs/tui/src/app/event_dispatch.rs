@@ -24,6 +24,7 @@ use crate::status::StatusAccountDisplay;
 use codex_app_server_client::AppServerEvent;
 use codex_app_server_protocol::ThreadGoalStatus;
 use codex_app_server_protocol::ThreadStatus;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_app_server_protocol::WindowsSandboxSetupMode;
 
@@ -160,6 +161,7 @@ impl App {
                 AppEvent::OpenWindowsSandboxFallbackPrompt { .. }
                     | AppEvent::EnableWindowsSandboxForAgentMode { .. }
             ) {
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "windows", test))]
                 {
                     self.windows_sandbox.pending_setup = None;
@@ -2620,9 +2622,11 @@ impl App {
                 }
             }
             AppEvent::SettingsSelectionClosed => {
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "windows", test))]
                 let windows_sandbox_setup_pending =
                     self.windows_sandbox.pending_setup.is_some();
+                // WINDOWS-REMNANT
                 #[cfg(not(any(target_os = "windows", test)))]
                 let windows_sandbox_setup_pending = false;
                 if self.chat_widget.no_modal_or_popup_active()
@@ -2874,8 +2878,10 @@ impl App {
                 }
             }
             AppEvent::RefreshWindowsSandbox { thread_id } => {
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "windows", test))]
                 self.refresh_windows_sandbox_for_thread(app_server, thread_id).await;
+                // WINDOWS-REMNANT
                 #[cfg(not(any(target_os = "windows", test)))]
                 let _ = thread_id;
             }
@@ -2890,6 +2896,7 @@ impl App {
                 preset,
                 profile_selection,
             } => {
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "windows", test))]
                 {
                     self.windows_sandbox.pending_setup = None;
@@ -2914,6 +2921,7 @@ impl App {
                 preset,
                 profile_selection,
             } => {
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 self.begin_windows_sandbox_setup(
                     app_server,
@@ -2922,6 +2930,7 @@ impl App {
                     WindowsSandboxEnableMode::Elevated,
                 )
                 .await;
+                // WINDOWS-REMNANT
                 #[cfg(not(target_os = "windows"))]
                 let _ = (preset, profile_selection);
             }
@@ -2929,6 +2938,7 @@ impl App {
                 preset,
                 profile_selection,
             } => {
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 self.begin_windows_sandbox_setup(
                     app_server,
@@ -2937,6 +2947,7 @@ impl App {
                     WindowsSandboxEnableMode::Legacy,
                 )
                 .await;
+                // WINDOWS-REMNANT
                 #[cfg(not(target_os = "windows"))]
                 let _ = (preset, profile_selection);
             }
@@ -2945,10 +2956,12 @@ impl App {
                 mode,
                 profile_selection,
             } => {
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "windows", test))]
                 {
                     self.windows_sandbox.pending_setup = None;
                 }
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 {
                     self.chat_widget.clear_windows_sandbox_setup_status();
@@ -3019,6 +3032,7 @@ impl App {
                             .retain_input_after_failed_permission_selection();
                     }
                 }
+                // WINDOWS-REMNANT
                 #[cfg(not(target_os = "windows"))]
                 {
                     let _ = (preset, mode, profile_selection);
@@ -3819,6 +3833,7 @@ impl App {
                     self.app_event_tx.send(AppEvent::SettingsSelectionClosed);
                     return Ok(AppRunControl::Continue);
                 }
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "windows", test))]
                 if self.chat_widget.windows_sandbox_local_server
                     && self.windows_sandbox_host() != WindowsSandboxHost::Remote
@@ -3837,6 +3852,7 @@ impl App {
                     self.app_event_tx.send(AppEvent::SettingsSelectionClosed);
                     return Ok(AppRunControl::Continue);
                 }
+                // WINDOWS-REMNANT
                 #[cfg(any(target_os = "windows", test))]
                 if self.chat_widget.windows_sandbox_local_server
                     && self.windows_sandbox_host() != WindowsSandboxHost::Remote

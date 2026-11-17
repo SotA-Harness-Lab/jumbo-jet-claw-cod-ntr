@@ -71,6 +71,7 @@ fn install_startup_libraries(runtime: &Path) -> Result<()> {
             .map(PathBuf::from)
             .context("prepared runtime required for installed helper tests")?
     };
+    // WINDOWS-REMNANT
     let libraries = if cfg!(windows) { "bin" } else { "lib" };
     let destination = runtime.join(libraries);
     fs::create_dir_all(&destination)?;
@@ -78,6 +79,7 @@ fn install_startup_libraries(runtime: &Path) -> Result<()> {
         let entry = entry?;
         // Windows keeps plugins beside startup DLLs. Omit one required plugin
         // so this startup-only fixture cannot initialize the audio runtime.
+        // WINDOWS-REMNANT
         if cfg!(windows) && entry.file_name() == "gstcoreelements.dll" {
             continue;
         }
@@ -94,6 +96,7 @@ fn install_helper(root: &Path) -> Result<CodexPackageLayout> {
     fs::create_dir_all(&bin)?;
     fs::create_dir_all(&helper_dir)?;
     fs::write(root.join("codex-package.json"), "{}")?;
+    // WINDOWS-REMNANT
     let app = bin.join(if cfg!(windows) { "codex.exe" } else { "codex" });
     fs::write(&app, [])?;
     let source = cargo_bin("codex-voice-host")?;

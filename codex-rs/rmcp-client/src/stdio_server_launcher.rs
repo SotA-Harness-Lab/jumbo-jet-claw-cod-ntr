@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 use std::future::Future;
 use std::io;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::io::OwnedHandle;
 use std::path::Path;
@@ -411,6 +412,7 @@ fn kill_process_group_and_warn(pid: u32) -> io::Result<()> {
         .inspect_err(|error| warn!("Failed to kill MCP process group {pid}: {error}"))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 enum LocalProcessTerminator {
     Job {
@@ -420,6 +422,7 @@ enum LocalProcessTerminator {
     Process(OwnedHandle),
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 struct LocalProcessTerminator;
 
@@ -480,10 +483,13 @@ impl LocalStdioServerLauncher {
             command.descriptor_policy(DescriptorPolicy::Explicit);
             command
         };
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let mut command = build_command();
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         let command = build_command();
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let job = match codex_utils_pty::JobObject::create_without_breakaway() {
             Ok(job) => {
@@ -505,6 +511,7 @@ impl LocalStdioServerLauncher {
             ));
         }
         let stdio = local_stdio_io::spawn(command)?;
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let (stdio, job) = match job {
             Some(job) => match stdio
@@ -526,6 +533,7 @@ impl LocalStdioServerLauncher {
             },
             None => (stdio, None),
         };
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let protocol_mode = if job.is_none() && protocol_mode == McpProtocolMode::DiscoverLocalStdio
         {
@@ -541,6 +549,7 @@ impl LocalStdioServerLauncher {
             && process_id.is_some();
         let (transport, stderr) =
             LocalStdioTransport::new(stdio, program_name.clone(), protocol_mode);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let terminator = match job {
             Some((job, root)) => Some(LocalProcessTerminator::Job {
@@ -572,6 +581,7 @@ impl LocalStdioServerLauncher {
             });
             (transport, terminator)
         };
+        // WINDOWS-REMNANT
         #[cfg(not(any(unix, windows)))]
         let terminator = process_id.map(|_| LocalProcessTerminator);
         let stderr_reader = stderr.map(|stderr| {
@@ -714,6 +724,7 @@ impl LocalProcessTerminator {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn terminate_discovery(&self, _reason: StdioTermination) -> io::Result<()> {
         match self {
@@ -727,6 +738,7 @@ impl LocalProcessTerminator {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn terminate(&self) {
         let result = match self {
@@ -740,11 +752,13 @@ impl LocalProcessTerminator {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     fn terminate_discovery(&self, _reason: StdioTermination) -> io::Result<()> {
         Err(io::Error::other("MCP stdio restart is unsupported"))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(unix, windows)))]
     fn terminate(&self) {}
 }
@@ -1038,6 +1052,7 @@ mod tests {
     use codex_protocol::shell_environment;
     use pretty_assertions::assert_eq;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     #[test]
     fn idle_local_mcp_pipe_reads_leave_blocking_io_available() -> anyhow::Result<()> {
@@ -1195,6 +1210,7 @@ mod tests {
         // Older executors apply the final overlay with a case-sensitive merge.
         child_env.extend(overrides.clone());
         let mut expected = env;
+        // WINDOWS-REMNANT
         if cfg!(windows) {
             expected.remove("SystemDrive");
             expected.remove("LocalAppData");

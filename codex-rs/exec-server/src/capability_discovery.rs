@@ -84,6 +84,7 @@ pub(crate) async fn discover_root(
         return discovery;
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     if sandbox.is_some_and(|context| {
         context.should_read_from_sandbox() && !context.windows_sandbox_is_requested()

@@ -31,6 +31,7 @@ use wiremock::matchers::path;
 
 fn gateway_export_settings(token_path: &std::path::Path) -> Result<String> {
     let path_arg = serde_json::to_string(token_path)?;
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         format!("command = 'cmd.exe'\nargs = ['/D', '/C', 'type', {path_arg}]")
     } else {

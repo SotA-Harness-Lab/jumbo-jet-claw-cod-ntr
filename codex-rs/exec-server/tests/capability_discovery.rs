@@ -1054,6 +1054,7 @@ async fn v2_helper_batches_roots_and_bounds_its_response() -> anyhow::Result<()>
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn sandboxed_discovery_batches_roots_without_combining_different_permissions()
 -> anyhow::Result<()> {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     crate::skip_if_mxc_unavailable!(Ok(()));
     let workspace = tempfile::tempdir()?;
@@ -1415,6 +1416,7 @@ fn write_file(path: &std::path::Path, contents: &str) -> anyhow::Result<()> {
 }
 
 fn with_native_sandbox(mut sandbox: FileSystemSandboxContext) -> FileSystemSandboxContext {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         sandbox.windows_sandbox_selection = WindowsSandboxSelection::Mxc;
     }

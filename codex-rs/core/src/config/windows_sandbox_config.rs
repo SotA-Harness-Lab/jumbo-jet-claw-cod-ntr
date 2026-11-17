@@ -31,6 +31,7 @@ impl Config {
         &self,
         policy_config: &Self,
     ) -> std::io::Result<()> {
+        // WINDOWS-REMNANT
         if cfg!(windows)
             && policy_config
                 .config_layer_stack

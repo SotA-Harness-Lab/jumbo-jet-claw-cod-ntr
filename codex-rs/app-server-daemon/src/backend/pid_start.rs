@@ -4,6 +4,7 @@
 //! Recover a deleted Unix cwd without changing workspace defaults for usable directories.
 
 use super::PidBackend;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use super::PidCommandKind;
 use super::PidFileState;
@@ -20,6 +21,7 @@ use tokio::process::Command;
 
 impl PidBackend {
     pub(super) async fn start_inner(&self, replacement: Option<PidRecord>) -> Result<Option<u32>> {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         crate::backend::windows::ensure_not_elevated()?;
         if let Some(parent) = self.pid_file.parent() {
@@ -27,6 +29,7 @@ impl PidBackend {
                 .await
                 .with_context(|| format!("failed to create pid directory {}", parent.display()))?;
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let workdir = {
             let workdir = self
@@ -170,6 +173,7 @@ impl PidBackend {
             }
         }
 
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             use windows_sys::Win32::System::Threading::CREATE_BREAKAWAY_FROM_JOB;
@@ -211,8 +215,10 @@ impl PidBackend {
         }
 
         let started = std::time::Instant::now();
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let child = super::super::windows::spawn_without_inheriting_stdio(&mut command);
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         let child = command.spawn().map_err(anyhow::Error::from);
         let child = crate::diagnostics::result("process_spawn", started, child);
@@ -223,6 +229,7 @@ impl PidBackend {
                     let _ = fs::remove_file(&self.pid_file).await;
                 }
                 return Err(err).with_context(|| {
+                    // WINDOWS-REMNANT
                     let job_hint = if cfg!(windows) {
                         " (the Windows host job must allow breakaway)"
                     } else {
@@ -312,6 +319,7 @@ impl PidBackend {
                 format!("failed to publish pid file {}", self.pid_file.display())
             });
         }
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if matches!(self.command_kind, PidCommandKind::UpdateLoop { .. }) {
             self.finish_updater_start(&record, replacement.as_ref())

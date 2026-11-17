@@ -108,9 +108,11 @@ pub(crate) enum FsHelperResponse {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct FsHelperOpenResponse {
     // Windows duplicates the handle from the helper process.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(crate) process_id: u32,
     // Unix passes the fd directly instead.
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(crate) file_handle: u64,
 }

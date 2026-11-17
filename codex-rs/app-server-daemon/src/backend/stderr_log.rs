@@ -121,6 +121,7 @@ fn enable_append() -> io::Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn enable_append() -> io::Result<()> {
     use std::os::windows::io::AsRawHandle;

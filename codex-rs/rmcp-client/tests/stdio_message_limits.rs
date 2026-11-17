@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::io::AsRawHandle;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::io::FromRawHandle;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use std::os::windows::io::OwnedHandle;
 use std::sync::Arc;
@@ -23,6 +26,7 @@ use rmcp::model::Implementation;
 use rmcp::model::InitializeRequestParams;
 use rmcp::model::ProtocolVersion;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[link(name = "kernel32")]
 unsafe extern "system" {
@@ -35,6 +39,7 @@ unsafe extern "system" {
     fn WaitForSingleObject(handle: *mut std::ffi::c_void, milliseconds: u32) -> u32;
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn open_process_for_wait(process_id: u32) -> std::io::Result<OwnedHandle> {
     let handle = unsafe {
@@ -50,6 +55,7 @@ fn open_process_for_wait(process_id: u32) -> std::io::Result<OwnedHandle> {
     Ok(unsafe { OwnedHandle::from_raw_handle(handle.cast()) })
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn wait_for_process_exit(process: &OwnedHandle) -> std::io::Result<()> {
     match unsafe {
@@ -134,6 +140,7 @@ async fn stdio_message_limits_preserve_legacy_local_compatibility() -> anyhow::R
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn local_stdio_initializes_without_a_console_directly_and_through_cmd() -> anyhow::Result<()>
@@ -218,6 +225,7 @@ async fn local_stdio_initializes_without_a_console_directly_and_through_cmd() ->
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn local_stdio_shutdown_terminates_descendants_after_server_exit() -> anyhow::Result<()> {

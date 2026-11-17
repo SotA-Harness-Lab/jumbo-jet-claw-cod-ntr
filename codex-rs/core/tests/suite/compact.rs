@@ -2538,7 +2538,9 @@ async fn multiple_auto_compact_per_task_runs_after_token_limit_hit() {
 }
 
 // Windows CI only: bump to 4 workers to prevent SSE/event starvation and test timeouts.
+// WINDOWS-REMNANT
 #[cfg_attr(windows, tokio::test(flavor = "multi_thread", worker_threads = 4))]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), tokio::test(flavor = "multi_thread", worker_threads = 2))]
 async fn auto_compact_runs_after_token_limit_hit() {
     skip_if_no_network!();
@@ -2714,7 +2716,9 @@ async fn auto_compact_runs_after_token_limit_hit() {
 }
 
 // Windows CI only: bump to 4 workers to prevent SSE/event starvation and test timeouts.
+// WINDOWS-REMNANT
 #[cfg_attr(windows, tokio::test(flavor = "multi_thread", worker_threads = 4))]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), tokio::test(flavor = "multi_thread", worker_threads = 2))]
 async fn auto_compact_emits_context_compaction_items() {
     skip_if_no_network!();
@@ -2794,7 +2798,9 @@ async fn auto_compact_emits_context_compaction_items() {
 }
 
 // Windows CI only: bump to 4 workers to prevent SSE/event starvation and test timeouts.
+// WINDOWS-REMNANT
 #[cfg_attr(windows, tokio::test(flavor = "multi_thread", worker_threads = 4))]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), tokio::test(flavor = "multi_thread", worker_threads = 2))]
 async fn auto_compact_starts_after_turn_started() {
     skip_if_no_network!();

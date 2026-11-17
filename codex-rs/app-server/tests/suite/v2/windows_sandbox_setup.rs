@@ -112,6 +112,7 @@ async fn windows_sandbox_setup_start_emits_completion_notification() -> Result<(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[test_case::test_case(
     "sandbox_mode = 'danger-full-access'",

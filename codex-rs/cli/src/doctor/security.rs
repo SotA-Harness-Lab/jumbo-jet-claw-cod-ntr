@@ -1,16 +1,23 @@
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::ffi::OsStr;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use std::path::PathBuf;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::process::Output;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::process::Stdio;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::time::Duration;
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use tokio::process::Command;
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use tokio::time::timeout;
 
@@ -18,15 +25,19 @@ use super::CheckStatus;
 use super::DoctorCheck;
 use super::DoctorIssue;
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 const PRODUCT_QUERY_TIMEOUT: Duration = Duration::from_secs(5);
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 const MAX_PRODUCT_OUTPUT_BYTES: usize = 64 * 1024;
 
 pub(super) enum EndpointInspection {
     Complete(Vec<&'static str>),
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "windows", test))]
     Partial(Vec<&'static str>),
+    // WINDOWS-REMNANT
     #[cfg(any(target_os = "macos", target_os = "windows", test))]
     Unavailable,
 }
@@ -38,8 +49,10 @@ pub(super) async fn check() -> DoctorCheck {
 pub(super) fn endpoint_check(inspection: EndpointInspection) -> DoctorCheck {
     let (products, visibility_incomplete) = match inspection {
         EndpointInspection::Complete(products) => (products, false),
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         EndpointInspection::Partial(products) => (products, true),
+        // WINDOWS-REMNANT
         #[cfg(any(target_os = "macos", target_os = "windows", test))]
         EndpointInspection::Unavailable => {
             return DoctorCheck::new(
@@ -53,6 +66,7 @@ pub(super) fn endpoint_check(inspection: EndpointInspection) -> DoctorCheck {
     };
 
     if products.is_empty() {
+        // WINDOWS-REMNANT
         let (summary, detail) = if cfg!(any(target_os = "macos", target_os = "windows")) {
             ("no supported endpoint protection detected", "none detected")
         } else {
@@ -65,6 +79,7 @@ pub(super) fn endpoint_check(inspection: EndpointInspection) -> DoctorCheck {
             .detail(format!("endpoint products: {detail}"));
     }
 
+    // WINDOWS-REMNANT
     let targets = if cfg!(target_os = "windows") {
         "signed Codex app; codex.exe; codex-windows-sandbox-setup.exe; codex-command-runner.exe; codex-code-mode-host.exe"
     } else if cfg!(target_os = "macos") {
@@ -125,6 +140,7 @@ pub(super) fn endpoint_check(inspection: EndpointInspection) -> DoctorCheck {
 }
 
 async fn endpoint_products() -> EndpointInspection {
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     {
         let system32 = std::env::var_os("SystemRoot")
@@ -228,12 +244,14 @@ async fn endpoint_products() -> EndpointInspection {
         )
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         EndpointInspection::Complete(Vec::new())
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 async fn product_command(program: impl AsRef<OsStr>, args: &[&str]) -> Option<Output> {
     let mut command = Command::from(codex_utils_process::background_command(program));

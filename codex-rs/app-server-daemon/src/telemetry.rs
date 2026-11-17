@@ -12,6 +12,7 @@ pub struct StartError {
 
 impl StartError {
     pub fn failure_reason(&self) -> &'static str {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if self.error.is::<crate::DetachedLaunchRestricted>() {
             return "spawn";

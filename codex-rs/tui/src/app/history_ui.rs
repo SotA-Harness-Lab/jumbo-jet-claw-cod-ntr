@@ -463,6 +463,7 @@ fn open_desktop_thread_url(url: &str) -> Result<(), String> {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn open_desktop_thread_url(url: &str) -> Result<(), String> {
     let script = windows_desktop_app_launch_script(url);
@@ -488,6 +489,7 @@ fn open_desktop_thread_url(url: &str) -> Result<(), String> {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn windows_desktop_app_launch_script(url: &str) -> String {
     let url = powershell_single_quoted_string(url);
@@ -509,11 +511,13 @@ Start-Process -FilePath $url
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn powershell_single_quoted_string(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn open_desktop_thread_url(_url: &str) -> Result<(), String> {
     Err("The Desktop app is only available on macOS and Windows".to_string())

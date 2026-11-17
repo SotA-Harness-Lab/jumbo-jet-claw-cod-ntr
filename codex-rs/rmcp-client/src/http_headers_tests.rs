@@ -7,6 +7,7 @@ use pretty_assertions::assert_eq;
 async fn reserved_header_errors_do_not_echo_secrets() {
     let dir = tempfile::tempdir().expect("helper directory");
     std::fs::write(dir.path().join("headers.json"), r#"{"Host":"secret"}"#).expect("write headers");
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "type headers.json"
     } else {
@@ -152,6 +153,7 @@ async fn helper_attempt_is_shared_after_cancellation() {
 async fn nonzero_helper_exit_is_cached() {
     let temp = tempfile::tempdir().expect("temporary helper directory");
     let failed_invocations = temp.path().join("failed-invocations");
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         format!(
             r#"echo x>>"{0}" & echo {{"X-Gateway":"valid"}} & exit /b 23"#,

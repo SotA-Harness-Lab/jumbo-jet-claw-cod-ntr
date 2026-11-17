@@ -4,9 +4,11 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Stdio;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_protocol::permissions::FileSystemPath;
 use codex_protocol::permissions::FileSystemSandboxPolicy;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_protocol::permissions::FileSystemSpecialPath;
 use color_eyre::eyre::Report;
@@ -19,6 +21,7 @@ use tokio::process::Command;
 pub(crate) enum EditorError {
     #[error("neither VISUAL nor EDITOR is set")]
     MissingEditor,
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     #[error("failed to parse editor command")]
     ParseFailed,
@@ -28,6 +31,7 @@ pub(crate) enum EditorError {
 
 /// Tries to resolve the full path to a Windows program, respecting PATH + PATHEXT.
 /// Falls back to the original program name if resolution fails.
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn resolve_windows_program(program: &str) -> std::path::PathBuf {
     // On Windows, `Command::new("code")` will not resolve `code.cmd` shims on PATH.
@@ -42,10 +46,12 @@ pub(crate) fn resolve_editor_command() -> std::result::Result<Vec<String>, Edito
         .or_else(|_| env::var("EDITOR"))
         .map_err(|_| EditorError::MissingEditor)?;
     let parts = {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             winsplit::split(&raw)
         }
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         {
             shlex::split(&raw).ok_or(EditorError::ParseFailed)?
@@ -63,6 +69,7 @@ pub(super) fn editor_directory(
     cwd: &Path,
 ) -> Result<PathBuf> {
     let writable_roots = file_system_policy.get_writable_roots_with_cwd(cwd);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let windows_temporary_roots = if !file_system_policy.has_full_disk_write_access()
         && file_system_policy.entries.iter().any(|entry| {
@@ -133,6 +140,7 @@ pub(super) fn editor_directory(
                             root.is_path_writable(directory)
                                 || root.root.as_path().starts_with(directory)
                         });
+                    // WINDOWS-REMNANT
                     #[cfg(windows)]
                     let is_writable = is_writable
                         || windows_temporary_roots.iter().any(|root| {
@@ -200,11 +208,13 @@ pub(crate) async fn run_editor(
     fs::write(&temp_path, seed)?;
 
     let mut cmd = {
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             // handles .cmd/.bat shims
             Command::new(resolve_windows_program(&editor_cmd[0]))
         }
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         {
             Command::new(&editor_cmd[0])

@@ -13,6 +13,7 @@ use common::exec_server::ExecServerHarness;
 use common::exec_server::exec_server_with_env;
 use pretty_assertions::assert_eq;
 
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "linux", target_os = "macos", windows))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn v2_rpc_refreshes_metadata_and_enforces_sandbox() -> anyhow::Result<()> {
@@ -132,6 +133,7 @@ async fn v2_rpc_refreshes_metadata_and_enforces_sandbox() -> anyhow::Result<()> 
             PermissionProfile::from_runtime_permissions(&policy, NetworkSandboxPolicy::Restricted),
             cwd.clone(),
         );
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         let sandbox = FileSystemSandboxContext {
             windows_sandbox_selection: codex_exec_server::WindowsSandboxSelection::RestrictedToken,
@@ -158,6 +160,7 @@ async fn v2_rpc_refreshes_metadata_and_enforces_sandbox() -> anyhow::Result<()> 
             assert!(!serde_json::to_string(&response)?.contains("mail@market"));
         }
         // Windows restricted tokens reject split read access; a supported read-only policy succeeds.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             let Err(error) = discover(&mut server, &restricted).await else {

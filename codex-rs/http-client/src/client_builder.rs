@@ -46,6 +46,7 @@ pub struct HttpClientBuilder {
     pub(crate) request_logging: RequestLogging,
     tls_backend: TlsBackend,
     pub(crate) tls: HttpClientTlsConfig,
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     windows_proxy_pipe_path: Option<std::path::PathBuf>,
 }
@@ -204,6 +205,7 @@ impl HttpClientBuilder {
             .into_client());
         }
         let route = http_client_factory.resolve_proxy_route(request_url);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if crate::windows_proxy_auth::can_authenticate_route(request_url, &route) {
             return Ok(crate::RouteAwareClientPool::with_builder_and_initial_route(
@@ -253,6 +255,7 @@ impl HttpClientBuilder {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     pub(crate) fn with_windows_proxy_pipe(
         mut self,
@@ -397,6 +400,7 @@ impl HttpClientBuilder {
 
     fn base_reqwest_builder(self) -> reqwest::ClientBuilder {
         let mut builder = reqwest::Client::builder();
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         if let Some(path) = self.windows_proxy_pipe_path {
             builder = builder.windows_named_pipe(path);
@@ -460,6 +464,7 @@ impl Default for HttpClientBuilder {
             request_logging: RequestLogging::Enabled,
             tls_backend: TlsBackend::TransportDefault,
             tls: HttpClientTlsConfig::default(),
+            // WINDOWS-REMNANT
             #[cfg(windows)]
             windows_proxy_pipe_path: None,
         }

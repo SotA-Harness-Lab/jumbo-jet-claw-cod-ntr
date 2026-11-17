@@ -10,6 +10,7 @@ use codex_feedback::CODEX_APP_DIRECTORY_CACHE_ATTACHMENT_FILENAME;
 use codex_feedback::CODEX_APPS_TOOLS_CACHE_ATTACHMENT_FILENAME;
 use codex_feedback::FeedbackAttachment;
 use codex_feedback::FeedbackSnapshot;
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 use codex_feedback::WINDOWS_SANDBOX_LOG_ATTACHMENT_FILENAME;
 use codex_feedback::guardian_review_failures;
@@ -543,6 +544,7 @@ fn auto_review_rollout_filename(thread_id: ThreadId) -> String {
     format!("auto-review-rollout-{thread_id}.jsonl")
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn windows_sandbox_log_attachment(codex_home: &Path) -> Option<FeedbackAttachmentPath> {
     let sandbox_log_path = codex_windows_sandbox::current_log_file_path_for_codex_home(codex_home);
@@ -554,6 +556,7 @@ fn windows_sandbox_log_attachment(codex_home: &Path) -> Option<FeedbackAttachmen
         })
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 fn windows_sandbox_log_attachment(_codex_home: &Path) -> Option<FeedbackAttachmentPath> {
     None
@@ -972,6 +975,7 @@ mod tests {
         );
     }
 
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     #[test]
     fn windows_sandbox_log_attachment_uses_current_log() {

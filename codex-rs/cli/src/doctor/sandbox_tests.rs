@@ -24,6 +24,7 @@ async fn reports_missing_linux_sandbox_helper() {
     assert_eq!(check.summary, "Linux sandbox helper path does not exist");
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[tokio::test]
 async fn reports_refresh_failure_after_setup_completed() {
@@ -89,6 +90,7 @@ async fn reports_refresh_failure_after_setup_completed() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[tokio::test]
 async fn rejects_oversized_setup_failure_reports() {
@@ -130,6 +132,7 @@ async fn rejects_oversized_setup_failure_reports() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 #[tokio::test]
 async fn reports_malformed_setup_failure_reports() {

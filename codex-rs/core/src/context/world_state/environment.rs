@@ -518,6 +518,7 @@ async fn powershell_version(shell_path: &Path) -> Option<String> {
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .kill_on_drop(true);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     command.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
 

@@ -20,6 +20,7 @@ use codex_app_server_protocol::McpServerStatusDetail;
 use codex_app_server_protocol::McpServerStatusUpdatedNotification;
 use codex_app_server_protocol::RequestId;
 use codex_app_server_protocol::SandboxMode;
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 use codex_app_server_protocol::SandboxPolicy;
 use codex_app_server_protocol::ServerNotification;
@@ -571,8 +572,10 @@ async fn thread_start_accepts_absolute_runtime_workspace_roots() -> Result<()> {
 
     assert_eq!(response_cwd, cwd.abs());
     assert_eq!(runtime_workspace_roots, vec![extra_root.abs()]);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _ = sandbox;
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     {
         let SandboxPolicy::WorkspaceWrite { writable_roots, .. } = sandbox else {
@@ -602,8 +605,10 @@ async fn thread_start_accepts_absolute_runtime_workspace_roots() -> Result<()> {
         ..
     } = timeout(DEFAULT_READ_TIMEOUT, mcp.read_response(req_id)).await??;
     assert_eq!(runtime_workspace_roots, vec![environment_root.abs()]);
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let _ = sandbox;
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     {
         let SandboxPolicy::WorkspaceWrite { writable_roots, .. } = sandbox else {
@@ -943,6 +948,7 @@ async fn thread_start_without_selected_environment_includes_only_global_instruct
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn normalize_path_for_comparison(path: impl AsRef<Path>) -> PathBuf {
     let path = path.as_ref();
@@ -950,6 +956,7 @@ fn normalize_path_for_comparison(path: impl AsRef<Path>) -> PathBuf {
     PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(&path))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn normalize_path_for_comparison(path: impl AsRef<Path>) -> PathBuf {
     path.as_ref().to_path_buf()
@@ -1575,6 +1582,7 @@ model_reasoning_effort = "high"
         .await?;
 
     let config_toml = std::fs::read_to_string(codex_home.path().join("config.toml"))?;
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         assert_eq!(
             first_response.sandbox,
@@ -1707,6 +1715,7 @@ async fn thread_start_with_nested_git_cwd_respects_effective_permissions_for_pro
         .await?;
 
     let config_toml = std::fs::read_to_string(codex_home.path().join("config.toml"))?;
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         assert_eq!(
             sandbox,
@@ -2017,12 +2026,14 @@ startup_timeout_sec = 60
     )
 }
 
+// WINDOWS-REMNANT
 #[cfg(target_os = "windows")]
 fn broken_mcp_transport_toml() -> &'static str {
     r#"command = "cmd"
 args = ["/C", "exit 1"]"#
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(target_os = "windows"))]
 fn broken_mcp_transport_toml() -> &'static str {
     r#"command = "/bin/sh"

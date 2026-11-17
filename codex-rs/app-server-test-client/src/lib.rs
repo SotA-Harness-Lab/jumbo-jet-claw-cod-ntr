@@ -1254,6 +1254,7 @@ fn live_elicitation_timeout_pause(
     script: Option<PathBuf>,
     hold_seconds: u64,
 ) -> Result<()> {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         bail!("live-elicitation-timeout-pause currently requires a POSIX shell");
     }

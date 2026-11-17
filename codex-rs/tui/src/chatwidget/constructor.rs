@@ -157,6 +157,7 @@ impl ChatWidget {
             windows_sandbox_local_server: false,
             windows_sandbox_config: Default::default(),
             windows_sandbox_host: crate::app::WindowsSandboxHost::Unknown,
+            // WINDOWS-REMNANT
             #[cfg(any(target_os = "windows", test))]
             windows_sandbox_elevated_setup_complete: false,
             token_info: None,

@@ -722,8 +722,10 @@ async fn capture_snapshot(
         .iter()
         .filter(|(key, _)| {
             allowed_metadata.provider_keys.iter().any(|provider_key| {
+                // WINDOWS-REMNANT
                 provider_key == *key || cfg!(windows) && provider_key.eq_ignore_ascii_case(key)
             }) && !provider_context_keys.iter().any(|context| {
+                // WINDOWS-REMNANT
                 context == *key || cfg!(windows) && context.eq_ignore_ascii_case(key)
             }) && !allowed_brokered_keys.contains(key)
         })
@@ -753,6 +755,7 @@ async fn capture_snapshot(
         .iter()
         .filter(|(key, _)| {
             !allowed_metadata.provider_keys.iter().any(|provider_key| {
+                // WINDOWS-REMNANT
                 provider_key == *key || cfg!(windows) && provider_key.eq_ignore_ascii_case(key)
             })
         })
@@ -826,8 +829,10 @@ async fn capture_snapshot(
             .iter()
             .filter(|&(key, value)| {
                 discovery_metadata.provider_keys.iter().any(|source| {
+                    // WINDOWS-REMNANT
                     source == key || cfg!(windows) && source.eq_ignore_ascii_case(key)
                 }) && !provider_context_keys.iter().any(|context| {
+                    // WINDOWS-REMNANT
                     context == key || cfg!(windows) && context.eq_ignore_ascii_case(key)
                 }) && !value.is_empty()
             })
@@ -968,6 +973,7 @@ fn replace_provider_context_with_trusted(
         if let Some(value) = env_value(trusted_env, &key) {
             insert_env_value(env, &key, value);
         } else if !preserve_untrusted_keys.iter().any(|candidate| {
+            // WINDOWS-REMNANT
             candidate == &key || cfg!(windows) && candidate.eq_ignore_ascii_case(&key)
         }) {
             remove_env_value(env, &key);
@@ -981,6 +987,7 @@ fn contains_env_key(env: &HashMap<String, String>, key: &str) -> bool {
 
 fn env_value<'a>(env: &'a HashMap<String, String>, key: &str) -> Option<&'a String> {
     env.get(key).or_else(|| {
+        // WINDOWS-REMNANT
         cfg!(windows)
             .then(|| {
                 env.iter().find_map(|(candidate, value)| {
@@ -992,14 +999,17 @@ fn env_value<'a>(env: &'a HashMap<String, String>, key: &str) -> Option<&'a Stri
 }
 
 fn insert_env_value(env: &mut HashMap<String, String>, key: &str, value: &str) {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     env.retain(|candidate, _| !candidate.eq_ignore_ascii_case(key));
     env.insert(key.to_string(), value.to_string());
 }
 
 fn remove_env_value(env: &mut HashMap<String, String>, key: &str) {
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     env.retain(|candidate, _| !candidate.eq_ignore_ascii_case(key));
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     env.remove(key);
 }

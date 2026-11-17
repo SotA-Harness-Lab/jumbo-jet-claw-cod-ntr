@@ -87,6 +87,7 @@ fn exec_command_call(call_id: &str, command: &str) -> serde_json::Value {
 }
 
 fn touch_command(path: &str) -> String {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         format!("New-Item -ItemType File -Path {path} -Force | Out-Null")
     } else {

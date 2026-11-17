@@ -72,6 +72,7 @@ async fn metadata_status_does_not_execute_submodule_clean_filter() {
                 "-c",
                 "core.autocrlf=false",
                 "-c",
+                // WINDOWS-REMNANT
                 if cfg!(windows) {
                     "core.hooksPath=NUL"
                 } else {

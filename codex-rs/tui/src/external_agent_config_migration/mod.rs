@@ -758,11 +758,13 @@ mod tests {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn sample_project_root() -> PathBuf {
         PathBuf::from(r"C:\workspace\project")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     fn sample_project_root() -> PathBuf {
         PathBuf::from("/workspace/project")
@@ -883,11 +885,13 @@ mod tests {
         screen.customize();
 
         let rendered = render_screen(&screen, /*width*/ 80, /*height*/ 34);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         assert_snapshot!(
             "external_agent_config_migration_customize_windows",
             rendered
         );
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         assert_snapshot!("external_agent_config_migration_customize", rendered);
     }
@@ -930,11 +934,13 @@ mod tests {
         screen.move_up();
 
         let rendered = render_screen(&screen, /*width*/ 80, /*height*/ 30);
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         assert_snapshot!(
             "external_agent_config_migration_customize_action_windows",
             rendered
         );
+        // WINDOWS-REMNANT
         #[cfg(not(windows))]
         assert_snapshot!("external_agent_config_migration_customize_action", rendered);
     }

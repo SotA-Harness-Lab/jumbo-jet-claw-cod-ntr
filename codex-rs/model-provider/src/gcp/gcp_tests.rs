@@ -181,6 +181,7 @@ async fn credential_files_scope_token_caches_and_refreshes() {
             "cat \"$GOOGLE_APPLICATION_CREDENTIALS\"".into(),
         ],
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let (command, args) = {
         std::fs::write(

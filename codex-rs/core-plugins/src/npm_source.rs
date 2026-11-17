@@ -172,11 +172,13 @@ fn validate_npm_package_metadata(plugin_root: &Path, package: &str) -> Result<()
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn npm_command() -> &'static str {
     "npm.cmd"
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn npm_command() -> &'static str {
     "npm"

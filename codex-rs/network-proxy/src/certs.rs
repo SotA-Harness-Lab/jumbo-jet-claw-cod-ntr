@@ -878,6 +878,7 @@ fn write_atomic_create_new(path: &Path, contents: &[u8], mode: u32) -> Result<()
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn sync_parent_dir(parent: &Path) -> Result<()> {
     // Best-effort durability: ensure the directory entry is persisted too.
@@ -886,6 +887,7 @@ fn sync_parent_dir(parent: &Path) -> Result<()> {
         .with_context(|| format!("failed to fsync {}", parent.display()))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn sync_parent_dir(_parent: &Path) -> Result<()> {
     Ok(())

@@ -3,8 +3,10 @@ use dns_lookup::AddrInfoHints;
 #[cfg(unix)]
 use dns_lookup::getaddrinfo;
 use std::sync::LazyLock;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use winapi_util::sysinfo::ComputerNameKind;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use winapi_util::sysinfo::get_computer_name;
 
@@ -62,6 +64,7 @@ fn local_fqdn_for_hostname(hostname: &str) -> Option<String> {
         .find_map(|hostname| normalize_fqdn_candidate(&hostname))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn local_fqdn_for_hostname(_hostname: &str) -> Option<String> {
     get_computer_name(ComputerNameKind::PhysicalDnsFullyQualified)
@@ -70,6 +73,7 @@ fn local_fqdn_for_hostname(_hostname: &str) -> Option<String> {
         .and_then(|hostname| normalize_fqdn_candidate(&hostname))
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn local_fqdn_for_hostname(_hostname: &str) -> Option<String> {
     None

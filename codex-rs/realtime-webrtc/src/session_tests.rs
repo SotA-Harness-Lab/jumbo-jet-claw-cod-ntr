@@ -150,6 +150,7 @@ fn package_availability_requires_helper_and_native_runtime() {
     std::fs::create_dir_all(voice.join("bin")).unwrap();
     std::fs::create_dir_all(voice.join("lib")).unwrap();
     assert!(!package_has_runtime(&root));
+    // WINDOWS-REMNANT
     let helper = voice.join(if cfg!(windows) {
         "bin/codex-voice-host.exe"
     } else {
@@ -159,6 +160,7 @@ fn package_availability_requires_helper_and_native_runtime() {
     assert!(!package_has_runtime(&root));
     let runtime = voice.join(if cfg!(target_os = "macos") {
         "lib/libgstreamer-1.0.0.dylib"
+    // WINDOWS-REMNANT
     } else if cfg!(windows) {
         "bin/gstreamer-1.0-0.dll"
     } else {

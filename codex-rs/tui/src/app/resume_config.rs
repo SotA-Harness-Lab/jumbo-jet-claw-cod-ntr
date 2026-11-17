@@ -312,6 +312,7 @@ impl App {
                 ));
                 AppRunControl::Continue
             })?;
+            // WINDOWS-REMNANT
             #[cfg(target_os = "windows")]
             if result.directory_trust_persisted && self.current_displayed_thread_id().is_none() {
                 self.windows_sandbox.prompt_after_trust = true;

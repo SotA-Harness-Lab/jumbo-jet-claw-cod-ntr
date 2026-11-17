@@ -363,6 +363,7 @@ async fn windows_sandbox_env_preserves_denied_reads_or_rejects_unsupported_backe
 
 #[tokio::test]
 async fn exec_server_env_keeps_command_native_and_carries_sandbox_context() {
+    // WINDOWS-REMNANT
     let cwd_uri = PathUri::parse(if cfg!(windows) {
         "file:///workspace"
     } else {
@@ -434,6 +435,7 @@ async fn exec_server_env_keeps_command_native_and_carries_sandbox_context() {
             workspace_roots: vec![cwd_uri.clone()],
             user_home_dir: None,
             temporary_directories: None,
+            // WINDOWS-REMNANT
             windows_sandbox_selection: if cfg!(windows) {
                 codex_file_system::WindowsSandboxSelection::Disabled
             } else {

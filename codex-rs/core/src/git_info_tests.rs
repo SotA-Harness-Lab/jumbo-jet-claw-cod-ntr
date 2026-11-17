@@ -758,6 +758,7 @@ async fn resolve_root_git_project_for_trust_ignores_metadata_errors() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test]
 async fn resolve_root_git_project_for_trust_supports_windows_namespace_paths() {

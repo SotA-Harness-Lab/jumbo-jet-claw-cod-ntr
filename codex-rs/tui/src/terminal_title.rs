@@ -108,6 +108,7 @@ impl Command for SetWindowTitle {
         write!(f, "\x1b]0;{}\x07", self.0)
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> io::Result<()> {
         Err(std::io::Error::other(
@@ -115,6 +116,7 @@ impl Command for SetWindowTitle {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         true

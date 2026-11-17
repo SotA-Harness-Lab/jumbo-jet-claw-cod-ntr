@@ -180,6 +180,7 @@ fn package_has_runtime(package: &std::path::Path) -> bool {
     let voice = package.join("codex-resources/voice");
     let (helper, runtime) = if cfg!(target_os = "macos") {
         ("bin/codex-voice-host", "lib/libgstreamer-1.0.0.dylib")
+    // WINDOWS-REMNANT
     } else if cfg!(windows) {
         ("bin/codex-voice-host.exe", "bin/gstreamer-1.0-0.dll")
     } else {

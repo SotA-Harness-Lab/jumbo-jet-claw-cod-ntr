@@ -425,6 +425,7 @@ impl ChatWidget {
                 self.open_keymap_picker();
             }
             SlashCommand::ElevateSandbox => {
+                // WINDOWS-REMNANT
                 #[cfg(target_os = "windows")]
                 {
                     if !self.builtin_command_flags().allow_elevate_sandbox {
@@ -466,6 +467,7 @@ impl ChatWidget {
                             profile_selection: None,
                         });
                 }
+                // WINDOWS-REMNANT
                 #[cfg(not(target_os = "windows"))]
                 {
                     let _ = &self.session_telemetry;
@@ -1280,6 +1282,7 @@ impl ChatWidget {
     }
 
     pub(super) fn builtin_command_flags(&self) -> BuiltinCommandFlags {
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         let allow_elevate_sandbox = {
             let windows_sandbox_level = self.windows_sandbox_config.level();
@@ -1290,6 +1293,7 @@ impl ChatWidget {
                     .windows_sandbox_config
                     .allows(WindowsSandboxSetupMode::Elevated)
         };
+        // WINDOWS-REMNANT
         #[cfg(not(target_os = "windows"))]
         let allow_elevate_sandbox = false;
 

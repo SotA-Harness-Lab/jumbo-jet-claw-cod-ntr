@@ -106,8 +106,10 @@ use tempfile::TempDir;
 use tokio::time::timeout;
 use uuid::Uuid;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(25);
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 

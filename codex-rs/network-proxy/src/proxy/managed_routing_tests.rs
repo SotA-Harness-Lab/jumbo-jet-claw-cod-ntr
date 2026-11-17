@@ -79,6 +79,7 @@ async fn dedicated_listeners_preserve_http_and_socks_policy_without_restricted_t
             assert!(!addresses.contains(&addr));
             addresses.push(addr);
         }
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         {
             assert_eq!(

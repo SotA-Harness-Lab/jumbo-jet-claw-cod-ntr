@@ -28,6 +28,7 @@ pub(super) fn find_python() -> Option<String> {
 }
 
 fn setsid_available() -> bool {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return false;
     }
@@ -39,6 +40,7 @@ fn setsid_available() -> bool {
 }
 
 fn shell_command(program: &str) -> (String, Vec<String>) {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         let cmd = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
         (cmd, vec!["/C".to_string(), program.to_string()])
@@ -51,6 +53,7 @@ fn shell_command(program: &str) -> (String, Vec<String>) {
 }
 
 fn echo_sleep_command(marker: &str) -> String {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         format!("echo {marker} & ping -n 2 127.0.0.1 > NUL")
     } else {
@@ -59,6 +62,7 @@ fn echo_sleep_command(marker: &str) -> String {
 }
 
 fn split_stdout_stderr_command() -> String {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         // Keep this in cmd.exe syntax so the test does not depend on a runner-local
         // PowerShell/Python setup just to produce deterministic split output.
@@ -117,6 +121,7 @@ async fn collect_output_until_exit(
                 // On Windows (ConPTY in particular), it's possible to observe the exit notification
                 // before the final bytes are drained from the PTY reader thread. Drain for a brief
                 // "quiet" window to make output assertions deterministic.
+                // WINDOWS-REMNANT
                 let (quiet_ms, max_ms) = if cfg!(windows) { (200, 2_000) } else { (50, 500) };
                 let quiet = tokio::time::Duration::from_millis(quiet_ms);
                 let max_deadline =
@@ -218,6 +223,7 @@ async fn wait_for_python_repl_ready_via_probe(
     let mut collected = Vec::new();
     let marker = "__codex_pty_ready__";
     let deadline = tokio::time::Instant::now() + tokio::time::Duration::from_millis(timeout_ms);
+    // WINDOWS-REMNANT
     let probe_window = tokio::time::Duration::from_millis(if cfg!(windows) { 750 } else { 250 });
 
     while tokio::time::Instant::now() < deadline {
@@ -364,7 +370,9 @@ async fn pty_python_repl_emits_output_and_exits() -> anyhow::Result<()> {
     .await?;
     let (session, mut output_rx, exit_rx) = combine_spawned_output(spawned);
     let writer = session.writer_sender();
+    // WINDOWS-REMNANT
     let newline = if cfg!(windows) { "\r\n" } else { "\n" };
+    // WINDOWS-REMNANT
     let startup_timeout_ms = if cfg!(windows) { 10_000 } else { 5_000 };
     let mut output =
         wait_for_python_repl_ready(&mut output_rx, startup_timeout_ms, ready_marker).await?;
@@ -373,6 +381,7 @@ async fn pty_python_repl_emits_output_and_exits() -> anyhow::Result<()> {
         .await?;
     writer.send(format!("exit(){newline}").into_bytes()).await?;
 
+    // WINDOWS-REMNANT
     let timeout_ms = if cfg!(windows) { 10_000 } else { 5_000 };
     let (remaining_output, code) = collect_output_until_exit(output_rx, exit_rx, timeout_ms).await;
     output.extend_from_slice(&remaining_output);
@@ -389,6 +398,7 @@ async fn pty_python_repl_emits_output_and_exits() -> anyhow::Result<()> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pipe_process_round_trips_stdin() -> anyhow::Result<()> {
+    // WINDOWS-REMNANT
     let (program, args) = if cfg!(windows) {
         let cmd = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
         (
@@ -419,6 +429,7 @@ async fn pipe_process_round_trips_stdin() -> anyhow::Result<()> {
     let spawned = spawn_pipe_process(&program, &args, Path::new("."), &env_map, &None, &[]).await?;
     let (session, output_rx, exit_rx) = combine_spawned_output(spawned);
     let writer = session.writer_sender();
+    // WINDOWS-REMNANT
     let newline = if cfg!(windows) { "\r\n" } else { "\n" };
     writer
         .send(format!("roundtrip{newline}").into_bytes())
@@ -510,6 +521,7 @@ async fn pipe_and_pty_share_interface() -> anyhow::Result<()> {
     let (_pipe_session, pipe_output_rx, pipe_exit_rx) = combine_spawned_output(pipe);
     let (_pty_session, pty_output_rx, pty_exit_rx) = combine_spawned_output(pty);
 
+    // WINDOWS-REMNANT
     let timeout_ms = if cfg!(windows) { 10_000 } else { 3_000 };
     let (pipe_out, pipe_code) =
         collect_output_until_exit(pipe_output_rx, pipe_exit_rx, timeout_ms).await;
@@ -564,6 +576,7 @@ async fn pipe_process_can_expose_split_stdout_and_stderr() -> anyhow::Result<()>
         exit_rx,
     } = spawned;
 
+    // WINDOWS-REMNANT
     let timeout_ms = if cfg!(windows) { 10_000 } else { 2_000 };
     let timeout = tokio::time::Duration::from_millis(timeout_ms);
     let stdout_task = tokio::spawn(async move { collect_split_output(stdout_rx).await });
@@ -579,11 +592,13 @@ async fn pipe_process_can_expose_split_stdout_and_stderr() -> anyhow::Result<()>
         .await
         .map_err(|_| anyhow::anyhow!("timed out waiting to drain split stderr"))??;
 
+    // WINDOWS-REMNANT
     let expected_stdout = if cfg!(windows) {
         b"split-out\r\n".to_vec()
     } else {
         b"split-out\n".to_vec()
     };
+    // WINDOWS-REMNANT
     let expected_stderr = if cfg!(windows) {
         b"split-err\r\n".to_vec()
     } else {
@@ -612,6 +627,7 @@ async fn driver_backed_process_can_expose_split_stdout_and_stderr() -> anyhow::R
         terminator: None,
         writer_handle: None,
         resizer: None,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         tty: false,
     });
@@ -655,6 +671,7 @@ async fn driver_backed_process_can_expose_split_stdout_and_stderr() -> anyhow::R
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn driver_backed_interrupt_terminates_once() {
@@ -673,6 +690,7 @@ async fn driver_backed_interrupt_terminates_once() {
         })),
         writer_handle: None,
         resizer: None,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         tty: false,
     });
@@ -709,6 +727,7 @@ async fn driver_backed_process_can_resize_via_resizer_hook() -> anyhow::Result<(
             }
             Ok(())
         })),
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         tty: true,
     });
@@ -755,6 +774,7 @@ async fn driver_backed_process_drains_output_that_arrives_after_exit_signal() ->
         terminator: None,
         writer_handle: None,
         resizer: None,
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         tty: false,
     });
@@ -827,6 +847,7 @@ async fn pipe_terminate_aborts_detached_readers() -> anyhow::Result<()> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pipe_terminate_reaps_child() -> anyhow::Result<()> {
     let env_map: HashMap<String, String> = std::env::vars().collect();
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "ping -n 60 127.0.0.1 > NUL"
     } else {
@@ -851,6 +872,7 @@ async fn pipe_terminate_reaps_child() -> anyhow::Result<()> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn pipe_drop_reaps_child() -> anyhow::Result<()> {
     let env_map: HashMap<String, String> = std::env::vars().collect();
+    // WINDOWS-REMNANT
     let command = if cfg!(windows) {
         "ping -n 60 127.0.0.1 > NUL"
     } else {

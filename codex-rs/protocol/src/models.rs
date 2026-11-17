@@ -3105,6 +3105,7 @@ mod tests {
 
     #[test]
     fn file_system_permissions_with_glob_scan_depth_uses_canonical_json() -> Result<()> {
+        // WINDOWS-REMNANT
         let path = AbsolutePathBuf::try_from(PathBuf::from(if cfg!(windows) {
             r"C:\tmp\allowed"
         } else {

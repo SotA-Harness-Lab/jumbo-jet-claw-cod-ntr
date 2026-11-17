@@ -41,6 +41,7 @@ fn absolute_path(path: &str) -> AbsolutePathBuf {
 }
 
 fn host_absolute_path(segments: &[&str]) -> String {
+    // WINDOWS-REMNANT
     let mut path = if cfg!(windows) {
         PathBuf::from(r"C:\")
     } else {
@@ -53,6 +54,7 @@ fn host_absolute_path(segments: &[&str]) -> String {
 }
 
 fn host_executable_name(name: &str) -> String {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         format!("{name}.exe")
     } else {

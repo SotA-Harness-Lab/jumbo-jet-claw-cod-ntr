@@ -244,6 +244,7 @@ async fn shutdown_signal() -> IoResult<ShutdownSignal> {
         }
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         let console_signal = async {
@@ -535,6 +536,7 @@ pub async fn run_main_with_transport_options(
         }
         None => None,
     };
+    // WINDOWS-REMNANT
     #[cfg(target_os = "windows")]
     let _registered_core = codex_windows_sandbox::registered_core_requested();
     let managed_daemon = matches!(&transport, AppServerTransport::UnixSocket { .. })
@@ -854,6 +856,7 @@ pub async fn run_main_with_transport_options(
                 socket_path.clone(),
                 transport_event_tx.clone(),
                 transport_shutdown_token.clone(),
+                // WINDOWS-REMNANT
                 if cfg!(windows)
                     && std::env::var_os(codex_app_server_transport::DAEMON_SHUTDOWN_SOCKET_ENV)
                         .is_some()

@@ -1,8 +1,10 @@
 //! Launches the helper with its Bazel-provided native startup libraries available.
 
+// WINDOWS-REMNANT
 #[cfg(all(windows, target_env = "msvc"))]
 use std::env;
 
+// WINDOWS-REMNANT
 #[cfg(all(windows, target_env = "msvc"))]
 use anyhow::Context;
 use anyhow::Result;
@@ -11,8 +13,10 @@ use tokio::process::Command;
 
 pub(crate) fn voice_host_command() -> Result<Command> {
     let command = Command::new(cargo_bin("codex-voice-host")?);
+    // WINDOWS-REMNANT
     #[cfg(all(windows, target_env = "msvc"))]
     let mut command = command;
+    // WINDOWS-REMNANT
     #[cfg(all(windows, target_env = "msvc"))]
     if codex_utils_cargo_bin::runfiles_available() {
         let resource = format!(

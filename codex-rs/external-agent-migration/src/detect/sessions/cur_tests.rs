@@ -419,11 +419,13 @@ fn set_modified_at(path: &Path, modified_at: SystemTime) {
         .expect("set transcript modified time");
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn encode_project_path(path: &Path) -> String {
     path.to_string_lossy().replace([':', '\\', '/'], "-")
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 fn encode_project_path(path: &Path) -> String {
     path.to_string_lossy()

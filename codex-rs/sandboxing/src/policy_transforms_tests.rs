@@ -523,6 +523,7 @@ fn intersect_permission_profiles_preserves_parent_relative_project_root_restrict
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn intersect_permission_profiles_rejects_symbolic_slash_tmp_grants() {
@@ -558,6 +559,7 @@ fn intersect_permission_profiles_rejects_symbolic_slash_tmp_grants() {
     );
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 #[test]
 fn intersect_permission_profiles_preserves_deny_across_case_variant_grant() {
@@ -687,6 +689,7 @@ fn intersect_permission_profiles_preserves_opaque_child_deny() {
     use std::ffi::OsString;
     #[cfg(unix)]
     use std::os::unix::ffi::OsStringExt;
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     use std::os::windows::ffi::OsStringExt;
 
@@ -700,6 +703,7 @@ fn intersect_permission_profiles_preserves_opaque_child_deny() {
     .expect("absolute temp dir");
     #[cfg(unix)]
     let opaque_name = OsString::from_vec(b"private-\xff".to_vec());
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let opaque_name = OsString::from_wide(&[
         u16::from(b'p'),

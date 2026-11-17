@@ -322,6 +322,7 @@ impl Command for ResetKeyboardEnhancementFlags {
         f.write_str("\x1b[<u")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> std::io::Result<()> {
         Err(std::io::Error::new(
@@ -330,6 +331,7 @@ impl Command for ResetKeyboardEnhancementFlags {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         false
@@ -344,6 +346,7 @@ impl Command for EnableModifyOtherKeys {
         f.write_str("\x1b[>4;2m")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> std::io::Result<()> {
         Err(std::io::Error::new(
@@ -352,6 +355,7 @@ impl Command for EnableModifyOtherKeys {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         false
@@ -366,6 +370,7 @@ impl Command for DisableModifyOtherKeys {
         f.write_str("\x1b[>4;0m")
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn execute_winapi(&self) -> std::io::Result<()> {
         Err(std::io::Error::new(
@@ -374,6 +379,7 @@ impl Command for DisableModifyOtherKeys {
         ))
     }
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     fn is_ansi_code_supported(&self) -> bool {
         false

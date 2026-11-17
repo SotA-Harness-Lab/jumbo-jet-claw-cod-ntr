@@ -24,6 +24,7 @@ use codex_exec_server::ExecOutputStream;
 use codex_exec_server::ExecParams;
 use codex_exec_server::ExecProcess;
 use codex_exec_server::ExecProcessEvent;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use codex_exec_server::FileSystemSandboxContext;
 use codex_exec_server::ProcessId;
@@ -34,6 +35,7 @@ use codex_exec_server::ShellInfo;
 #[cfg(unix)]
 use codex_exec_server::ShellSnapshotRequest;
 use codex_exec_server::StartedExecProcess;
+// WINDOWS-REMNANT
 #[cfg(any(unix, windows))]
 use codex_exec_server::WindowsSandboxSelection;
 use codex_exec_server::WriteStatus;
@@ -1217,6 +1219,7 @@ async fn assert_exec_process_starts_and_exits(use_remote: bool) -> Result<()> {
         "printf '%s|%s|%s' \"$CODEX_THREAD_ID\" \"$CODEX_TOOL_CALL_ID\" \"$CUSTOM_ENV_VAR\""
             .to_string(),
     ];
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let argv = vec![
         "powershell.exe".into(),
@@ -2434,6 +2437,7 @@ async fn exec_process_write_then_read_without_tty(use_remote: bool) -> Result<()
     true;
     "mxc_conpty"
 )]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), ignore = "Windows-only exec-server sandbox process test")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[serial_test::serial(remote_exec_server)]
@@ -2466,6 +2470,7 @@ async fn exec_process_signal_interrupts_process(use_remote: bool) -> Result<()> 
 
 #[test_case(false ; "local")]
 #[test_case(true ; "remote")]
+// WINDOWS-REMNANT
 #[cfg_attr(not(windows), ignore = "Windows-only exec-server process test")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 // Serialize tests that launch a real exec-server process through the full CLI.

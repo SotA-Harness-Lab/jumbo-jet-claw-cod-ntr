@@ -361,7 +361,9 @@ async fn client_setup_accepts_command_credential_refresh() {
         std::fs::write(&token_path, "initial-token").unwrap();
         let mut info = test_model_provider().info().clone();
         info.auth = Some(codex_protocol::config_types::ModelProviderAuthInfo {
+            // WINDOWS-REMNANT
             command: if cfg!(windows) { "cmd.exe" } else { "cat" }.into(),
+            // WINDOWS-REMNANT
             args: if cfg!(windows) {
                 vec!["/D", "/C", "type", "token.txt"]
             } else {

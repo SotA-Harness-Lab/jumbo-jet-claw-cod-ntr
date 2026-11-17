@@ -164,6 +164,7 @@ impl TerminalHyperlink {
             return None;
         }
         // A Windows junction can lead to a UNC share. Check parents before following any of them.
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         for ancestor in path.ancestors().collect::<Vec<_>>().into_iter().rev() {
             use std::os::windows::fs::MetadataExt;

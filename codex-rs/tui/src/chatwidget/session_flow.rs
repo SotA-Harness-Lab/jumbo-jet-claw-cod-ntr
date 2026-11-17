@@ -102,6 +102,7 @@ impl ChatWidget {
         self.daybreak_enabled = self.config.features.enabled(Feature::CliDaybreak)
             && session.daybreak_enabled
             && !matches!(display, SessionConfiguredDisplay::SideConversation);
+        // WINDOWS-REMNANT
         #[cfg(target_os = "windows")]
         if self.windows_sandbox_local_server
             && matches!(self.codex_op_target, CodexOpTarget::AppEvent)

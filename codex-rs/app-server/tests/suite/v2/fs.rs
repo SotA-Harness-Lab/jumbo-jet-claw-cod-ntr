@@ -30,8 +30,10 @@ use std::process::Command;
 
 // macOS and Windows Bazel CI can spend tens of seconds starting app-server
 // subprocesses or processing test RPCs under load.
+// WINDOWS-REMNANT
 #[cfg(any(target_os = "macos", windows))]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(60);
+// WINDOWS-REMNANT
 #[cfg(not(any(target_os = "macos", windows)))]
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(10);
 const OPTIONAL_FS_CHANGE_TIMEOUT: Duration = Duration::from_secs(2);
@@ -874,6 +876,7 @@ fn replace_file_atomically(path: &PathBuf, contents: &str) -> Result<()> {
     let temp_path = path.with_extension("lock");
     std::fs::write(&temp_path, contents)?;
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     match std::fs::remove_file(path) {
         Ok(()) => {}

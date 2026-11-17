@@ -801,6 +801,7 @@ async fn run_code_mode_turn_with_rmcp_config(
     Ok((test, second_mock))
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_can_return_exec_command_output() -> Result<()> {
@@ -3179,6 +3180,7 @@ async fn code_mode_late_result_metadata_with_large_arguments_survives_waits() ->
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_resumed_wait_does_not_certify_a_reused_runtime_cell() -> Result<()> {
@@ -3980,6 +3982,7 @@ text(JSON.stringify({{
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[test_case(false; "legacy_stdio")]
 #[test_case(true; "default_grpc_stdio")]
@@ -4212,6 +4215,7 @@ text(JSON.stringify(result));
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "flaky on windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_nested_tool_calls_can_run_in_parallel() -> Result<()> {
@@ -4305,6 +4309,7 @@ text(JSON.stringify(results));
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_write_stdin_calls_run_in_parallel_across_sessions() -> Result<()> {
@@ -4351,6 +4356,7 @@ const TOKEN_POLICY_TEST_MODEL: &str = "gpt-5.5";
 
 // A nested `exec_command` limit applies to `result.output` inside JavaScript.
 // The outer code-mode and history budgets apply after the script calls `text`.
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_nested_limit_formats_truncated_result_with_warning() -> Result<()> {
@@ -4381,6 +4387,7 @@ text(result.output);
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_nested_limit_preserves_result_variable_before_default_history_truncation()
@@ -4419,6 +4426,7 @@ text(`Variable truncated: ${resultVariableWasTruncated ? "True" : "False"}. Vari
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_nested_limit_truncates_result_variable_when_exceeded() -> Result<()> {
@@ -4465,6 +4473,7 @@ text(`Variable truncated: ${resultVariableWasTruncated ? "True" : "False"}. Vari
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_nested_limit_preserves_result_variable_before_configured_history_truncation()
@@ -4512,6 +4521,7 @@ text(`Variable truncated: ${resultVariableWasTruncated ? "True" : "False"}. Vari
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_without_nested_limit_preserves_result_variable_before_default_history_truncation()
@@ -4549,6 +4559,7 @@ text(`Variable truncated: ${resultVariableWasTruncated ? "True" : "False"}. Vari
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_without_nested_limit_preserves_result_variable_before_configured_history_truncation()
@@ -4597,6 +4608,7 @@ text(`Variable truncated: ${resultVariableWasTruncated ? "True" : "False"}. Vari
 
 // The outer directive limits output after JavaScript emits it; it does not
 // limit `result.output` returned by the nested command.
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[test_case(&[]; "default_grpc")]
 #[test_case(&[Feature::CodeModeHostGrpc]; "server_stdio")]
@@ -4719,6 +4731,7 @@ text("end");
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_exec_surfaces_handler_errors_as_exceptions() -> Result<()> {
@@ -4942,6 +4955,7 @@ impl ToolLifecycleContributor for ResponseIdObserver {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[test_case::test_case(None; "without_assessment")]
 #[test_case::test_case(Some(false); "low_risk_assessment")]
@@ -5167,6 +5181,7 @@ text((await tools.exec_command({{cmd: "printf 'phase 3'"}})).output);
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_yield_and_termination_are_not_starved_by_runtime_output() -> Result<()> {
@@ -5264,6 +5279,7 @@ for (let index = 0; index < 256; index++) {{
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_can_run_multiple_yielded_sessions() -> Result<()> {
@@ -5473,6 +5489,7 @@ text("session b done");
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_concurrent_cells_merge_only_the_stored_values_they_write() -> Result<()> {
@@ -5646,6 +5663,7 @@ impl ToolLifecycleContributor for TerminationOutputReady {
     }
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[test_case(&[]; "default_grpc")]
 #[test_case(&[Feature::CodeModeHostGrpc]; "server_stdio")]
@@ -5845,6 +5863,7 @@ async fn code_mode_wait_returns_error_for_unknown_session() -> Result<()> {
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_wait_terminate_returns_completed_session_if_it_finished_after_yield_control()
@@ -6041,6 +6060,7 @@ text("session b done");
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn code_mode_background_keeps_running_on_later_turn_without_wait() -> Result<()> {
@@ -7267,6 +7287,7 @@ async fn code_mode_node_repl_screenshots_can_be_captured_without_guardian_transc
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[test_case("node_repl"; "node_repl")]
@@ -7367,6 +7388,7 @@ await tools.exec_command({ cmd: "true", sandbox_permissions: "require_escalated"
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore = "no exec_command on Windows")]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[test_case("node_repl", false, false, false, None; "disabled")]

@@ -12,6 +12,7 @@ codex-utils-absolute-path = { workspace = true }
 dunce = { workspace = true }
 tempfile = { workspace = true }
 
+# WINDOWS-REMNANT
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true, features = [
     "Win32_Foundation",

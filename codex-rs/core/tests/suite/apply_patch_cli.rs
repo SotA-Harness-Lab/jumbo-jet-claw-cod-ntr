@@ -150,6 +150,7 @@ fn restrictive_workspace_write_profile() -> PermissionProfile {
 }
 
 fn workspace_write_with_read_only_root(read_only_root: AbsolutePathBuf) -> PermissionProfile {
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         return restrictive_workspace_write_profile();
     }
@@ -215,11 +216,13 @@ fn create_file_symlink(source: &std::path::Path, link: &std::path::Path) -> std:
     std::os::unix::fs::symlink(source, link)
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn create_file_symlink(source: &std::path::Path, link: &std::path::Path) -> std::io::Result<()> {
     std::os::windows::fs::symlink_file(source, link)
 }
 
+// WINDOWS-REMNANT
 #[cfg(not(any(unix, windows)))]
 fn create_file_symlink(_source: &std::path::Path, _link: &std::path::Path) -> std::io::Result<()> {
     Err(std::io::Error::new(
@@ -1218,6 +1221,7 @@ async fn apply_patch_cli_does_not_write_through_symlink_escape_outside_workspace
     let link_path = harness.path(link_rel);
     match create_file_symlink(&outside_file, &link_path) {
         Ok(()) => {}
+        // WINDOWS-REMNANT
         Err(error) if cfg!(windows) => {
             eprintln!("Skipping Windows symlink apply_patch sandbox test: {error}");
             return Ok(());
@@ -1371,6 +1375,7 @@ async fn apply_patch_cli_preserves_existing_hard_link_outside_workspace() -> Res
         .await?;
 
     let out = harness.apply_patch_output(call_id).await;
+    // WINDOWS-REMNANT
     if cfg!(windows) {
         assert!(
             out.contains("patch rejected: writing outside of the project"),
@@ -1579,6 +1584,7 @@ async fn apply_patch_cli_can_use_exec_command_output_as_patch_input() -> Result<
             let call_num = self.num_calls.fetch_add(1, Ordering::SeqCst);
             match call_num {
                 0 => {
+                    // WINDOWS-REMNANT
                     let command = if cfg!(windows) {
                         // Encode the nested PowerShell script so `cmd.exe /c` does not leave the
                         // read command wrapped in quotes, and suppress progress records so the

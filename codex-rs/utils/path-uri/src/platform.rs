@@ -29,6 +29,7 @@ impl Platform {
             Self::Linux
         } else if cfg!(target_os = "macos") {
             Self::Macos
+        // WINDOWS-REMNANT
         } else if cfg!(target_os = "windows") {
             Self::Windows
         } else {

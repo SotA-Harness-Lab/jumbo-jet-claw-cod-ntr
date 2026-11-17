@@ -45,6 +45,7 @@ async fn forwarder_runs_commands_and_transfers_files() -> Result<()> {
         ("forward-failure", "nonzero output", 7),
     ] {
         let process_id = ProcessId::from(process_id);
+        // WINDOWS-REMNANT
         let argv = if cfg!(windows) {
             vec![
                 "cmd.exe".to_string(),

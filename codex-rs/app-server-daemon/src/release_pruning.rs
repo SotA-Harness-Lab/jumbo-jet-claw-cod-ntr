@@ -6,6 +6,7 @@ use std::path::Path;
 
 use anyhow::Context;
 use anyhow::Result;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use windows_sys::Win32::Storage::FileSystem as winfs;
 
@@ -34,6 +35,7 @@ fn selection_identity(current: &Path) -> Result<String> {
     ))
 }
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 fn selection_identity(current: &Path) -> Result<String> {
     use std::os::windows::fs::OpenOptionsExt;
@@ -98,6 +100,7 @@ fn owned_mount(path: &Path) -> Result<u64> {
         meta.is_dir() || meta.is_file(),
         "not an ordinary package entry"
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;

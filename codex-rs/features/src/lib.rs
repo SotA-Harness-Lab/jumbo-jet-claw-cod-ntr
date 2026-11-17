@@ -1224,6 +1224,7 @@ pub const FEATURES: &[FeatureSpec] = &[
         id: Feature::SecretAuthStorage,
         key: "secret_auth_storage",
         stage: Stage::Stable,
+        // WINDOWS-REMNANT
         default_enabled: cfg!(windows),
     },
     FeatureSpec {

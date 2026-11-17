@@ -23,8 +23,10 @@ use tempfile::TempDir;
 use test_case::test_case;
 use tokio::time::timeout;
 
+// WINDOWS-REMNANT
 #[cfg(windows)]
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(25);
+// WINDOWS-REMNANT
 #[cfg(not(windows))]
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 const INSTALLED_MARKETPLACES_DIR: &str = ".tmp/marketplaces";

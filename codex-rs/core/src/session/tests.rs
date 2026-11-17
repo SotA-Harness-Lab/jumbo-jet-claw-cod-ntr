@@ -166,6 +166,7 @@ use codex_history::InitialHistory;
 use codex_history::ResponseItemEnvelope;
 use codex_history::ResumedHistory;
 use codex_history::RolloutItem;
+// WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_network_proxy::ManagedProxyRouting;
 use codex_network_proxy::NetworkProxyConfig;
@@ -1282,6 +1283,7 @@ async fn new_turn_refreshes_managed_network_proxy_for_sandbox_change() -> anyhow
             .session_configuration
             .set_permission_profile_for_tests(initial_permission_profile)
             .expect("test setup should allow permission profile");
+        // WINDOWS-REMNANT
         #[cfg(windows)]
         {
             state.session_configuration.windows_sandbox_type = SandboxType::WindowsMxc;
@@ -1312,6 +1314,7 @@ async fn new_turn_refreshes_managed_network_proxy_for_sandbox_change() -> anyhow
         started_proxy.proxy().current_cfg().await?.allowed_domains(),
         Some(vec!["*.example.com".to_string()])
     );
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     {
         assert_eq!(
@@ -1644,8 +1647,10 @@ async fn user_shell_commands_do_not_inherit_managed_network_proxy() -> anyhow::R
     let turn_context = session.new_default_turn().await;
     assert!(turn_context.network.is_some());
 
+    // WINDOWS-REMNANT
     #[cfg(windows)]
     let command = r#"$val = $env:HTTP_PROXY; if ([string]::IsNullOrEmpty($val)) { $val = 'not-set' } ; [System.Console]::Write($val)"#.to_string();
+    // WINDOWS-REMNANT
     #[cfg(not(windows))]
     let command = r#"sh -c "printf '%s' \"${HTTP_PROXY:-not-set}\"""#.to_string();
 
@@ -5754,6 +5759,7 @@ async fn active_profile_update_rebuilds_network_proxy_config(
     Ok(())
 }
 
+// WINDOWS-REMNANT
 #[cfg_attr(windows, ignore)]
 #[tokio::test]
 async fn new_default_turn_uses_config_aware_skills_for_role_overrides() {
@@ -6510,6 +6516,7 @@ async fn mcp_runtime_keeps_local_backend_without_a_selected_local_environment() 
     );
     assert_eq!(
         runtime.config.environment_use_mxc,
+        // WINDOWS-REMNANT
         HashMap::from([(DEFAULT_MCP_SERVER_ENVIRONMENT_ID.to_string(), cfg!(windows))])
     );
 }
@@ -10311,6 +10318,7 @@ async fn capability_discovery_uses_environment_permission_profile() {
         workspace_roots: environment.workspace_roots().to_vec(),
         user_home_dir: environment.user_home_dir.clone(),
         temporary_directories: environment.temporary_directories.clone(),
+        // WINDOWS-REMNANT
         windows_sandbox_selection: if cfg!(windows) {
             codex_file_system::WindowsSandboxSelection::Elevated
         } else {
