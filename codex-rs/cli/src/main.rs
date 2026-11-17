@@ -2189,9 +2189,10 @@ async fn run_debug_prompt_input_command(
         });
     }
 
-    let user_instructions_provider = Arc::new(CodexHomeUserInstructionsProvider::new(
-        config.codex_home.clone(),
-    ));
+    let user_instructions_provider = Arc::new(
+        CodexHomeUserInstructionsProvider::new(config.codex_home.clone())
+            .with_claude_home(codex_home::default_claude_home()),
+    );
     let auth_manager =
         AuthManager::shared_from_config(&config, /*enable_codex_api_key_env*/ false).await?;
     let mut extensions = codex_extension_api::ExtensionRegistryBuilder::new();

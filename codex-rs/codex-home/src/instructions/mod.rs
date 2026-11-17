@@ -9,6 +9,10 @@ use codex_extension_api::LoadedUserInstructions;
 use codex_extension_api::UserInstructionsProvider;
 use codex_utils_absolute_path::AbsolutePathBuf;
 
+mod claude;
+
+pub use claude::default_claude_home;
+
 const DEFAULT_AGENTS_MD_FILENAME: &str = "AGENTS.md";
 const LOCAL_AGENTS_MD_FILENAME: &str = "AGENTS.override.md";
 
@@ -16,6 +20,8 @@ const LOCAL_AGENTS_MD_FILENAME: &str = "AGENTS.override.md";
 #[derive(Clone, Debug)]
 pub struct CodexHomeUserInstructionsProvider {
     codex_home: AbsolutePathBuf,
+    // Claude Code's configuration directory, when its instructions are shared with Codex.
+    claude_home: Option<AbsolutePathBuf>,
     // Cached instructions and warning history are shared across provider clones.
     state: Arc<Mutex<InstructionsState>>,
 }
@@ -33,13 +39,43 @@ impl CodexHomeUserInstructionsProvider {
     pub fn new(codex_home: AbsolutePathBuf) -> Self {
         Self {
             codex_home,
+            claude_home: None,
             state: Arc::new(Mutex::new(InstructionsState::default())),
         }
+    }
+
+    /// Also loads the user's global Claude Code instructions (`CLAUDE.md` and `rules/`)
+    /// from `claude_home`, appended after Codex's own global AGENTS.md.
+    pub fn with_claude_home(mut self, claude_home: Option<AbsolutePathBuf>) -> Self {
+        self.claude_home = claude_home;
+        self
     }
 
     #[tracing::instrument(name = "instructions.load", skip_all, fields(provider = "global"))]
     async fn load_from_codex_home(&self) -> LoadedUserInstructions {
         let mut warnings = Vec::new();
+        let mut instructions = self.load_agents_md(&mut warnings).await;
+        if let Some(claude_home) = &self.claude_home
+            && let Some(claude) = claude::load(claude_home, &mut warnings).await
+        {
+            instructions = Some(match instructions {
+                Some(own) => Instructions {
+                    text: format!("{}\n\n{}", own.text, claude.text),
+                    source: own.source,
+                },
+                None => Instructions {
+                    text: claude.text,
+                    source: Some(claude.source),
+                },
+            });
+        }
+        LoadedUserInstructions {
+            instructions,
+            warnings,
+        }
+    }
+
+    async fn load_agents_md(&self, warnings: &mut Vec<String>) -> Option<Instructions> {
         for candidate in [LOCAL_AGENTS_MD_FILENAME, DEFAULT_AGENTS_MD_FILENAME] {
             let path = self.codex_home.join(candidate);
             match tokio::fs::metadata(path.as_path()).await {
@@ -68,19 +104,13 @@ impl CodexHomeUserInstructionsProvider {
             let contents = String::from_utf8_lossy(&data);
             let trimmed = contents.trim();
             if !trimmed.is_empty() {
-                return LoadedUserInstructions {
-                    instructions: Some(Instructions {
-                        text: trimmed.to_string(),
-                        source: Some(path),
-                    }),
-                    warnings,
-                };
+                return Some(Instructions {
+                    text: trimmed.to_string(),
+                    source: Some(path),
+                });
             }
         }
-        LoadedUserInstructions {
-            instructions: None,
-            warnings,
-        }
+        None
     }
 }
 

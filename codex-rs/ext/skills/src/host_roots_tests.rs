@@ -341,6 +341,7 @@ fn layer_roots_preserve_scope_precedence_and_disabled_projects() {
             (SkillScope::Repo, project_folder.join("skills")),
             (SkillScope::User, user_folder.join("skills")),
             (SkillScope::User, home_folder.join(".agents/skills")),
+            (SkillScope::User, home_folder.join(".claude/skills")),
             (SkillScope::System, user_folder.join("skills/.system")),
             (SkillScope::Admin, system_folder.join("skills")),
         ]
@@ -991,6 +992,11 @@ async fn resolved_config_and_repo_roots_preserve_order_and_dedupe_paths_not_name
     );
     let user_skill = write_skill(&user_skills, "user-duplicate", "duplicate-skill");
     let home_skill = write_skill(&home_folder.join(".agents/skills"), "home", "home-skill");
+    let claude_skill = write_skill(
+        &home_folder.join(".claude/skills"),
+        "claude",
+        "claude-skill",
+    );
     let system_skill = write_skill(&codex_home.join("skills/.system"), "system", "system-skill");
     let admin_skill = write_skill(&system_folder.join("skills"), "admin", "admin-skill");
     let repo_agent_skill = write_skill(
@@ -1027,7 +1033,7 @@ async fn resolved_config_and_repo_roots_preserve_order_and_dedupe_paths_not_name
         /*empty_remote_roots*/ None,
     )
     .await;
-    assert_eq!(roots.len(), 8);
+    assert_eq!(roots.len(), 9);
     let outcome = load_and_merge_host_skill_roots(
         roots,
         &Semaphore::new(MAX_CONCURRENT_ROOT_SCANS),
@@ -1043,6 +1049,7 @@ async fn resolved_config_and_repo_roots_preserve_order_and_dedupe_paths_not_name
             expected_skill(nested_project_skill, "duplicate-skill", SkillScope::Repo),
             expected_skill(nested_agent_skill, "nested-agent-skill", SkillScope::Repo),
             expected_skill(repo_agent_skill, "repo-agent-skill", SkillScope::Repo),
+            expected_skill(claude_skill, "claude-skill", SkillScope::User),
             expected_skill(user_skill, "duplicate-skill", SkillScope::User),
             expected_skill(home_skill, "home-skill", SkillScope::User),
             expected_skill(system_skill, "system-skill", SkillScope::System),

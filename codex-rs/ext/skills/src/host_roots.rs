@@ -26,6 +26,8 @@ use crate::loader::HostSkillRoot;
 
 const AGENTS_DIR_NAME: &str = ".agents";
 const SKILLS_DIR_NAME: &str = "skills";
+const CLAUDE_DIR_NAME: &str = ".claude";
+const CLAUDE_COMPAT_ENV: &str = "CODEX_CLAUDE_COMPAT";
 const MAX_CONCURRENT_ANCESTOR_PROBES: usize = 8;
 
 #[derive(Default)]
@@ -69,7 +71,7 @@ pub(crate) async fn resolve_skill_roots<'a>(
 ) -> Vec<HostSkillRoot<'a>> {
     let home_dir =
         home_dir().and_then(|path| AbsolutePathBuf::from_absolute_path_checked(path).ok());
-    resolve_skill_roots_with_home_dir(
+    let mut roots = resolve_skill_roots_with_home_dir(
         repository_file_system,
         host,
         config_layer_stack,
@@ -80,7 +82,21 @@ pub(crate) async fn resolve_skill_roots<'a>(
         extra_skill_roots,
         empty_remote_roots,
     )
-    .await
+    .await;
+    if !claude_compat_enabled()
+        && let Some(home_dir) = &home_dir
+    {
+        let claude_skills = home_dir.join(CLAUDE_DIR_NAME).join(SKILLS_DIR_NAME);
+        roots.retain(|root| root.path != claude_skills);
+    }
+    roots
+}
+
+/// Whether the Claude Code skills of the real home directory are shared with Codex: on
+/// unless `CODEX_CLAUDE_COMPAT=0`. Unit tests, which resolve roots against the real home
+/// directory, never see them.
+fn claude_compat_enabled() -> bool {
+    !cfg!(test) && std::env::var_os(CLAUDE_COMPAT_ENV).is_none_or(|value| value != "0")
 }
 
 #[expect(
@@ -159,6 +175,13 @@ fn roots_from_layer_stack<'a>(
                 if let Some(home_dir) = home_dir {
                     roots.push(HostSkillRoot::host(
                         home_dir.join(AGENTS_DIR_NAME).join(SKILLS_DIR_NAME),
+                        SkillScope::User,
+                        host,
+                    ));
+                    // Claude Code compatibility: the user's Claude Code skills are
+                    // discovered where they are, after `~/.agents/skills`.
+                    roots.push(HostSkillRoot::host(
+                        home_dir.join(CLAUDE_DIR_NAME).join(SKILLS_DIR_NAME),
                         SkillScope::User,
                         host,
                     ));

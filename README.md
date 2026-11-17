@@ -71,6 +71,12 @@ Run `codex` and select **Sign in with ChatGPT**. We recommend signing into your 
 
 You can also use Codex with an API key, but this requires [additional setup](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
 
+## Claude Code compatibility
+
+This fork uses the global Claude Code configuration in place: the skills under `~/.claude/skills`
+and the instructions in `~/.claude/CLAUDE.md` and `~/.claude/rules/` are read where they are, and
+an edit there reaches Codex without a sync step. See [Claude Code compatibility](./docs/claude-compat.md).
+
 ## Docs
 
 - [**Codex Documentation**](https://developers.openai.com/codex)
