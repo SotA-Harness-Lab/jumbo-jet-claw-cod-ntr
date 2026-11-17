@@ -24,6 +24,25 @@ environment turns the whole mode off.
 - A short preamble tells the model that these instructions come from Claude Code, that `/<name>`
   means the skill of that name, and that the hooks they mention do not run in Codex.
 
+## Skill frontmatter
+
+Codex reads these Claude Code fields of `SKILL.md`, in skills from any root:
+
+| Field | In Codex |
+| --- | --- |
+| `disable-model-invocation: true` | The skill is not offered to the model; `$<name>` still runs it. An explicit `allow_implicit_invocation` in the skill's `agents/openai.yaml` wins |
+| `description` missing or empty | The first non-empty line of the body stands in, cut to 100 characters |
+| `when_to_use` | Appended to the description as ` - <text>` |
+
+To hide a Claude Code skill from Codex altogether (one that only makes sense in Claude Code,
+or one that duplicates a Codex skill), disable it in `config.toml`:
+
+```toml
+[[skills.config]]
+name = "<SKILL_NAME>"
+enabled = false
+```
+
 ## What is not shared
 
 - Hooks, permissions and other entries of Claude Code's `settings.json`. A rule that Claude Code
@@ -31,7 +50,8 @@ environment turns the whole mode off.
 - Subagents, slash commands, plugins and MCP servers. Codex's own `/import` copies those once.
 - Project files. To read a repository's `CLAUDE.md`, set
   `project_doc_fallback_filenames = ["CLAUDE.md"]` in `config.toml`.
-- Skill frontmatter that only Claude Code knows, such as `disable-model-invocation`, is ignored.
+- Other skill frontmatter (`allowed-tools`, `model`, `context`, `hooks`, `arguments` and the
+  like) is ignored; `$ARGUMENTS` and other substitutions in a skill's body are not expanded.
 
 ## Size
 
