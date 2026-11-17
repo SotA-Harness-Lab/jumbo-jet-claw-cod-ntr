@@ -208,3 +208,106 @@ async fn invalid_utf8_is_lossy() {
         )
     );
 }
+
+fn provider_with_claude(
+    home: &TempDir,
+    claude_home: &TempDir,
+) -> CodexHomeUserInstructionsProvider {
+    provider(home).with_claude_home(Some(
+        AbsolutePathBuf::try_from(claude_home.path().to_path_buf()).expect("absolute temp dir"),
+    ))
+}
+
+#[tokio::test]
+async fn claude_instructions_follow_agents_md_and_track_edits() {
+    let home = TempDir::new().expect("temp dir");
+    let claude_home = TempDir::new().expect("temp dir");
+    let rules = claude_home.path().join("rules");
+    fs::create_dir_all(rules.join("nested")).expect("create rules");
+    fs::write(home.path().join(DEFAULT_AGENTS_MD_FILENAME), "codex rule").expect("write");
+    fs::write(claude_home.path().join("CLAUDE.md"), "claude rule\n").expect("write");
+    fs::write(
+        rules.join("b.md"),
+        "---\npaths: [\"**/*.ipynb\"]\n---\n\nnotebook rule\n",
+    )
+    .expect("write");
+    fs::write(rules.join("a.md"), "plain rule").expect("write");
+    fs::write(
+        rules.join("nested/c.md"),
+        "---\npaths:\n  - \"src/**\"\n  - \"*.rs\"\n---\nlisted rule",
+    )
+    .expect("write");
+    fs::write(rules.join("notes.txt"), "not a rule").expect("write");
+    let provider = provider_with_claude(&home, &claude_home);
+
+    let loaded = provider.load_user_instructions().await;
+    let instructions = loaded.instructions.expect("instructions");
+    let claude_md = claude_home.path().join("CLAUDE.md");
+    let expected_tail = format!(
+        "## {}\n\nclaude rule\n\n\
+         ## {}\n\nplain rule\n\n\
+         ## {}\n\nApplies only when working with files matching: [\"**/*.ipynb\"]\n\nnotebook rule\n\n\
+         ## {}\n\nApplies only when working with files matching: \"src/**\", \"*.rs\"\n\nlisted rule",
+        claude_md.display(),
+        rules.join("a.md").display(),
+        rules.join("b.md").display(),
+        rules.join("nested/c.md").display(),
+    );
+    assert!(instructions.text.starts_with("codex rule\n\n"));
+    assert!(
+        instructions.text.ends_with(&expected_tail),
+        "{}",
+        instructions.text
+    );
+    assert_eq!(
+        instructions.source.as_ref().map(AbsolutePathBuf::as_path),
+        Some(home.path().join(DEFAULT_AGENTS_MD_FILENAME).as_path())
+    );
+    assert_eq!(loaded.warnings, Vec::<String>::new());
+
+    // An edit or a removal on the Claude Code side shows at the next load.
+    fs::write(&claude_md, "changed rule").expect("write");
+    fs::remove_file(rules.join("a.md")).expect("remove");
+    let text = provider
+        .load_user_instructions()
+        .await
+        .instructions
+        .expect("instructions")
+        .text;
+    assert!(text.contains("changed rule") && !text.contains("claude rule"));
+    assert!(!text.contains("plain rule"));
+}
+
+#[tokio::test]
+async fn claude_instructions_alone_report_claude_md_as_source() {
+    let home = TempDir::new().expect("temp dir");
+    let claude_home = TempDir::new().expect("temp dir");
+    fs::write(claude_home.path().join("CLAUDE.md"), "claude rule").expect("write");
+
+    let loaded = provider_with_claude(&home, &claude_home)
+        .load_user_instructions()
+        .await;
+
+    let instructions = loaded.instructions.expect("instructions");
+    assert!(instructions.text.ends_with("claude rule"));
+    assert_eq!(
+        instructions.source.as_ref().map(AbsolutePathBuf::as_path),
+        Some(claude_home.path().join("CLAUDE.md").as_path())
+    );
+}
+
+#[tokio::test]
+async fn missing_claude_home_leaves_instructions_unchanged() {
+    let home = TempDir::new().expect("temp dir");
+    let claude_home = TempDir::new().expect("temp dir");
+    fs::write(home.path().join(DEFAULT_AGENTS_MD_FILENAME), "codex rule").expect("write");
+
+    let loaded = provider_with_claude(&home, &claude_home)
+        .load_user_instructions()
+        .await;
+
+    assert_eq!(
+        loaded,
+        expected(&home, DEFAULT_AGENTS_MD_FILENAME, "codex rule", Vec::new())
+    );
+}

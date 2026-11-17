@@ -405,9 +405,10 @@ impl MessageProcessor {
                         turn_start_admission: Some(Arc::clone(&turn_start_admission)),
                     },
                 ),
-                Arc::new(CodexHomeUserInstructionsProvider::new(
-                    config.codex_home.clone(),
-                )),
+                Arc::new(
+                    CodexHomeUserInstructionsProvider::new(config.codex_home.clone())
+                        .with_claude_home(codex_home::default_claude_home()),
+                ),
                 Some(analytics_events_client.clone()),
                 codex_core::passthrough_image_store(),
                 Arc::clone(&thread_store),
