@@ -6,9 +6,6 @@ use codex_utils_pty::Child;
 use codex_utils_pty::Command;
 
 #[cfg(windows)]
-mod windows;
-
-#[cfg(windows)]
 pub(super) type Stdin = tokio::net::windows::named_pipe::NamedPipeServer;
 #[cfg(windows)]
 pub(super) type Stdout = tokio::net::windows::named_pipe::NamedPipeServer;

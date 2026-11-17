@@ -87,11 +87,6 @@ pub use crate::transport::StreamResponse;
 pub use crate::transport::bounded_response_bytes;
 
 #[cfg(windows)]
-mod windows_proxy_auth;
-#[cfg(windows)]
-mod windows_tls;
-
-#[cfg(windows)]
 pub use crate::windows_proxy_auth::WindowsProxyTls;
 #[cfg(windows)]
 pub use crate::windows_proxy_auth::connect_windows_proxy;

@@ -224,7 +224,7 @@ pub fn prepare_elevated_sandbox(
     )
 }
 
-#[cfg(any(target_os = "windows", test))]
+#[cfg(target_os = "windows")]
 fn provisioning_settings(
     network: Option<&crate::config::NetworkProxySpec>,
 ) -> std::io::Result<codex_windows_sandbox::WindowsSandboxProvisioningSettings> {

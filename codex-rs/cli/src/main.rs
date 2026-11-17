@@ -74,8 +74,6 @@ mod migrate_rollouts;
 mod plugin_cmd;
 mod queue_cmd;
 mod remote_control_cmd;
-#[cfg(target_os = "windows")]
-mod sandbox_setup;
 mod sandbox_uninstall;
 mod state_db_recovery;
 #[cfg(not(windows))]

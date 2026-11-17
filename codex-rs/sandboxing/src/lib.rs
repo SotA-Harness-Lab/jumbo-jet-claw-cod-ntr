@@ -12,8 +12,7 @@ mod spawn;
 mod terminal_queries;
 mod violation;
 mod windows;
-#[cfg(windows)]
-mod windows_mxc;
+mod windows_deny_read;
 
 #[cfg(target_os = "linux")]
 pub use bwrap::find_executable_in_search_paths;
@@ -23,11 +22,8 @@ pub use bwrap::find_pre_sandbox_executable_in_path;
 pub use bwrap::find_system_bwrap_in_path;
 #[cfg(target_os = "linux")]
 pub use bwrap::system_bwrap_warning;
-pub use codex_mxc_sandbox::CODEX_WINDOWS_MXC_ARG1;
-pub use codex_mxc_sandbox::is_available as windows_mxc_available;
-pub use codex_mxc_sandbox::run_main as run_windows_mxc_main;
+pub use codex_protocol::config_types::WindowsSandboxProxySettingsMode;
 pub use codex_protocol::permissions::compatibility_sandbox_policy_for_permission_profile;
-pub use codex_windows_sandbox::WindowsSandboxProxySettingsMode;
 pub use denial::is_likely_executor_managed_sandbox_denied;
 pub use denial::is_likely_sandbox_denied;
 pub use linux_pid_namespace::LinuxSandboxPidNamespace;
@@ -65,6 +61,12 @@ pub use windows::resolve_windows_restricted_token_filesystem_overrides;
 pub use windows::windows_sandbox_uses_elevated_backend;
 
 use codex_protocol::error::CodexErr;
+
+/// Whether the native Windows MXC sandbox can be used. It is a Windows backend, which
+/// this fork does not build, so it never is.
+pub fn windows_mxc_available() -> bool {
+    false
+}
 
 #[cfg(not(target_os = "linux"))]
 pub fn system_bwrap_warning(

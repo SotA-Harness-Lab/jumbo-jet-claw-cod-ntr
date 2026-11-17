@@ -515,48 +515,9 @@ impl SandboxManager {
         match backend {
             SandboxType::None => unreachable!("native launch returned above"),
             SandboxType::WindowsMxc => {
-                if !codex_mxc_sandbox::is_available() {
-                    return Err(SandboxTransformError::WindowsMxcPreparation(
-                        "native MXC is unavailable on this executor".into(),
-                    ));
-                }
-                let route = match managed_network {
-                    None if request.enforce_managed_network => {
-                        let proxy = network.ok_or_else(|| {
-                            SandboxTransformError::WindowsMxcPreparation(
-                                "managed networking requires an executor-local proxy".to_string(),
-                            )
-                        })?;
-                        let prepared = proxy
-                            .prepare_for_optional_environment(exec.env, request.environment_id)
-                            .map_err(|err| {
-                                SandboxTransformError::EnvironmentNetworkProxy(err.to_string())
-                            })?;
-                        exec.env = prepared.env;
-                        Some(prepared.sandbox_context)
-                    }
-                    route => route,
-                };
-                let pending = pending?;
-                exec.permission_profile = pending.effective_permission_profile;
-                let exe = request.sandbox_exe.ok_or_else(|| {
-                    SandboxTransformError::WindowsMxcPreparation(
-                        "missing Codex executable path".into(),
-                    )
-                })?;
-                let args = codex_mxc_sandbox::create_command_args(
-                    codex_mxc_sandbox::CreateMxcCommandArgsParams {
-                        command: std::mem::take(&mut exec.command),
-                        permission_profile: &exec.permission_profile,
-                        sandbox_policy_cwd: &pending.native_sandbox_policy_cwd,
-                        managed_network: route.as_ref(),
-                        env: &mut exec.env,
-                    },
-                )
-                .map_err(|err| SandboxTransformError::WindowsMxcPreparation(err.to_string()))?;
-                exec.command = std::iter::once(exe.to_string_lossy().into_owned())
-                    .chain(args)
-                    .collect();
+                return Err(SandboxTransformError::WindowsMxcPreparation(
+                    "native MXC is unavailable on this executor".into(),
+                ));
             }
             #[cfg(target_os = "macos")]
             SandboxType::MacosSeatbelt => {

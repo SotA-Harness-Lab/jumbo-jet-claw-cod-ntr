@@ -8,8 +8,6 @@ use std::time::UNIX_EPOCH;
 
 #[cfg(unix)]
 mod unix;
-#[cfg(windows)]
-mod windows;
 
 #[cfg(unix)]
 use unix as imp;

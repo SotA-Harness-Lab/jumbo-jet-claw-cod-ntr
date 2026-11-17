@@ -13,8 +13,6 @@ mod dummy;
 mod linux_inhibitor;
 #[cfg(target_os = "macos")]
 mod macos;
-#[cfg(target_os = "windows")]
-mod windows_inhibitor;
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 use dummy as imp;

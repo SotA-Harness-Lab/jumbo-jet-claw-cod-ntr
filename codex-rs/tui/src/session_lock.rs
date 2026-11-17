@@ -10,8 +10,6 @@ use std::pin::Pin;
 mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
-#[cfg(windows)]
-mod windows;
 
 #[cfg(target_os = "macos")]
 use macos::is_locked;

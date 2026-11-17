@@ -17,10 +17,6 @@ pub use pty::ChildFds;
 mod tests;
 #[cfg(unix)]
 mod unix_io;
-#[cfg(windows)]
-mod win;
-#[cfg(windows)]
-mod windows_input;
 
 pub const DEFAULT_OUTPUT_BYTES_CAP: usize = 1024 * 1024;
 

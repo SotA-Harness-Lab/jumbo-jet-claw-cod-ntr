@@ -854,10 +854,6 @@ mod imp {
     }
 }
 
-#[cfg(windows)]
-#[path = "terminal_probe/windows.rs"]
-mod imp;
-
 #[cfg(any(unix, windows, test))]
 fn parse_osc_color(buffer: &[u8], slot: u8) -> Option<(u8, u8, u8)> {
     let prefix = format!("\x1B]{slot};");

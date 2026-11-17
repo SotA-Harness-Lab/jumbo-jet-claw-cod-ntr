@@ -67,7 +67,4 @@ pub(super) fn replacement(path: &Path) -> io::Result<tempfile::NamedTempFile<Fil
 }
 
 #[cfg(windows)]
-#[path = "storage_file_windows.rs"]
-mod windows;
-#[cfg(windows)]
 pub(super) use windows::replacement;

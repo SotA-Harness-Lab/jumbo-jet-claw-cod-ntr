@@ -11,8 +11,6 @@ mod tests;
 #[cfg(test)]
 #[path = "projectless_directory_tests.rs"]
 mod projectless_directory_tests;
-#[cfg(windows)]
-mod windows;
 
 pub use application::LocalApplicationRequirements;
 pub use application::load_local_application_requirements;

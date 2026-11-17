@@ -1,7 +1,5 @@
 #[cfg(target_os = "macos")]
 mod mac;
-#[cfg(target_os = "windows")]
-mod windows;
 
 /// Run the app install/open logic for the current OS.
 #[cfg(target_os = "macos")]

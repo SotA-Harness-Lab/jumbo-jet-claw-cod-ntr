@@ -276,7 +276,3 @@ impl super::MouseCapture {
 #[cfg(test)]
 #[path = "alternate_screen_tests.rs"]
 mod tests;
-
-#[cfg(all(test, windows))]
-#[path = "alternate_screen_windows_tests.rs"]
-mod windows_tests;

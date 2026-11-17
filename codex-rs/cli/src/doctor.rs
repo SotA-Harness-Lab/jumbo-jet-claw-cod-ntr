@@ -89,8 +89,6 @@ mod system;
 mod thread_inventory;
 mod title;
 mod updates;
-#[cfg(target_os = "windows")]
-mod windows_dev_drive;
 
 #[cfg(test)]
 #[path = "doctor/desktop_tests.rs"]

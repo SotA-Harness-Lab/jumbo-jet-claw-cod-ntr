@@ -871,10 +871,6 @@ fn force_terminate_process(pid: u32) -> Result<()> {
 #[cfg(windows)]
 use force_terminate_process as terminate_process;
 
-#[cfg(windows)]
-#[path = "pid_windows.rs"]
-mod windows;
-
 #[cfg(any(unix, windows))]
 #[path = "pid_start.rs"]
 mod start;

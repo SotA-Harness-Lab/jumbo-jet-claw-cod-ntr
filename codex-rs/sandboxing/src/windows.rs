@@ -127,7 +127,7 @@ pub fn resolve_windows_restricted_token_filesystem_overrides(
         .resolve_for_enforcement(sandbox_policy_cwd, FileSystemPolicyProjection::Native)
         .map_err(|err| err.to_string())?;
     let additional_deny_read_paths =
-        codex_windows_sandbox::expand_windows_deny_read_paths(&resolved, sandbox_policy_cwd)?;
+        crate::windows_deny_read::expand_windows_deny_read_paths(&resolved, sandbox_policy_cwd)?;
     if !additional_deny_read_paths.is_empty() {
         return Err(
             "windows unelevated restricted-token sandbox cannot enforce deny-read restrictions directly; refusing to run unsandboxed"
@@ -242,7 +242,7 @@ pub fn resolve_windows_elevated_filesystem_overrides(
         .resolve_for_enforcement(sandbox_policy_cwd, FileSystemPolicyProjection::Native)
         .map_err(|err| err.to_string())?;
     let additional_deny_read_paths =
-        codex_windows_sandbox::expand_windows_deny_read_paths(&resolved, sandbox_policy_cwd)?;
+        crate::windows_deny_read::expand_windows_deny_read_paths(&resolved, sandbox_policy_cwd)?;
 
     let split_writable_roots = resolved.writable_roots;
     if has_reopened_writable_descendant(&split_writable_roots) {
@@ -398,7 +398,3 @@ fn has_reopened_writable_descendant(writable_roots: &[WritableRoot]) -> bool {
             })
     })
 }
-
-#[cfg(all(test, target_os = "windows"))]
-#[path = "windows_tests.rs"]
-mod tests;

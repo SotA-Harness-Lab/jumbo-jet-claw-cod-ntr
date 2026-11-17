@@ -364,12 +364,4 @@ mod platform {
 mod lib_tests;
 
 #[cfg(windows)]
-mod windows_security;
-
-#[cfg(windows)]
-mod windows_socket_validation;
-#[cfg(windows)]
 pub use windows_socket_validation::validate_private_socket_path;
-
-#[cfg(windows)]
-mod windows_peer;
