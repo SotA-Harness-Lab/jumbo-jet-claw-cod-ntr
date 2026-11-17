@@ -73,9 +73,11 @@ You can also use Codex with an API key, but this requires [additional setup](htt
 
 ## Claude Code compatibility
 
-This fork uses the global Claude Code configuration in place: the skills under `~/.claude/skills`
-and the instructions in `~/.claude/CLAUDE.md` and `~/.claude/rules/` are read where they are, and
-an edit there reaches Codex without a sync step. See [Claude Code compatibility](./docs/claude-compat.md).
+This fork uses the Claude Code configuration in place, the user's and the project's: skills,
+`CLAUDE.md` files and rules (those limited by `paths:` when a matching file is worked on), auto
+memory, the hooks, `env` and Bash permissions of `settings.json`, subagents and MCP servers are
+read where Claude Code keeps them, and an edit there reaches Codex without a sync step. See
+[Claude Code compatibility](./docs/claude-compat.md) for what maps to what and what is left out.
 
 ## Docs
 

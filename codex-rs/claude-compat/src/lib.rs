@@ -1,0 +1,58 @@
+//! Reading Claude Code's configuration files the way Claude Code does.
+//!
+//! Codex uses these files in place: nothing here writes, copies or converts a file on
+//! disk. The parsing is pure; the loaders reach the filesystem through [`FileSource`], so
+//! that the same code serves the user's home directory and a project on an executor.
+
+mod instructions;
+mod markdown;
+mod mcp;
+mod memory;
+mod rules;
+mod settings;
+mod source;
+mod subagents;
+
+pub use instructions::INSTRUCTIONS_HEADER;
+pub use instructions::InstructionFile;
+pub use instructions::InstructionKind;
+pub use instructions::directory_instructions;
+pub use instructions::file_instructions;
+pub use instructions::load_instruction_file;
+pub use instructions::render_instruction_files;
+pub use instructions::user_instructions;
+pub use markdown::Document;
+pub use markdown::import_paths;
+pub use markdown::parse_document;
+pub use markdown::strip_block_comments;
+pub use mcp::mcp_json_paths;
+pub use mcp::mcp_server_declarations;
+pub use memory::auto_memory_dir;
+pub use memory::auto_memory_project_root;
+pub use memory::truncate_memory_index;
+pub use rules::RuleFile;
+pub use rules::glob_matches;
+pub use rules::load_rules;
+pub use rules::rule_globs;
+pub use settings::BashPrefixRule;
+pub use settings::PermissionDecision;
+pub use settings::bash_prefix_rules;
+pub use settings::read_settings;
+pub use settings::settings_env;
+pub use settings::settings_paths;
+pub use source::FileSource;
+pub use source::LocalFiles;
+pub use source::SourceFuture;
+pub use subagents::Subagent;
+pub use subagents::parse_subagent;
+
+/// Name of Claude Code's configuration directory, in the home directory and in a project.
+pub const CLAUDE_DIR: &str = ".claude";
+
+const COMPAT_ENV: &str = "CODEX_CLAUDE_COMPAT";
+
+/// Whether Claude Code's configuration is shared with Codex: on unless
+/// `CODEX_CLAUDE_COMPAT=0`.
+pub fn enabled() -> bool {
+    std::env::var_os(COMPAT_ENV).is_none_or(|value| value != "0")
+}

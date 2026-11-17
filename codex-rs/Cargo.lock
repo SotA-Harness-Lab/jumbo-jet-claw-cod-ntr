@@ -2002,6 +2002,7 @@ dependencies = [
 name = "codex-agent-roles"
 version = "0.0.0"
 dependencies = [
+ "codex-claude-compat",
  "codex-config",
  "codex-file-system",
  "codex-utils-absolute-path",
@@ -2562,6 +2563,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "codex-claude-compat"
+version = "0.0.0"
+dependencies = [
+ "futures",
+ "ignore",
+ "pretty_assertions",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "codex-cli"
 version = "0.0.0"
 dependencies = [
@@ -3029,6 +3043,7 @@ dependencies = [
  "codex-async-utils",
  "codex-attachment-store",
  "codex-backend-client",
+ "codex-claude-compat",
  "codex-client",
  "codex-code-mode",
  "codex-config",
@@ -3904,6 +3919,7 @@ dependencies = [
 name = "codex-home"
 version = "0.0.0"
 dependencies = [
+ "codex-claude-compat",
  "codex-extension-api",
  "codex-utils-absolute-path",
  "dirs",

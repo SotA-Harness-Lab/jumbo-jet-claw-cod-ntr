@@ -243,17 +243,17 @@ async fn claude_instructions_follow_agents_md_and_track_edits() {
     let loaded = provider.load_user_instructions().await;
     let instructions = loaded.instructions.expect("instructions");
     let claude_md = claude_home.path().join("CLAUDE.md");
+    // Rules limited to some files by `paths:` are not part of the global instructions.
     let expected_tail = format!(
-        "## {}\n\nclaude rule\n\n\
-         ## {}\n\nplain rule\n\n\
-         ## {}\n\nApplies only when working with files matching: [\"**/*.ipynb\"]\n\nnotebook rule\n\n\
-         ## {}\n\nApplies only when working with files matching: \"src/**\", \"*.rs\"\n\nlisted rule",
+        "Contents of {} (user's private global instructions for all projects):\n\nclaude rule\n\n\
+         Contents of {} (user's private global instructions for all projects):\n\nplain rule",
         claude_md.display(),
         rules.join("a.md").display(),
-        rules.join("b.md").display(),
-        rules.join("nested/c.md").display(),
     );
     assert!(instructions.text.starts_with("codex rule\n\n"));
+    assert!(
+        !instructions.text.contains("notebook rule") && !instructions.text.contains("listed rule")
+    );
     assert!(
         instructions.text.ends_with(&expected_tail),
         "{}",

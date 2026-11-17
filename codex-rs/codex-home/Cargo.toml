@@ -11,6 +11,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+codex-claude-compat = { workspace = true }
 codex-extension-api = { workspace = true }
 codex-utils-absolute-path = { workspace = true }
 dirs = { workspace = true }

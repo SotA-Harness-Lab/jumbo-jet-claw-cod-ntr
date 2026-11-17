@@ -2027,6 +2027,14 @@ impl Config {
         for registration in additional_plugin_registrations {
             catalog.register(registration);
         }
+        // Claude Code's MCP servers, below Codex's own servers of the same name.
+        if !cfg!(test) && codex_claude_compat::enabled() {
+            for (name, server) in claude_code_mcp_servers(&self.cwd) {
+                if !self.mcp_servers.get().contains_key(&name) {
+                    catalog.register(McpServerRegistration::from_config(name, server));
+                }
+            }
+        }
         for (name, server) in self.mcp_servers.get() {
             let mut server = server.clone();
             if use_launch_cwds
@@ -4127,8 +4135,42 @@ impl Config {
             .unwrap_or_default();
         let terminal_resize_reflow = resolve_terminal_resize_reflow_config(&cfg);
 
-        let agent_roles =
+        let mut agent_roles =
             load_agent_roles(fs, &cfg, &config_layer_stack, &mut startup_warnings).await?;
+        // Claude Code subagents, the project's over the user's; Codex's own roles win.
+        if !cfg!(test) && codex_claude_compat::enabled() {
+            let mut agents_dirs = Vec::new();
+            if let Some(home) = dirs::home_dir()
+                && let Ok(home) = AbsolutePathBuf::from_absolute_path_checked(home)
+            {
+                agents_dirs.push(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"));
+            }
+            let project_agents = resolved_cwd
+                .join(codex_claude_compat::CLAUDE_DIR)
+                .join("agents");
+            if !agents_dirs.contains(&project_agents) {
+                agents_dirs.push(project_agents);
+            }
+            let mut claude_roles = std::collections::BTreeMap::new();
+            for agents_dir in &agents_dirs {
+                match codex_agent_roles::load_claude_code_agent_roles(
+                    fs,
+                    agents_dir,
+                    &mut startup_warnings,
+                )
+                .await
+                {
+                    Ok(roles) => claude_roles.extend(roles),
+                    Err(err) => startup_warnings.push(format!(
+                        "Failed to read Claude Code subagents in {}: {err}",
+                        agents_dir.display()
+                    )),
+                }
+            }
+            for (name, role) in claude_roles {
+                agent_roles.entry(name).or_insert(role);
+            }
+        }
 
         let openai_base_url = cfg
             .openai_base_url
@@ -4159,7 +4201,9 @@ impl Config {
             })?
             .clone();
 
-        let shell_environment_policy = ShellEnvironmentPolicy::from(cfg.shell_environment_policy);
+        let mut shell_environment_policy =
+            ShellEnvironmentPolicy::from(cfg.shell_environment_policy);
+        add_claude_code_env(&mut shell_environment_policy, &resolved_cwd);
         let allow_login_shell = cfg.allow_login_shell.unwrap_or(true);
 
         let history = cfg.history.unwrap_or_default();
@@ -5406,3 +5450,87 @@ mod config_loader_tests;
 #[cfg(test)]
 #[path = "runtime_auth_tests.rs"]
 mod runtime_auth_tests;
+
+/// Adds the `env` entries of Claude Code's settings files (the user's, then the project's,
+/// later files winning) to the environment of the commands Codex runs. Codex's own
+/// `shell_environment_policy.set` wins over them.
+fn add_claude_code_env(policy: &mut ShellEnvironmentPolicy, cwd: &AbsolutePathBuf) {
+    // Unit tests never read the real home directory's Claude Code settings.
+    if cfg!(test) || !codex_claude_compat::enabled() {
+        return;
+    }
+    let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let mut env = std::collections::HashMap::new();
+    for path in codex_claude_compat::settings_paths(claude_home.as_deref(), Some(cwd.as_path())) {
+        match codex_claude_compat::read_settings(&path) {
+            Ok(Some(settings)) => env.extend(codex_claude_compat::settings_env(&settings)),
+            Ok(None) => {}
+            Err(err) => {
+                tracing::warn!(
+                    "failed to read Claude Code settings {}: {err}",
+                    path.display()
+                );
+            }
+        }
+    }
+    for (name, value) in env {
+        policy.r#set.entry(name).or_insert(value);
+    }
+}
+
+/// The MCP servers Claude Code would start in `cwd`, from `~/.claude.json` and the
+/// project's approved `.mcp.json` files, as Codex server configurations.
+fn claude_code_mcp_servers(
+    cwd: &AbsolutePathBuf,
+) -> std::collections::BTreeMap<String, McpServerConfig> {
+    let read_json = |path: &std::path::Path| match codex_claude_compat::read_settings(path) {
+        Ok(value) => value,
+        Err(err) => {
+            tracing::warn!("failed to read {}: {err}", path.display());
+            None
+        }
+    };
+    let home = dirs::home_dir();
+    let claude_json = home
+        .as_ref()
+        .and_then(|home| read_json(&home.join(".claude.json")));
+    let claude_home = home.map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let settings = codex_claude_compat::settings_paths(claude_home.as_deref(), Some(cwd.as_path()))
+        .iter()
+        .filter_map(|path| read_json(path))
+        .collect::<Vec<_>>();
+    let mcp_json_files = codex_claude_compat::mcp_json_paths(cwd.as_path())
+        .iter()
+        .filter_map(|path| read_json(path))
+        .collect::<Vec<_>>();
+    // `~/.claude.json` keeps a project's servers under its Git root, or under the
+    // directory itself outside a repository.
+    let project_root = cwd
+        .as_path()
+        .ancestors()
+        .find(|dir| dir.join(".git").exists())
+        .unwrap_or(cwd.as_path());
+    let declarations = codex_claude_compat::mcp_server_declarations(
+        claude_json.as_ref(),
+        &settings,
+        &mcp_json_files,
+        project_root,
+        &|name| std::env::var(name).ok(),
+    );
+    if declarations.is_empty() {
+        return std::collections::BTreeMap::new();
+    }
+    let contents = serde_json::json!({ "mcpServers": declarations }).to_string();
+    match codex_mcp::parse_plugin_mcp_config(cwd.as_path(), &contents) {
+        Ok(outcome) => {
+            for error in outcome.errors {
+                tracing::warn!("skipping Claude Code MCP server: {error:?}");
+            }
+            outcome.servers
+        }
+        Err(err) => {
+            tracing::warn!("failed to read Claude Code MCP servers: {err}");
+            std::collections::BTreeMap::new()
+        }
+    }
+}

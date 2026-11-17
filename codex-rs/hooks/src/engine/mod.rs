@@ -1,3 +1,4 @@
+pub(crate) mod claude_settings;
 pub(crate) mod command_runner;
 pub(crate) mod discovery;
 pub(crate) mod dispatcher;
@@ -288,6 +289,7 @@ pub(crate) struct ClaudeHooksEngine {
 }
 
 impl ClaudeHooksEngine {
+    #[cfg(test)]
     pub(crate) fn new(
         enabled: bool,
         bypass_hook_trust: bool,
@@ -296,6 +298,33 @@ impl ClaudeHooksEngine {
         plugin_hook_load_warnings: Vec<String>,
         command_runtime: CommandHookRuntime,
         mcp_executor: Arc<dyn HookMcpExecutor>,
+    ) -> Self {
+        Self::new_with_claude_settings(
+            enabled,
+            bypass_hook_trust,
+            config_layer_stack,
+            plugin_hook_sources,
+            plugin_hook_load_warnings,
+            command_runtime,
+            mcp_executor,
+            /*claude_settings*/ None,
+        )
+    }
+
+    /// Like [`Self::new`], also running the hooks of Claude Code's settings files.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "mirrors new, plus the Claude Code settings to read"
+    )]
+    pub(crate) fn new_with_claude_settings(
+        enabled: bool,
+        bypass_hook_trust: bool,
+        config_layer_stack: Option<&ConfigLayerStack>,
+        plugin_hook_sources: Vec<PluginHookSource>,
+        plugin_hook_load_warnings: Vec<String>,
+        command_runtime: CommandHookRuntime,
+        mcp_executor: Arc<dyn HookMcpExecutor>,
+        claude_settings: Option<&claude_settings::ClaudeHookSettings>,
     ) -> Self {
         if !enabled && plugin_hook_sources.is_empty() {
             return Self {
@@ -310,12 +339,13 @@ impl ClaudeHooksEngine {
         }
 
         let _ = schema_loader::generated_hook_schemas();
-        let mut discovered = discovery::discover_handlers(
+        let mut discovered = discovery::discover_handlers_with_claude_settings(
             config_layer_stack,
             plugin_hook_sources,
             plugin_hook_load_warnings,
             bypass_hook_trust,
             discovery::DiscoveryMode::Runtime,
+            claude_settings,
         );
         if !enabled {
             discovered.handlers.retain(|handler| handler.builtin);

@@ -797,7 +797,11 @@ pub async fn load_exec_policy(config_stack: &ConfigLayerStack) -> Result<Policy,
             })?;
     }
 
-    let policy = parser.build();
+    let mut policy = parser.build();
+    // Unit tests never read the real home directory's Claude Code settings.
+    if !cfg!(test) {
+        add_claude_code_bash_rules(&mut policy);
+    }
     tracing::debug!("loaded rules from {} files", policy_paths.len());
     tracing::trace!(rules = ?policy, "exec policy rules loaded");
 
@@ -806,6 +810,46 @@ pub async fn load_exec_policy(config_stack: &ConfigLayerStack) -> Result<Policy,
     };
 
     Ok(policy.merge_overlay(requirements_policy.as_ref()))
+}
+
+/// Adds the Bash permission rules of the user's Claude Code settings that name a command
+/// prefix: `allow` runs without asking, `ask` asks, `deny` forbids. As everywhere in the
+/// policy, the strictest matching rule wins, as Claude Code's deny over ask over allow.
+fn add_claude_code_bash_rules(policy: &mut Policy) {
+    if !codex_claude_compat::enabled() {
+        return;
+    }
+    let Some(home) = dirs::home_dir() else {
+        return;
+    };
+    let path = home
+        .join(codex_claude_compat::CLAUDE_DIR)
+        .join("settings.json");
+    let settings = match codex_claude_compat::read_settings(&path) {
+        Ok(Some(settings)) => settings,
+        Ok(None) => return,
+        Err(err) => {
+            tracing::warn!(
+                "failed to read Claude Code settings {}: {err}",
+                path.display()
+            );
+            return;
+        }
+    };
+    let (rules, _unsupported) = codex_claude_compat::bash_prefix_rules(&settings);
+    for rule in rules {
+        let decision = match rule.decision {
+            codex_claude_compat::PermissionDecision::Allow => Decision::Allow,
+            codex_claude_compat::PermissionDecision::Ask => Decision::Prompt,
+            codex_claude_compat::PermissionDecision::Deny => Decision::Forbidden,
+        };
+        if let Err(err) = policy.add_prefix_rule(&rule.prefix, decision) {
+            tracing::warn!(
+                "skipping Claude Code permission rule {:?}: {err}",
+                rule.prefix
+            );
+        }
+    }
 }
 
 fn dangerous_command_match_for_origin(

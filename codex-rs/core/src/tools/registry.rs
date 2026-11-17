@@ -1022,6 +1022,11 @@ impl ToolRegistry {
             });
         }
         emit_metric_for_tool_read(&invocation, success);
+        if success {
+            crate::claude_rules::record_for_tool(&invocation)
+                .or_cancel_tool(&cancellation_token)
+                .await?;
+        }
         let post_tool_use_payload = if success {
             result
                 .as_ref()

@@ -36,6 +36,8 @@ use codex_utils_path_uri::PathConvention;
 use codex_utils_path_uri::PathUri;
 use futures::StreamExt;
 use std::io;
+use std::path::Path;
+use std::path::PathBuf;
 use toml::Value as TomlValue;
 use tracing::error;
 
@@ -186,10 +188,198 @@ async fn read_agents_md(
         }
     }
 
+    // Unit tests run against mock filesystems and real ancestor directories; they call
+    // `claude_project_entries` directly instead.
+    if !cfg!(test) && codex_claude_compat::enabled() {
+        loaded
+            .entries
+            .extend(claude_project_entries(fs, environment_id, cwd, sandbox, warnings).await);
+    }
+
     if loaded.is_empty() {
         Ok(None)
     } else {
         Ok(Some(loaded))
+    }
+}
+
+/// Claude Code's project instructions, found as Claude Code finds them: in every directory
+/// from the top of the filesystem down to `cwd`, `CLAUDE.md`, `.claude/CLAUDE.md`, the
+/// rules under `.claude/rules` that are not limited to some files, and `CLAUDE.local.md`.
+/// Unlike AGENTS.md they are not cut to the byte budget, since Claude Code never cuts them.
+async fn claude_project_entries(
+    fs: &dyn ExecutorFileSystem,
+    environment_id: &str,
+    cwd: &PathUri,
+    sandbox: Option<&FileSystemSandboxContext>,
+    warnings: &mut Vec<String>,
+) -> Vec<InstructionEntry> {
+    // An executor with other path conventions than the host's is out of reach.
+    let Ok(cwd_path) = cwd.to_abs_path() else {
+        return Vec::new();
+    };
+    let source = ExecutorFiles { fs, sandbox };
+    let home_dir = dirs::home_dir();
+    let mut directories = cwd_path
+        .as_path()
+        .ancestors()
+        .filter(|directory| directory.parent().is_some())
+        .collect::<Vec<_>>();
+    directories.reverse();
+    let mut seen = std::collections::HashSet::new();
+    let mut entries = Vec::new();
+    for directory in directories {
+        let files = match codex_claude_compat::directory_instructions(
+            &source,
+            directory,
+            home_dir.as_deref(),
+            cwd_path.as_path(),
+            &mut seen,
+        )
+        .await
+        {
+            Ok(files) => files,
+            Err(err) => {
+                warnings.push(format!(
+                    "Failed to read Claude Code instructions in `{}`: {err}",
+                    directory.display()
+                ));
+                continue;
+            }
+        };
+        for file in files {
+            let Ok(path) = AbsolutePathBuf::from_absolute_path_checked(&file.path) else {
+                continue;
+            };
+            entries.push(InstructionEntry {
+                contents: codex_claude_compat::render_instruction_files(std::slice::from_ref(
+                    &file,
+                )),
+                provenance: InstructionProvenance::Project {
+                    source_path: PathUri::from_abs_path(&path),
+                    environment_id: environment_id.to_string(),
+                    cwd: cwd.clone(),
+                },
+            });
+        }
+    }
+    if let Some(file) = auto_memory_index(&source, cwd_path.as_path(), home_dir.as_deref()).await
+        && let Ok(path) = AbsolutePathBuf::from_absolute_path_checked(&file.path)
+    {
+        entries.push(InstructionEntry {
+            contents: codex_claude_compat::render_instruction_files(std::slice::from_ref(&file)),
+            provenance: InstructionProvenance::Project {
+                source_path: PathUri::from_abs_path(&path),
+                environment_id: environment_id.to_string(),
+                cwd: cwd.clone(),
+            },
+        });
+    }
+    entries
+}
+
+/// The index of the project's Claude Code auto memory, cut as Claude Code cuts it.
+async fn auto_memory_index(
+    source: &ExecutorFiles<'_>,
+    cwd: &Path,
+    home_dir: Option<&Path>,
+) -> Option<codex_claude_compat::InstructionFile> {
+    use codex_claude_compat::FileSource as _;
+    let claude_home = home_dir?.join(codex_claude_compat::CLAUDE_DIR);
+    let project_root = codex_claude_compat::auto_memory_project_root(source, cwd)
+        .await
+        .ok()?;
+    let path = codex_claude_compat::auto_memory_dir(&claude_home, &project_root)?.join("MEMORY.md");
+    let contents = source.read(&path).await.ok()??;
+    let content = codex_claude_compat::truncate_memory_index(&contents);
+    (!content.is_empty()).then_some(codex_claude_compat::InstructionFile {
+        path,
+        kind: codex_claude_compat::InstructionKind::AutoMemory,
+        content,
+    })
+}
+
+/// An executor's filesystem as the Claude Code loaders read it. Paths the sandbox keeps
+/// out of reach read as missing.
+struct ExecutorFiles<'a> {
+    fs: &'a dyn ExecutorFileSystem,
+    sandbox: Option<&'a FileSystemSandboxContext>,
+}
+
+impl ExecutorFiles<'_> {
+    fn uri(path: &Path) -> io::Result<PathUri> {
+        let path = AbsolutePathBuf::from_absolute_path_checked(path)?;
+        Ok(PathUri::from_abs_path(&path))
+    }
+}
+
+fn missing_or_denied(err: &io::Error) -> bool {
+    matches!(
+        err.kind(),
+        io::ErrorKind::NotFound | io::ErrorKind::NotADirectory | io::ErrorKind::PermissionDenied
+    )
+}
+
+impl codex_claude_compat::FileSource for ExecutorFiles<'_> {
+    fn read<'a>(&'a self, path: &'a Path) -> codex_claude_compat::SourceFuture<'a, Option<String>> {
+        Box::pin(async move {
+            let uri = Self::uri(path)?;
+            match self
+                .fs
+                .get_metadata(&uri, GetMetadataOptions::default(), self.sandbox)
+                .await
+            {
+                Ok(metadata) if metadata.is_file => {}
+                Ok(_) => return Ok(None),
+                Err(err) if missing_or_denied(&err) => return Ok(None),
+                Err(err) => return Err(err),
+            }
+            match self
+                .fs
+                .read_file(&uri, ReadFileOptions::default(), self.sandbox)
+                .await
+            {
+                Ok(data) => Ok(Some(String::from_utf8_lossy(&data).into_owned())),
+                Err(err) if missing_or_denied(&err) => Ok(None),
+                Err(err) => Err(err),
+            }
+        })
+    }
+
+    fn list<'a>(
+        &'a self,
+        dir: &'a Path,
+    ) -> codex_claude_compat::SourceFuture<'a, Vec<(PathBuf, bool)>> {
+        Box::pin(async move {
+            let uri = Self::uri(dir)?;
+            let entries = match self.fs.read_directory(&uri, self.sandbox).await {
+                Ok(entries) => entries,
+                Err(err) if missing_or_denied(&err) => return Ok(Vec::new()),
+                Err(err) => return Err(err),
+            };
+            let mut listed = Vec::new();
+            for entry in entries {
+                let path = dir.join(&entry.file_name);
+                if entry.is_directory || entry.is_file {
+                    listed.push((path, entry.is_directory));
+                    continue;
+                }
+                // A symlink: follow it, as Claude Code does; a dangling one is skipped.
+                if let Ok(metadata) = self
+                    .fs
+                    .get_metadata(
+                        &Self::uri(&path)?,
+                        GetMetadataOptions::default(),
+                        self.sandbox,
+                    )
+                    .await
+                    && (metadata.is_directory || metadata.is_file)
+                {
+                    listed.push((path, metadata.is_directory));
+                }
+            }
+            Ok(listed)
+        })
     }
 }
 

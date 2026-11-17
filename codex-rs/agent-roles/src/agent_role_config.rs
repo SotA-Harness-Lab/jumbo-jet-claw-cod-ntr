@@ -41,6 +41,25 @@ pub fn parse_agent_role_file_contents(
     config_base_dir: &Path,
     role_name_hint: Option<&str>,
 ) -> std::io::Result<ResolvedAgentRoleFile> {
+    // A Claude Code subagent (`.md`) is read as the role file it amounts to.
+    let converted;
+    let contents = if role_file_label
+        .extension()
+        .is_some_and(|extension| extension == "md")
+    {
+        converted = claude_subagent_role_toml(contents).ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "Claude Code subagent at {} needs a `name`, a `description` and a body",
+                    role_file_label.display()
+                ),
+            )
+        })?;
+        converted.as_str()
+    } else {
+        contents
+    };
     let role_file_toml: TomlValue = toml::from_str(contents).map_err(|err| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -206,4 +225,33 @@ pub(crate) fn normalize_agent_role_nickname_candidates(
     }
 
     Ok(Some(normalized_candidates))
+}
+
+/// The role file a Claude Code subagent amounts to: its name and description, its body as
+/// developer instructions and its `effort` as the reasoning effort. Tools, model and the
+/// other Claude Code fields have no Codex counterpart and are left out.
+fn claude_subagent_role_toml(contents: &str) -> Option<String> {
+    let subagent = codex_claude_compat::parse_subagent(contents)?;
+    let mut table = toml::map::Map::new();
+    table.insert("name".to_string(), TomlValue::String(subagent.name));
+    table.insert(
+        "description".to_string(),
+        TomlValue::String(subagent.description),
+    );
+    table.insert(
+        "developer_instructions".to_string(),
+        TomlValue::String(subagent.prompt),
+    );
+    let effort = match subagent.effort.as_deref() {
+        Some(effort @ ("low" | "medium" | "high")) => Some(effort),
+        Some("max") => Some("xhigh"),
+        _ => None,
+    };
+    if let Some(effort) = effort {
+        table.insert(
+            "model_reasoning_effort".to_string(),
+            TomlValue::String(effort.to_string()),
+        );
+    }
+    toml::to_string(&TomlValue::Table(table)).ok()
 }

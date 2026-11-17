@@ -61,6 +61,7 @@ pub const HOOK_EVENT_NAMES_WITH_MATCHERS: [&str; 9] = [
 ];
 
 pub use context::HookContext;
+pub use engine::claude_settings::ClaudeHookSettings;
 pub use events::compact::PostCompactRequest;
 pub use events::compact::PreCompactOutcome;
 pub use events::compact::PreCompactRequest;
