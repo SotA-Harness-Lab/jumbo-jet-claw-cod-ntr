@@ -4,6 +4,7 @@ mod catalog_delta;
 mod catalog_observability;
 mod catalog_prompt;
 mod catalog_state;
+mod claude_invocation;
 mod config;
 mod dynamic_skill_selector;
 mod extension;

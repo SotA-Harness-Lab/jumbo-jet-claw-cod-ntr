@@ -5041,6 +5041,7 @@ dependencies = [
  "blake3",
  "codex-analytics",
  "codex-attachment-store",
+ "codex-claude-compat",
  "codex-config",
  "codex-core-plugin-common",
  "codex-exec-server",

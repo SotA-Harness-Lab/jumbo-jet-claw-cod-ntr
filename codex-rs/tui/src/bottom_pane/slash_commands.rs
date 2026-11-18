@@ -17,6 +17,27 @@ pub(crate) struct ServiceTierCommand {
     pub(crate) description: String,
 }
 
+/// A skill offered as `/<name>`, as Claude Code offers its skills. Typing `/<name> <args>`
+/// sends the text with the skill attached; built-in commands of the same name win.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct SkillCommand {
+    pub(crate) name: String,
+    pub(crate) description: String,
+}
+
+/// The skill invoked by `/<name>`, unless a built-in or service-tier command has that name.
+pub(crate) fn find_skill_command<'a>(
+    name: &str,
+    flags: BuiltinCommandFlags,
+    service_tier_commands: &[ServiceTierCommand],
+    skill_commands: &'a [SkillCommand],
+) -> Option<&'a SkillCommand> {
+    if find_slash_command(name, flags, service_tier_commands).is_some() {
+        return None;
+    }
+    skill_commands.iter().find(|skill| skill.name == name)
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum SlashCommandItem {
     Builtin(SlashCommand),

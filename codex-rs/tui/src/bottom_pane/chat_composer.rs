@@ -39,6 +39,11 @@
 //! Confirmed `$` picker selections inform future ordering within each match tier.
 //! A cached plugin skill keeps its ranking when its installed version changes.
 //!
+//! Skills are also slash commands, as in Claude Code: once a name is typed after `/`, the
+//! slash popup lists matching skills after the built-in commands (a built-in of the same name
+//! wins). Enter or Tab on a skill completes `/<name> `; Enter on a complete name submits the
+//! draft. `/<name> <args>` passes validation and is sent as text with the skill attached.
+//!
 //! Ordinary prompt undo records the complete draft before each edit. Contiguous typing shares a
 //! step until a pause or cursor move; consecutive Backspaces share their own step until a pause
 //! or another edit. Paste bursts stay open until flushing classifies the input.
@@ -388,6 +393,7 @@ use super::prompt_args::parse_slash_name;
 use super::skill_popup::MentionItem;
 use super::skill_popup::SkillPopup;
 use super::slash_commands::ServiceTierCommand;
+use super::slash_commands::SkillCommand;
 use super::slash_commands::SlashCommandItem;
 use super::voice_strip::VoiceStrip;
 use crate::bottom_pane::StatusLine;
@@ -672,6 +678,8 @@ pub(crate) struct ChatComposer {
     /// prepare their argument text without also double-recording the full command invocation.
     pending_slash_command_history: Option<HistoryEntry>,
     skills: Option<Vec<SkillMetadata>>,
+    /// The skills of `skills`, offered as `/<name>` in the slash-command popup.
+    skill_commands: Vec<SkillCommand>,
     plugins: Option<Vec<PluginCapabilitySummary>>,
     task_mentions: Option<Vec<crate::task_mentions::TaskMention>>,
     connectors_snapshot: Option<ConnectorsSnapshot>,
@@ -751,6 +759,7 @@ impl ChatComposer {
             self.draft.is_bash_mode,
             self.builtin_command_flags(),
             &self.service_tier_commands,
+            &self.skill_commands,
         )
     }
 
@@ -859,6 +868,7 @@ impl ChatComposer {
             queue_submissions: false,
             pending_slash_command_history: None,
             skills: None,
+            skill_commands: Vec::new(),
             plugins: None,
             task_mentions: None,
             connectors_snapshot: None,
@@ -951,6 +961,14 @@ impl ChatComposer {
     }
 
     pub fn set_skill_mentions(&mut self, skills: Option<Vec<SkillMetadata>>) {
+        self.skill_commands = skills
+            .iter()
+            .flatten()
+            .map(|skill| SkillCommand {
+                name: skill.name.clone(),
+                description: skill_description(skill).unwrap_or_default(),
+            })
+            .collect();
         self.skills = skills;
         self.refresh_mentions_v2_popup_candidates();
         self.sync_popups();
@@ -9571,6 +9589,9 @@ mod tests {
                     Some(CommandItem::Builtin(cmd)) => assert_eq!(cmd.command(), expected),
                     Some(CommandItem::ServiceTier(command)) => {
                         panic!("expected {expected} command, got service tier {command:?}")
+                    }
+                    Some(CommandItem::Skill(skill)) => {
+                        panic!("expected {expected} command, got skill {skill:?}")
                     }
                     None => panic!("no selected command for '{input}'"),
                 },

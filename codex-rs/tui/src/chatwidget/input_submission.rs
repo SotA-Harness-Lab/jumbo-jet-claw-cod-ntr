@@ -347,6 +347,18 @@ impl ChatWidget {
         let mut selected_skill_paths = HashSet::new();
         let mut selected_plugin_ids: HashSet<String> = HashSet::new();
 
+        // `/<name> <args>` invokes a skill as in Claude Code: the text is sent as typed, with
+        // the skill attached, and core expands the skill with these arguments.
+        if let Some(skill) = self.slash_invoked_skill(&text)
+            && let Some(path) = skill.path.to_inferred_path_uri()
+            && selected_skill_paths.insert(path)
+        {
+            items.push(UserInput::Skill {
+                name: skill.name.clone(),
+                path: PathBuf::from(skill.path.as_str()),
+            });
+        }
+
         if let Some(skills) = self.bottom_pane.skills() {
             skill_names_lower = skills
                 .iter()

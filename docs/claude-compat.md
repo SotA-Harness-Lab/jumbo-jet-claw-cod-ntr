@@ -118,6 +118,7 @@ Codex reads these Claude Code fields of `SKILL.md`, in skills from any root:
 | `disable-model-invocation: true` | The skill is not offered to the model; `$<name>` still runs it. An explicit `allow_implicit_invocation` in the skill's `agents/openai.yaml` wins |
 | `description` missing or empty | The first non-empty line of the body stands in, cut to 100 characters |
 | `when_to_use` | Appended to the description as ` - <text>` |
+| `arguments` | Names for the arguments of a skill invoked as `/<name> <args>` (see below) |
 
 To hide a Claude Code skill from Codex altogether (one that only makes sense in Claude Code,
 or one that duplicates a Codex skill), disable it in `config.toml`:
@@ -128,11 +129,50 @@ name = "<SKILL_NAME>"
 enabled = false
 ```
 
+## Invoking skills
+
+In the TUI, `/<name> <args>` invokes the skill `<name>` as in Claude Code, for any skill Codex
+lists (Claude Code's and Codex's own). A built-in command of the same name wins. Once a name is
+typed after `/`, the slash popup lists the matching skills after the commands; Enter or Tab
+completes the name. The message is sent as typed, with the skill attached as `$<name>` would
+attach it. This works with `CODEX_CLAUDE_COMPAT=0` too, since such a name was an error before;
+only the expansion below is turned off.
+
+When the skill's `SKILL.md` is a skill on this machine and Codex itself puts it into the
+conversation, it is expanded as Claude Code expands it:
+
+- Invoked as `/<name> <args>` (the message starts with it): the frontmatter is left out and the
+  body is headed `Base directory for this skill: <dir>`. `$ARGUMENTS` becomes the arguments as
+  typed; `$ARGUMENTS[N]` and `$N` the N-th word (counted from 0, split as a shell splits words,
+  with quotes); `$<name>` the word at the position of `<name>` in the `arguments` frontmatter (a
+  list, or names separated by spaces). A placeholder past the last word becomes empty. When the
+  body has no placeholder and arguments were given, they are appended as `ARGUMENTS: <args>`.
+- `${CLAUDE_SKILL_DIR}` becomes the skill's directory and `${CLAUDE_SESSION_ID}` the thread's
+  id, also when the skill is mentioned as `$<name>`. A `$<name>` mention keeps the rest of the
+  text as it is, `$ARGUMENTS` included.
+
+Not done:
+
+- A skill the model opens by itself, reading `SKILL.md` with a shell command, is read as the
+  file is: Codex does not see the read as an invocation, so nothing is expanded. Claude Code
+  expands these too, because its model invokes skills through a Skill tool with arguments.
+- Shell injection (```` ```! ```` blocks and inline ``!`command` ``) is not run: Codex puts the
+  skill into the conversation before the turn starts, where no command runs under the session's
+  sandbox and approval rules. The text stays as written, so the model sees the commands and can
+  run them itself, with the usual approvals.
+- Skills that are not files on this machine (cloud and remote-environment skills) are not
+  expanded. Shell operators and globs in the arguments are kept as words, where Claude Code
+  drops them.
+- `/<name>` is a TUI feature: `codex exec` and other clients attach a skill with `$<name>`.
+  They get the `/<name> <args>` expansion only when they send the text together with the skill
+  as a structured skill input, as the TUI does.
+- `user-invocable: false` does not hide a skill from the slash popup.
+
 ## What is not shared
 
 - Slash commands (`commands/**/*.md`) and plugins.
-- Other skill frontmatter (`allowed-tools`, `model`, `context`, `hooks`, `arguments` and the
-  like) is ignored; `$ARGUMENTS` and other substitutions in a skill's body are not expanded.
+- Other skill frontmatter (`allowed-tools`, `model`, `context`, `hooks`, `user-invocable`,
+  `argument-hint` and the like) is ignored.
 - Managed (enterprise) Claude Code files under `/etc/claude-code`.
 
 ## Size

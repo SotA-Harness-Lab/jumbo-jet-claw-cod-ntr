@@ -1384,7 +1384,12 @@ async fn build_skills_and_plugins(
         injected: injected_host_skills,
         warnings: host_skill_warnings,
     } = skills_snapshot
-        .load_skill_prompts(&mentioned_skills, &accessors)
+        .load_skill_prompts(
+            &mentioned_skills,
+            &accessors,
+            user_input,
+            &sess.thread_id.to_string(),
+        )
         .await;
     emit_explicit_skill_invocations(
         sess,
