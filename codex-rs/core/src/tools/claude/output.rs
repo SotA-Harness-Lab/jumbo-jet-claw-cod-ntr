@@ -13,6 +13,7 @@ pub(crate) struct ClaudeToolOutput {
     text: String,
     is_error: bool,
     tool_response: Value,
+    external_context: bool,
 }
 
 impl ClaudeToolOutput {
@@ -21,6 +22,7 @@ impl ClaudeToolOutput {
             text,
             is_error: false,
             tool_response,
+            external_context: false,
         }
     }
 
@@ -31,7 +33,15 @@ impl ClaudeToolOutput {
             text,
             is_error: true,
             tool_response,
+            external_context: false,
         }
+    }
+
+    /// Marks the result as content from outside the session (a web page, search results),
+    /// as Codex's own web tools do.
+    pub(crate) fn with_external_context(mut self) -> Self {
+        self.external_context = true;
+        self
     }
 }
 
@@ -56,6 +66,10 @@ impl ToolOutput for ClaudeToolOutput {
 
     fn post_tool_use_response(&self, _call_id: &str, _payload: &ToolPayload) -> Option<Value> {
         Some(self.tool_response.clone())
+    }
+
+    fn contains_external_context(&self) -> bool {
+        self.external_context
     }
 
     fn post_tool_use_failure(&self) -> Option<String> {

@@ -142,10 +142,12 @@ in the layer only where the Codex tool has nothing for it.
 | `Read` | `view_image` | Reading through the executor filesystem under the turn's sandbox; images (`png`, `jpg`, `jpeg`, `gif`, `webp`) to `view_image` | Parameters (`file_path`, `offset`, `limit`), `N<TAB>line` numbering from 1, the 256 KB limit without `limit`, the 25,000-token limit, refusal of binary files and directories, the empty-file and short-file reminders, the "file does not exist" message |
 | `Write` | `apply_patch` | Writing, as a patch: approval, sandbox, patch events, the turn's diff | Parameters (`file_path`, `content`), the rule that an existing file is read first and not changed since, messages |
 | `Edit` | `apply_patch` | Writing, as a patch, as for `Write` | Parameters (`file_path`, `old_string`, `new_string`, `replace_all`), exact matching (refused when not found, or found more than once without `replace_all`), the read-first rule, messages |
+| `WebSearch` | `web.run` (standalone search) | The search, its backend and settings (`web_search` mode, location, filters), its events and the TUI | Parameters (`query`, at least 2 characters; `allowed_domains`, sent as the search's domain filter; `blocked_domains`, sent as `-site:` operators in the query; not both), the result text with Claude Code's sources reminder |
+| `WebFetch` | nothing (new) | The request, as a `curl` command through `exec_command`: sandbox, managed network proxy and its host approvals, command rules, approval prompts, events; the answer to `prompt` from the session's model client | Parameters (`url`, `prompt`), URL checks (at most 2000 characters, no credentials, a dotted host), HTTP upgraded to HTTPS, same-site redirects (`www.` added or removed) followed up to 10, other redirects reported in Claude Code's format, the 10 MB and 60-second limits, HTML to Markdown, the 15-minute cache, the secondary model's prompt with Claude Code's quoting rules and preapproved documentation hosts, the result text |
 
 `write_stdin` stays, to read the output of a background command and to stop it. Every other
-Codex tool (the plan tool, `request_user_input`, the agent tools, web search, MCP tools and
-the rest) is offered as before until its Claude Code counterpart is added.
+Codex tool (the plan tool, `request_user_input`, the agent tools, the hosted web search, MCP
+tools and the rest) is offered as before until its Claude Code counterpart is added.
 
 Differences from Claude Code:
 
@@ -171,6 +173,33 @@ Differences from Claude Code:
 - Hooks and Codex's own `hooks.json` see the Claude names, so a Codex hook matching
   `exec_command` or `apply_patch` does not run for these tools.
 - Auto-review (guardian) of past tool calls recognises only Codex's tool names.
+- `WebSearch` is offered only where Codex runs its standalone search (`web.run`, with the
+  `standalone_web_search` feature or a Responses Lite model). Codex's usual search is the
+  hosted `web_search` tool, which the model provider runs inside the model's response: the
+  model calls it in its own format, not as a function Codex could rename or give other
+  parameters, so with it the model keeps Codex's `web_search`, without `allowed_domains`
+  and `blocked_domains` (allowed domains can be set for every search with
+  `[tools.web_search] filters.allowed_domains` in `config.toml`), and
+  hooks matching `WebSearch` never run. Search MCP tools stay as they are.
+- `WebSearch` results are Codex's search output wrapped in Claude Code's text, not Claude
+  Code's list of links; `blocked_domains` is only as good as the engine's `-site:`
+  support. Only plain web search is offered: opening pages goes through `WebFetch`.
+- `WebFetch` needs `Bash` (the model may run commands) and `curl` on the machine that runs
+  commands (`curl.exe` under PowerShell or `cmd`). The request goes out from there, under
+  the session's rules: with network in the sandbox, or a managed network proxy (which
+  allows, denies or asks per host), it runs in the sandbox; otherwise it asks to run
+  outside it, as `sandbox_permissions: "require_escalated"`, which Codex approves or
+  refuses by its approval policy (refused under `never`). The approval shows the `curl`
+  command, and command rules for `curl` apply to it. Claude Code's `WebFetch(domain:...)`
+  permission rules and its preapproved hosts are not used to allow a request.
+- The answer to `prompt` comes from the session's model at low reasoning effort, not from
+  a separate small model, and its tokens are not counted in the session's usage.
+- `WebFetch` decodes every body as UTF-8 and does not save binary content (such as PDFs)
+  to a file. Command output is capped at 1 MiB, so the middle of a larger page is lost
+  before conversion. The cache is per session.
+- Hooks see `WebFetch` and `WebSearch` under these names with Claude Code's input;
+  `PostToolUse` gets Claude Code's `tool_response` (`bytes`, `code`, `codeText`,
+  `result`, `durationMs`, `url`; `query`, `results`, `durationSeconds`).
 
 ### Adding a tool
 

@@ -9,6 +9,8 @@ pub mod bash;
 pub mod edit;
 pub mod patch;
 pub mod read;
+pub mod web_fetch;
+pub mod web_search;
 pub mod write;
 
 /// Claude Code's name of its shell tool.
@@ -27,6 +29,10 @@ pub const GREP: &str = "Grep";
 pub const TODO_WRITE: &str = "TodoWrite";
 /// Claude Code's name of its subagent tool.
 pub const AGENT: &str = "Agent";
+/// Claude Code's name of its web search tool.
+pub const WEB_SEARCH: &str = "WebSearch";
+/// Claude Code's name of its URL fetching tool.
+pub const WEB_FETCH: &str = "WebFetch";
 
 /// Wraps a message the way Claude Code reports an input it rejects before running the tool.
 pub fn tool_use_error(message: &str) -> String {
