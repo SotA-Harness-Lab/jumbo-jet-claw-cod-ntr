@@ -477,7 +477,10 @@ Not done:
 
 ## What is not shared
 
-- Slash commands (`commands/**/*.md`) and plugins.
+- Custom slash commands (`commands/**/*.md`), on purpose: Claude Code keeps them only as a legacy form of skills,
+  and skills (`/<name>` included) cover the same use. Skills invoked as `/<name>` are supported, see "Invoking
+  skills".
+- Plugins.
 - Other skill frontmatter (`allowed-tools`, `model`, `context`, `hooks`, `user-invocable`,
   `argument-hint` and the like) is ignored.
 - Managed (enterprise) Claude Code files under `/etc/claude-code`.
