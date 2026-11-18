@@ -177,8 +177,9 @@ Differences from Claude Code:
   edited until it changes on disk. Claude Code's "file unchanged" short answer for a second
   read of the same range is not reproduced.
 - `MultiEdit` is not offered (current Claude Code no longer has it).
-- `Glob` and `Grep` run the `rg` installed in the session's environment, not one shipped
-  with the tool: without it they fail with a message saying so. Each search is a command
+- `Glob` and `Grep` run `rg` in the session's environment. Codex's own release packages ship
+  one and put it on the path of every command Codex runs; a Codex built from source has none, so
+  install ripgrep there. Without it they fail with a message saying so. Each search is a command
   of the turn, so it shows as one, and under an approval policy that asks for commands it is
   asked for. The search stops after 20 seconds, as in Claude Code.
 - `Grep` lists files newest first through ripgrep's own sort, which also sorts files that do
@@ -221,6 +222,9 @@ Differences from Claude Code:
 - Hooks see `WebFetch` and `WebSearch` under these names with Claude Code's input;
   `PostToolUse` gets Claude Code's `tool_response` (`bytes`, `code`, `codeText`,
   `result`, `durationMs`, `url`; `query`, `results`, `durationSeconds`).
+- `TodoWrite` is offered even where Codex's own plan tool is off (`[tools.update_plan]` is off
+  by default), since Claude Code always has it; a tool policy that removes `update_plan` removes
+  it too.
 - `TodoWrite` keeps a list whose items are all completed (Claude Code clears it), and its
   hook `tool_response` has `newTodos` but no `oldTodos`.
 - `AskUserQuestion` asks only where Codex's `request_user_input` does: in Plan mode, in

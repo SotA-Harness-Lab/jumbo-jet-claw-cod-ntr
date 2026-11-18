@@ -36,7 +36,15 @@ use crate::tools::registry::ToolExecutor;
 
 /// Offers `TodoWrite` in place of `update_plan`, when the turn has the plan tool.
 pub(super) fn install(swap: &mut ToolSwap<'_>) {
-    if let Some(update_plan) = swap.take("update_plan") {
+    // Claude Code always has TodoWrite, while Codex offers `update_plan` only when
+    // `[tools.update_plan]` enables it: build the plan tool's runtime when it is missing, unless
+    // the tool policy forbids it.
+    let update_plan = swap.take("update_plan").or_else(|| {
+        swap.allows("update_plan").then(|| {
+            Arc::new(crate::tools::handlers::PlanHandler) as Arc<dyn CoreToolRuntime>
+        })
+    });
+    if let Some(update_plan) = update_plan {
         swap.add(TodoWriteHandler { update_plan });
     }
 }
