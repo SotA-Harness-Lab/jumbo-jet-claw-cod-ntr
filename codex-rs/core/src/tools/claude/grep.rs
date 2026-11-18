@@ -15,6 +15,8 @@ use codex_tools::ToolName;
 use codex_tools::ToolSpec;
 use serde_json::Value;
 
+use super::PermissionInput;
+use super::check_permission;
 use super::OFFERED_TOOLS;
 use super::ToolSwap;
 use super::files::FileTarget;
@@ -145,6 +147,12 @@ impl GrepHandler {
             )));
         }
 
+        let _permission = check_permission(
+            &invocation,
+            GREP,
+            PermissionInput::ReadPath(&target.native_path()),
+        )
+        .await?;
         let lines = self
             .ripgrep
             .run(

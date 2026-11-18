@@ -20,6 +20,8 @@ use serde::Deserialize;
 use serde_json::Value;
 use serde_json::json;
 
+use super::PermissionInput;
+use super::check_permission;
 use super::ToolSwap;
 use super::delegated;
 use super::failed;
@@ -173,6 +175,8 @@ impl AskUserQuestionHandler {
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
         let args: AskUserQuestionArgs = parse_claude_arguments(ASK_USER_QUESTION, &invocation)?;
+        let _permission =
+            check_permission(&invocation, ASK_USER_QUESTION, PermissionInput::Tool).await?;
         let questions = args
             .questions
             .into_iter()

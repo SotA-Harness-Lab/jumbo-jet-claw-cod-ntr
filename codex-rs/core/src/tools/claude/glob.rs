@@ -17,6 +17,8 @@ use codex_tools::ToolName;
 use codex_tools::ToolSpec;
 use serde_json::Value;
 
+use super::PermissionInput;
+use super::check_permission;
 use super::OFFERED_TOOLS;
 use super::ToolSwap;
 use super::files::FileTarget;
@@ -124,6 +126,12 @@ impl GlobHandler {
             None => (input.path.clone(), input.pattern.clone()),
         };
         let target = FileTarget::resolve(&invocation, directory.as_deref().unwrap_or_default())?;
+        let _permission = check_permission(
+            &invocation,
+            GLOB,
+            PermissionInput::ReadPath(&target.native_path()),
+        )
+        .await?;
         let paths = self
             .ripgrep
             .run(

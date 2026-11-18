@@ -24,6 +24,8 @@ use codex_tools::ToolSpec;
 use serde::Deserialize;
 use serde_json::json;
 
+use super::PermissionInput;
+use super::check_permission;
 use super::delegated;
 use super::failed;
 use super::output::ClaudeToolOutput;
@@ -133,6 +135,7 @@ impl WebSearchHandler {
         let blocked = args.blocked_domains.as_deref();
         web_search::validate(&args.query, allowed, blocked)
             .map_err(|message| rejected(&message))?;
+        let _permission = check_permission(&invocation, WEB_SEARCH, PermissionInput::Tool).await?;
 
         let payload = ToolPayload::Function {
             arguments: web_search::search_commands(&args.query, allowed, blocked).to_string(),

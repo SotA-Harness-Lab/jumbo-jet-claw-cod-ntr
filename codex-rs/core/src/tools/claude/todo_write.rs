@@ -19,6 +19,8 @@ use codex_tools::ToolSpec;
 use serde::Deserialize;
 use serde_json::json;
 
+use super::PermissionInput;
+use super::check_permission;
 use super::ToolSwap;
 use super::delegated;
 use super::output::ClaudeToolOutput;
@@ -151,6 +153,7 @@ impl TodoWriteHandler {
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
         let todos = parse_todos(&invocation)?;
+        let _permission = check_permission(&invocation, TODO_WRITE, PermissionInput::Tool).await?;
         let arguments = todo_write::update_plan_arguments(&todos).to_string();
         self.update_plan
             .handle(delegated(&invocation, ToolPayload::Function { arguments }))

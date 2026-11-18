@@ -37,6 +37,8 @@ use serde_json::Value;
 use serde_json::json;
 use url::Url;
 
+use super::PermissionInput;
+use super::check_permission;
 use super::OFFERED_TOOLS;
 use super::ToolSwap;
 use super::delegated;
@@ -180,6 +182,8 @@ impl WebFetchHandler {
         let Some(url) = web_fetch::validate_url(&args.url) else {
             return Err(failed("Invalid URL"));
         };
+        let _permission =
+            check_permission(&invocation, WEB_FETCH, PermissionInput::Url(&args.url)).await?;
 
         let cache = WebFetchCache::of(&invocation.session);
         let page = match cache.get(&args.url) {

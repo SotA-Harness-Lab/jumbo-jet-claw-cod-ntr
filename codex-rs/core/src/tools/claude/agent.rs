@@ -28,6 +28,8 @@ use serde_json::Map;
 use serde_json::Value;
 use serde_json::json;
 
+use super::PermissionInput;
+use super::check_permission;
 use super::ToolSwap;
 use super::ask_user_question::output_json;
 use super::failed;
@@ -181,6 +183,12 @@ impl AgentHandler {
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
         let args: AgentArgs = parse_claude_arguments(AGENT, &invocation)?;
+        let _permission = check_permission(
+            &invocation,
+            AGENT,
+            PermissionInput::Content(args.subagent_type.as_deref().unwrap_or("general-purpose")),
+        )
+        .await?;
         let role = agent::role_for(args.subagent_type.as_deref(), |name| {
             self.roles.contains(name)
         });
