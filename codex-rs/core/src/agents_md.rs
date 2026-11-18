@@ -263,33 +263,55 @@ async fn claude_project_entries(
             });
         }
     }
-    if let Some(file) = auto_memory_index(&source, cwd_path.as_path(), home_dir.as_deref()).await
-        && let Ok(path) = AbsolutePathBuf::from_absolute_path_checked(&file.path)
+    // Unit tests never read the real home directory's Claude Code settings; they test
+    // `crate::claude_memory` with a home directory of their own.
+    let memory_home = if cfg!(test) {
+        None
+    } else {
+        home_dir.as_deref()
+    };
+    if let Some(memory) = crate::claude_memory::claude_auto_memory(
+        &source,
+        cwd_path.as_path(),
+        memory_home,
+        &crate::claude_memory::process_env,
+    )
+    .await
     {
-        entries.push(InstructionEntry {
-            contents: codex_claude_compat::render_instruction_files(std::slice::from_ref(&file)),
-            provenance: InstructionProvenance::Project {
-                source_path: PathUri::from_abs_path(&path),
-                environment_id: environment_id.to_string(),
-                cwd: cwd.clone(),
-            },
-        });
+        let index_path = memory.dir.join(AUTO_MEMORY_INDEX);
+        // Claude Code puts the instructions in its system prompt and the index among the
+        // CLAUDE.md files; Codex keeps both together, the instructions first.
+        let mut contents = memory.instructions;
+        if let Some(file) = auto_memory_index(&source, &index_path).await {
+            contents.push_str("\n\n");
+            contents.push_str(&codex_claude_compat::render_instruction_files(
+                std::slice::from_ref(&file),
+            ));
+        }
+        if let Ok(path) = AbsolutePathBuf::from_absolute_path_checked(&index_path) {
+            entries.push(InstructionEntry {
+                contents,
+                provenance: InstructionProvenance::Project {
+                    source_path: PathUri::from_abs_path(&path),
+                    environment_id: environment_id.to_string(),
+                    cwd: cwd.clone(),
+                },
+            });
+        }
     }
     entries
 }
 
+/// The name of the auto memory's index in its directory.
+const AUTO_MEMORY_INDEX: &str = "MEMORY.md";
+
 /// The index of the project's Claude Code auto memory, cut as Claude Code cuts it.
 async fn auto_memory_index(
     source: &ExecutorFiles<'_>,
-    cwd: &Path,
-    home_dir: Option<&Path>,
+    path: &Path,
 ) -> Option<codex_claude_compat::InstructionFile> {
     use codex_claude_compat::FileSource as _;
-    let claude_home = home_dir?.join(codex_claude_compat::CLAUDE_DIR);
-    let project_root = codex_claude_compat::auto_memory_project_root(source, cwd)
-        .await
-        .ok()?;
-    let path = codex_claude_compat::auto_memory_dir(&claude_home, &project_root)?.join("MEMORY.md");
+    let path = path.to_path_buf();
     let contents = source.read(&path).await.ok()??;
     let content = codex_claude_compat::truncate_memory_index(&contents);
     (!content.is_empty()).then_some(codex_claude_compat::InstructionFile {

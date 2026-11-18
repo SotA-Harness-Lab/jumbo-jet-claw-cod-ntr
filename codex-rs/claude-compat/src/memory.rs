@@ -30,7 +30,15 @@ pub fn auto_memory_dir(claude_home: &Path, project_root: &Path) -> Option<PathBu
 pub async fn auto_memory_project_root(source: &dyn FileSource, cwd: &Path) -> io::Result<PathBuf> {
     for dir in cwd.ancestors() {
         let dot_git = dir.join(".git");
-        if !source.list(&dot_git).await?.is_empty() {
+        let Some((_, is_dir)) = source
+            .list(dir)
+            .await?
+            .into_iter()
+            .find(|(path, _)| path == &dot_git)
+        else {
+            continue;
+        };
+        if is_dir {
             return Ok(dir.to_path_buf());
         }
         if let Some(contents) = source.read(&dot_git).await? {

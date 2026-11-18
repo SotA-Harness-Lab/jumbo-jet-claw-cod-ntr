@@ -17,7 +17,7 @@ in the environment turns the whole mode off.
 | `~/.claude/CLAUDE.md` | Appended to the global instructions, after `$CODEX_HOME/AGENTS.md` | At the next request |
 | `~/.claude/rules/**/*.md` without `paths:` | Appended after `CLAUDE.md`, sorted by path | At the next request |
 | `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/rules/**/*.md` without `paths:`, `CLAUDE.local.md` | Project instructions, after the project's `AGENTS.md` files | When project instructions are loaded |
-| `~/.claude/projects/<project>/memory/MEMORY.md` | Project instructions, last | When project instructions are loaded |
+| `~/.claude/projects/<project>/memory/` | Claude Code's instructions for writing memories and the `MEMORY.md` index, as project instructions, last; the directory is writable in the sandbox | When project instructions are loaded |
 | Rules with `paths:`, and the instruction files of directories below the working directory | Shown to the model once a file they cover is worked on | At once |
 | `hooks` in `~/.claude/settings.json`, `.claude/settings.json`, `.claude/settings.local.json` | Hooks, beside Codex's own | At the next session |
 | `env` in the same files | Added to the environment of the commands Codex runs | At the next session |
@@ -103,11 +103,49 @@ configuration. Codex speaks stdio and streamable HTTP; an `sse` server does not 
 
 ## Auto memory
 
-The index of the project's auto memory, `MEMORY.md` under
-`~/.claude/projects/<project>/memory/`, is shown after the project's instructions, cut to 200
-lines and 25,000 bytes as in Claude Code. `<project>` is the path of the main checkout of the
-Git repository (or of the working directory) with every character but letters and digits
-replaced by `-`. Codex reads the memory; it is not told how to write new entries.
+Codex keeps the project's auto memory with Claude Code, in the same directory and the same way,
+so a memory saved by one tool is recalled by the other.
+
+- The directory is `~/.claude/projects/<project>/memory/`, `<project>` being the path of the
+  main checkout of the Git repository (or of the working directory) with every character but
+  letters and digits replaced by `-`. As in Claude Code, `autoMemoryDirectory` in
+  `~/.claude/settings.json` or the project's `.claude/settings.local.json` puts it elsewhere
+  (`~/` is expanded; the project's shared `.claude/settings.json` cannot move it), and so do
+  `CLAUDE_COWORK_MEMORY_PATH_OVERRIDE` and `CLAUDE_CODE_REMOTE_MEMORY_DIR`.
+- Claude Code's instructions for the memory, with the directory filled in, are shown after the
+  project's instructions, followed by the index, `MEMORY.md`, cut to 200 lines and 25,000 bytes
+  as in Claude Code. The instructions are Claude Code's own: the four types of memory, one file
+  per memory with `name`, `description` and `type` frontmatter, a one-line pointer to it in
+  `MEMORY.md`, what not to save, when to read memory and how far to trust it. Where Claude Code
+  names its own tools, they name Codex's: files are written with `apply_patch`, the task list
+  is `update_plan`, and `AGENTS.md` is named beside `CLAUDE.md` among the files whose content is
+  not to be saved again. `CLAUDE_COWORK_MEMORY_EXTRA_GUIDELINES` is appended, as in Claude Code.
+  Claude Code puts the instructions in its system prompt and the index among the `CLAUDE.md`
+  files; Codex shows both together in the project instructions.
+- The directory is created when the session's configuration is loaded, as Claude Code creates
+  it at the start of a session. When the session may write its workspace (`workspace-write`),
+  the directory is added to the sandbox's writable roots, so memories are written without an
+  approval, as in Claude Code; a read-only session stays read-only, and full access needs
+  nothing. Requirements that do not allow the extra root leave the sandbox as it was. Changing
+  the permissions during a session (`/permissions`) drops the extra root; to keep it whatever
+  the mode, add it to `config.toml` yourself:
+
+  ```toml
+  [sandbox_workspace_write]
+  writable_roots = ["<MEMORY_DIR>"]
+  ```
+
+- Auto memory is off, as in Claude Code, when `CLAUDE_CODE_DISABLE_AUTO_MEMORY` is `1` or
+  `true` (`0` or `false` turns it on whatever the settings say), when `CLAUDE_CODE_SIMPLE` is
+  set, on Claude Code on the web without `CLAUDE_CODE_REMOTE_MEMORY_DIR`, or when the last of
+  the settings files to set `autoMemoryEnabled` sets it to `false`. The variables are taken from
+  the `env` of the settings files first, then from Codex's own environment. When it is off,
+  neither the instructions nor the index are shown and nothing is made writable. Like the other
+  project files, nothing is shown or made writable while the project is not trusted.
+- Not reproduced: Claude Code's background extraction of memories at the end of a turn, its
+  `/memory` and `/remember` commands, team memory, the daily logs of its assistant mode, and the
+  search of past transcripts that some of its builds add to the instructions. `CLAUDE_CONFIG_DIR`
+  does not move the memory, as Codex always reads `~/.claude`.
 
 ## Skill frontmatter
 
