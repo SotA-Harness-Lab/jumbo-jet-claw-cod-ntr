@@ -49,8 +49,9 @@ Claude Code shows a rule whose frontmatter has `paths:`, and the `CLAUDE.md`,
 `.claude/CLAUDE.md`, `CLAUDE.local.md` and rules of a directory below the working directory,
 only when the model reads a file they cover. Codex does the same after each tool call, for the
 files a shell command reads (as Codex's command parser recognises them: `cat`, `sed -n`,
-`head` and the like) and the files a patch adds, changes or moves to (Claude Code's editing
-tools require the file to have been read first). Each file is shown once per session, as a
+`head` and the like), the files a patch adds, changes or moves to (Claude Code's editing
+tools require the file to have been read first), and, with the Claude tool set, the file
+`Read`, `Write` or `Edit` names. Each file is shown once per session, as a
 developer message headed like the others. The globs follow Claude Code: gitignore syntax,
 relative to the working directory for the user's rules and to the directory holding `.claude`
 for a project's; `{a,b}` is expanded, and a list or a comma-separated string are both read.
@@ -87,6 +88,10 @@ run as they are, with Claude Code's input on stdin and Claude Code's outputs und
   name. `Read`, `MultiEdit`, `Grep`, `Glob`, `WebFetch`, `WebSearch` and `ExitPlanMode` have
   no Codex tool and never match; Codex's plan mode ends with a plan in the final answer, which
   only `Stop` sees.
+  With the Claude tool set on (below), `Bash`, `Read`, `Write` and `Edit` are the tools'
+  own names: hook input carries that name and Claude Code's input (`command`, `timeout`,
+  `description`; `file_path`, `old_string`, `new_string`; ...), and `PostToolUse` gets
+  Claude Code's `tool_response` object (`stdout`, `stderr`, `interrupted` for `Bash`).
 - Events Codex's own configuration does not have run at the closest Codex moment, for command
   handlers only, and are not listed among Codex's hooks:
   - `Notification` when Codex asks the user: an approval of a command (`permission_prompt`,
@@ -110,6 +115,81 @@ run as they are, with Claude Code's input on stdin and Claude Code's outputs und
 - Other events Codex does not have (`PermissionDenied`, `Setup`, `CwdChanged` and the rest)
   are ignored; handlers of type `http` are skipped with a warning; `prompt` and `agent`
   handlers are skipped as for Codex's own hooks.
+
+## Claude tool set
+
+Behind a switch, Codex offers the model Claude Code's own tools instead of its own, so that
+the model works with the tools it knows, and hook matchers and tool names in Claude Code's
+configuration match one to one. It is off by default; turn it on in `config.toml`:
+
+```toml
+[features]
+claude_tools = true
+```
+
+`CODEX_CLAUDE_COMPAT=0` turns it off again, with the rest of the compatibility.
+
+The Claude tools are a thin layer over Codex's tools. Each takes Claude Code's parameters
+and description, hands the work to the Codex tool it replaces, and gives the model Claude
+Code's result text. Codex keeps the execution: approval prompts and policies, the sandbox,
+command rules (including the Bash rules of `~/.claude/settings.json`), events, the TUI and
+the turn's diff are those of `exec_command` and `apply_patch`. A Claude Code feature is added
+in the layer only where the Codex tool has nothing for it.
+
+| Claude tool | Replaces | Delegated to Codex | Added by the layer |
+| --- | --- | --- | --- |
+| `Bash` | `exec_command` | Running the command (one-shot with the timeout; `run_in_background` as a process left running), shell, approval, sandbox, command rules, output truncation, events | Parameters (`command`, `timeout` in ms, default 2 minutes, at most 10; `description`; `run_in_background`; `dangerouslyDisableSandbox`, sent as `sandbox_permissions: "require_escalated"` with the description as justification), the result text: output trimmed, `Exit code N` and the output for a failed command, `(Bash completed with no output)` |
+| `Read` | `view_image` | Reading through the executor filesystem under the turn's sandbox; images (`png`, `jpg`, `jpeg`, `gif`, `webp`) to `view_image` | Parameters (`file_path`, `offset`, `limit`), `N<TAB>line` numbering from 1, the 256 KB limit without `limit`, the 25,000-token limit, refusal of binary files and directories, the empty-file and short-file reminders, the "file does not exist" message |
+| `Write` | `apply_patch` | Writing, as a patch: approval, sandbox, patch events, the turn's diff | Parameters (`file_path`, `content`), the rule that an existing file is read first and not changed since, messages |
+| `Edit` | `apply_patch` | Writing, as a patch, as for `Write` | Parameters (`file_path`, `old_string`, `new_string`, `replace_all`), exact matching (refused when not found, or found more than once without `replace_all`), the read-first rule, messages |
+
+`write_stdin` stays, to read the output of a background command and to stop it. Every other
+Codex tool (the plan tool, `request_user_input`, the agent tools, web search, MCP tools and
+the rest) is offered as before until its Claude Code counterpart is added.
+
+Differences from Claude Code:
+
+- Each `Bash` command starts in the session's working directory; `cd` does not carry over to
+  the next command, as it does in Claude Code. The description says so.
+- A background command is read and stopped with `write_stdin`, not through an output file
+  and the `TaskOutput` and `TaskStop` tools; the model is not notified when it ends.
+- The description of `Bash` keeps Claude Code's instructions for commits and pull requests,
+  without attribution lines, and drops Claude Code's sandbox settings for a short note on
+  Codex's sandbox.
+- `Read` does not render PDFs or notebooks: a PDF is refused as a binary file, a notebook is
+  read as its JSON. It does not shorten long lines, and reads the whole file when it is
+  within the limits (as Claude Code does now; its description still says 2000 lines).
+  Images need the model to take images and Codex's `view_image` feature.
+- `Write` and `Edit` go through `apply_patch`, which ends every file with a line break and
+  gives new lines the file's first line ending; untouched lines keep theirs. A file that is
+  not UTF-8 cannot be edited or overwritten. The patch holds the whole file as context, so it
+  can only apply to the file as it was read; a file changed in between makes the write fail.
+- The read-first rule follows the session: a file read or written in the session may be
+  edited until it changes on disk. Claude Code's "file unchanged" short answer for a second
+  read of the same range is not reproduced.
+- `MultiEdit` is not offered (current Claude Code no longer has it).
+- Hooks and Codex's own `hooks.json` see the Claude names, so a Codex hook matching
+  `exec_command` or `apply_patch` does not run for these tools.
+- Auto-review (guardian) of past tool calls recognises only Codex's tool names.
+
+### Adding a tool
+
+The layer is in `codex-rs/core/src/tools/claude/`, one file a tool; what does not depend on
+Codex's types (descriptions, parameter texts, result formatting, the edit itself) is in
+`codex-rs/claude-compat/src/tools/`, also one file a tool, with its tests beside it. A new
+tool:
+
+1. Adds `<tool>.rs` with an `install(swap: &mut ToolSwap)` that takes the Codex runtime it
+   delegates to with `swap.take("<codex tool>")` (which removes that tool from what the model
+   sees) and adds a handler named after the Claude Code tool.
+2. Adds one `<tool>::install(&mut swap)` line to `replace_codex_tools` in `mod.rs`, and its
+   name to `OFFERED_TOOLS` so that the other descriptions point to it.
+3. Builds the Codex call with `delegated(&invocation, payload)`, which keeps the session,
+   turn, cancellation and diff tracker of the model's call, and returns a `ClaudeToolOutput`
+   with Claude Code's text and `tool_response`.
+
+Hook names need nothing more: a function tool reports its own name. `Bash` alone is
+registered from `add_shell_tools`, which owns the shell options.
 
 ## Settings
 

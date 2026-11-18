@@ -1249,6 +1249,7 @@ fn add_core_tool_sources(context: &CoreToolPlanContext<'_>, registry: &mut ToolR
     add_mcp_resource_tools(context, registry);
     add_core_utility_tools(context, registry);
     add_collaboration_tools(context, registry);
+    crate::tools::claude::replace_codex_tools(context.turn_context, registry);
 }
 
 fn standalone_web_search_enabled(turn_context: &TurnContext, model_info: &ModelInfo) -> bool {
@@ -1315,6 +1316,14 @@ fn add_shell_tools(context: &CoreToolPlanContext<'_>, registry: &mut ToolRegistr
                 .is_some_and(|shell| shell.shell_type == crate::shell::ShellType::PowerShell)
         }),
     };
+    if crate::tools::claude::enabled(turn_context) {
+        crate::tools::claude::register_bash(
+            registry,
+            options,
+            features.enabled(Feature::UnifiedExec),
+        );
+        return;
+    }
     if features.enabled(Feature::UnifiedExec) {
         registry.add(ExecCommandHandler::new(options));
         registry.add(WriteStdinHandler);

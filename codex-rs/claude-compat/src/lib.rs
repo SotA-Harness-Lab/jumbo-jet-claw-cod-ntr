@@ -14,6 +14,7 @@ mod settings;
 mod skill_invocation;
 mod source;
 mod subagents;
+pub mod tools;
 
 pub use instructions::INSTRUCTIONS_HEADER;
 pub use instructions::InstructionFile;

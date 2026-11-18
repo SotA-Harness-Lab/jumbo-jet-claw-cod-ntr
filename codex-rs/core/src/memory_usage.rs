@@ -46,6 +46,9 @@ pub(crate) fn shell_script_for_invocation(invocation: &ToolInvocation) -> Option
         "exec_command" => serde_json::from_str::<ExecCommandArgs>(arguments)
             .ok()
             .map(|params| params.cmd),
+        "Bash" => serde_json::from_str::<serde_json::Value>(arguments)
+            .ok()
+            .and_then(|params| params.get("command")?.as_str().map(str::to_string)),
         _ => None,
     }
 }
