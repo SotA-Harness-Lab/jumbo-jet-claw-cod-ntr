@@ -40,13 +40,29 @@ impl HookToolName {
 
     /// Returns the hook identity for spawning sub-agents.
     ///
-    /// The serialized name remains `spawn_agent`, while `Agent` is accepted as
-    /// a matcher alias for compatibility with hook configurations that describe
-    /// sub-agent creation using Claude Code-style names.
+    /// The serialized name remains `spawn_agent`, while `Agent` (and `Task`, its
+    /// former name) is accepted as a matcher alias for compatibility with hook
+    /// configurations that describe sub-agent creation using Claude Code-style names.
     pub(crate) fn spawn_agent() -> Self {
         Self {
             name: "spawn_agent".to_string(),
-            matcher_aliases: vec!["Agent".to_string()],
+            matcher_aliases: vec!["Agent".to_string(), "Task".to_string()],
+        }
+    }
+
+    /// Returns the hook identity of a function tool, with the Claude Code name of its
+    /// counterpart, if it has one, as a matcher alias: `request_user_input` is matched by
+    /// `AskUserQuestion` (both take `questions[].question`) and `update_plan` by `TodoWrite`.
+    pub(crate) fn function(name: impl Into<String>) -> Self {
+        let name = name.into();
+        let matcher_aliases = match name.as_str() {
+            "request_user_input" => vec!["AskUserQuestion".to_string()],
+            "update_plan" => vec!["TodoWrite".to_string()],
+            _ => Vec::new(),
+        };
+        Self {
+            name,
+            matcher_aliases,
         }
     }
 
@@ -63,5 +79,38 @@ impl HookToolName {
     /// Returns additional matcher inputs that should select the same handlers.
     pub(crate) fn matcher_aliases(&self) -> &[String] {
         &self.matcher_aliases
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::HookToolName;
+
+    #[test]
+    fn function_tools_with_a_claude_code_counterpart_get_its_name_as_an_alias() {
+        let question = HookToolName::function("request_user_input");
+        assert_eq!(question.name(), "request_user_input");
+        assert_eq!(
+            question.matcher_aliases().to_vec(),
+            vec!["AskUserQuestion".to_string()]
+        );
+        assert_eq!(
+            HookToolName::function("update_plan")
+                .matcher_aliases()
+                .to_vec(),
+            vec!["TodoWrite".to_string()]
+        );
+        assert_eq!(
+            HookToolName::function("view_image")
+                .matcher_aliases()
+                .to_vec(),
+            Vec::<String>::new()
+        );
+        assert_eq!(
+            HookToolName::spawn_agent().matcher_aliases().to_vec(),
+            vec!["Agent".to_string(), "Task".to_string()]
+        );
     }
 }

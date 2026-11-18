@@ -59,16 +59,57 @@ This needs the session's environment to run on this machine.
 ## Hooks
 
 Codex's hook engine takes the same shape as Claude Code's `hooks` key (events, `matcher`,
-`type: "command"`, `timeout`, `async`, `statusMessage`; tool names `Bash`, `Edit`, `Write`),
-so the hooks of the settings files run as they are. Differences:
+`type: "command"`, `timeout`, `async`, `statusMessage`), so the hooks of the settings files
+run as they are, with Claude Code's input on stdin and Claude Code's outputs understood.
 
 - The user's own hooks run without Codex's per-hook trust prompt, as they do in Claude Code. A
-  project's hooks wait for Codex's trust like any other project hook.
-- Events Codex does not have (`Notification`, `PostToolUseFailure`, `StopFailure` and others)
+  project's hooks wait for Codex's trust like any other project hook. `disableAllHooks: true`
+  in any of the files turns all of them off.
+- Hooks see `CLAUDE_PROJECT_DIR` (the working directory) and `CLAUDE_CODE_ENTRYPOINT`: `cli`
+  in the TUI, `sdk-cli` under `codex exec` (as for `claude -p`), `claude-vscode` for the
+  IDE; other sessions, subagents among them, get none. `CLAUDE_ENV_FILE` is not provided.
+- Input: `session_id` (the Codex thread id), `transcript_path`, `cwd`, `permission_mode`
+  (`default`, or `bypassPermissions` when Codex never asks) and `hook_event_name` for every
+  event; `tool_name`, `tool_input` (`{"command": ...}` for shell commands) and
+  `tool_response` for tool events; `prompt` for `UserPromptSubmit`; `source` (`startup`,
+  `resume`, `clear`, `compact`) for `SessionStart`; `stop_hook_active` and
+  `last_assistant_message` for `Stop`. `transcript_path` is Codex's rollout file, whose lines
+  are Codex's own records, not Claude Code's: a hook that parses the transcript finds none of
+  the messages it looks for and should read `last_assistant_message` instead.
+- Output: exit code 2 blocks with stderr as the reason, `hookSpecificOutput.permissionDecision`
+  for `PreToolUse`, `decision: "block"` with `reason` for `Stop` and `PostToolUse`,
+  `additionalContext` for `SessionStart`, `UserPromptSubmit`, `PreToolUse` and
+  `PostToolUse`, plain stdout as context for `SessionStart` and `UserPromptSubmit`,
+  `systemMessage`, `continue` and `stopReason`.
+- Tool names: shell commands are `Bash`; `apply_patch` is also matched by `Write` and `Edit`,
+  `spawn_agent` by `Agent` and `Task`, `request_user_input` by `AskUserQuestion` (its input has
+  the same `questions[].question`), `update_plan` by `TodoWrite`. Hook input keeps Codex's
+  name. `Read`, `MultiEdit`, `Grep`, `Glob`, `WebFetch`, `WebSearch` and `ExitPlanMode` have
+  no Codex tool and never match; Codex's plan mode ends with a plan in the final answer, which
+  only `Stop` sees.
+- Events Codex's own configuration does not have run at the closest Codex moment, for command
+  handlers only, and are not listed among Codex's hooks:
+  - `Notification` when Codex asks the user: an approval of a command (`permission_prompt`,
+    message `Codex needs your permission to use Bash`), of a patch (`... to use
+    apply_patch`) or of more permissions (`... to use request_permissions`), and an MCP
+    elicitation (`elicitation_dialog`, or `elicitation_url_dialog` for a URL). The matcher is
+    matched against `notification_type`. `idle_prompt` and the other types are never sent.
+  - `PostToolUseFailure` when a tool call fails, with `error` set to what went wrong. As in
+    Claude Code, a shell command that exits with a non-zero code is a failure: its `error` is
+    `Exit code N` and the output, and the settings files' `PostToolUse` hooks do not run for
+    it (Codex's own `PostToolUse` hooks still do). `additionalContext`, or stderr with exit
+    code 2, reaches the model. `is_interrupt` is always `false`: a cancelled call runs no hook.
+  - `StopFailure` when a turn ends on an error instead of an answer, with `error` set to
+    Claude Code's kind (`rate_limit`, `billing_error`, `authentication_failed`,
+    `invalid_request`, `server_error`, `unknown`), matched by the matcher, and
+    `error_details` to the message Codex shows.
+  `Notification` and `StopFailure` hooks run in the background and their output is ignored,
+  as in Claude Code. A project's hooks of these three events run only with
+  `--dangerously-bypass-hook-trust`, since Codex's trust prompt has no place for them; without
+  it they are skipped with a warning.
+- Other events Codex does not have (`PermissionDenied`, `Setup`, `CwdChanged` and the rest)
   are ignored; handlers of type `http` are skipped with a warning; `prompt` and `agent`
   handlers are skipped as for Codex's own hooks.
-- `CLAUDE_PROJECT_DIR` is set to the working directory. `disableAllHooks: true` in any of the
-  files turns all of them off.
 
 ## Settings
 

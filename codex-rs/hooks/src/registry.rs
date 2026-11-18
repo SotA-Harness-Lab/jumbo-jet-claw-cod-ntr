@@ -3,6 +3,11 @@ use crate::engine::CommandShell;
 use crate::engine::ConfiguredHandler;
 use crate::engine::HookListEntry;
 use crate::engine::command_runner::CommandHookRuntime;
+use crate::events::claude_only::ClaudeOnlyEvent;
+use crate::events::claude_only::NotificationRequest;
+use crate::events::claude_only::PostToolUseFailureOutcome;
+use crate::events::claude_only::PostToolUseFailureRequest;
+use crate::events::claude_only::StopFailureRequest;
 use crate::events::compact::PostCompactRequest;
 use crate::events::compact::PreCompactOutcome;
 use crate::events::compact::PreCompactRequest;
@@ -170,6 +175,8 @@ impl Hooks {
         let mut hooks = self.with_executor_hooks(executor_hooks);
         Arc::make_mut(&mut hooks.engine.handlers)
             .retain(ConfiguredHandler::runs_for_memory_consolidation);
+        // Claude Code's settings hooks are the user's or a project's, never internal work's.
+        hooks.engine.claude_only_handlers = Arc::default();
         hooks
     }
 
@@ -357,6 +364,44 @@ impl Hooks {
 
     pub async fn run_interrupt(&self, request: InterruptRequest) -> InterruptOutcome {
         self.engine.run_interrupt(request).await
+    }
+
+    /// Whether Claude Code's settings declare `Notification` hooks.
+    pub fn has_notification_hooks(&self) -> bool {
+        self.engine
+            .has_claude_only_handlers(ClaudeOnlyEvent::Notification)
+    }
+
+    /// Starts Claude Code's `Notification` hooks in the background while Codex waits for
+    /// the user.
+    pub fn spawn_notification(&self, request: NotificationRequest) {
+        self.engine.spawn_notification(request);
+    }
+
+    /// Whether Claude Code's settings declare `PostToolUseFailure` hooks.
+    pub fn has_post_tool_use_failure_hooks(&self) -> bool {
+        self.engine
+            .has_claude_only_handlers(ClaudeOnlyEvent::PostToolUseFailure)
+    }
+
+    /// Runs Claude Code's `PostToolUseFailure` hooks after a tool call failed.
+    pub async fn run_post_tool_use_failure(
+        &self,
+        request: PostToolUseFailureRequest,
+    ) -> PostToolUseFailureOutcome {
+        self.engine.run_post_tool_use_failure(request).await
+    }
+
+    /// Whether Claude Code's settings declare `StopFailure` hooks.
+    pub fn has_stop_failure_hooks(&self) -> bool {
+        self.engine
+            .has_claude_only_handlers(ClaudeOnlyEvent::StopFailure)
+    }
+
+    /// Starts Claude Code's `StopFailure` hooks in the background after a turn ended on an
+    /// error.
+    pub fn spawn_stop_failure(&self, request: StopFailureRequest) {
+        self.engine.spawn_stop_failure(request);
     }
 
     /// None if unconfigured; Sync if any handler must finish before continuing.

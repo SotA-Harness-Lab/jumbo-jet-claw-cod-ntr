@@ -528,6 +528,8 @@ async fn schedule(runtime: &CommandHookRuntime, handler: ConfiguredHandler, cwd:
     let engine = ClaudeHooksEngine {
         enabled: true,
         handlers: Arc::new(vec![handler]),
+        claude_only_handlers: Arc::default(),
+        claude_settings_paths: Arc::default(),
         hook_entries: Default::default(),
         warnings: Arc::default(),
         required_load_errors: Arc::default(),

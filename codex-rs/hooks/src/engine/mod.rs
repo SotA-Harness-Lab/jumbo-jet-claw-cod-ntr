@@ -280,6 +280,10 @@ pub(crate) struct ClaudeHooksEngine {
     pub(crate) enabled: bool,
     // Per-turn views share configuration; executor overlays copy handlers on mutation.
     pub(crate) handlers: Arc<Vec<ConfiguredHandler>>,
+    /// Handlers of the Claude Code events Codex's own configuration does not have.
+    pub(crate) claude_only_handlers: Arc<Vec<crate::events::claude_only::ClaudeOnlyHandler>>,
+    /// The Claude Code settings files whose hooks were loaded.
+    pub(crate) claude_settings_paths: Arc<Vec<AbsolutePathBuf>>,
     /// Retain the session inventory without copying it for every hook dispatch.
     pub(crate) hook_entries: Arc<Vec<HookListEntry>>,
     pub(crate) warnings: Arc<[String]>,
@@ -330,6 +334,8 @@ impl ClaudeHooksEngine {
             return Self {
                 enabled,
                 handlers: Arc::default(),
+                claude_only_handlers: Arc::default(),
+                claude_settings_paths: Arc::default(),
                 hook_entries: Arc::default(),
                 warnings: Arc::default(),
                 required_load_errors: Arc::default(),
@@ -349,6 +355,7 @@ impl ClaudeHooksEngine {
         );
         if !enabled {
             discovered.handlers.retain(|handler| handler.builtin);
+            discovered.claude_only_handlers.clear();
             discovered.hook_entries.clear();
             // Disabled ordinary hooks must not emit warnings or reject session startup.
             discovered.warnings.clear();
@@ -357,6 +364,8 @@ impl ClaudeHooksEngine {
         Self {
             enabled,
             handlers: Arc::new(discovered.handlers),
+            claude_only_handlers: Arc::new(discovered.claude_only_handlers),
+            claude_settings_paths: Arc::new(discovered.claude_settings_paths),
             hook_entries: Arc::new(discovered.hook_entries),
             warnings: discovered.warnings.into(),
             required_load_errors: discovered.required_load_errors.into(),
@@ -495,7 +504,33 @@ impl ClaudeHooksEngine {
         &self,
         request: &PostToolUseRequest,
     ) -> Vec<HookRunSummary> {
-        crate::events::post_tool_use::preview(&self.handlers, request)
+        crate::events::post_tool_use::preview(
+            &self.post_tool_use_handlers(request.skip_claude_settings_hooks),
+            request,
+        )
+    }
+
+    /// The handlers `PostToolUse` selects from: all of them, or, when `skip_claude_settings`,
+    /// those not declared in Claude Code's settings files.
+    pub(crate) fn post_tool_use_handlers(
+        &self,
+        skip_claude_settings: bool,
+    ) -> Cow<'_, [ConfiguredHandler]> {
+        if !skip_claude_settings || self.claude_settings_paths.is_empty() {
+            return Cow::Borrowed(self.handlers.as_slice());
+        }
+        Cow::Owned(
+            self.handlers
+                .iter()
+                .filter(|handler| {
+                    !matches!(
+                        &handler.source_path,
+                        HandlerSourcePath::Local(path) if self.claude_settings_paths.contains(path)
+                    )
+                })
+                .cloned()
+                .collect(),
+        )
     }
 
     pub(crate) async fn run_session_start(

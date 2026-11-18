@@ -500,6 +500,18 @@ impl ToolOutput for ExecCommandToolOutput {
         ))
     }
 
+    fn post_tool_use_failure(&self) -> Option<String> {
+        if self.process_id.is_some() || self.hook_command.is_none() {
+            return None;
+        }
+        let exit_code = self.exit_code.filter(|exit_code| *exit_code != 0)?;
+        // Claude Code's error for a failed shell command: the exit code, then the output.
+        Some(format!(
+            "Exit code {exit_code}\n{}",
+            self.truncated_output_with_policy(self.model_output_policy())
+        ))
+    }
+
     fn code_mode_result(&self, _payload: &ToolPayload) -> JsonValue {
         #[derive(Serialize)]
         struct UnifiedExecCodeModeResult {

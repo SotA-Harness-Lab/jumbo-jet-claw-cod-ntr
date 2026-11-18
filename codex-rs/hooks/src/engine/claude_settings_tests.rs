@@ -15,6 +15,7 @@ fn settings(tmp: &TempDir) -> ClaudeHookSettings {
     ClaudeHookSettings {
         user_dir: Some(absolute(tmp.path().join("home/.claude"))),
         project_dir: Some(absolute(tmp.path().join("project"))),
+        entrypoint: Some("cli".to_string()),
     }
 }
 
@@ -58,10 +59,24 @@ fn loads_user_and_project_hooks_and_drops_unknown_handler_types() {
             .collect::<Vec<_>>(),
         vec![
             (tmp.path().join("home/.claude/settings.json"), true, 1, 0),
-            (tmp.path().join("project/.claude/settings.local.json"), false, 0, 1),
+            (
+                tmp.path().join("project/.claude/settings.local.json"),
+                false,
+                0,
+                1
+            ),
         ]
     );
     assert_eq!(loaded[0].events.pre_tool_use[0].hooks.len(), 1);
+    // Notification has no place in Codex's own configuration and is kept apart.
+    assert_eq!(
+        loaded[0]
+            .claude_only
+            .iter()
+            .map(|(event, groups)| (event.label(), groups.len()))
+            .collect::<Vec<_>>(),
+        vec![("Notification", 1)]
+    );
     assert_eq!(warnings.len(), 1, "{warnings:?}");
     assert!(warnings[0].contains("of type http"), "{warnings:?}");
 }
@@ -85,4 +100,36 @@ fn disable_all_hooks_turns_every_file_off() {
     let mut warnings = Vec::new();
     assert!(load(&settings(&tmp), &mut warnings).is_empty());
     assert_eq!(warnings, Vec::<String>::new());
+}
+
+#[test]
+fn a_file_with_only_claude_only_events_is_loaded() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{"hooks": {
+            "StopFailure": [{"hooks": [{"type": "command", "command": "a.sh"}]}],
+            "PostToolUseFailure": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "b.sh"}]}]
+        }}"#,
+    )
+    .expect("write");
+
+    let mut warnings = Vec::new();
+    let loaded = load(&settings(&tmp), &mut warnings);
+
+    assert_eq!(warnings, Vec::<String>::new());
+    assert_eq!(loaded.len(), 1);
+    assert!(loaded[0].events.is_empty());
+    assert_eq!(
+        loaded[0]
+            .claude_only
+            .iter()
+            .map(|(event, groups)| (event.label(), groups[0].matcher.clone()))
+            .collect::<Vec<_>>(),
+        vec![
+            ("PostToolUseFailure", Some("Bash".to_string())),
+            ("StopFailure", None),
+        ]
+    );
 }

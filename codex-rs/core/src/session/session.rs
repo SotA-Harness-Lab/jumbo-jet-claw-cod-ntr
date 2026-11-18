@@ -1688,6 +1688,7 @@ impl Session {
                 plugins_manager.as_ref(),
                 resolved_environments.single_local_environment(),
                 &session_configuration.disabled_plugin_ids,
+                &session_configuration.session_source,
             )
             .await;
             let (hooks, async_hook_results) = Hooks::new(

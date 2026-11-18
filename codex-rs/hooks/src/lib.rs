@@ -62,6 +62,12 @@ pub const HOOK_EVENT_NAMES_WITH_MATCHERS: [&str; 9] = [
 
 pub use context::HookContext;
 pub use engine::claude_settings::ClaudeHookSettings;
+pub use engine::claude_settings::claude_entrypoint;
+pub use events::claude_only::NotificationRequest;
+pub use events::claude_only::PostToolUseFailureOutcome;
+pub use events::claude_only::PostToolUseFailureRequest;
+pub use events::claude_only::StopFailureRequest;
+pub use events::claude_only::stop_failure_error;
 pub use events::compact::PostCompactRequest;
 pub use events::compact::PreCompactOutcome;
 pub use events::compact::PreCompactRequest;

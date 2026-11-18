@@ -11,15 +11,18 @@ use codex_analytics::CompactionTrigger;
 use codex_analytics::HookRunFact;
 use codex_analytics::build_track_events_context;
 use codex_hooks::InterruptRequest;
+use codex_hooks::NotificationRequest;
 use codex_hooks::PermissionRequestDecision;
 use codex_hooks::PermissionRequestOutcome;
 use codex_hooks::PermissionRequestRequest;
+use codex_hooks::PostToolUseFailureRequest;
 use codex_hooks::PostToolUseOutcome;
 use codex_hooks::PostToolUseRequest;
 use codex_hooks::PreToolUseOutcome;
 use codex_hooks::PreToolUseRequest;
 use codex_hooks::SessionStartOutcome;
 use codex_hooks::StartHookTarget;
+use codex_hooks::StopFailureRequest;
 use codex_hooks::StopHookTarget;
 use codex_hooks::StopOutcome;
 use codex_hooks::SubagentHookContext;
@@ -321,6 +324,7 @@ pub(crate) async fn run_post_tool_use_hooks(
     sess: &Arc<Session>,
     step_context: &StepContext,
     payload: PostToolUsePayload,
+    skip_claude_settings_hooks: bool,
     target_environments: &[&str],
 ) -> PostToolUseOutcome {
     let turn_context = &step_context.turn;
@@ -338,6 +342,7 @@ pub(crate) async fn run_post_tool_use_hooks(
         tool_use_id: payload.tool_use_id,
         tool_input: payload.tool_input,
         tool_response: payload.tool_response,
+        skip_claude_settings_hooks,
     };
     let hooks = with_tool_environment_hooks(
         sess,
@@ -351,6 +356,88 @@ pub(crate) async fn run_post_tool_use_hooks(
     let outcome = hooks.run_post_tool_use(request).await;
     emit_hook_completed_events(sess, turn_context, outcome.hook_events.clone()).await;
     outcome
+}
+
+/// Runs Claude Code's `PostToolUseFailure` hooks after a tool call failed, returning what
+/// they have for the model.
+pub(crate) async fn run_post_tool_use_failure_hooks(
+    sess: &Arc<Session>,
+    step_context: &StepContext,
+    tool_name: &HookToolName,
+    tool_use_id: String,
+    tool_input: Value,
+    error: String,
+) -> Vec<codex_hooks::HookContext> {
+    let hooks = sess.hooks();
+    if !hooks.has_post_tool_use_failure_hooks() {
+        return Vec::new();
+    }
+    let turn_context = &step_context.turn;
+    let request = PostToolUseFailureRequest {
+        session_id: sess.session_id().into(),
+        cwd: tool_hook_cwd(&step_context.environments, turn_context),
+        transcript_path: sess.hook_transcript_path().await,
+        permission_mode: hook_permission_mode(step_context.settings.approval_policy()),
+        tool_name: tool_name.name().to_string(),
+        matcher_aliases: tool_name.matcher_aliases().to_vec(),
+        tool_use_id,
+        tool_input,
+        error,
+        is_interrupt: false,
+    };
+    hooks
+        .run_post_tool_use_failure(request)
+        .await
+        .additional_contexts
+}
+
+/// Starts Claude Code's `Notification` hooks while Codex waits for the user, without
+/// holding up the prompt. `notification_type` is Claude Code's: `permission_prompt`,
+/// `elicitation_dialog` or `elicitation_url_dialog`.
+pub(crate) async fn run_notification_hooks(
+    sess: &Session,
+    turn_context: &TurnContext,
+    notification_type: &str,
+    message: String,
+) {
+    let hooks = sess.hooks();
+    if !hooks.has_notification_hooks() {
+        return;
+    }
+    hooks.spawn_notification(NotificationRequest {
+        session_id: sess.session_id().into(),
+        #[allow(deprecated)]
+        cwd: turn_context.cwd.clone(),
+        transcript_path: sess.hook_transcript_path().await,
+        permission_mode: hook_permission_mode(turn_context.approval_policy()),
+        notification_type: notification_type.to_string(),
+        message,
+        title: None,
+    });
+}
+
+/// Starts Claude Code's `StopFailure` hooks after a turn ended on `error` instead of an
+/// answer; `details` is the error message the user sees.
+pub(crate) async fn run_stop_failure_hooks(
+    sess: &Session,
+    turn_context: &TurnContext,
+    error: &CodexErrorInfo,
+    details: String,
+) {
+    let hooks = sess.hooks();
+    if !hooks.has_stop_failure_hooks() {
+        return;
+    }
+    hooks.spawn_stop_failure(StopFailureRequest {
+        session_id: sess.session_id().into(),
+        #[allow(deprecated)]
+        cwd: turn_context.cwd.clone(),
+        transcript_path: sess.hook_transcript_path().await,
+        permission_mode: hook_permission_mode(turn_context.approval_policy()),
+        error: codex_hooks::stop_failure_error(error).to_string(),
+        error_details: Some(details),
+        last_assistant_message: None,
+    });
 }
 
 fn build_request_metadata(

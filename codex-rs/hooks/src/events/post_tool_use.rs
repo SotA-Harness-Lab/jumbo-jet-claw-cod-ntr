@@ -38,6 +38,10 @@ pub struct PostToolUseRequest {
     pub tool_use_id: String,
     pub tool_input: Value,
     pub tool_response: Value,
+    /// Leaves out the hooks of Claude Code's settings files. Set for a shell command that
+    /// exited with a non-zero code, which Claude Code treats as a failed tool call: it runs
+    /// `PostToolUseFailure` hooks for it, not `PostToolUse` ones.
+    pub skip_claude_settings_hooks: bool,
 }
 
 #[derive(Debug)]
@@ -78,7 +82,7 @@ pub(crate) async fn run(
 ) -> PostToolUseOutcome {
     let matcher_inputs = common::matcher_inputs(&request.tool_name, &request.matcher_aliases);
     let matched = dispatcher::select_handlers_for_matcher_inputs(
-        &engine.handlers,
+        &engine.post_tool_use_handlers(request.skip_claude_settings_hooks),
         HookEventName::PostToolUse,
         &matcher_inputs,
     );
@@ -657,6 +661,7 @@ mod tests {
             tool_use_id: tool_use_id.to_string(),
             tool_input: json!({ "command": "echo hello" }),
             tool_response: json!({"ok": true}),
+            skip_claude_settings_hooks: false,
         }
     }
 }

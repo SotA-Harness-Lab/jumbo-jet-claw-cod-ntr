@@ -75,6 +75,13 @@ pub trait ToolOutput: Send {
         None
     }
 
+    /// Returns the error Claude Code's `PostToolUseFailure` hooks receive for an output that
+    /// Codex reports to the model as a result but Claude Code treats as a failed tool call:
+    /// a shell command that exited with a non-zero code. `None` for anything else.
+    fn post_tool_use_failure(&self) -> Option<String> {
+        None
+    }
+
     fn code_mode_result(&self, payload: &ToolPayload) -> JsonValue {
         response_input_to_code_mode_result(self.to_response_item("", payload))
     }
@@ -135,6 +142,10 @@ where
 
     fn post_tool_use_response(&self, call_id: &str, payload: &ToolPayload) -> Option<JsonValue> {
         (**self).post_tool_use_response(call_id, payload)
+    }
+
+    fn post_tool_use_failure(&self) -> Option<String> {
+        (**self).post_tool_use_failure()
     }
 
     fn code_mode_result(&self, payload: &ToolPayload) -> JsonValue {

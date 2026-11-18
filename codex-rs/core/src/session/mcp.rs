@@ -864,6 +864,17 @@ impl Session {
                 codex_protocol::mcp::RequestId::Integer(value)
             }
         };
+        let notification_type = match &request {
+            ElicitationRequest::Url { .. } => "elicitation_url_dialog",
+            _ => "elicitation_dialog",
+        };
+        crate::hook_runtime::run_notification_hooks(
+            self,
+            turn_context,
+            notification_type,
+            format!("Codex needs your input for MCP server \"{server_name}\""),
+        )
+        .await;
         let event = EventMsg::ElicitationRequest(ElicitationRequestEvent {
             turn_id: Some(turn_context.sub_id.clone()),
             server_name,
