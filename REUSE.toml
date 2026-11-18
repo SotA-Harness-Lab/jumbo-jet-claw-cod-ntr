@@ -79,6 +79,8 @@ SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [
+    ".github/cod-claw-ntr-logo.svg",
+    "README/README_CN.md",
     "docs/claude-compat.md",
 ]
 SPDX-FileCopyrightText = "2026 Tianyu (Sky) Lu"
