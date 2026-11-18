@@ -4618,11 +4618,33 @@ impl Config {
         }
         let effective_file_system_sandbox_policy = effective_file_system_sandbox_policy
             .with_additional_readable_roots(resolved_cwd.as_path(), &helper_readable_roots);
-        let effective_permission_profile = PermissionProfile::from_runtime_permissions_with_enforcement(
-            effective_permission_profile.enforcement(),
-            &effective_file_system_sandbox_policy,
-            effective_network_sandbox_policy,
-        );
+        let enforcement = effective_permission_profile.enforcement();
+        let mut effective_permission_profile =
+            PermissionProfile::from_runtime_permissions_with_enforcement(
+                enforcement,
+                &effective_file_system_sandbox_policy,
+                effective_network_sandbox_policy,
+            );
+        // Claude Code's auto memory lies outside the workspace; a session that may write its
+        // workspace may write the memory too, unless requirements forbid it.
+        if !active_project.is_untrusted()
+            && let Some(memory_dir) =
+                crate::claude_memory::local_auto_memory_dir(resolved_cwd.as_path()).await
+            && let Some(policy) = crate::claude_memory::with_writable_memory_dir(
+                &effective_file_system_sandbox_policy,
+                resolved_cwd.as_path(),
+                &memory_dir,
+            )
+        {
+            let profile = PermissionProfile::from_runtime_permissions_with_enforcement(
+                enforcement,
+                &policy,
+                effective_network_sandbox_policy,
+            );
+            if constrained_permission_profile.value.can_set(&profile).is_ok() {
+                effective_permission_profile = profile;
+            }
+        }
         constrained_permission_profile
             .value
             .set(effective_permission_profile)
