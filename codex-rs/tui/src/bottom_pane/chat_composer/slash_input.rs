@@ -12,7 +12,9 @@ use crate::bottom_pane::command_popup::CommandPopupFlags;
 use crate::bottom_pane::prompt_args::parse_slash_name;
 use crate::bottom_pane::slash_commands::BuiltinCommandFlags;
 use crate::bottom_pane::slash_commands::ServiceTierCommand;
+use crate::bottom_pane::slash_commands::SkillCommand;
 use crate::bottom_pane::slash_commands::SlashCommandItem;
+use crate::bottom_pane::slash_commands::find_skill_command;
 use crate::bottom_pane::slash_commands::find_slash_command;
 use crate::bottom_pane::slash_commands::has_slash_command_prefix;
 use crate::slash_command::SlashCommand;
@@ -54,6 +56,7 @@ pub(super) struct SlashInput<'a> {
     is_bash_mode: bool,
     command_flags: BuiltinCommandFlags,
     service_tier_commands: &'a [ServiceTierCommand],
+    skill_commands: &'a [SkillCommand],
 }
 
 impl<'a> SlashInput<'a> {
@@ -62,12 +65,14 @@ impl<'a> SlashInput<'a> {
         is_bash_mode: bool,
         command_flags: BuiltinCommandFlags,
         service_tier_commands: &'a [ServiceTierCommand],
+        skill_commands: &'a [SkillCommand],
     ) -> Self {
         Self {
             enabled,
             is_bash_mode,
             command_flags,
             service_tier_commands,
+            skill_commands,
         }
     }
 
@@ -85,7 +90,7 @@ impl<'a> SlashInput<'a> {
         if input_starts_with_space || name.contains('/') {
             return SubmissionValidation::Valid;
         }
-        if self.command(name).is_some() {
+        if self.command(name).is_some() || self.skill_command(name).is_some() {
             SubmissionValidation::Valid
         } else {
             SubmissionValidation::UnknownCommand(name.to_string())
@@ -171,7 +176,13 @@ impl<'a> SlashInput<'a> {
             return rest.is_empty();
         }
 
-        has_slash_command_prefix(name, self.command_flags, self.service_tier_commands)
+        if has_slash_command_prefix(name, self.command_flags, self.service_tier_commands) {
+            return true;
+        }
+        let name = name.to_lowercase();
+        self.skill_commands
+            .iter()
+            .any(|skill| skill.name.to_lowercase().starts_with(&name))
     }
 
     pub(super) fn command_popup(&self, filter_text: &str) -> CommandPopup {
@@ -190,6 +201,13 @@ impl<'a> SlashInput<'a> {
                 side_conversation_active: self.command_flags.side_conversation_active,
             },
             self.service_tier_commands.to_vec(),
+        )
+        .with_skill_commands(
+            self.skill_commands
+                .iter()
+                .filter(|skill| self.command(&skill.name).is_none())
+                .cloned()
+                .collect(),
         );
         command_popup.on_composer_text_change(filter_text.to_string());
         command_popup
@@ -197,6 +215,16 @@ impl<'a> SlashInput<'a> {
 
     pub(super) fn command(&self, name: &str) -> Option<SlashCommandItem> {
         find_slash_command(name, self.command_flags, self.service_tier_commands)
+    }
+
+    /// The skill `/<name>` invokes, when no command has that name.
+    pub(super) fn skill_command(&self, name: &str) -> Option<&'a SkillCommand> {
+        find_skill_command(
+            name,
+            self.command_flags,
+            self.service_tier_commands,
+            self.skill_commands,
+        )
     }
 }
 
@@ -392,7 +420,7 @@ impl ChatComposer {
                                     |(_, args, _)| parent_owned_command_is_allowed(*cmd, args),
                                 )
                             }
-                            CommandItem::ServiceTier(_) => false,
+                            CommandItem::ServiceTier(_) | CommandItem::Skill(_) => false,
                         };
                         if !command_is_allowed {
                             return (InputResult::ParentOwnedInputBlocked, true);
@@ -407,6 +435,31 @@ impl ChatComposer {
                         return (result, true);
                     }
 
+                    if let CommandItem::Skill(_) = &sel {
+                        // A skill is sent as text: complete its name so that arguments can be
+                        // typed, or submit the draft once the name is complete.
+                        let first_line = self
+                            .draft
+                            .textarea
+                            .text()
+                            .lines()
+                            .next()
+                            .unwrap_or("")
+                            .to_owned();
+                        let Some(completed_text) = selected_command_completion(&first_line, &sel)
+                        else {
+                            return self.handle_key_event_without_popup(key_event);
+                        };
+                        self.draft
+                            .textarea
+                            .set_text_clearing_elements(&completed_text);
+                        self.draft.is_bash_mode = false;
+                        self.draft
+                            .textarea
+                            .set_cursor(self.draft.textarea.text().len());
+                        return (InputResult::None, true);
+                    }
+
                     self.stage_selected_slash_command_history(&sel);
                     if !matches!(sel, CommandItem::Builtin(cmd) if cmd.requires_dispatch_validation())
                     {
@@ -419,6 +472,7 @@ impl ChatComposer {
                             CommandItem::ServiceTier(command) => {
                                 InputResult::ServiceTierCommand(command)
                             }
+                            CommandItem::Skill(_) => InputResult::None,
                         },
                         true,
                     );
@@ -781,5 +835,55 @@ mod tests {
             InputResult::Command(SlashCommand::Review)
         );
         assert_eq!(composer.draft.textarea.text(), "/review ");
+    }
+
+    fn composer_with_skill(text: &str) -> ChatComposer {
+        let mut composer = test_composer();
+        composer.skill_commands = vec![SkillCommand {
+            name: "zz-deploy".to_string(),
+            description: "Deploy the app".to_string(),
+        }];
+        composer.draft.textarea.set_text_clearing_elements(text);
+        composer.draft.textarea.set_cursor(text.len());
+        composer.sync_popups();
+        composer
+    }
+
+    #[test]
+    fn skill_name_with_arguments_is_submitted_as_text() {
+        let text = "/zz-deploy prod now";
+        let mut composer = composer_with_skill(text);
+        assert_eq!(
+            press(&mut composer, KeyCode::Enter),
+            InputResult::Submitted {
+                text: text.to_string(),
+                text_elements: Vec::new(),
+            }
+        );
+    }
+
+    #[test]
+    fn slash_popup_completes_a_skill_name() {
+        let mut composer = composer_with_skill("/zz");
+        assert!(matches!(composer.popups.active, ActivePopup::Command(_)));
+        assert_eq!(press(&mut composer, KeyCode::Tab), InputResult::None);
+        assert_eq!(composer.draft.textarea.text(), "/zz-deploy ");
+
+        let mut composer = composer_with_skill("/zz");
+        assert_eq!(press(&mut composer, KeyCode::Enter), InputResult::None);
+        assert_eq!(composer.draft.textarea.text(), "/zz-deploy ");
+    }
+
+    #[test]
+    fn enter_on_a_complete_skill_name_submits_it() {
+        let mut composer = composer_with_skill("/zz-deploy");
+        assert!(matches!(composer.popups.active, ActivePopup::Command(_)));
+        assert_eq!(
+            press(&mut composer, KeyCode::Enter),
+            InputResult::Submitted {
+                text: "/zz-deploy".to_string(),
+                text_elements: Vec::new(),
+            }
+        );
     }
 }

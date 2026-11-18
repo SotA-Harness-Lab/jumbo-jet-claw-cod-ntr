@@ -215,7 +215,9 @@ impl ChatWidget {
             let model_prompt = source == UserMessageSource::Prompt
                 && (action == QueuedInputAction::Literal
                     || action == QueuedInputAction::Plain && !user_message.text.starts_with('!')
-                    || queued_slash_prompt);
+                    || queued_slash_prompt
+                    || action == QueuedInputAction::ParseSlash
+                        && self.slash_invoked_skill(&user_message.text).is_some());
             self.input_queue
                 .queued_user_messages
                 .push_back(QueuedUserMessage {

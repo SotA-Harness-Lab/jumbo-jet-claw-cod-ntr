@@ -36,6 +36,7 @@ use crate::catalog::SkillCatalog;
 use crate::catalog::SkillCatalogEntry;
 use crate::catalog::SkillReadResult;
 use crate::catalog::SkillSourceKind;
+use crate::claude_invocation::expand_explicit_skill;
 use crate::fragments::AvailableSkillsInstructions;
 use crate::fragments::SkillInstructions;
 use crate::fragments::SkillResourceAccess;
@@ -443,8 +444,18 @@ where
                     .await
                 {
                     Ok(read_result) => {
-                        let (contents, truncated) =
-                            truncate_main_prompt_contents(read_result.contents.as_str());
+                        let contents = if entry.authority.kind == SkillSourceKind::Host {
+                            expand_explicit_skill(
+                                read_result.contents,
+                                &entry.name,
+                                entry.rendered_path(),
+                                thread_store.level_id(),
+                                &input.user_input,
+                            )
+                        } else {
+                            read_result.contents
+                        };
+                        let (contents, truncated) = truncate_main_prompt_contents(&contents);
                         if truncated {
                             let warning = format!(
                                 "Skill `{}` exceeded the main prompt context limit and was truncated.",

@@ -1205,6 +1205,16 @@ impl ChatWidget {
         let Some(command) =
             find_slash_command(name, self.builtin_command_flags(), &service_tier_commands)
         else {
+            if self.slash_invoked_skill(&text).is_some() {
+                self.submit_user_message(UserMessage {
+                    text,
+                    local_images,
+                    remote_image_urls,
+                    text_elements,
+                    mention_bindings,
+                });
+                return QueueDrain::Stop;
+            }
             self.add_info_message(
                 format!(
                     r#"Unrecognized command '/{name}'. Type "/" for a list of supported commands."#
@@ -1269,6 +1279,27 @@ impl ChatWidget {
             },
         );
         self.queued_command_drain_result(cmd)
+    }
+
+    /// The skill that `text` invokes as `/<name> <args>`, as in Claude Code: an enabled
+    /// skill of that name, when no built-in or service-tier command has it.
+    pub(super) fn slash_invoked_skill(&self, text: &str) -> Option<SkillMetadata> {
+        let (name, _rest, _rest_offset) = parse_slash_name(text)?;
+        if name.contains('/')
+            || find_slash_command(
+                name,
+                self.builtin_command_flags(),
+                &self.current_model_service_tier_commands(),
+            )
+            .is_some()
+        {
+            return None;
+        }
+        self.bottom_pane
+            .skills()?
+            .iter()
+            .find(|skill| skill.name == name)
+            .cloned()
     }
 
     pub(super) fn builtin_command_flags(&self) -> BuiltinCommandFlags {

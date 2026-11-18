@@ -2,10 +2,12 @@ use std::collections::HashSet;
 
 use codex_exec_server::EnvironmentAccess;
 use codex_extension_api::ContextualUserFragment;
+use codex_protocol::user_input::UserInput;
 use codex_skills::SkillMetadata;
 use codex_skills::normalize_skill_path;
 
 use crate::HostSkillsSnapshot;
+use crate::claude_invocation::expand_explicit_skill;
 use crate::fragments::SkillInstructions;
 use crate::render::truncate_main_prompt_contents;
 
@@ -62,6 +64,9 @@ impl HostSkillsSnapshot {
     /// Reads selected host skills and builds their model-visible prompt fragments.
     ///
     /// Core calls this directly, including for hosts without an installed skills extension.
+    ///
+    /// `user_input` and `session_id` (the thread's id) are used to expand a skill invoked
+    /// in Claude Code's way, as `/<name> <arguments>`.
     #[tracing::instrument(
         level = "trace",
         skip_all,
@@ -71,6 +76,8 @@ impl HostSkillsSnapshot {
         &self,
         selected_skills: &[SkillMetadata],
         accessors: &[&dyn EnvironmentAccess],
+        user_input: &[UserInput],
+        session_id: &str,
     ) -> HostSkillPrompts {
         let mut prompts = HostSkillPrompts {
             fragments: Vec::with_capacity(selected_skills.len()),
@@ -81,6 +88,9 @@ impl HostSkillsSnapshot {
         for skill in selected_skills {
             match self.read_skill_text(skill, accessors).await {
                 Ok(contents) => {
+                    let path = skill.path_to_skills_md.inferred_native_path_string();
+                    let contents =
+                        expand_explicit_skill(contents, &skill.name, &path, session_id, user_input);
                     let (contents, truncated) = if self.outcome().is_agent_plugin_skill(skill) {
                         truncate_main_prompt_contents(&contents)
                     } else {
@@ -94,7 +104,7 @@ impl HostSkillsSnapshot {
                     }
                     prompts.fragments.push(Box::new(SkillInstructions {
                         name: skill.name.clone(),
-                        path: skill.path_to_skills_md.inferred_native_path_string(),
+                        path,
                         contents,
                         resource_access: None,
                     }));
