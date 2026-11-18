@@ -372,6 +372,7 @@ async fn parse_skill_file(
         name,
         description,
         short_description,
+        disable_model_invocation,
     } = parse_skill_frontmatter_metadata(&contents, || default_skill_name(path))
         .map_err(|error| error.to_string())?;
     let LoadedSkillMetadata {
@@ -379,6 +380,7 @@ async fn parse_skill_file(
         dependencies,
         policy,
     } = loaded_metadata;
+    let policy = ParsedSkillFrontmatter::policy_with_frontmatter(disable_model_invocation, policy);
 
     Ok(SkillMetadata {
         name,

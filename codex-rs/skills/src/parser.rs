@@ -11,6 +11,13 @@ struct SkillFrontmatter {
     description: Option<String>,
     #[serde(default)]
     metadata: SkillFrontmatterMetadata,
+    /// Claude Code's way of keeping a skill out of the model's hands: it is listed for
+    /// the user only and runs when the user names it.
+    #[serde(default, rename = "disable-model-invocation")]
+    disable_model_invocation: Option<serde_yaml::Value>,
+    /// Claude Code lists this after the description, as a hint of when the skill applies.
+    #[serde(default)]
+    when_to_use: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -25,6 +32,24 @@ pub struct ParsedSkillFrontmatter {
     pub name: String,
     pub description: String,
     pub short_description: Option<String>,
+    /// Whether the frontmatter sets `disable-model-invocation: true`.
+    pub disable_model_invocation: bool,
+}
+
+impl ParsedSkillFrontmatter {
+    /// Folds `disable-model-invocation` into the policy read from the skill's metadata
+    /// file. An explicit `allow_implicit_invocation` there wins over the frontmatter.
+    pub fn policy_with_frontmatter(
+        disable_model_invocation: bool,
+        policy: Option<crate::model::SkillPolicy>,
+    ) -> Option<crate::model::SkillPolicy> {
+        if !disable_model_invocation {
+            return policy;
+        }
+        let mut policy = policy.unwrap_or_default();
+        policy.allow_implicit_invocation.get_or_insert(false);
+        Some(policy)
+    }
 }
 
 /// Error produced while parsing or validating `SKILL.md` metadata.
@@ -67,11 +92,25 @@ pub fn parse_skill_frontmatter_metadata(
         .map(sanitize_single_line)
         .filter(|value| !value.is_empty())
         .unwrap_or_else(default_name);
+    // Claude Code skills may leave the description out: the first line of the body then
+    // stands in for it.
     let description = parsed
         .description
         .as_deref()
         .map(sanitize_single_line)
+        .filter(|value| !value.is_empty())
+        .or_else(|| description_from_body(contents))
         .unwrap_or_default();
+    let description = match parsed
+        .when_to_use
+        .as_deref()
+        .map(sanitize_single_line)
+        .filter(|value| !value.is_empty())
+    {
+        Some(when_to_use) if !description.is_empty() => format!("{description} - {when_to_use}"),
+        Some(when_to_use) => when_to_use,
+        None => description,
+    };
     let short_description = parsed
         .metadata
         .short_description
@@ -88,7 +127,45 @@ pub fn parse_skill_frontmatter_metadata(
         name,
         description,
         short_description,
+        // Claude Code takes only a literal `true`, as a boolean or as a string.
+        disable_model_invocation: match parsed.disable_model_invocation {
+            Some(serde_yaml::Value::Bool(value)) => value,
+            Some(serde_yaml::Value::String(value)) => value == "true",
+            _ => false,
+        },
     })
+}
+
+const BODY_DESCRIPTION_MAX_CHARS: usize = 100;
+
+/// The first non-empty line of the body, without heading marks, cut to a short length.
+fn description_from_body(contents: &str) -> Option<String> {
+    let body = body_after_frontmatter(contents)?;
+    let line = body
+        .lines()
+        .map(|line| line.trim().trim_start_matches('#').trim())
+        .find(|line| !line.is_empty())?;
+    let line = sanitize_single_line(line);
+    if line.chars().count() <= BODY_DESCRIPTION_MAX_CHARS {
+        return Some(line);
+    }
+    let cut = line
+        .chars()
+        .take(BODY_DESCRIPTION_MAX_CHARS - 3)
+        .collect::<String>();
+    Some(format!("{cut}..."))
+}
+
+fn body_after_frontmatter(contents: &str) -> Option<&str> {
+    let mut lines = contents.split_inclusive('\n');
+    let mut offset = lines.next().filter(|line| line.trim() == "---")?.len();
+    for line in lines {
+        offset += line.len();
+        if line.trim() == "---" {
+            return Some(&contents[offset..]);
+        }
+    }
+    None
 }
 
 fn sanitize_single_line(raw: &str) -> String {

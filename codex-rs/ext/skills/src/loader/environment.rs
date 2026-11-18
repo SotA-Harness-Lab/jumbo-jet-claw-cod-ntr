@@ -73,6 +73,7 @@ impl ParsedEnvironmentSkill {
             name: base_name,
             description,
             short_description,
+            disable_model_invocation,
         } = parse_skill_frontmatter_metadata(&contents, || default_skill_name(&skill.path))
             .map_err(|err| err.to_string())?;
         let (dependencies, policy) = match &skill.metadata {
@@ -83,6 +84,8 @@ impl ParsedEnvironmentSkill {
                 probe_skill_metadata(file_system, metadata_path).await
             }
         };
+        let policy =
+            ParsedSkillFrontmatter::policy_with_frontmatter(disable_model_invocation, policy);
 
         Ok(Self {
             path_to_skills_md: skill.path.clone(),
@@ -241,6 +244,7 @@ pub fn load_environment_skills_from_discovery(
             name: base_name,
             description,
             short_description,
+            disable_model_invocation,
         } = match parse_skill_frontmatter_metadata(&skill.instructions.contents, || {
             default_skill_name(&skill.instructions.path)
         }) {
@@ -278,6 +282,8 @@ pub fn load_environment_skills_from_discovery(
             })
             .map(|metadata| (metadata.dependencies, metadata.policy))
             .unwrap_or((None, None));
+        let policy =
+            ParsedSkillFrontmatter::policy_with_frontmatter(disable_model_invocation, policy);
         let metadata = EnvironmentSkillMetadata {
             path_to_skills_md: skill.instructions.path.clone(),
             name,

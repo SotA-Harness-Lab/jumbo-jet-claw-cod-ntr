@@ -17,6 +17,7 @@ fn parses_repairs_and_sanitizes_frontmatter() {
             name: "deploy service".to_string(),
             description: "Build for AWS: ECS".to_string(),
             short_description: Some("Deploy safely".to_string()),
+            disable_model_invocation: false,
         }
     );
 }
@@ -33,6 +34,7 @@ fn uses_default_name_and_requires_description() {
             name: "demo".to_string(),
             description: "Demo skill".to_string(),
             short_description: None,
+            disable_model_invocation: false,
         }
     );
 
@@ -56,6 +58,7 @@ fn repairs_short_descriptions_containing_colons_and_apostrophes() {
             name: "short".to_string(),
             description: "Short skill".to_string(),
             short_description: Some("What's included: builds and tests".to_string()),
+            disable_model_invocation: false,
         }
     );
 }
@@ -74,6 +77,7 @@ fn repairs_unrecognized_frontmatter_fields_that_need_quotes() {
             name: "unknown".to_string(),
             description: "Unknown fields".to_string(),
             short_description: None,
+            disable_model_invocation: false,
         }
     );
 }
@@ -92,6 +96,7 @@ fn preserves_block_scalar_bodies_while_repairing_other_fields() {
             name: "block".to_string(),
             description: "Build for AWS: ECS".to_string(),
             short_description: None,
+            disable_model_invocation: false,
         }
     );
 }
@@ -114,6 +119,78 @@ fn preserves_overlong_descriptions_and_short_descriptions() {
             name: "long".to_string(),
             description,
             short_description: Some(short_description),
+            disable_model_invocation: false,
         }
+    );
+}
+
+#[test]
+fn reads_claude_code_frontmatter() {
+    let parsed = parse_skill_frontmatter_metadata(
+        "---\nname: review\ndescription: Review a change\nwhen_to_use: Before a merge\ndisable-model-invocation: true\nallowed-tools: Bash(git diff:*)\n---\nBody\n",
+        || "fallback".to_string(),
+    )
+    .expect("valid frontmatter");
+    assert_eq!(
+        parsed,
+        ParsedSkillFrontmatter {
+            name: "review".to_string(),
+            description: "Review a change - Before a merge".to_string(),
+            short_description: None,
+            disable_model_invocation: true,
+        }
+    );
+
+    for (value, expected) in [("\"true\"", true), ("false", false), ("yes", false)] {
+        let parsed = parse_skill_frontmatter_metadata(
+            &format!("---\ndescription: Demo\ndisable-model-invocation: {value}\n---\n"),
+            || "demo".to_string(),
+        )
+        .expect("valid frontmatter");
+        assert_eq!(parsed.disable_model_invocation, expected, "{value}");
+    }
+}
+
+#[test]
+fn takes_a_missing_description_from_the_body() {
+    let parsed = parse_skill_frontmatter_metadata(
+        "---\nname: demo\n---\n\n# Deploy   the service\n\nMore text.\n",
+        || "fallback".to_string(),
+    )
+    .expect("the body should supply the description");
+    assert_eq!(parsed.description, "Deploy the service");
+
+    let long_line = "word ".repeat(40);
+    let parsed =
+        parse_skill_frontmatter_metadata(&format!("---\nname: demo\n---\n{long_line}\n"), || {
+            "fallback".to_string()
+        })
+        .expect("the body should supply the description");
+    assert_eq!(parsed.description.chars().count(), 100);
+    assert!(parsed.description.ends_with("..."));
+}
+
+#[test]
+fn frontmatter_flag_hides_a_skill_unless_its_policy_says_otherwise() {
+    use crate::model::SkillPolicy;
+
+    assert_eq!(
+        ParsedSkillFrontmatter::policy_with_frontmatter(false, None),
+        None
+    );
+    assert_eq!(
+        ParsedSkillFrontmatter::policy_with_frontmatter(true, None),
+        Some(SkillPolicy {
+            allow_implicit_invocation: Some(false),
+            products: Vec::new(),
+        })
+    );
+    let explicit = SkillPolicy {
+        allow_implicit_invocation: Some(true),
+        products: Vec::new(),
+    };
+    assert_eq!(
+        ParsedSkillFrontmatter::policy_with_frontmatter(true, Some(explicit.clone())),
+        Some(explicit)
     );
 }
