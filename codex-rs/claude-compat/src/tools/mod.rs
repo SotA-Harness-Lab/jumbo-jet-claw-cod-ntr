@@ -5,10 +5,13 @@
 //! holds only the parts that do not depend on it, so they can be tested on their own. Each
 //! tool has its own file; a new tool adds a file and a line below, nothing else.
 
+pub mod agent;
+pub mod ask_user_question;
 pub mod bash;
 pub mod edit;
 pub mod patch;
 pub mod read;
+pub mod todo_write;
 pub mod write;
 
 /// Claude Code's name of its shell tool.
@@ -27,6 +30,8 @@ pub const GREP: &str = "Grep";
 pub const TODO_WRITE: &str = "TodoWrite";
 /// Claude Code's name of its subagent tool.
 pub const AGENT: &str = "Agent";
+/// Claude Code's name of its tool asking the user multiple-choice questions.
+pub const ASK_USER_QUESTION: &str = "AskUserQuestion";
 
 /// Wraps a message the way Claude Code reports an input it rejects before running the tool.
 pub fn tool_use_error(message: &str) -> String {

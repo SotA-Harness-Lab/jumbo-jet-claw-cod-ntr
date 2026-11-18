@@ -142,10 +142,15 @@ in the layer only where the Codex tool has nothing for it.
 | `Read` | `view_image` | Reading through the executor filesystem under the turn's sandbox; images (`png`, `jpg`, `jpeg`, `gif`, `webp`) to `view_image` | Parameters (`file_path`, `offset`, `limit`), `N<TAB>line` numbering from 1, the 256 KB limit without `limit`, the 25,000-token limit, refusal of binary files and directories, the empty-file and short-file reminders, the "file does not exist" message |
 | `Write` | `apply_patch` | Writing, as a patch: approval, sandbox, patch events, the turn's diff | Parameters (`file_path`, `content`), the rule that an existing file is read first and not changed since, messages |
 | `Edit` | `apply_patch` | Writing, as a patch, as for `Write` | Parameters (`file_path`, `old_string`, `new_string`, `replace_all`), exact matching (refused when not found, or found more than once without `replace_all`), the read-first rule, messages |
+| `TodoWrite` | `update_plan` | The list, sent as the plan: the TUI's plan display, plan events, the refusal in Plan mode | Parameters (`todos` of `content`, `status`, `activeForm`), the checks (both forms non-empty), description, result text; the step in progress shows its `activeForm` |
+| `AskUserQuestion` | `request_user_input` | Asking: the TUI's question panel, the modes it is offered in, the root-thread rule, cancellation, recorded answers | Parameters (1-4 `questions` of `question`, `header`, 2-4 `options` of `label` and `description`, `multiSelect`), the uniqueness checks, description, result text (`"question"="answer"`, with `user notes:`) |
+| `Agent` | `spawn_agent` (multi-agent v1 or v2, whichever the turn has) | Starting the agent (roles, models, depth and thread limits, sandbox inheritance, TUI events), waiting through Codex's agent status subscription (as `wait_agent` does), the completion notice of a background agent | Parameters (`description`, `prompt`, `subagent_type`, `model`, `run_in_background`), the description listing the agent types with their tools, `general-purpose` as Codex's default role, Claude Code's message for an unknown type, result texts (the agent's final message) |
 
-`write_stdin` stays, to read the output of a background command and to stop it. Every other
-Codex tool (the plan tool, `request_user_input`, the agent tools, web search, MCP tools and
-the rest) is offered as before until its Claude Code counterpart is added.
+`write_stdin` stays, to read the output of a background command and to stop it. Codex's
+other agent tools (`wait_agent`, `send_input`, `close_agent` and the rest, or v2's
+`send_message`, `followup_task`, `list_agents`) stay beside `Agent`. Every other Codex tool
+(web search, MCP tools and the rest) is offered as before until its Claude Code counterpart
+is added.
 
 Differences from Claude Code:
 
@@ -171,6 +176,20 @@ Differences from Claude Code:
 - Hooks and Codex's own `hooks.json` see the Claude names, so a Codex hook matching
   `exec_command` or `apply_patch` does not run for these tools.
 - Auto-review (guardian) of past tool calls recognises only Codex's tool names.
+- `TodoWrite` keeps a list whose items are all completed (Claude Code clears it), and its
+  hook `tool_response` has `newTodos` but no `oldTodos`.
+- `AskUserQuestion` asks only where Codex's `request_user_input` does: in Plan mode, in
+  Default mode with the `default_mode_request_user_input` feature, and in the root agent;
+  elsewhere the model gets Codex's refusal. Codex's panel takes one choice a question: a
+  `multiSelect` question asks for the other choices in a note. Option `preview`s are not
+  offered.
+- `Agent` has no `isolation`, `name`, `team_name` or `mode`, and an agent cannot be
+  continued with `SendMessage`; Codex's own agent tools stay for that. The `model` parameter
+  takes a model name Codex knows, not `sonnet`, `opus` or `haiku`. A foreground agent of
+  multi-agent v1 is closed once it has answered, to free its thread. A background agent's
+  result is added to the conversation when it ends, without starting a turn; the model is
+  told to use `wait_agent` to wait for it. Codex also adds its own completion notice after a
+  foreground agent's answer. `Agent(type, ...)` in a tool list does not restrict the types.
 
 ### Adding a tool
 
@@ -208,9 +227,22 @@ registered from `add_shell_tools`, which owns the shell options.
 
 A Claude Code subagent becomes an agent role of the same name: its `description` is the
 role's description, its body the role's developer instructions, and its `effort` the
-reasoning effort (`max` as `xhigh`). `tools`, `model` and the other fields are left out.
+reasoning effort (`max` as `xhigh`). `model` and the other fields are left out.
 Codex's own roles win over subagents of the same name, and a project's subagents over the
 user's. Only `.claude/agents` of the working directory is read for the project.
+
+`tools` and `disallowedTools` apply only with the Claude tool set on (`claude_tools`): an
+agent spawned with the role then keeps only the tools its `tools` lists (all when absent,
+none when empty, all with `*`) and its `disallowedTools` does not, by the names the model
+sees: Claude Code's names, `mcp__<server>__<tool>` for MCP tools, Codex's own name for a
+Codex tool with no Claude counterpart. `Bash(git *)` counts as `Bash`, `Task` as `Agent`;
+a Codex tool that serves a Claude tool goes with it (`write_stdin` with `Bash`, Codex's
+other agent tools with `Agent`). The list is read from the subagent file each time the
+agent's tools are built, and applied after MCP and dynamic tools are added; hosted tools
+(Codex's built-in web search) and the tools code mode and tool search add are not filtered.
+Unlike Claude Code, a subagent may start agents of its own within Codex's depth limit.
+Without the switch the two fields are ignored, as before. The `Agent` description lists
+each type with its tools, as Claude Code does.
 
 ## MCP servers
 

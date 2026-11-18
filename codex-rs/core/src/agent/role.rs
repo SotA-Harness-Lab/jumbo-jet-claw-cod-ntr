@@ -158,6 +158,11 @@ async fn load_role_layer_toml(
     )?)
 }
 
+/// The built-in roles, for tools that list every agent type.
+pub(crate) fn built_in_configs() -> &'static BTreeMap<String, AgentRoleConfig> {
+    built_in::configs()
+}
+
 pub(crate) fn resolve_role_config<'a>(
     config: &'a Config,
     role_name: &str,
