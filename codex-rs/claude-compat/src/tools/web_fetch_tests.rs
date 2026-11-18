@@ -96,7 +96,8 @@ fn redirect_message_names_both_urls() {
 fn fetch_command_quotes_for_each_shell() {
     let target = url("https://example.com/it's?q=a b");
     let posix = fetch_command(&target, CommandShell::Posix);
-    assert!(posix.starts_with("curl --silent --show-error --globoff --proto =https "));
+    // Quoted for zsh, which expands a leading `=`.
+    assert!(posix.starts_with("curl --silent --show-error --globoff --proto '=https' "));
     assert!(posix.ends_with("'https://example.com/it'\\''s?q=a%20b'"));
     assert!(posix.contains("--max-filesize 10485760"));
     let powershell = fetch_command(&target, CommandShell::PowerShell);

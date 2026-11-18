@@ -215,7 +215,9 @@ pub fn fetch_command(url: &Url, shell: CommandShell) -> String {
 }
 
 fn quote(word: &str, shell: CommandShell) -> String {
+    // A leading `=` stays quoted: zsh expands `=word` to the path of the command `word`.
     let plain = !word.is_empty()
+        && !word.starts_with('=')
         && word
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '=' | '.' | '/'));
