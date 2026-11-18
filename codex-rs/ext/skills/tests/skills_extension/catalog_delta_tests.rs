@@ -102,7 +102,7 @@ async fn grant_expiry_withdraws_only_missing_skills_when_metadata_budget_is_exha
             &enabled,
             &mut previous,
             /*granting_turn*/ None,
-            /*context_window*/ 60_000,
+            /*context_window*/ 24_000,
         )
         .await?;
         assert!(baseline.contains("- executor-unrelated:"), "{baseline}");
@@ -117,7 +117,7 @@ async fn grant_expiry_withdraws_only_missing_skills_when_metadata_budget_is_exha
             &enabled,
             &mut previous,
             Some("granting-turn"),
-            /*context_window*/ 60_000,
+            /*context_window*/ 24_000,
         )
         .await?;
         assert!(granted.contains("- executor-permanent:"), "{granted}");
@@ -203,7 +203,7 @@ async fn legacy_filesystem_catalog_revalidates_missing_rows_once() -> TestResult
         &config,
         &mut previous,
         /*granting_turn*/ None,
-        /*context_window*/ 60_000,
+        /*context_window*/ 24_000,
     )
     .await?;
     for snapshot in previous.values_mut() {
@@ -229,7 +229,7 @@ async fn render_catalogs(
     previous: &mut serde_json::Map<String, serde_json::Value>,
 ) -> Result<String, Box<dyn std::error::Error>> {
     render_catalogs_for_step(
-        skills, config, previous, /*granting_turn*/ None, /*context_window*/ 5_000,
+        skills, config, previous, /*granting_turn*/ None, /*context_window*/ 2_000,
     )
     .await
 }
