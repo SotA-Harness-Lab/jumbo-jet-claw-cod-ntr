@@ -7,6 +7,7 @@ use crate::function_tool::FunctionCallError;
 use crate::function_tool::OrCancelToolExt;
 use crate::hook_runtime::PreToolUseHookResult;
 use crate::hook_runtime::record_additional_contexts;
+use crate::hook_runtime::run_post_tool_use_failure_hooks;
 use crate::hook_runtime::run_post_tool_use_hooks;
 use crate::hook_runtime::run_pre_tool_use_hooks;
 use crate::memory_usage::emit_metric_for_tool_read;
@@ -1035,12 +1036,43 @@ impl ToolRegistry {
         } else {
             None
         };
+        // Claude Code runs PostToolUseFailure hooks, not PostToolUse ones, for a failed call,
+        // which for it includes a shell command that exited with a non-zero code.
+        let claude_tool_failure = match &result {
+            // A cancelled call leaves at once; its hooks would only hold that up.
+            _ if cancellation_token.is_cancelled() => None,
+            Ok(result) if result.result.was_aborted() => None,
+            Ok(result) if success => result.result.post_tool_use_failure(),
+            Ok(result) => Some(result.result.log_output()),
+            Err(err) => Some(err.to_string()),
+        };
+        let claude_failure_target = claude_tool_failure.as_ref().and_then(|_| {
+            post_tool_use_payload
+                .as_ref()
+                .map(|payload| {
+                    (
+                        payload.tool_name.clone(),
+                        payload.tool_use_id.clone(),
+                        payload.tool_input.clone(),
+                    )
+                })
+                .or_else(|| {
+                    tool.pre_tool_use_payload(&invocation).map(|payload| {
+                        (
+                            payload.tool_name,
+                            invocation.call_id.clone(),
+                            payload.tool_input,
+                        )
+                    })
+                })
+        });
         let post_tool_use_outcome = if let Some(post_tool_use_payload) = post_tool_use_payload {
             Some(
                 run_post_tool_use_hooks(
                     &invocation.session,
                     invocation.step_context.as_ref(),
                     post_tool_use_payload,
+                    /*skip_claude_settings_hooks*/ claude_tool_failure.is_some(),
                     &invocation.environments.hook_ids(),
                 )
                 .or_cancel_tool(&cancellation_token)
@@ -1057,6 +1089,23 @@ impl ToolRegistry {
             )
             .or_cancel_tool(&cancellation_token)
             .await?;
+        }
+        if let (Some(error), Some((tool_name, tool_use_id, tool_input))) =
+            (claude_tool_failure, claude_failure_target)
+        {
+            let additional_contexts = run_post_tool_use_failure_hooks(
+                &invocation.session,
+                invocation.step_context.as_ref(),
+                &tool_name,
+                tool_use_id,
+                tool_input,
+                error,
+            )
+            .or_cancel_tool(&cancellation_token)
+            .await?;
+            record_additional_contexts(&invocation.session, &invocation.turn, additional_contexts)
+                .or_cancel_tool(&cancellation_token)
+                .await?;
         }
 
         // A PostToolUse block rejects the result, not the already-completed tool execution.
@@ -1222,7 +1271,7 @@ fn function_hook_tool_name(invocation: &ToolInvocation) -> HookToolName {
         return HookToolName::spawn_agent();
     }
 
-    HookToolName::new(flat_tool_name(&invocation.tool_name).into_owned())
+    HookToolName::function(flat_tool_name(&invocation.tool_name).into_owned())
 }
 
 fn function_hook_tool_input(arguments: &str) -> Value {

@@ -294,11 +294,16 @@ pub(crate) async fn run_turn(
             RemoteCompactionSupport::V2 => Some("Error running remote compact task".to_string()),
             RemoteCompactionSupport::Unsupported => None,
         };
-        sess.send_event(
+        let error_event = err.to_error_event(message_prefix);
+        crate::hook_runtime::run_stop_failure_hooks(
+            &sess,
             turn_context.as_ref(),
-            EventMsg::Error(err.to_error_event(message_prefix)),
+            &error,
+            error_event.message.clone(),
         )
         .await;
+        sess.send_event(turn_context.as_ref(), EventMsg::Error(error_event))
+            .await;
         error!("Failed to run pre-sampling compact");
         return Ok(None);
     }
@@ -983,10 +988,17 @@ pub(crate) async fn run_turn(
                     codex_error.details(),
                 )
                 .await;
+                let message = "Invalid image in your last message. Please remove it and try again.";
+                crate::hook_runtime::run_stop_failure_hooks(
+                    &sess,
+                    turn_context.as_ref(),
+                    &error,
+                    message.to_string(),
+                )
+                .await;
                 let event = EventMsg::Error(ErrorEvent {
                     misalignment: None,
-                    message: "Invalid image in your last message. Please remove it and try again."
-                        .to_string(),
+                    message: message.to_string(),
                     codex_error_info: Some(error),
                     rejected_audio_file_ids: Vec::new(),
                 });
@@ -1021,6 +1033,13 @@ pub(crate) async fn run_turn(
                         " Please remove or replace the affected audio attachment and try again.",
                     );
                 }
+                crate::hook_runtime::run_stop_failure_hooks(
+                    &sess,
+                    turn_context.as_ref(),
+                    &error,
+                    error_event.message.clone(),
+                )
+                .await;
                 let event = EventMsg::Error(error_event);
                 sess.send_event(&turn_context, event).await;
                 // let the user continue the conversation

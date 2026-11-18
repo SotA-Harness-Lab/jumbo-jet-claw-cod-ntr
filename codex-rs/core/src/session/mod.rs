@@ -2543,13 +2543,20 @@ impl Session {
 
     pub(crate) async fn refresh_hooks(&self, mut config: Arc<Config>) {
         loop {
-            let disabled_plugin_ids = self.state.lock().await.active_disabled_plugin_ids.clone();
+            let (disabled_plugin_ids, session_source) = {
+                let state = self.state.lock().await;
+                (
+                    state.active_disabled_plugin_ids.clone(),
+                    state.session_configuration.session_source.clone(),
+                )
+            };
             let environments = self.services.turn_environments.snapshot().await;
             let hooks_config = build_hooks_config(
                 config.as_ref(),
                 self.services.plugins_manager.as_ref(),
                 environments.single_local_environment(),
                 &disabled_plugin_ids,
+                &session_source,
             )
             .await;
 
@@ -3460,6 +3467,13 @@ impl Session {
             available_decisions: Some(available_decisions),
             parsed_cmd,
         });
+        crate::hook_runtime::run_notification_hooks(
+            self,
+            turn_context,
+            "permission_prompt",
+            "Codex needs your permission to use Bash".to_string(),
+        )
+        .await;
         let _user_wait = self.start_user_wait_timing(turn_context, user_wait_owner.as_deref());
         self.send_event(turn_context, event).await;
         rx_approve.await.unwrap_or(ReviewDecision::Abort)
@@ -3509,6 +3523,13 @@ impl Session {
             reason,
             grant_root,
         });
+        crate::hook_runtime::run_notification_hooks(
+            self,
+            turn_context,
+            "permission_prompt",
+            "Codex needs your permission to use apply_patch".to_string(),
+        )
+        .await;
         let _user_wait = self.start_user_wait_timing(turn_context, user_wait_owner.as_deref());
         self.send_event(turn_context, event).await;
         rx_approve.await.unwrap_or(ReviewDecision::Abort)
@@ -3668,6 +3689,13 @@ impl Session {
             permissions: requested_permissions,
             cwd: Some(cwd.clone().into()),
         });
+        crate::hook_runtime::run_notification_hooks(
+            self,
+            turn_context,
+            "permission_prompt",
+            "Codex needs your permission to use request_permissions".to_string(),
+        )
+        .await;
         let _user_wait = self.start_user_wait_timing(turn_context, user_wait_owner.as_deref());
         self.send_event(turn_context.as_ref(), event).await;
         tokio::select! {
@@ -6195,6 +6223,7 @@ async fn build_hooks_config(
     plugins_manager: &PluginsManager,
     environment: Option<&TurnEnvironment>,
     disabled_plugin_ids: &[String],
+    session_source: &SessionSource,
 ) -> HooksConfig {
     let (hook_shell_program, hook_shell_argv) = environment
         .and_then(|environment| environment.shell.as_ref())
@@ -6223,7 +6252,12 @@ async fn build_hooks_config(
         shell_args: hook_shell_argv,
         // Unit tests never run the hooks of the real home directory.
         claude_settings: (!cfg!(test))
-            .then(|| codex_hooks::ClaudeHookSettings::discover(Some(config.cwd.clone())))
+            .then(|| {
+                codex_hooks::ClaudeHookSettings::discover(
+                    Some(config.cwd.clone()),
+                    codex_hooks::claude_entrypoint(session_source),
+                )
+            })
             .flatten(),
     }
 }

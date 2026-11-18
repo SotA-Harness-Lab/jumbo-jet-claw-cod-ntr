@@ -33,6 +33,7 @@ use super::dispatcher::hook_event_name_label;
 use super::plugin_trust::PluginHookTrust;
 use crate::config_rules::hook_states_from_stack;
 use crate::engine::HookMatcher;
+use crate::events::claude_only::ClaudeOnlyHandler;
 use crate::events::common::matcher_pattern_for_event;
 use crate::events::session_end::SESSION_END_DEFAULT_TIMEOUT_SEC;
 use crate::events::session_end::SESSION_END_MAX_TIMEOUT_SEC;
@@ -44,6 +45,10 @@ use codex_protocol::protocol::HookTrustStatus;
 #[derive(Default)]
 pub(crate) struct DiscoveryResult {
     pub handlers: Vec<ConfiguredHandler>,
+    /// Handlers of the Claude Code events Codex's own configuration does not have.
+    pub claude_only_handlers: Vec<ClaudeOnlyHandler>,
+    /// The Claude Code settings files whose hooks were loaded.
+    pub claude_settings_paths: Vec<AbsolutePathBuf>,
     pub hook_entries: Vec<HookListEntry>,
     pub warnings: Vec<String>,
     pub required_load_errors: Vec<String>,
@@ -144,6 +149,8 @@ pub(crate) fn discover_handlers_with_claude_settings(
     claude_settings: Option<&super::claude_settings::ClaudeHookSettings>,
 ) -> DiscoveryResult {
     let mut handlers = Vec::new();
+    let mut claude_only_handlers = Vec::new();
+    let mut claude_settings_paths = Vec::new();
     let mut hook_entries = Vec::new();
     let mut warnings = plugin_hook_load_warnings;
     let mut required_load_errors = Vec::new();
@@ -249,7 +256,37 @@ pub(crate) fn discover_handlers_with_claude_settings(
                 project_dir.display().to_string(),
             );
         }
+        if let Some(entrypoint) = &claude_settings.entrypoint {
+            env.insert("CLAUDE_CODE_ENTRYPOINT".to_string(), entrypoint.clone());
+        }
         for claude_hooks in super::claude_settings::load(claude_settings, &mut warnings) {
+            // Claude Code runs the user's own hooks without asking. A project's hooks of these
+            // events have no place in Codex's trust prompt, so only the bypass admits them.
+            let trusted = claude_hooks.is_user || policy.bypass_hook_trust;
+            claude_settings_paths.push(claude_hooks.path.clone());
+            if policy.allow_managed_hooks_only || claude_hooks.claude_only.is_empty() {
+                // Nothing of these events to admit.
+            } else if trusted {
+                append_claude_only_handlers(
+                    &mut claude_only_handlers,
+                    &mut warnings,
+                    &mut display_order,
+                    &claude_hooks,
+                    &env,
+                );
+            } else {
+                warnings.push(format!(
+                    "skipping Claude Code {} hooks in {}: Codex cannot ask to trust them; \
+                     --dangerously-bypass-hook-trust runs them",
+                    claude_hooks
+                        .claude_only
+                        .iter()
+                        .map(|(event, _)| event.label())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    claude_hooks.path.display()
+                ));
+            }
             append_hook_events(
                 &mut handlers,
                 &mut hook_entries,
@@ -265,9 +302,8 @@ pub(crate) fn discover_handlers_with_claude_settings(
                     },
                     is_managed: false,
                     requirement: HookRequirement::Optional,
-                    // Claude Code runs the user's own hooks without asking; a project's
-                    // hooks wait for Codex's trust like any other project hook.
-                    bypass_hook_trust: claude_hooks.is_user || policy.bypass_hook_trust,
+                    // A project's hooks wait for Codex's trust like any other project hook.
+                    bypass_hook_trust: trusted,
                     hook_states: &hook_states,
                     env: env.clone(),
                     plugin_id: None,
@@ -293,9 +329,93 @@ pub(crate) fn discover_handlers_with_claude_settings(
 
     DiscoveryResult {
         handlers,
+        claude_only_handlers,
+        claude_settings_paths,
         hook_entries,
         warnings,
         required_load_errors,
+    }
+}
+
+/// Admits the command handlers of the Claude Code events Codex's own configuration does not
+/// have. They are not listed among Codex's hooks.
+fn append_claude_only_handlers(
+    claude_only_handlers: &mut Vec<ClaudeOnlyHandler>,
+    warnings: &mut Vec<String>,
+    display_order: &mut i64,
+    claude_hooks: &super::claude_settings::ClaudeSettingsHooks,
+    env: &HashMap<String, String>,
+) {
+    let source = if claude_hooks.is_user {
+        HookSource::User
+    } else {
+        HookSource::Project
+    };
+    for (event, groups) in &claude_hooks.claude_only {
+        for group in groups {
+            let matcher = match group.matcher.as_deref().map(HookMatcher::new).transpose() {
+                Ok(matcher) => matcher,
+                Err(err) => {
+                    warnings.push(format!(
+                        "invalid matcher {:?} in {}: {err}",
+                        group.matcher.as_deref().unwrap_or_default(),
+                        claude_hooks.path.display()
+                    ));
+                    continue;
+                }
+            };
+            for handler in &group.hooks {
+                let HookHandlerConfig::Command {
+                    command,
+                    timeout_sec,
+                    r#async,
+                    status_message,
+                    additional_context_limit,
+                    ..
+                } = handler
+                else {
+                    warnings.push(format!(
+                        "skipping a {} hook in {}: only command hooks run for this event",
+                        event.label(),
+                        claude_hooks.path.display()
+                    ));
+                    continue;
+                };
+                if command.trim().is_empty() {
+                    warnings.push(format!(
+                        "skipping empty hook command in {}",
+                        claude_hooks.path.display()
+                    ));
+                    continue;
+                }
+                let command = env.iter().fold(command.clone(), |command, (key, value)| {
+                    command.replace(&format!("${{{key}}}"), value)
+                });
+                claude_only_handlers.push(ClaudeOnlyHandler {
+                    event: *event,
+                    handler: ConfiguredHandler {
+                        builtin: false,
+                        plugin_trust: None,
+                        event_name: event.stand_in(),
+                        matcher: matcher.clone(),
+                        timeout_sec: timeout_sec.unwrap_or(600).max(1),
+                        status_message: status_message.clone(),
+                        additional_context_limit: AdditionalContextLimit::from_config(
+                            *additional_context_limit,
+                        ),
+                        source_path: claude_hooks.path.clone().into(),
+                        source,
+                        display_order: *display_order,
+                        kind: ConfiguredHandlerKind::Command {
+                            command,
+                            env: env.clone(),
+                            r#async: *r#async,
+                        },
+                    },
+                });
+                *display_order += 1;
+            }
+        }
     }
 }
 

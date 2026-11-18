@@ -231,7 +231,7 @@ pub(crate) async fn execute_handlers_with_progress<T: 'static>(
     completed.into_iter().map(|(_, parsed)| parsed).collect()
 }
 
-pub(super) async fn execute_handler(
+pub(crate) async fn execute_handler(
     engine: &ClaudeHooksEngine,
     handler: &ConfiguredHandler,
     event_input: &Value,

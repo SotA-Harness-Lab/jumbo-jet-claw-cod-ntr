@@ -903,11 +903,16 @@ impl Session {
             )
             .await;
             self.track_turn_codex_error(turn_context.as_ref(), &err);
-            self.send_event(
+            let error_event = err.to_error_event(/*message_prefix*/ None);
+            crate::hook_runtime::run_stop_failure_hooks(
+                self,
                 turn_context.as_ref(),
-                EventMsg::Error(err.to_error_event(/*message_prefix*/ None)),
+                &err.to_codex_protocol_error(),
+                error_event.message.clone(),
             )
             .await;
+            self.send_event(turn_context.as_ref(), EventMsg::Error(error_event))
+                .await;
         }
         let turn_telemetry = &turn_context.session_telemetry;
         // Emit token usage metrics.
