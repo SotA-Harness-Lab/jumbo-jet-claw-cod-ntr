@@ -15,9 +15,12 @@ mod bash;
 mod edit;
 mod file_state;
 mod files;
+mod glob;
+mod grep;
 mod output;
 mod permissions;
 mod read;
+mod ripgrep;
 mod write;
 
 use std::collections::HashMap;
@@ -53,6 +56,8 @@ pub(crate) const OFFERED_TOOLS: &[&str] = &[
     codex_claude_compat::tools::READ,
     codex_claude_compat::tools::WRITE,
     codex_claude_compat::tools::EDIT,
+    codex_claude_compat::tools::GLOB,
+    codex_claude_compat::tools::GREP,
 ];
 
 /// Replaces Codex tools by Claude Code's in a registry that holds Codex's core tools.
@@ -65,6 +70,8 @@ pub(crate) fn replace_codex_tools(turn_context: &TurnContext, registry: &mut Too
     read::install(&mut swap);
     write::install(&mut swap);
     edit::install(&mut swap);
+    glob::install(&mut swap);
+    grep::install(&mut swap);
     // Next: glob, grep, web_fetch, web_search, todo_write, ask_user_question, agent; each
     // in its own file, taking the Codex tool it replaces through `swap.take`.
 }
@@ -104,6 +111,12 @@ impl<'a> ToolSwap<'a> {
 
     pub(crate) fn add(&mut self, runtime: impl CoreToolRuntime + 'static) {
         self.registry.add(runtime);
+    }
+
+    /// Whether the model is offered the tool `name`, such as a Claude tool registered
+    /// before the swap.
+    pub(crate) fn offers(&self, name: &str) -> bool {
+        self.registry.tool(&ToolName::plain(name)).is_some()
     }
 }
 
