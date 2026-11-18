@@ -198,6 +198,7 @@ pub(crate) fn build_tool_router(
     }
     crate::tools::claude::replace_codex_search(turn_context, &mut registry);
     append_dynamic_tool_runtimes(dynamic_tools, &mut registry);
+    crate::tools::claude::restrict_to_subagent_tools(turn_context, &mut registry);
     let hosted_specs = if let Some(mode) = native_mode {
         hosted_model_tool_specs(
             turn_context,

@@ -11,6 +11,8 @@
 //! parts (descriptions, formatting, edits) are in `codex_claude_compat::tools`. A new tool
 //! is a new file plus one line in [`replace_codex_tools`].
 
+mod agent;
+mod ask_user_question;
 mod bash;
 mod edit;
 mod file_state;
@@ -23,6 +25,8 @@ mod read;
 mod ripgrep;
 mod web_fetch;
 mod web_search;
+mod subagent_tools;
+mod todo_write;
 mod write;
 
 use std::collections::HashMap;
@@ -44,6 +48,7 @@ pub(crate) use permissions::PermissionInput;
 pub(crate) use permissions::apply_rule_decision;
 pub(crate) use permissions::check_permission;
 pub(crate) use permissions::rule_allows;
+pub(crate) use subagent_tools::restrict_to_subagent_tools;
 
 /// Whether the model is offered Claude Code's tools instead of Codex's: the `claude_tools`
 /// feature is on and `CODEX_CLAUDE_COMPAT` is not `0`.
@@ -62,6 +67,9 @@ pub(crate) const OFFERED_TOOLS: &[&str] = &[
     codex_claude_compat::tools::GREP,
     codex_claude_compat::tools::WEB_FETCH,
     codex_claude_compat::tools::WEB_SEARCH,
+    codex_claude_compat::tools::TODO_WRITE,
+    codex_claude_compat::tools::ASK_USER_QUESTION,
+    codex_claude_compat::tools::AGENT,
 ];
 
 /// Replaces Codex tools by Claude Code's in a registry that holds Codex's core tools.
@@ -77,6 +85,9 @@ pub(crate) fn replace_codex_tools(turn_context: &TurnContext, registry: &mut Too
     glob::install(&mut swap);
     grep::install(&mut swap);
     web_fetch::install(&mut swap);
+    todo_write::install(&mut swap);
+    ask_user_question::install(&mut swap);
+    agent::install(&mut swap, turn_context);
 }
 
 /// Replaces Codex's standalone search (`web.run`) by `WebSearch`. Extension tools, that
@@ -112,6 +123,12 @@ impl<'a> ToolSwap<'a> {
             .entry(name)
             .or_insert_with(|| registry.remove(&ToolName::plain(name)))
             .clone()
+    }
+
+    /// Removes a Codex tool given with its namespace (the multi-agent tools) and returns its
+    /// runtime, or `None` when this turn does not have it.
+    pub(crate) fn take_named(&mut self, name: ToolName) -> Option<Arc<dyn CoreToolRuntime>> {
+        self.registry.remove(&name)
     }
 
     /// Whether the session's tool policy lets the model use the Codex tool `name`: a Claude

@@ -86,11 +86,11 @@ run as they are, with Claude Code's input on stdin and Claude Code's outputs und
 - Tool names: shell commands are `Bash`; `apply_patch` is also matched by `Write` and `Edit`,
   `spawn_agent` by `Agent` and `Task`, `request_user_input` by `AskUserQuestion` (its input has
   the same `questions[].question`), `update_plan` by `TodoWrite`. Hook input keeps Codex's
-  name. `Read`, `MultiEdit`, `Grep`, `Glob`, `WebFetch`, `WebSearch` and `ExitPlanMode` have
-  no Codex tool and never match; Codex's plan mode ends with a plan in the final answer, which
-  only `Stop` sees.
-  With the Claude tool set on (below), `Bash`, `Read`, `Write`, `Edit`, `Glob` and `Grep`
-  are the tools' own names: hook input carries that name and Claude Code's input (`command`, `timeout`,
+  name. Without the Claude tool set, `Read`, `Grep`, `Glob`, `WebFetch` and `WebSearch` have
+  no Codex tool and never match. `MultiEdit` (gone from Claude Code) and `ExitPlanMode` never
+  match: Codex's plan mode ends with a plan in the final answer, which only `Stop` sees.
+  With the Claude tool set on (below), `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`,
+  `WebFetch`, `WebSearch`, `TodoWrite`, `AskUserQuestion` and `Agent` are the tools' own names: hook input carries that name and Claude Code's input (`command`, `timeout`,
   `description`; `file_path`, `old_string`, `new_string`; ...), and `PostToolUse` gets
   Claude Code's `tool_response` object (`stdout`, `stderr`, `interrupted` for `Bash`).
 - Events Codex's own configuration does not have run at the closest Codex moment, for command
@@ -147,10 +147,14 @@ nothing for it; Claude Code's permission rules are one (see "Permission rules" b
 | `Grep` | none (offered with `Bash`) | Searching, as one `rg` command run through `exec_command` as for `Glob`, files listed newest first by `rg --sortr=modified`; the path check through the executor filesystem | Parameters (`pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `context`, `multiline`, `head_limit`, `offset`), Claude Code's ripgrep arguments (hidden files, VCS directories left out, `--max-columns 500`), `head_limit` (250 by default, 0 for all) and `offset` with the pagination note, paths shortened, the text of each output mode (`Found N files`, `No matches found`, `Found N total occurrences across M files.`), the "path does not exist" message |
 | `WebSearch` | `web.run` (standalone search) | The search, its backend and settings (`web_search` mode, location, filters), its events and the TUI | Parameters (`query`, at least 2 characters; `allowed_domains`, sent as the search's domain filter; `blocked_domains`, sent as `-site:` operators in the query; not both), the result text with Claude Code's sources reminder |
 | `WebFetch` | nothing (new) | The request, as a `curl` command through `exec_command`: sandbox, managed network proxy and its host approvals, command rules, approval prompts, events; the answer to `prompt` from the session's model client | Parameters (`url`, `prompt`), URL checks (at most 2000 characters, no credentials, a dotted host), HTTP upgraded to HTTPS, same-site redirects (`www.` added or removed) followed up to 10, other redirects reported in Claude Code's format, the 10 MB and 60-second limits, HTML to Markdown, the 15-minute cache, the secondary model's prompt with Claude Code's quoting rules and preapproved documentation hosts, the result text |
+| `TodoWrite` | `update_plan` | The list, sent as the plan: the TUI's plan display, plan events, the refusal in Plan mode | Parameters (`todos` of `content`, `status`, `activeForm`), the checks (both forms non-empty), description, result text; the step in progress shows its `activeForm` |
+| `AskUserQuestion` | `request_user_input` | Asking: the TUI's question panel, the modes it is offered in, the root-thread rule, cancellation, recorded answers | Parameters (1-4 `questions` of `question`, `header`, 2-4 `options` of `label` and `description`, `multiSelect`), the uniqueness checks, description, result text (`"question"="answer"`, with `user notes:`) |
+| `Agent` | `spawn_agent` (multi-agent v1 or v2, whichever the turn has) | Starting the agent (roles, models, depth and thread limits, sandbox inheritance, TUI events), waiting through Codex's agent status subscription (as `wait_agent` does), the completion notice of a background agent | Parameters (`description`, `prompt`, `subagent_type`, `model`, `run_in_background`), the description listing the agent types with their tools, `general-purpose` as Codex's default role, Claude Code's message for an unknown type, result texts (the agent's final message) |
 
-`write_stdin` stays, to read the output of a background command and to stop it. Every other
-Codex tool (the plan tool, `request_user_input`, the agent tools, the hosted web search, MCP
-tools and the rest) is offered as before until its Claude Code counterpart is added.
+`write_stdin` stays, to read the output of a background command and to stop it. Codex's
+other agent tools (`wait_agent`, `send_input`, `close_agent` and the rest, or v2's
+`send_message`, `followup_task`, `list_agents`) stay beside `Agent`. Every other Codex tool
+(the hosted web search, MCP tools and the rest) is offered as before.
 
 Differences from Claude Code:
 
@@ -206,8 +210,9 @@ Differences from Claude Code:
   allows, denies or asks per host), it runs in the sandbox; otherwise it asks to run
   outside it, as `sandbox_permissions: "require_escalated"`, which Codex approves or
   refuses by its approval policy (refused under `never`). The approval shows the `curl`
-  command, and command rules for `curl` apply to it. Claude Code's `WebFetch(domain:...)`
-  permission rules and its preapproved hosts are not used to allow a request.
+  command, and command rules for `curl` apply to it. `WebFetch(domain:...)` permission rules
+  apply (see "Permission rules"); Claude Code's preapproved documentation hosts never allow a
+  request by themselves.
 - The answer to `prompt` comes from the session's model at low reasoning effort, not from
   a separate small model, and its tokens are not counted in the session's usage.
 - `WebFetch` decodes every body as UTF-8 and does not save binary content (such as PDFs)
@@ -216,6 +221,20 @@ Differences from Claude Code:
 - Hooks see `WebFetch` and `WebSearch` under these names with Claude Code's input;
   `PostToolUse` gets Claude Code's `tool_response` (`bytes`, `code`, `codeText`,
   `result`, `durationMs`, `url`; `query`, `results`, `durationSeconds`).
+- `TodoWrite` keeps a list whose items are all completed (Claude Code clears it), and its
+  hook `tool_response` has `newTodos` but no `oldTodos`.
+- `AskUserQuestion` asks only where Codex's `request_user_input` does: in Plan mode, in
+  Default mode with the `default_mode_request_user_input` feature, and in the root agent;
+  elsewhere the model gets Codex's refusal. Codex's panel takes one choice a question: a
+  `multiSelect` question asks for the other choices in a note. Option `preview`s are not
+  offered.
+- `Agent` has no `isolation`, `name`, `team_name` or `mode`, and an agent cannot be
+  continued with `SendMessage`; Codex's own agent tools stay for that. The `model` parameter
+  takes a model name Codex knows, not `sonnet`, `opus` or `haiku`. A foreground agent of
+  multi-agent v1 is closed once it has answered, to free its thread. A background agent's
+  result is added to the conversation when it ends, without starting a turn; the model is
+  told to use `wait_agent` to wait for it. Codex also adds its own completion notice after a
+  foreground agent's answer. `Agent(type, ...)` in a tool list does not restrict the types.
 
 ### Permission rules
 
@@ -320,9 +339,22 @@ registered from `add_shell_tools`, which owns the shell options.
 
 A Claude Code subagent becomes an agent role of the same name: its `description` is the
 role's description, its body the role's developer instructions, and its `effort` the
-reasoning effort (`max` as `xhigh`). `tools`, `model` and the other fields are left out.
+reasoning effort (`max` as `xhigh`). `model` and the other fields are left out.
 Codex's own roles win over subagents of the same name, and a project's subagents over the
 user's. Only `.claude/agents` of the working directory is read for the project.
+
+`tools` and `disallowedTools` apply only with the Claude tool set on (`claude_tools`): an
+agent spawned with the role then keeps only the tools its `tools` lists (all when absent,
+none when empty, all with `*`) and its `disallowedTools` does not, by the names the model
+sees: Claude Code's names, `mcp__<server>__<tool>` for MCP tools, Codex's own name for a
+Codex tool with no Claude counterpart. `Bash(git *)` counts as `Bash`, `Task` as `Agent`;
+a Codex tool that serves a Claude tool goes with it (`write_stdin` with `Bash`, Codex's
+other agent tools with `Agent`). The list is read from the subagent file each time the
+agent's tools are built, and applied after MCP and dynamic tools are added; hosted tools
+(Codex's built-in web search) and the tools code mode and tool search add are not filtered.
+Unlike Claude Code, a subagent may start agents of its own within Codex's depth limit.
+Without the switch the two fields are ignored, as before. The `Agent` description lists
+each type with its tools, as Claude Code does.
 
 ## MCP servers
 

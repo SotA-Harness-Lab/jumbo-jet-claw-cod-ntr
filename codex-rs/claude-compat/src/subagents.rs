@@ -4,6 +4,7 @@
 use serde_yaml::Value;
 
 use crate::markdown::parse_document;
+use crate::tools::agent::ToolList;
 
 /// The parts of a subagent definition Codex can use.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -14,6 +15,8 @@ pub struct Subagent {
     pub prompt: String,
     /// `effort`, as written.
     pub effort: Option<String>,
+    /// `tools` and `disallowedTools`, applied when Codex offers Claude Code's tools.
+    pub tools: ToolList,
 }
 
 /// Parses a subagent file. `None` when `name`, `description` or the body is missing, as
@@ -38,6 +41,10 @@ pub fn parse_subagent(contents: &str) -> Option<Subagent> {
         description: field("description")?,
         prompt: prompt.to_string(),
         effort: field("effort"),
+        tools: ToolList::from_frontmatter(
+            frontmatter.get("tools"),
+            frontmatter.get("disallowedTools"),
+        ),
     })
 }
 
@@ -45,17 +52,24 @@ pub fn parse_subagent(contents: &str) -> Option<Subagent> {
 mod tests {
     use super::Subagent;
     use super::parse_subagent;
+    use crate::tools::agent::ToolList;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn subagent_needs_name_description_and_body() {
         assert_eq!(
-            parse_subagent("---\nname: w\ndescription: does x\ntools: Read\neffort: high\n---\n\nDo x.\n"),
+            parse_subagent(
+                "---\nname: w\ndescription: does x\ntools: Read\neffort: high\n---\n\nDo x.\n"
+            ),
             Some(Subagent {
                 name: "w".to_string(),
                 description: "does x".to_string(),
                 prompt: "Do x.".to_string(),
                 effort: Some("high".to_string()),
+                tools: ToolList {
+                    allowed: Some(vec!["Read".to_string()]),
+                    disallowed: Vec::new(),
+                },
             })
         );
         assert_eq!(parse_subagent("---\nname: w\n---\nDo x."), None);
