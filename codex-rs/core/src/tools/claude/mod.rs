@@ -16,6 +16,7 @@ mod edit;
 mod file_state;
 mod files;
 mod output;
+mod permissions;
 mod read;
 mod write;
 
@@ -34,6 +35,10 @@ use crate::tools::registry::CoreToolRuntime;
 use crate::tools::registry::ToolRegistry;
 
 pub(crate) use bash::register as register_bash;
+pub(crate) use permissions::PermissionInput;
+pub(crate) use permissions::apply_rule_decision;
+pub(crate) use permissions::check_permission;
+pub(crate) use permissions::rule_allows;
 
 /// Whether the model is offered Claude Code's tools instead of Codex's: the `claude_tools`
 /// feature is on and `CODEX_CLAUDE_COMPAT` is not `0`.

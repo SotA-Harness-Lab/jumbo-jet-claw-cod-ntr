@@ -841,9 +841,14 @@ impl Session {
                 }
             }
             Arc::new(
-                ExecPolicyManager::load(&config.config_layer_stack)
-                    .await
-                    .map_err(|err| CodexErr::Fatal(format!("failed to load rules: {err}")))?,
+                // With the Claude tools on, Claude Code's rules are applied by the tools.
+                ExecPolicyManager::load_with_claude_bash_rules(
+                    &config.config_layer_stack,
+                    !(config.features.enabled(Feature::ClaudeTools)
+                        && codex_claude_compat::enabled()),
+                )
+                .await
+                .map_err(|err| CodexErr::Fatal(format!("failed to load rules: {err}")))?,
             )
         };
 

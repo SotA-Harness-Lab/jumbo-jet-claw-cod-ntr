@@ -164,6 +164,14 @@ impl ToolOrchestrator {
         let requirement = tool.exec_approval_requirement(req).unwrap_or_else(|| {
             default_exec_approval_requirement(approval_policy, &file_system_sandbox_policy)
         });
+        // A Claude Code permission rule for the Claude tool behind this call, if any.
+        let requirement = crate::tools::claude::apply_rule_decision(
+            &tool_ctx.session,
+            &tool_ctx.call_id,
+            approval_policy,
+            tool.sandbox_permissions(req),
+            requirement,
+        );
         let human_once = matches!(
             requirement,
             ExecApprovalRequirement::NeedsHumanApproval { .. }

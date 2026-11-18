@@ -20,6 +20,8 @@ use serde_json::Value;
 use serde_json::json;
 
 use super::OFFERED_TOOLS;
+use super::PermissionInput;
+use super::check_permission;
 use super::delegated;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
@@ -173,6 +175,8 @@ impl BashHandler {
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
         let args: BashArgs = parse_claude_arguments(BASH, &invocation)?;
+        let _permission =
+            check_permission(&invocation, BASH, PermissionInput::Command(&args.command)).await?;
         let (handler, background) = match &self.background {
             Some(background) if args.run_in_background == Some(true) => (background, true),
             _ => (&self.foreground, false),

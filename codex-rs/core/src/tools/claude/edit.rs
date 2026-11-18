@@ -19,7 +19,9 @@ use codex_tools::ToolSpec;
 use serde::Deserialize;
 use serde_json::json;
 
+use super::PermissionInput;
 use super::ToolSwap;
+use super::check_permission;
 use super::file_state::ReadFiles;
 use super::file_state::write_refusal;
 use super::files::FileTarget;
@@ -130,6 +132,8 @@ impl EditHandler {
                 args.file_path
             )));
         }
+        let _permission =
+            check_permission(&invocation, EDIT, PermissionInput::EditPath(&path)).await?;
 
         let current = match target.metadata().await? {
             None => None,

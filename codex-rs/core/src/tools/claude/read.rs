@@ -18,7 +18,9 @@ use serde::Deserialize;
 use serde_json::json;
 use std::collections::BTreeMap;
 
+use super::PermissionInput;
 use super::ToolSwap;
+use super::check_permission;
 use super::delegated;
 use super::failed;
 use super::file_state::FileRecord;
@@ -113,6 +115,12 @@ impl ReadHandler {
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
         let args: ReadArgs = parse_claude_arguments(READ, &invocation)?;
         let target = FileTarget::resolve(&invocation, &args.file_path)?;
+        let _permission = check_permission(
+            &invocation,
+            READ,
+            PermissionInput::ReadPath(&target.native_path()),
+        )
+        .await?;
 
         if read::is_image(&args.file_path) {
             let Some(view_image) = &self.view_image else {

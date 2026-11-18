@@ -322,7 +322,18 @@ impl ExecPolicyManager {
 
     #[instrument(level = "info", skip_all)]
     pub(crate) async fn load(config_stack: &ConfigLayerStack) -> Result<Self, ExecPolicyError> {
-        let (policy, warning) = load_exec_policy_with_warning(config_stack).await?;
+        Self::load_with_claude_bash_rules(config_stack, /*claude_bash_rules*/ true).await
+    }
+
+    /// Loads the rules; `claude_bash_rules` adds the Bash prefix rules of the user's Claude
+    /// Code settings, which are left out when the Claude tools apply Claude Code's rules
+    /// themselves (`claude_tools`).
+    pub(crate) async fn load_with_claude_bash_rules(
+        config_stack: &ConfigLayerStack,
+        claude_bash_rules: bool,
+    ) -> Result<Self, ExecPolicyError> {
+        let (policy, warning) =
+            load_exec_policy_with_warning_for(config_stack, claude_bash_rules).await?;
         if let Some(err) = warning.as_ref() {
             tracing::warn!("failed to parse rules: {err}");
         }
@@ -732,7 +743,14 @@ pub fn format_exec_policy_error_with_source(error: &ExecPolicyError) -> String {
 pub(crate) async fn load_exec_policy_with_warning(
     config_stack: &ConfigLayerStack,
 ) -> Result<(Policy, Option<ExecPolicyError>), ExecPolicyError> {
-    match load_exec_policy(config_stack).await {
+    load_exec_policy_with_warning_for(config_stack, /*claude_bash_rules*/ true).await
+}
+
+async fn load_exec_policy_with_warning_for(
+    config_stack: &ConfigLayerStack,
+    claude_bash_rules: bool,
+) -> Result<(Policy, Option<ExecPolicyError>), ExecPolicyError> {
+    match load_exec_policy_for(config_stack, claude_bash_rules).await {
         Ok(policy) => Ok((policy, None)),
         Err(err @ ExecPolicyError::ParsePolicy { .. }) => {
             let policy = config_stack
@@ -773,6 +791,13 @@ async fn policy_files(stack: &ConfigLayerStack) -> Result<Vec<PathBuf>, ExecPoli
 }
 
 pub async fn load_exec_policy(config_stack: &ConfigLayerStack) -> Result<Policy, ExecPolicyError> {
+    load_exec_policy_for(config_stack, /*claude_bash_rules*/ true).await
+}
+
+async fn load_exec_policy_for(
+    config_stack: &ConfigLayerStack,
+    claude_bash_rules: bool,
+) -> Result<Policy, ExecPolicyError> {
     let policy_paths = policy_files(config_stack).await?;
     tracing::trace!(
         policy_paths = ?policy_paths,
@@ -799,7 +824,7 @@ pub async fn load_exec_policy(config_stack: &ConfigLayerStack) -> Result<Policy,
 
     let mut policy = parser.build();
     // Unit tests never read the real home directory's Claude Code settings.
-    if !cfg!(test) {
+    if !cfg!(test) && claude_bash_rules {
         add_claude_code_bash_rules(&mut policy);
     }
     tracing::debug!("loaded rules from {} files", policy_paths.len());
@@ -815,6 +840,9 @@ pub async fn load_exec_policy(config_stack: &ConfigLayerStack) -> Result<Policy,
 /// Adds the Bash permission rules of the user's Claude Code settings that name a command
 /// prefix: `allow` runs without asking, `ask` asks, `deny` forbids. As everywhere in the
 /// policy, the strictest matching rule wins, as Claude Code's deny over ask over allow.
+/// This approximation is used only while the Claude tools are off; with them on, the
+/// Claude tool layer applies all of Claude Code's rules exactly
+/// (`tools/claude/permissions.rs`).
 fn add_claude_code_bash_rules(policy: &mut Policy) {
     if !codex_claude_compat::enabled() {
         return;

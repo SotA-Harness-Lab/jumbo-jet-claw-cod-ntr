@@ -17,7 +17,9 @@ use codex_tools::ToolSpec;
 use serde::Deserialize;
 use serde_json::json;
 
+use super::PermissionInput;
 use super::ToolSwap;
+use super::check_permission;
 use super::file_state::ReadFiles;
 use super::file_state::write_refusal;
 use super::files::FileTarget;
@@ -119,6 +121,8 @@ impl WriteHandler {
                 args.file_path
             )));
         }
+        let _permission =
+            check_permission(&invocation, WRITE, PermissionInput::EditPath(&path)).await?;
 
         let (patch_text, original) = match target.metadata().await? {
             None => (Some(patch::add_file_patch(&path, &args.content)), None),

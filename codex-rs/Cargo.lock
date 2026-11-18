@@ -2569,10 +2569,12 @@ dependencies = [
  "futures",
  "ignore",
  "pretty_assertions",
+ "regex-lite",
  "serde_json",
  "serde_yaml",
  "tempfile",
  "tokio",
+ "url",
 ]
 
 [[package]]
