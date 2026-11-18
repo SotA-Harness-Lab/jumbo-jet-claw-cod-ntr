@@ -7,8 +7,12 @@
 
 pub mod bash;
 pub mod edit;
+pub mod glob;
+pub mod grep;
+pub mod input;
 pub mod patch;
 pub mod read;
+pub mod ripgrep;
 pub mod write;
 
 /// Claude Code's name of its shell tool.

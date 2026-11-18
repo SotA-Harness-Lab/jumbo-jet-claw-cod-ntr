@@ -88,8 +88,8 @@ run as they are, with Claude Code's input on stdin and Claude Code's outputs und
   name. `Read`, `MultiEdit`, `Grep`, `Glob`, `WebFetch`, `WebSearch` and `ExitPlanMode` have
   no Codex tool and never match; Codex's plan mode ends with a plan in the final answer, which
   only `Stop` sees.
-  With the Claude tool set on (below), `Bash`, `Read`, `Write` and `Edit` are the tools'
-  own names: hook input carries that name and Claude Code's input (`command`, `timeout`,
+  With the Claude tool set on (below), `Bash`, `Read`, `Write`, `Edit`, `Glob` and `Grep`
+  are the tools' own names: hook input carries that name and Claude Code's input (`command`, `timeout`,
   `description`; `file_path`, `old_string`, `new_string`; ...), and `PostToolUse` gets
   Claude Code's `tool_response` object (`stdout`, `stderr`, `interrupted` for `Bash`).
 - Events Codex's own configuration does not have run at the closest Codex moment, for command
@@ -142,6 +142,8 @@ in the layer only where the Codex tool has nothing for it.
 | `Read` | `view_image` | Reading through the executor filesystem under the turn's sandbox; images (`png`, `jpg`, `jpeg`, `gif`, `webp`) to `view_image` | Parameters (`file_path`, `offset`, `limit`), `N<TAB>line` numbering from 1, the 256 KB limit without `limit`, the 25,000-token limit, refusal of binary files and directories, the empty-file and short-file reminders, the "file does not exist" message |
 | `Write` | `apply_patch` | Writing, as a patch: approval, sandbox, patch events, the turn's diff | Parameters (`file_path`, `content`), the rule that an existing file is read first and not changed since, messages |
 | `Edit` | `apply_patch` | Writing, as a patch, as for `Write` | Parameters (`file_path`, `old_string`, `new_string`, `replace_all`), exact matching (refused when not found, or found more than once without `replace_all`), the read-first rule, messages |
+| `Glob` | none (offered with `Bash`) | Listing and sorting, as `rg --files --glob <pattern> --sort=modified --no-ignore --hidden` run through `exec_command` (sandbox, approval, command rules, events); the directory check through the executor filesystem | Parameters (`pattern`, `path`), an absolute pattern split into its directory and the rest, the first 100 files and the truncation note, paths inside the working directory shortened, `No files found`, the "directory does not exist" and "not a directory" messages |
+| `Grep` | none (offered with `Bash`) | Searching, as one `rg` command run through `exec_command` as for `Glob`, files listed newest first by `rg --sortr=modified`; the path check through the executor filesystem | Parameters (`pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `context`, `multiline`, `head_limit`, `offset`), Claude Code's ripgrep arguments (hidden files, VCS directories left out, `--max-columns 500`), `head_limit` (250 by default, 0 for all) and `offset` with the pagination note, paths shortened, the text of each output mode (`Found N files`, `No matches found`, `Found N total occurrences across M files.`), the "path does not exist" message |
 
 `write_stdin` stays, to read the output of a background command and to stop it. Every other
 Codex tool (the plan tool, `request_user_input`, the agent tools, web search, MCP tools and
@@ -168,6 +170,19 @@ Differences from Claude Code:
   edited until it changes on disk. Claude Code's "file unchanged" short answer for a second
   read of the same range is not reproduced.
 - `MultiEdit` is not offered (current Claude Code no longer has it).
+- `Glob` and `Grep` run the `rg` installed in the session's environment, not one shipped
+  with the tool: without it they fail with a message saying so. Each search is a command
+  of the turn, so it shows as one, and under an approval policy that asks for commands it is
+  asked for. The search stops after 20 seconds, as in Claude Code.
+- `Grep` lists files newest first through ripgrep's own sort, which also sorts files that do
+  not match and searches on one thread; files with the same time keep ripgrep's order, not
+  the order of their names. When ripgrep fails without a result (an invalid pattern, a path
+  it cannot read), the model is told ripgrep's message where Claude Code says no match was
+  found. The deny rules of Claude Code's `Read` permissions are not left out of the search,
+  and paths are not suggested for one that does not exist.
+- Output past Codex's capture of 1 MiB loses its middle before `Glob` and `Grep` see it, and
+  a long result is truncated as any tool output in Codex's history, where Claude Code saves
+  results over 20,000 characters to a file.
 - Hooks and Codex's own `hooks.json` see the Claude names, so a Codex hook matching
   `exec_command` or `apply_patch` does not run for these tools.
 - Auto-review (guardian) of past tool calls recognises only Codex's tool names.
