@@ -320,7 +320,7 @@ impl ExecPolicyManager {
         }
     }
 
-    #[instrument(level = "info", skip_all)]
+    #[cfg(test)]
     pub(crate) async fn load(config_stack: &ConfigLayerStack) -> Result<Self, ExecPolicyError> {
         Self::load_with_claude_bash_rules(config_stack, /*claude_bash_rules*/ true).await
     }
@@ -328,6 +328,7 @@ impl ExecPolicyManager {
     /// Loads the rules; `claude_bash_rules` adds the Bash prefix rules of the user's Claude
     /// Code settings, which are left out when the Claude tools apply Claude Code's rules
     /// themselves (`claude_tools`).
+    #[instrument(level = "info", skip_all)]
     pub(crate) async fn load_with_claude_bash_rules(
         config_stack: &ConfigLayerStack,
         claude_bash_rules: bool,

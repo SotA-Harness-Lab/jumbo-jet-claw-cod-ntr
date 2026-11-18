@@ -8,7 +8,7 @@ use super::relative_to;
 use super::result_lines;
 
 fn strings(items: &[&str]) -> Vec<String> {
-    items.iter().map(|item| item.to_string()).collect()
+    items.iter().map(ToString::to_string).collect()
 }
 
 #[test]

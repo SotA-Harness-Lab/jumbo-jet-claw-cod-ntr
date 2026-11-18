@@ -40,6 +40,9 @@ mod bash;
 use bash::ShellDecision;
 use bash::ShellRules;
 
+/// Rules grouped by the directory their patterns are relative to.
+type RulesByRoot<'a> = (Option<PathBuf>, Vec<(String, &'a PermissionRule)>);
+
 /// The tool whose rules govern every file read (`Read`, `Glob`, `Grep`).
 const FILE_READ_TOOL: &str = "Read";
 /// The tool whose rules govern every file edit (`Edit`, `Write`).
@@ -462,7 +465,7 @@ impl PermissionRules {
     ) -> Option<&PermissionRule> {
         // Patterns by the place they are anchored at, each pattern once (the last rule
         // with it), in the order Claude Code builds its maps.
-        let mut roots: Vec<(Option<PathBuf>, Vec<(String, &PermissionRule)>)> = Vec::new();
+        let mut roots: Vec<RulesByRoot<'_>> = Vec::new();
         for rule in self.with_content(tool, decision) {
             let content = rule.content.as_deref().unwrap_or_default();
             let Some((pattern, root)) = self.pattern_root(content, rule.source) else {

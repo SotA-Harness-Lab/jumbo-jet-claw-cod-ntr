@@ -9,7 +9,7 @@ use super::rg_args;
 use super::split_glob;
 
 fn strings(items: &[&str]) -> Vec<String> {
-    items.iter().map(|item| item.to_string()).collect()
+    items.iter().map(ToString::to_string).collect()
 }
 
 const COMMON: &[&str] = &[

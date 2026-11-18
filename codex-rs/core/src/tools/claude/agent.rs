@@ -84,7 +84,7 @@ fn agent_types(config: &Config) -> (Vec<AgentType>, BTreeSet<String>) {
         .chain(config.agent_roles.iter())
         .map(|(name, role)| (name.as_str(), role))
         .collect::<BTreeMap<_, _>>();
-    let names = roles.keys().map(|name| name.to_string()).collect();
+    let names = roles.keys().map(ToString::to_string).collect();
     let mut agent_types = Vec::new();
     if !roles.contains_key(agent::GENERAL_PURPOSE) {
         roles.remove(DEFAULT_ROLE_NAME);

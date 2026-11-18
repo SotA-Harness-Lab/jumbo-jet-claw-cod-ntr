@@ -9,7 +9,6 @@ use codex_claude_compat::tools::agent::owner_of;
 
 use crate::config::AgentRoleConfig;
 use crate::session::turn_context::TurnContext;
-use crate::tools::registry::ToolExecutor;
 use crate::tools::registry::ToolRegistry;
 
 /// Removes from the registry the tools the turn's Claude subagent definition does not give

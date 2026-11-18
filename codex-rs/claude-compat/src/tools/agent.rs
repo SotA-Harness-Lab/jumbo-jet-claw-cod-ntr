@@ -80,11 +80,13 @@ impl ToolList {
         if self.disallowed.iter().any(|denied| denied == name) {
             return false;
         }
-        let listed = self
-            .allowed
+        // A helper tool goes with the tool it serves (`write_stdin` with `Bash`).
+        if let Some(owner) = owner {
+            return self.permits(owner, None);
+        }
+        self.allowed
             .as_ref()
-            .is_none_or(|allowed| allowed.iter().any(|allowed| allowed == name));
-        listed || owner.is_some_and(|owner| self.permits(owner, None))
+            .is_none_or(|allowed| allowed.iter().any(|allowed| allowed == name))
     }
 
     /// Claude Code's summary of the list in the `Agent` description.
@@ -169,10 +171,10 @@ fn rule_tool_name(rule: &str) -> String {
 
 /// The Codex agent role for a `subagent_type`: none (Codex's default agent) when it is left
 /// out or is Claude Code's `general-purpose` and no role has that name.
-pub fn role_for<'a>(
-    subagent_type: Option<&'a str>,
+pub fn role_for(
+    subagent_type: Option<&str>,
     has_role: impl Fn(&str) -> bool,
-) -> Option<&'a str> {
+) -> Option<&str> {
     let subagent_type = subagent_type
         .map(str::trim)
         .filter(|name| !name.is_empty())?;
