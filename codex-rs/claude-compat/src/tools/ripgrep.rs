@@ -30,7 +30,9 @@ pub fn command_line(args: &[String], target: &str, shell: Shell) -> String {
 }
 
 fn quote(arg: &str, shell: Shell) -> String {
+    // A leading `=` stays quoted: zsh expands `=word` to the path of the command `word`.
     let plain = !arg.is_empty()
+        && !arg.starts_with('=')
         && arg
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || "-_=./:+".contains(c));

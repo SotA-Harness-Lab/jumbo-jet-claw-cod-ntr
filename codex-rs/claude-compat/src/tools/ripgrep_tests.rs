@@ -30,6 +30,11 @@ fn arguments_are_quoted_for_the_shell() {
         command_line(&strings(&[""]), "/w", Shell::Posix),
         "rg --no-config '' /w"
     );
+    // zsh expands a word starting with `=` to a command's path
+    assert_eq!(
+        command_line(&strings(&["-e", "=x", "a=b"]), "/w", Shell::Posix),
+        "rg --no-config -e '=x' a=b /w"
+    );
 }
 
 #[test]
