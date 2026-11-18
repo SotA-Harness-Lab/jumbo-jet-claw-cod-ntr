@@ -116,6 +116,33 @@ pub async fn load_agent_roles(
     Ok(roles)
 }
 
+/// Claude Code subagents (`<agents_dir>/**/*.md`) as agent roles, read in place.
+pub async fn load_claude_code_agent_roles(
+    fs: &dyn ExecutorFileSystem,
+    agents_dir: &AbsolutePathBuf,
+    startup_warnings: &mut Vec<String>,
+) -> std::io::Result<BTreeMap<String, AgentRoleConfig>> {
+    let mut roles = BTreeMap::new();
+    for agent_file in crate::discovery::collect_files_with_extension(fs, agents_dir, "md").await? {
+        let parsed_file =
+            match read_resolved_agent_role_file(fs, &agent_file, /*role_name_hint*/ None).await {
+                Ok(parsed_file) => parsed_file,
+                Err(err) => {
+                    push_agent_role_warning(startup_warnings, err);
+                    continue;
+                }
+            };
+        roles
+            .entry(parsed_file.role_name)
+            .or_insert(AgentRoleConfig {
+                description: parsed_file.description,
+                config_file: Some(agent_file.to_path_buf()),
+                nickname_candidates: parsed_file.nickname_candidates,
+            });
+    }
+    Ok(roles)
+}
+
 fn push_agent_role_warning(startup_warnings: &mut Vec<String>, err: std::io::Error) {
     let message = format!("Ignoring malformed agent role definition: {err}");
     tracing::warn!("{message}");

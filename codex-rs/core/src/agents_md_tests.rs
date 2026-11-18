@@ -1799,3 +1799,58 @@ fn create_skill(codex_home: PathBuf, name: &str, description: &str) {
     let content = format!("---\nname: {name}\ndescription: {description}\n---\n\n# Body\n");
     fs::write(skill_dir.join("SKILL.md"), content).unwrap();
 }
+
+#[tokio::test]
+async fn claude_project_files_load_in_claude_code_order() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let root = tmp.path().join("repo");
+    let cwd = root.join("pkg");
+    fs::create_dir_all(root.join(".claude/rules/nested")).unwrap();
+    fs::create_dir_all(&cwd).unwrap();
+    fs::write(root.join("CLAUDE.md"), "root doc\n\n@pkg/extra.md\n").unwrap();
+    fs::write(root.join(".claude/CLAUDE.md"), "dot doc").unwrap();
+    fs::write(root.join(".claude/rules/b.md"), "rule b").unwrap();
+    fs::write(root.join(".claude/rules/nested/a.md"), "rule a").unwrap();
+    fs::write(
+        root.join(".claude/rules/scoped.md"),
+        "---\npaths: src/**/*.rs\n---\nscoped rule",
+    )
+    .unwrap();
+    fs::write(root.join("CLAUDE.local.md"), "local doc").unwrap();
+    fs::write(cwd.join("CLAUDE.md"), "<!-- hidden -->\npkg doc").unwrap();
+    fs::write(cwd.join("extra.md"), "imported doc").unwrap();
+
+    let cwd = AbsolutePathBuf::try_from(cwd).unwrap();
+    let mut warnings = Vec::new();
+    let entries = claude_project_entries(
+        LOCAL_FS.as_ref(),
+        "local",
+        &PathUri::from_abs_path(&cwd),
+        /*sandbox*/ None,
+        &mut warnings,
+    )
+    .await;
+
+    let project = " (project instructions, checked into the codebase)";
+    let local = " (user's private project instructions, not checked in)";
+    let expected = [
+        (root.join("CLAUDE.md"), project, "root doc\n\n@pkg/extra.md"),
+        (cwd.join("extra.md").to_path_buf(), project, "imported doc"),
+        (root.join(".claude/CLAUDE.md"), project, "dot doc"),
+        (root.join(".claude/rules/b.md"), project, "rule b"),
+        (root.join(".claude/rules/nested/a.md"), project, "rule a"),
+        (root.join("CLAUDE.local.md"), local, "local doc"),
+        (cwd.join("CLAUDE.md").to_path_buf(), project, "pkg doc"),
+    ]
+    .into_iter()
+    .map(|(path, kind, body)| format!("Contents of {}{kind}:\n\n{body}", path.display()))
+    .collect::<Vec<_>>();
+    assert_eq!(
+        entries
+            .iter()
+            .map(|entry| entry.contents.clone())
+            .collect::<Vec<_>>(),
+        expected
+    );
+    assert_eq!(warnings, Vec::<String>::new());
+}

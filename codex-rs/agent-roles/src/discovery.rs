@@ -8,6 +8,14 @@ pub(crate) async fn collect_agent_role_files(
     fs: &dyn ExecutorFileSystem,
     dir: &AbsolutePathBuf,
 ) -> io::Result<Vec<AbsolutePathBuf>> {
+    collect_files_with_extension(fs, dir, "toml").await
+}
+
+pub(crate) async fn collect_files_with_extension(
+    fs: &dyn ExecutorFileSystem,
+    dir: &AbsolutePathBuf,
+    wanted: &str,
+) -> io::Result<Vec<AbsolutePathBuf>> {
     let mut files = Vec::new();
     let mut dirs = vec![dir.clone()];
     while let Some(dir) = dirs.pop() {
@@ -28,7 +36,7 @@ pub(crate) async fn collect_agent_role_files(
                 && path
                     .as_path()
                     .extension()
-                    .is_some_and(|extension| extension == "toml")
+                    .is_some_and(|extension| extension == wanted)
             {
                 files.push(path);
             }

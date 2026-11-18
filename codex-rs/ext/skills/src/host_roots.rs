@@ -265,9 +265,24 @@ async fn repo_agents_skill_roots<'a>(
     let directories = dirs_between_project_root_and_cwd(cwd, &project_root);
     let mut roots = Vec::new();
     let mut missing = Vec::new();
-    let mut results = futures::stream::iter(directories)
-        .map(|directory| async move {
-            let agents_skills = directory.join(AGENTS_DIR_NAME).join(SKILLS_DIR_NAME);
+    // Claude Code keeps a project's skills in `.claude/skills`, beside Codex's `.agents/skills`.
+    let config_dirs: &[&str] = if claude_compat_enabled() {
+        &[AGENTS_DIR_NAME, CLAUDE_DIR_NAME]
+    } else {
+        &[AGENTS_DIR_NAME]
+    };
+    // Collected first: a borrowing iterator inside the stream makes the future's `Send`
+    // bound not general enough for the callers that need it.
+    let candidates = directories
+        .iter()
+        .flat_map(|directory| {
+            config_dirs
+                .iter()
+                .map(|config_dir| directory.join(config_dir).join(SKILLS_DIR_NAME))
+        })
+        .collect::<Vec<_>>();
+    let mut results = futures::stream::iter(candidates)
+        .map(|agents_skills| async move {
             let agents_skills_uri = PathUri::from_abs_path(&agents_skills);
             let result = repository_fs_accessor
                 .get_metadata(&agents_skills_uri, GetMetadataOptions::default())

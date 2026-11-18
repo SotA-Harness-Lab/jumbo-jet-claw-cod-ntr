@@ -90,6 +90,7 @@ pub use rollout_budget::RolloutBudgetReminder;
 mod agent_communication;
 pub use agent_communication::PendingAgentMessage;
 mod attestation;
+mod claude_rules;
 mod code_mode_host;
 mod codex_delegate;
 mod command_canonicalization;

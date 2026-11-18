@@ -53,6 +53,8 @@ pub struct HooksConfig {
     pub plugin_hook_load_warnings: Vec<String>,
     pub shell_program: Option<String>,
     pub shell_args: Vec<String>,
+    /// Claude Code's settings files whose hooks run too.
+    pub claude_settings: Option<crate::ClaudeHookSettings>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -187,7 +189,7 @@ impl Hooks {
             program: config.shell_program.unwrap_or_default(),
             args: config.shell_args,
         });
-        let engine = ClaudeHooksEngine::new(
+        let engine = ClaudeHooksEngine::new_with_claude_settings(
             config.feature_enabled,
             config.bypass_hook_trust,
             config.config_layer_stack.as_ref(),
@@ -195,6 +197,7 @@ impl Hooks {
             config.plugin_hook_load_warnings.clone(),
             command_runtime,
             mcp_executor,
+            config.claude_settings.as_ref(),
         );
         Self {
             environment,
@@ -395,12 +398,13 @@ pub fn list_hooks(config: HooksConfig) -> HookListOutcome {
         return HookListOutcome::default();
     }
 
-    let discovered = crate::engine::discovery::discover_handlers(
+    let discovered = crate::engine::discovery::discover_handlers_with_claude_settings(
         config.config_layer_stack.as_ref(),
         config.plugin_hook_sources,
         config.plugin_hook_load_warnings,
         config.bypass_hook_trust,
         crate::engine::discovery::DiscoveryMode::Listing,
+        config.claude_settings.as_ref(),
     );
     HookListOutcome {
         hooks: discovered.hook_entries,

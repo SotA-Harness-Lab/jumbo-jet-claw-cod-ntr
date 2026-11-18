@@ -115,12 +115,33 @@ impl HookDiscoveryPolicy<'_> {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn discover_handlers(
     config_layer_stack: Option<&ConfigLayerStack>,
     plugin_hook_sources: Vec<PluginHookSource>,
     plugin_hook_load_warnings: Vec<String>,
     bypass_hook_trust: bool,
     mode: DiscoveryMode,
+) -> DiscoveryResult {
+    discover_handlers_with_claude_settings(
+        config_layer_stack,
+        plugin_hook_sources,
+        plugin_hook_load_warnings,
+        bypass_hook_trust,
+        mode,
+        /*claude_settings*/ None,
+    )
+}
+
+/// Like [`discover_handlers`], also loading the hooks of Claude Code's settings files
+/// after the config layers' own.
+pub(crate) fn discover_handlers_with_claude_settings(
+    config_layer_stack: Option<&ConfigLayerStack>,
+    plugin_hook_sources: Vec<PluginHookSource>,
+    plugin_hook_load_warnings: Vec<String>,
+    bypass_hook_trust: bool,
+    mode: DiscoveryMode,
+    claude_settings: Option<&super::claude_settings::ClaudeHookSettings>,
 ) -> DiscoveryResult {
     let mut handlers = Vec::new();
     let mut hook_entries = Vec::new();
@@ -217,6 +238,46 @@ pub(crate) fn discover_handlers(
                     policy,
                 );
             }
+        }
+    }
+
+    if let Some(claude_settings) = claude_settings {
+        let mut env = HashMap::new();
+        if let Some(project_dir) = &claude_settings.project_dir {
+            env.insert(
+                "CLAUDE_PROJECT_DIR".to_string(),
+                project_dir.display().to_string(),
+            );
+        }
+        for claude_hooks in super::claude_settings::load(claude_settings, &mut warnings) {
+            append_hook_events(
+                &mut handlers,
+                &mut hook_entries,
+                &mut warnings,
+                &mut display_order,
+                HookHandlerSource {
+                    path: &claude_hooks.path,
+                    key_source: claude_hooks.path.display().to_string(),
+                    source: if claude_hooks.is_user {
+                        HookSource::User
+                    } else {
+                        HookSource::Project
+                    },
+                    is_managed: false,
+                    requirement: HookRequirement::Optional,
+                    // Claude Code runs the user's own hooks without asking; a project's
+                    // hooks wait for Codex's trust like any other project hook.
+                    bypass_hook_trust: claude_hooks.is_user || policy.bypass_hook_trust,
+                    hook_states: &hook_states,
+                    env: env.clone(),
+                    plugin_id: None,
+                    plugin_content_hash: None,
+                    config_layer_stack: None,
+                    plugin_root: None,
+                },
+                claude_hooks.events,
+                policy,
+            );
         }
     }
 
