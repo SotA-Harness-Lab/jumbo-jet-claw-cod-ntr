@@ -8,6 +8,34 @@ are used.
 The user's Claude Code configuration directory is `~/.claude`. Setting `CODEX_CLAUDE_COMPAT=0`
 in the environment turns the whole mode off.
 
+## The fork's own settings (ccn-config.toml)
+
+Settings that only this fork has are kept in their own file, `$CODEX_HOME/ccn-config.toml`
+(`~/.codex/ccn-config.toml` by default), never in Codex's `config.toml`, which keeps only upstream
+Codex's settings. The file is read once each time the configuration is loaded, at the start of a
+session. Every key is optional; a missing file means the defaults. A file that does not parse,
+or that names a key or section not listed here, is reported as one startup warning and the
+defaults are used in its place; Codex still starts.
+
+```toml
+[claude]
+# Offer the model Claude Code's tool set in place of Codex's (see "Claude tool set").
+tools = false
+
+[claude.plugins]
+# Claude Code plugins to use even when they are found incompatible with Codex
+# (see "Which plugins are used"), by their <plugin>@<marketplace> id.
+enable = []
+```
+
+| Key | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `claude.tools` | boolean | `false` | The Claude tool set in place of Codex's tools |
+| `claude.plugins.enable` | list of strings | `[]` | Claude Code plugins used even when found incompatible |
+
+`CODEX_CLAUDE_COMPAT=0` overrides both: with it, neither the Claude tool set nor Claude Code's
+plugins are used.
+
 ## What is shared
 
 | Claude Code | In Codex | When a change shows |
@@ -25,6 +53,7 @@ in the environment turns the whole mode off.
 | `permissions.allow`, `ask`, `deny` of the three settings files | Checked by the Claude tool set before each call, while it is on | At the next session |
 | `~/.claude/agents/**/*.md`, `.claude/agents/**/*.md` | Agent roles | Description at the next session, instructions at each spawn |
 | `mcpServers` of `~/.claude.json`, approved servers of `.mcp.json` | MCP servers, beside Codex's own | When MCP servers are started |
+| Plugins installed and enabled in Claude Code | Codex plugins, loaded from their install paths: skills, MCP servers, hooks | At the next session |
 
 - Skills are found as Codex finds its own: nested folders up to six levels deep, directory
   symlinks followed, hidden folders (such as `.trash`) skipped. A skill that is reachable from
@@ -121,11 +150,12 @@ run as they are, with Claude Code's input on stdin and Claude Code's outputs und
 
 Behind a switch, Codex offers the model Claude Code's own tools instead of its own, so that
 the model works with the tools it knows, and hook matchers and tool names in Claude Code's
-configuration match one to one. It is off by default; turn it on in `config.toml`:
+configuration match one to one. It is off by default; turn it on in `$CODEX_HOME/ccn-config.toml`
+(see "The fork's own settings"):
 
 ```toml
-[features]
-claude_tools = true
+[claude]
+tools = true
 ```
 
 `CODEX_CLAUDE_COMPAT=0` turns it off again, with the rest of the compatibility.
@@ -347,7 +377,7 @@ reasoning effort (`max` as `xhigh`). `model` and the other fields are left out.
 Codex's own roles win over subagents of the same name, and a project's subagents over the
 user's. Only `.claude/agents` of the working directory is read for the project.
 
-`tools` and `disallowedTools` apply only with the Claude tool set on (`claude_tools`): an
+`tools` and `disallowedTools` apply only with the Claude tool set on (`[claude] tools`): an
 agent spawned with the role then keeps only the tools its `tools` lists (all when absent,
 none when empty, all with `*`) and its `disallowedTools` does not, by the names the model
 sees: Claude Code's names, `mcp__<server>__<tool>` for MCP tools, Codex's own name for a
@@ -475,12 +505,113 @@ Not done:
   as a structured skill input, as the TUI does.
 - `user-invocable: false` does not hide a skill from the slash popup.
 
+## Plugins
+
+Codex's plugin loader already reads Claude Code's plugin format (`.claude-plugin/plugin.json`,
+`skills/`, `.mcp.json`, `hooks/hooks.json`, `${CLAUDE_PLUGIN_ROOT}`); what it does not know is
+which plugins the user has. Those are taken from Claude Code's own records:
+
+- Installed: `~/.claude/plugins/installed_plugins.json`. A plugin is read from the
+  `installPath` of the first installation recorded for it, as Claude Code does at startup,
+  whatever its scope.
+- Enabled: `enabledPlugins` of `~/.claude/settings.json`, the project's `.claude/settings.json`
+  and `.claude/settings.local.json`, merged in that order, a later file's value for a
+  `<plugin>@<marketplace>` id winning. Only `true` enables; an id that is absent or `false` is
+  not loaded, as in Claude Code. An enabled id that is not installed is reported at startup.
+
+Each plugin that is both is handed to Codex's plugin loader as an enabled plugin of the same id,
+at its install path: nothing is copied, and Codex's `config.toml` is not written. Codex then
+loads it as one of its own: skills as `<plugin>:<skill>`, MCP servers, hooks. A plugin Codex
+configures under the same id, or has installed under the same name from any marketplace, wins,
+and the Claude Code one is left out. `[plugins]` policy in Codex's configuration applies to these
+plugins as to Codex's own, and `CODEX_CLAUDE_COMPAT=0` or turning Codex's `plugins` feature off
+leaves them all out.
+
+### Which plugins are used
+
+Every plugin that is installed and enabled is used, whatever it contains: one that brings only
+commands, only a script or only hooks is used like one with skills. A plugin is disabled whole,
+automatically, only when it relies on a mechanism of Claude Code's that Codex does not have, so
+that in Codex it could misbehave or change things wrongly. That is the case when either:
+
+- it declares a component Codex has no counterpart for: output styles (`outputStyles` in
+  `.claude-plugin/plugin.json`, or an `output-styles/` directory when the manifest declares
+  none), LSP servers (`lspServers`, or a `.lsp.json` file) or channels (`channels`); or
+- one of its files configures Claude Code's own interface. The files read are those under
+  `commands/`, `agents/`, `skills/`, `hooks/` and `scripts/`, and under the paths the manifest
+  declares for `commands`, `agents`, `skills` and `hooks`, up to six levels deep and 1 MiB each;
+  README files, hidden directories and `node_modules` are not read, nor anything else in the
+  plugin (its sources, its compiled code). A file configures the interface when it names one of
+  Claude Code's settings files (`settings.json` or `settings.local.json`) and, as a whole word
+  (no letter, digit or `_` on either side), one of the settings that only configure Claude
+  Code's interface: `statusLine`, `statusLineEnabled`, `outputStyle`, `spinnerVerbs`,
+  `spinnerTipsEnabled`, `spinnerTipsOverride`, `companyAnnouncements`, `prefersReducedMotion`,
+  `syntaxHighlightingDisabled`, `terminalTitleFromRename`.
+
+Each disabled plugin is reported with one startup warning that says why and how to turn it on,
+for example claude-hud, whose `/claude-hud:setup` command merges a `statusLine` into Claude
+Code's `settings.json`:
+
+```
+Claude Code plugin claude-hud@claude-hud disabled: its commands/setup.md configures Claude Code's
+`statusLine` setting, which Codex does not have. To use it anyway, add "claude-hud@claude-hud"
+to `enable` under `[claude.plugins]` in $CODEX_HOME/ccn-config.toml
+```
+
+A plugin listed in `enable` under `[claude.plugins]` of `$CODEX_HOME/ccn-config.toml` is used even when
+it is found incompatible; the check is a plain text match and can take a plugin that only
+mentions such a setting for one that sets it. A plugin is also left out with a warning when its
+install path is gone, or when it has no readable `.claude-plugin/plugin.json`, which Codex's
+loader needs; `enable` does not change that.
+
+From a plugin that is used, Codex loads what its plugin loader knows: skills, MCP servers and
+hooks. The rest is not loaded, without disabling the plugin:
+
+- `commands/` and `commands` of the manifest: custom slash commands are not supported yet. They
+  will be loaded once command support lands (one loader for `~/.claude/commands`, a project's
+  `.claude/commands` and plugins' `commands/`, as skills).
+- `agents/`: Codex's plugin loader has no plugin agents. Subagents in `~/.claude/agents` and
+  `.claude/agents` are still read (see "Subagents").
+- MCP bundles (`.mcpb`), the plugin's `settings.json` and `userConfig`.
+
+### Hooks
+
+Claude Code runs the hooks of an enabled plugin without asking. Codex does the same for a plugin
+the user's own `~/.claude/settings.json` enables, as it does for the hooks in that file: no
+Codex trust is needed. A plugin that only a project's settings enable waits for Codex's trust
+like the project's own hooks: review it in Codex's hooks list (`/hooks`), or run with
+`--dangerously-bypass-hook-trust`. `disableAllHooks: true` in any of the settings files turns
+these plugins' hooks off too. The hooks see `CLAUDE_PLUGIN_ROOT` (the install path),
+`CLAUDE_PLUGIN_DATA`, and `CLAUDE_PROJECT_DIR` and `CLAUDE_CODE_ENTRYPOINT` as described under
+"Hooks".
+
+### Differences from Claude Code
+
+- Plugins are read at the start of a session; installing, enabling or disabling one in Claude
+  Code shows in the next session. They are not installed in Codex, so Codex's own plugin
+  commands (install, uninstall, enable) do not manage them; Claude Code does.
+- The plugin's files are read as Codex reads its own plugins: a path the manifest declares for
+  `hooks` or `mcpServers` replaces `hooks/hooks.json` or `.mcp.json`, where Claude Code loads
+  both. An `mcpServers` list mixing paths and objects is not read.
+- Hook events Codex does not have (`Notification`, `PostToolUseFailure`, `StopFailure` among
+  them) do not run from plugins, and a plugin hooks file with a handler type Codex does not know
+  (`http`) is not loaded, with a warning.
+- MCP servers keep the names their files give them, where Claude Code names them
+  `plugin:<plugin>:<server>`. Of two plugins' servers of the same name, the first plugin's (by
+  id) is used.
+- `CLAUDE_PLUGIN_DATA` is Codex's plugin data directory (`$CODEX_HOME/plugins/data/...`), not
+  Claude Code's, so a plugin's saved state is not shared between the two.
+- `${user_config.*}` values from a plugin's `userConfig` are not filled in.
+- A plugin is taken from its recorded install path; one whose marketplace entry defines its
+  components without a `plugin.json` (`strict: false`) is not read that way. Managed
+  (`policySettings`) `enabledPlugins`, plugins from `--add-dir` and `--plugin-dir`, and Claude
+  Code's built-in plugins are not read.
+
 ## What is not shared
 
-- Custom slash commands (`commands/**/*.md`), on purpose: Claude Code keeps them only as a legacy form of skills,
-  and skills (`/<name>` included) cover the same use. Skills invoked as `/<name>` are supported, see "Invoking
-  skills".
-- Plugins.
+- Custom slash commands (`~/.claude/commands`, a project's `.claude/commands`, plugins'
+  `commands/`), not yet: a later change loads them as skills. Skills invoked as `/<name>` are
+  supported, see "Invoking skills".
 - Other skill frontmatter (`allowed-tools`, `model`, `context`, `hooks`, `user-invocable`,
   `argument-hint` and the like) is ignored.
 - Managed (enterprise) Claude Code files under `/etc/claude-code`.

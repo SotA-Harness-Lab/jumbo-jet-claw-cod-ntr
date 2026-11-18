@@ -66,6 +66,7 @@ fn engine(tmp: &TempDir, bypass_hook_trust: bool) -> ClaudeHooksEngine {
             user_dir: Some(absolute(&tmp.path().join("home/.claude"))),
             project_dir: Some(absolute(&tmp.path().join("project"))),
             entrypoint: Some("cli".to_string()),
+            plugins: Vec::new(),
         }),
     )
 }

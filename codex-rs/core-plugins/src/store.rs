@@ -15,6 +15,7 @@ use serde_json::Value as JsonValue;
 use sha2::Digest;
 use sha2::Sha256;
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::io::Write;
@@ -45,6 +46,9 @@ pub struct PluginStore {
     codex_home: AbsolutePathBuf,
     root: AbsolutePathBuf,
     data_root: AbsolutePathBuf,
+    /// Plugins installed outside this store, by plugin key, used where the store has no
+    /// installation of that key (see [`PluginStore::with_external_plugin_roots`]).
+    external_plugin_roots: Arc<BTreeMap<String, AbsolutePathBuf>>,
 }
 
 pub(crate) struct ActivePluginInstallation {
@@ -98,7 +102,25 @@ impl PluginStore {
             codex_home,
             root,
             data_root,
+            external_plugin_roots: Arc::default(),
         })
+    }
+
+    /// The same store, also answering for plugins installed elsewhere: a plugin key the store
+    /// has no installation of resolves to its root here. Nothing is copied into the store.
+    pub fn with_external_plugin_roots(
+        &self,
+        external_plugin_roots: BTreeMap<String, AbsolutePathBuf>,
+    ) -> Self {
+        Self {
+            external_plugin_roots: Arc::new(external_plugin_roots),
+            ..self.clone()
+        }
+    }
+
+    /// The plugins installed outside this store, by plugin key.
+    pub fn external_plugin_roots(&self) -> &BTreeMap<String, AbsolutePathBuf> {
+        &self.external_plugin_roots
     }
 
     pub fn root(&self) -> &AbsolutePathBuf {
@@ -156,6 +178,7 @@ impl PluginStore {
     pub fn active_plugin_root(&self, plugin_id: &PluginId) -> Option<AbsolutePathBuf> {
         self.active_plugin_version(plugin_id)
             .map(|plugin_version| self.plugin_root(plugin_id, &plugin_version))
+            .or_else(|| self.external_plugin_roots.get(&plugin_id.as_key()).cloned())
     }
 
     pub(crate) fn active_plugin_installation(

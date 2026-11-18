@@ -1020,6 +1020,14 @@ pub struct Config {
     /// User-defined role declarations keyed by role name.
     pub agent_roles: BTreeMap<String, AgentRoleConfig>,
 
+    /// The fork's own settings, read from `$CODEX_HOME/ccn-config.toml` (not from `config.toml`).
+    pub mod_config: codex_claude_compat::ModConfig,
+
+    /// The plugins installed and enabled in Claude Code that Codex uses (see
+    /// [`codex_claude_compat::applicable_plugins`]); handed to Codex's plugin loader at their
+    /// own install paths.
+    pub claude_plugins: Vec<codex_claude_compat::ClaudePlugin>,
+
     /// Maximum token budget allowed for a goal and default budget for new goals.
     pub max_goal_token_budget: Option<i64>,
 
@@ -1922,6 +1930,16 @@ impl Config {
             (self.features.enabled(Feature::RuntimeAgentInstances)
                 && codex_runtime_agent_instance::is_openai_api_url(&self.chatgpt_base_url))
             .then_some(self.runtime_auth_mode),
+        )
+        .with_external_plugin_roots(
+            self.claude_plugins
+                .iter()
+                .filter_map(|plugin| {
+                    let root =
+                        AbsolutePathBuf::from_absolute_path_checked(&plugin.install_path).ok()?;
+                    Some((plugin.id.clone(), root))
+                })
+                .collect(),
         )
     }
 
@@ -4171,6 +4189,21 @@ impl Config {
                 agent_roles.entry(name).or_insert(role);
             }
         }
+        // The fork's own settings, kept out of config.toml.
+        let (mod_config, mod_config_warning) = codex_claude_compat::ModConfig::load(codex_home.as_path());
+        startup_warnings.extend(mod_config_warning);
+        // Claude Code's plugins, those Codex uses; one left out is reported once here.
+        let claude_plugins =
+            if !cfg!(test) && codex_claude_compat::enabled() && features.enabled(Feature::Plugins)
+            {
+                claude_code_plugins(
+                    &resolved_cwd,
+                    &mod_config.claude.plugins.enable,
+                    &mut startup_warnings,
+                )
+            } else {
+                Vec::new()
+            };
 
         let openai_base_url = cfg
             .openai_base_url
@@ -4822,6 +4855,8 @@ impl Config {
             agent_default_subagent_reasoning_effort,
             agent_max_depth,
             agent_roles,
+            mod_config,
+            claude_plugins,
             max_goal_token_budget: cfg
                 .goals
                 .as_ref()
@@ -5472,6 +5507,25 @@ mod config_loader_tests;
 #[cfg(test)]
 #[path = "runtime_auth_tests.rs"]
 mod runtime_auth_tests;
+
+/// The plugins installed and enabled in Claude Code for `cwd` that Codex uses, with a startup
+/// warning for each one left out; `enable` lists those to use even when found incompatible.
+fn claude_code_plugins(
+    cwd: &AbsolutePathBuf,
+    enable: &[String],
+    startup_warnings: &mut Vec<String>,
+) -> Vec<codex_claude_compat::ClaudePlugin> {
+    let Some(home) = dirs::home_dir() else {
+        return Vec::new();
+    };
+    let claude_home = home.join(codex_claude_compat::CLAUDE_DIR);
+    let (plugins, warnings) =
+        codex_claude_compat::load_claude_plugins(&claude_home, Some(cwd.as_path()));
+    startup_warnings.extend(warnings);
+    let (plugins, warnings) = codex_claude_compat::applicable_plugins(plugins, enable);
+    startup_warnings.extend(warnings);
+    plugins
+}
 
 /// Adds the `env` entries of Claude Code's settings files (the user's, then the project's,
 /// later files winning) to the environment of the commands Codex runs. Codex's own

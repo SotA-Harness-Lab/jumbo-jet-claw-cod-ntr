@@ -844,8 +844,7 @@ impl Session {
                 // With the Claude tools on, Claude Code's rules are applied by the tools.
                 ExecPolicyManager::load_with_claude_bash_rules(
                     &config.config_layer_stack,
-                    !(config.features.enabled(Feature::ClaudeTools)
-                        && codex_claude_compat::enabled()),
+                    !config.mod_config.claude_tools(),
                 )
                 .await
                 .map_err(|err| CodexErr::Fatal(format!("failed to load rules: {err}")))?,
@@ -6263,8 +6262,23 @@ async fn build_hooks_config(
                     codex_hooks::claude_entrypoint(session_source),
                 )
             })
-            .flatten(),
+            .flatten()
+            .map(|settings| settings.with_plugins(claude_plugin_roots(config))),
     }
+}
+
+/// The Claude Code plugins handed to the plugin loader, as their hooks are treated.
+fn claude_plugin_roots(config: &Config) -> Vec<codex_hooks::ClaudePluginRoot> {
+    config
+        .claude_plugins
+        .iter()
+        .filter_map(|plugin| {
+            Some(codex_hooks::ClaudePluginRoot {
+                root: AbsolutePathBuf::from_absolute_path_checked(&plugin.install_path).ok()?,
+                trusted: plugin.enabled_by_user,
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
-//! Claude Code's tool set, offered to the model in place of Codex's own tools when the
-//! `claude_tools` feature is on (see `docs/claude-compat.md`, "Claude tool set").
+//! Claude Code's tool set, offered to the model in place of Codex's own tools when
+//! `[claude] tools = true` in `$CODEX_HOME/ccn-config.toml` (see `docs/claude-compat.md`, "Claude tool
+//! set").
 //!
 //! The Claude tools are a translation layer, not a second implementation: each one takes
 //! Claude Code's parameters, turns them into a call of the Codex tool runtime it stands in
@@ -32,7 +33,6 @@ mod write;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use codex_features::Feature;
 use codex_tools::ToolName;
 use serde::Deserialize;
 
@@ -50,10 +50,10 @@ pub(crate) use permissions::check_permission;
 pub(crate) use permissions::rule_allows;
 pub(crate) use subagent_tools::restrict_to_subagent_tools;
 
-/// Whether the model is offered Claude Code's tools instead of Codex's: the `claude_tools`
-/// feature is on and `CODEX_CLAUDE_COMPAT` is not `0`.
+/// Whether the model is offered Claude Code's tools instead of Codex's: `[claude] tools = true`
+/// in `$CODEX_HOME/ccn-config.toml`, and `CODEX_CLAUDE_COMPAT` is not `0`.
 pub(crate) fn enabled(turn_context: &TurnContext) -> bool {
-    turn_context.config.features.enabled(Feature::ClaudeTools) && codex_claude_compat::enabled()
+    turn_context.config.mod_config.claude_tools()
 }
 
 /// Names of the Claude Code tools offered next to each other, for descriptions that refer

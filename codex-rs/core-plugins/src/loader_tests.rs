@@ -1194,3 +1194,99 @@ fn materialize_git_source_rejects_sha_that_resolves_to_hostile_default_branch() 
         format!("checked out Git SHA {malicious_sha} does not match requested SHA {benign_sha}")
     );
 }
+
+#[tokio::test]
+async fn external_plugins_load_in_place_unless_codex_has_one_of_that_name() {
+    let temp_dir = TempDir::new().expect("tempdir");
+    let codex_home = temp_dir.path().join("codex");
+    // Codex's own plugin named `shared`, from another marketplace.
+    let own_root = codex_home.join("plugins/cache/codex-market/shared/local");
+    write_file(
+        &own_root.join(".codex-plugin/plugin.json"),
+        r#"{"name":"shared"}"#,
+    );
+    write_file(
+        &own_root.join("skills/own/SKILL.md"),
+        "---\nname: own\ndescription: Own skill\n---\nInstructions\n",
+    );
+    // Plugins installed elsewhere, in Claude Code's format.
+    let external_root = temp_dir
+        .path()
+        .join("claude/cache/market/claude-only/1.0.0");
+    write_file(
+        &external_root.join(".claude-plugin/plugin.json"),
+        r#"{"name":"claude-only","commands":["./commands/run.md"]}"#,
+    );
+    write_file(
+        &external_root.join("skills/review/SKILL.md"),
+        "---\nname: review\ndescription: Review skill\n---\nInstructions\n",
+    );
+    write_file(
+        &external_root.join(".mcp.json"),
+        r#"{"mcpServers":{"review":{"command":"review-server"}}}"#,
+    );
+    write_file(&external_root.join("commands/run.md"), "Run it\n");
+    let shadowed_root = temp_dir.path().join("claude/cache/market/shared/1.0.0");
+    write_file(
+        &shadowed_root.join(".claude-plugin/plugin.json"),
+        r#"{"name":"shared"}"#,
+    );
+    write_file(
+        &shadowed_root.join("skills/theirs/SKILL.md"),
+        "---\nname: theirs\ndescription: Their skill\n---\nInstructions\n",
+    );
+    let absolute =
+        |path: &Path| AbsolutePathBuf::from_absolute_path(path).expect("absolute plugin root");
+    let stack = ConfigLayerStack::new(
+        vec![user_layer(
+            user_config_path(&temp_dir, "config.toml"),
+            "[plugins.\"shared@codex-market\"]\nenabled = true\n",
+        )],
+        ConfigRequirements::default(),
+        ConfigRequirementsToml::default(),
+    )
+    .expect("valid config layer stack");
+    let store = PluginStore::new(codex_home).with_external_plugin_roots(
+        std::collections::BTreeMap::from([
+            ("claude-only@market".to_string(), absolute(&external_root)),
+            ("shared@market".to_string(), absolute(&shadowed_root)),
+        ]),
+    );
+
+    let plugins = load_plugins_from_layer_stack(
+        &stack,
+        &stack
+            .effective_config()
+            .try_into::<codex_config::config_toml::ConfigToml>()
+            .unwrap()
+            .plugins,
+        RemoteInstalledPluginsSnapshot::default(),
+        &store,
+        /*plugin_skill_snapshots*/ None,
+        Some(Product::Codex),
+        /*remote_global_catalog_active*/ false,
+        test_skill_root_loader().as_ref(),
+    )
+    .await;
+
+    assert_eq!(
+        plugins
+            .iter()
+            .map(|plugin| (
+                plugin.config_name.as_str(),
+                plugin.root.clone(),
+                plugin.is_active()
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            ("claude-only@market", absolute(&external_root), true),
+            ("shared@codex-market", absolute(&own_root), true),
+        ]
+    );
+    let external = &plugins[0];
+    assert!(external.has_enabled_skills);
+    assert_eq!(
+        external.mcp_servers.keys().collect::<Vec<_>>(),
+        vec!["review"]
+    );
+}

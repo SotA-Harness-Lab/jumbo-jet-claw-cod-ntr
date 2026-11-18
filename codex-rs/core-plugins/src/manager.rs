@@ -137,6 +137,7 @@ use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_path_uri::PathUri;
 use codex_utils_plugins::PluginIdentity;
 use codex_utils_plugins::PluginSkillRoot;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -196,6 +197,7 @@ pub struct PluginsConfigInput {
     remote_http_clients: Arc<OnceLock<Arc<dyn HttpClientSelector>>>,
     runtime_http_clients: Arc<OnceLock<Arc<dyn HttpClientSelector>>>,
     runtime_auth_mode: Option<RuntimeAuthMode>,
+    external_plugin_roots: BTreeMap<String, AbsolutePathBuf>,
 }
 
 impl PluginsConfigInput {
@@ -224,7 +226,19 @@ impl PluginsConfigInput {
             remote_http_clients: Arc::new(OnceLock::new()),
             runtime_http_clients: Arc::new(OnceLock::new()),
             runtime_auth_mode: None,
+            external_plugin_roots: BTreeMap::new(),
         }
+    }
+
+    /// Plugins installed outside Codex's plugin store, by plugin key, to load from their own
+    /// directories as enabled plugins. A plugin Codex configures or has installed under the
+    /// same name wins over one of these.
+    pub fn with_external_plugin_roots(
+        mut self,
+        external_plugin_roots: BTreeMap<String, AbsolutePathBuf>,
+    ) -> Self {
+        self.external_plugin_roots = external_plugin_roots;
+        self
     }
 
     pub fn with_plugin_recommendations_enabled(mut self, enabled: bool) -> Self {
@@ -700,6 +714,7 @@ impl LoadedPluginsCache {
             };
             let installed_root = store
                 .active_plugin_root(&plugin_id)
+                .or_else(|| key.external_plugin_roots.get(&plugin.config_name).cloned())
                 .unwrap_or_else(|| store.plugin_base_root(&plugin_id));
             installed_root != plugin.root
         });
@@ -730,6 +745,7 @@ struct PluginLoadCacheKey {
     skill_config_rules: SkillConfigRules,
     remote_global_catalog_active: bool,
     auth_identity: Option<RemoteInstalledPluginsAuthIdentity>,
+    external_plugin_roots: BTreeMap<String, AbsolutePathBuf>,
 }
 
 impl PluginLoadCacheKey {
@@ -756,6 +772,7 @@ impl PluginLoadCacheKey {
             remote_global_catalog_active,
             // Local curated loads are auth-independent; only remote snapshots vary by account.
             auth_identity: remote_global_catalog_active.then_some(auth_identity),
+            external_plugin_roots: config.external_plugin_roots.clone(),
         }
     }
 }
@@ -1044,7 +1061,9 @@ impl PluginsManager {
                 &config.config_layer_stack,
                 &config.plugins,
                 self.remote_installed_plugins_snapshot(),
-                &self.store,
+                &self
+                    .store
+                    .with_external_plugin_roots(config.external_plugin_roots.clone()),
                 Some(&plugin_skill_snapshots),
                 self.restriction_product,
                 remote_global_catalog_active,
@@ -1160,7 +1179,9 @@ impl PluginsManager {
             config_layer_stack,
             &config.plugins,
             self.remote_installed_plugin_configs(),
-            &self.store,
+            &self
+                .store
+                .with_external_plugin_roots(config.external_plugin_roots.clone()),
             target_curated_marketplace,
             self.remote_global_catalog_active(config),
         )
