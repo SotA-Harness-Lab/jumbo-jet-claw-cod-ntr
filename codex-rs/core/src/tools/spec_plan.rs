@@ -196,6 +196,7 @@ pub(crate) fn build_tool_router(
     if native_mode.is_none() {
         registry.remove(&ToolName::namespaced("web", "run"));
     }
+    crate::tools::claude::replace_codex_search(turn_context, &mut registry);
     append_dynamic_tool_runtimes(dynamic_tools, &mut registry);
     let hosted_specs = if let Some(mode) = native_mode {
         hosted_model_tool_specs(

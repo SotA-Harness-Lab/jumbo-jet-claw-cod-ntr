@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 futures = { workspace = true }
+htmd = { workspace = true }
 ignore = { workspace = true }
 regex-lite = { workspace = true }
 serde_json = { workspace = true }

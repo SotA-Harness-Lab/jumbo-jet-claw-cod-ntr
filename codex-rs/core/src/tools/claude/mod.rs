@@ -21,6 +21,8 @@ mod output;
 mod permissions;
 mod read;
 mod ripgrep;
+mod web_fetch;
+mod web_search;
 mod write;
 
 use std::collections::HashMap;
@@ -58,6 +60,8 @@ pub(crate) const OFFERED_TOOLS: &[&str] = &[
     codex_claude_compat::tools::EDIT,
     codex_claude_compat::tools::GLOB,
     codex_claude_compat::tools::GREP,
+    codex_claude_compat::tools::WEB_FETCH,
+    codex_claude_compat::tools::WEB_SEARCH,
 ];
 
 /// Replaces Codex tools by Claude Code's in a registry that holds Codex's core tools.
@@ -72,8 +76,16 @@ pub(crate) fn replace_codex_tools(turn_context: &TurnContext, registry: &mut Too
     edit::install(&mut swap);
     glob::install(&mut swap);
     grep::install(&mut swap);
-    // Next: glob, grep, web_fetch, web_search, todo_write, ask_user_question, agent; each
-    // in its own file, taking the Codex tool it replaces through `swap.take`.
+    web_fetch::install(&mut swap);
+}
+
+/// Replaces Codex's standalone search (`web.run`) by `WebSearch`. Extension tools, that
+/// search among them, join the registry after the core tools, so this runs once they are
+/// in; the hosted `web_search` tool is executed by the model provider and stays as it is.
+pub(crate) fn replace_codex_search(turn_context: &TurnContext, registry: &mut ToolRegistry) {
+    if enabled(turn_context) {
+        web_search::install(registry);
+    }
 }
 
 /// Takes Codex tools out of what the model is offered, keeping their runtimes for the
@@ -107,6 +119,11 @@ impl<'a> ToolSwap<'a> {
     /// a policy that removes a Codex tool removes its Claude counterpart too.
     pub(crate) fn allows(&self, name: &str) -> bool {
         self.registry.tool_policy.allows(&ToolName::plain(name))
+    }
+
+    /// Whether the registry offers the tool `name`, Claude's or Codex's.
+    pub(crate) fn has(&self, name: &str) -> bool {
+        self.registry.tool(&ToolName::plain(name)).is_some()
     }
 
     pub(crate) fn add(&mut self, runtime: impl CoreToolRuntime + 'static) {
