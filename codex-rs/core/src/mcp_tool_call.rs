@@ -1810,6 +1810,10 @@ async fn maybe_request_mcp_tool_approval(
     server_key: &McpServerKey,
     policy: McpToolApprovalPolicy,
 ) -> Option<McpToolApproval> {
+    // Allowed by a Claude Code permission rule, or approved by the user for one.
+    if crate::tools::claude::rule_allows(sess, call_id) {
+        return None;
+    }
     let (action, strict_auto_review) = match prepare_mcp_tool_approval(
         sess,
         step_context,

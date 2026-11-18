@@ -29,6 +29,16 @@ const APPLY_PATCH_FILE_MARKERS: &[&str] = &["*** Add File: ", "*** Update File: 
 struct ShownFiles(Mutex<HashSet<PathBuf>>);
 
 #[derive(Deserialize)]
+struct BashPaths {
+    command: String,
+}
+
+#[derive(Deserialize)]
+struct FilePathArgs {
+    file_path: String,
+}
+
+#[derive(Deserialize)]
 struct ExecCommandPaths {
     cmd: String,
     #[serde(default)]
@@ -133,6 +143,23 @@ fn touched_files(invocation: &ToolInvocation, cwd: &Path) -> Vec<PathBuf> {
         }
         ("apply_patch", ToolPayload::Custom { input }) => {
             files.extend(patch_files(input).map(|path| cwd.join(path)));
+        }
+        // Claude Code's own tools, offered with the `claude_tools` feature.
+        ("Bash", ToolPayload::Function { arguments }) => {
+            let Ok(args) = serde_json::from_str::<BashPaths>(arguments) else {
+                return Vec::new();
+            };
+            let command = ["bash".to_string(), "-lc".to_string(), args.command];
+            for parsed in parse_command(&command) {
+                if let ParsedCommand::Read { path, .. } = parsed {
+                    files.push(cwd.join(path));
+                }
+            }
+        }
+        ("Read" | "Edit" | "Write", ToolPayload::Function { arguments }) => {
+            if let Ok(args) = serde_json::from_str::<FilePathArgs>(arguments) {
+                files.push(cwd.join(args.file_path));
+            }
         }
         _ => {}
     }

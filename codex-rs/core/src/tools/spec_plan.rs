@@ -196,7 +196,9 @@ pub(crate) fn build_tool_router(
     if native_mode.is_none() {
         registry.remove(&ToolName::namespaced("web", "run"));
     }
+    crate::tools::claude::replace_codex_search(turn_context, &mut registry);
     append_dynamic_tool_runtimes(dynamic_tools, &mut registry);
+    crate::tools::claude::restrict_to_subagent_tools(turn_context, &mut registry);
     let hosted_specs = if let Some(mode) = native_mode {
         hosted_model_tool_specs(
             turn_context,
@@ -1249,6 +1251,7 @@ fn add_core_tool_sources(context: &CoreToolPlanContext<'_>, registry: &mut ToolR
     add_mcp_resource_tools(context, registry);
     add_core_utility_tools(context, registry);
     add_collaboration_tools(context, registry);
+    crate::tools::claude::replace_codex_tools(context.turn_context, registry);
 }
 
 fn standalone_web_search_enabled(turn_context: &TurnContext, model_info: &ModelInfo) -> bool {
@@ -1315,6 +1318,14 @@ fn add_shell_tools(context: &CoreToolPlanContext<'_>, registry: &mut ToolRegistr
                 .is_some_and(|shell| shell.shell_type == crate::shell::ShellType::PowerShell)
         }),
     };
+    if crate::tools::claude::enabled(turn_context) {
+        crate::tools::claude::register_bash(
+            registry,
+            options,
+            features.enabled(Feature::UnifiedExec),
+        );
+        return;
+    }
     if features.enabled(Feature::UnifiedExec) {
         registry.add(ExecCommandHandler::new(options));
         registry.add(WriteStdinHandler);

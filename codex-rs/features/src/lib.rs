@@ -237,6 +237,9 @@ pub enum Feature {
     BackgroundPaginatedRolloutMigration,
     /// Enable the Chronicle sidecar for passive screen-context memories.
     Chronicle,
+    /// Offer the model Claude Code's tool set (Bash, Read, Write, Edit) in place of Codex's
+    /// shell and patch tools, translated onto Codex's own tool runtimes.
+    ClaudeTools,
     /// Compress request bodies (zstd) when sending streaming requests to codex-backend.
     EnableRequestCompression,
     /// Keep active sampling turns alive until a failed network connection recovers.
@@ -1510,6 +1513,12 @@ pub const FEATURES: &[FeatureSpec] = &[
     FeatureSpec {
         id: Feature::Chronicle,
         key: "chronicle",
+        stage: Stage::UnderDevelopment,
+        default_enabled: false,
+    },
+    FeatureSpec {
+        id: Feature::ClaudeTools,
+        key: "claude_tools",
         stage: Stage::UnderDevelopment,
         default_enabled: false,
     },

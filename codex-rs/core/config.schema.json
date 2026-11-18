@@ -902,6 +902,9 @@
             "chronicle": {
               "type": "boolean"
             },
+            "claude_tools": {
+              "type": "boolean"
+            },
             "cli_daybreak": {
               "type": "boolean"
             },
@@ -8192,6 +8195,9 @@
           "type": "boolean"
         },
         "chronicle": {
+          "type": "boolean"
+        },
+        "claude_tools": {
           "type": "boolean"
         },
         "cli_daybreak": {
