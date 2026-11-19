@@ -109,7 +109,12 @@ pub(super) async fn run_main_inner(
     };
     // The TUI's language, before anything is drawn: messages are formatted once.
     let (mod_config, _) = codex_claude_compat::ModConfig::load(&codex_home);
-    crate::i18n::init(mod_config.ui.language.as_deref());
+    // CCN_LANGUAGE comes first, so a test run reads the same on a machine of any language.
+    let language = std::env::var("CCN_LANGUAGE")
+        .ok()
+        .filter(|tag| !tag.is_empty())
+        .or(mod_config.ui.language);
+    crate::i18n::init(language.as_deref());
 
     // A bound socket at the default path may be an SSH forward. Keep a verified
     // endpoint so replacing the advertised alias cannot redirect local config.

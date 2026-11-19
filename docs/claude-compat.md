@@ -38,7 +38,8 @@ enable = []
 | `claude.plugins.enable` | list of strings | `[]` | Claude Code plugins used even when found incompatible |
 | `ui.language` | string | the system's | The TUI's language: Simplified Chinese (`zh-CN`) or English; a language without a translation is English |
 
-The TUI reads `ui.language` once, when it starts. `CCN_CLAUDE_COMPAT=0` overrides the `claude` keys: with it, neither the Claude tool set nor Claude Code's
+The TUI reads `ui.language` once, when it starts; the environment variable `CCN_LANGUAGE`, when set, comes before it
+(the tests that drive the program are run with `CCN_LANGUAGE=en-US`, as `just test` does, since they look for English text). `CCN_CLAUDE_COMPAT=0` overrides the `claude` keys: with it, neither the Claude tool set nor Claude Code's
 plugins are used.
 
 ## What is shared
