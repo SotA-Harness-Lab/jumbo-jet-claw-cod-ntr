@@ -22,6 +22,9 @@ pub enum SkillDiscoveryMode {
     #[default]
     Recursive,
     DirectChildren,
+    /// Claude Code's custom slash commands: every Markdown file under the root is a skill,
+    /// named after its path below the root (`git/commit.md` is `git:commit`).
+    CommandFiles,
 }
 
 /// The local identifier and optional remote identifier for a plugin.

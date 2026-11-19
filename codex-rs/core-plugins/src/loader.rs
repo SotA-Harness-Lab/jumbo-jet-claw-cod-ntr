@@ -9,6 +9,7 @@ use crate::manifest::PluginManifestFormat;
 use crate::manifest::PluginManifestHooks;
 use crate::manifest::PluginManifestMcpServers;
 use crate::manifest::PluginManifestPaths;
+use crate::manifest::load_plugin_command_paths;
 use crate::manifest::load_plugin_manifest_with_format;
 use crate::marketplace::MarketplacePluginSource;
 use crate::marketplace::find_marketplace_plugin;
@@ -72,6 +73,8 @@ use tracing::warn;
 mod agent_plugin_mcp_overlay;
 
 const DEFAULT_SKILLS_DIR_NAME: &str = "skills";
+const DEFAULT_COMMANDS_DIR_NAME: &str = "commands";
+const CLAUDE_PLUGIN_MANIFEST_PATH: &str = ".claude-plugin/plugin.json";
 const DEFAULT_HOOKS_CONFIG_FILE: &str = "hooks/hooks.json";
 const DEFAULT_MCP_CONFIG_FILE: &str = ".mcp.json";
 const DEFAULT_APP_CONFIG_FILE: &str = ".app.json";
@@ -885,6 +888,7 @@ async fn load_plugin(
         enabled: plugin.enabled.unwrap_or(true),
         skill_roots: Vec::new(),
         skill_discovery_mode: SkillDiscoveryMode::Recursive,
+        command_roots: Vec::new(),
         disabled_skill_paths: HashSet::new(),
         has_enabled_skills: false,
         mcp_servers: HashMap::new(),
@@ -953,6 +957,9 @@ async fn load_plugin(
             loaded_plugin.manifest_description = manifest.description.clone();
             loaded_plugin.skill_roots =
                 plugin_skill_roots(&plugin_root, manifest_paths, loaded_manifest.format);
+            if loaded_manifest.format == PluginManifestFormat::Legacy {
+                loaded_plugin.command_roots = plugin_command_roots(&plugin_root);
+            }
             let plugin_identity = PluginIdentity {
                 plugin_id: loaded_plugin_id.as_key(),
                 remote_plugin_id: loaded_plugin.remote_plugin_id.clone(),
@@ -1091,9 +1098,20 @@ pub(crate) async fn load_plugin_skill_inventory(
         PluginManifestFormat::Legacy => SkillDiscoveryMode::Recursive,
         PluginManifestFormat::AgentPlugin => SkillDiscoveryMode::DirectChildren,
     };
+    let command_roots = if manifest_format == PluginManifestFormat::Legacy {
+        plugin_command_roots(plugin_root)
+    } else {
+        Vec::new()
+    };
     let roots = plugin_skill_roots(plugin_root, &manifest.paths, manifest_format)
         .into_iter()
-        .map(|path| PluginSkillRoot {
+        .map(|path| (path, discovery_mode))
+        .chain(
+            command_roots
+                .into_iter()
+                .map(|path| (path, SkillDiscoveryMode::CommandFiles)),
+        )
+        .map(|(path, discovery_mode)| PluginSkillRoot {
             path,
             plugin_identity: plugin_identity.clone(),
             plugin_namespace: manifest.name.clone(),
@@ -1134,6 +1152,28 @@ pub(crate) fn plugin_skill_roots(
     paths.sort_unstable();
     paths.dedup();
     paths
+}
+
+/// The directories of a Claude Code plugin's commands (its manifest is
+/// `.claude-plugin/plugin.json`), read in place as skills named `<plugin>:<command>`: those
+/// the manifest's `commands` lists, else `commands/`. None for other plugins, and when Codex
+/// already migrated the commands into skills of their own at install time. A `commands` entry
+/// naming a single file is left out.
+pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {
+    let claude_manifest = find_plugin_manifest_path(plugin_root.as_path())
+        .is_some_and(|path| path.ends_with(CLAUDE_PLUGIN_MANIFEST_PATH));
+    if !claude_manifest || migrated_command_skills_root(plugin_root).is_dir() {
+        return Vec::new();
+    }
+    let declared = match load_plugin_command_paths(plugin_root.as_path()) {
+        Ok(Some(paths)) => paths
+            .into_iter()
+            .filter_map(|path| AbsolutePathBuf::from_absolute_path(path).ok())
+            .collect(),
+        Ok(None) => vec![plugin_root.join(DEFAULT_COMMANDS_DIR_NAME)],
+        Err(_) => Vec::new(),
+    };
+    declared.into_iter().filter(|path| path.is_dir()).collect()
 }
 
 fn default_skill_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {

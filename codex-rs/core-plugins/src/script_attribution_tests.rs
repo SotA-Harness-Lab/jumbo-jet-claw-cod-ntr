@@ -45,6 +45,7 @@ fn loaded_plugin(config_name: &str, root: &Path, enabled: bool) -> LoadedPlugin 
         enabled,
         skill_roots: Vec::new(),
         skill_discovery_mode: SkillDiscoveryMode::Recursive,
+        command_roots: Vec::new(),
         disabled_skill_paths: HashSet::new(),
         has_enabled_skills: false,
         mcp_servers: HashMap::new(),

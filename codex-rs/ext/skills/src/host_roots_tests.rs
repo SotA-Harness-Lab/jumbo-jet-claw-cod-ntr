@@ -342,6 +342,7 @@ fn layer_roots_preserve_scope_precedence_and_disabled_projects() {
             (SkillScope::User, user_folder.join("skills")),
             (SkillScope::User, home_folder.join(".agents/skills")),
             (SkillScope::User, home_folder.join(".claude/skills")),
+            (SkillScope::User, home_folder.join(".claude/commands")),
             (SkillScope::System, user_folder.join("skills/.system")),
             (SkillScope::Admin, system_folder.join("skills")),
         ]
@@ -997,6 +998,17 @@ async fn resolved_config_and_repo_roots_preserve_order_and_dedupe_paths_not_name
         "claude",
         "claude-skill",
     );
+    let claude_command = home_folder.join(".claude/commands/git/commit.md");
+    fs::create_dir_all(claude_command.parent().expect("command parent")).expect("create commands");
+    fs::write(
+        &claude_command,
+        "---\ndescription: git:commit description\n---\nCommit.\n",
+    )
+    .expect("write command");
+    let claude_command = AbsolutePathBuf::from_absolute_path(
+        dunce::canonicalize(&claude_command).expect("canonical command path"),
+    )
+    .expect("absolute command path");
     let system_skill = write_skill(&codex_home.join("skills/.system"), "system", "system-skill");
     let admin_skill = write_skill(&system_folder.join("skills"), "admin", "admin-skill");
     let repo_agent_skill = write_skill(
@@ -1033,7 +1045,7 @@ async fn resolved_config_and_repo_roots_preserve_order_and_dedupe_paths_not_name
         /*empty_remote_roots*/ None,
     )
     .await;
-    assert_eq!(roots.len(), 9);
+    assert_eq!(roots.len(), 10);
     let outcome = load_and_merge_host_skill_roots(
         roots,
         &Semaphore::new(MAX_CONCURRENT_ROOT_SCANS),
@@ -1051,6 +1063,7 @@ async fn resolved_config_and_repo_roots_preserve_order_and_dedupe_paths_not_name
             expected_skill(repo_agent_skill, "repo-agent-skill", SkillScope::Repo),
             expected_skill(claude_skill, "claude-skill", SkillScope::User),
             expected_skill(user_skill, "duplicate-skill", SkillScope::User),
+            expected_skill(claude_command, "git:commit", SkillScope::User),
             expected_skill(home_skill, "home-skill", SkillScope::User),
             expected_skill(system_skill, "system-skill", SkillScope::System),
             expected_skill(admin_skill, "admin-skill", SkillScope::Admin),
