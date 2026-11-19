@@ -27,6 +27,9 @@ pub struct LoadedPlugin<M> {
     pub enabled: bool,
     pub skill_roots: Vec<AbsolutePathBuf>,
     pub skill_discovery_mode: SkillDiscoveryMode,
+    /// Directories of Claude Code's custom slash commands, loaded as skills with
+    /// [`SkillDiscoveryMode::CommandFiles`] whatever `skill_discovery_mode` is.
+    pub command_roots: Vec<AbsolutePathBuf>,
     pub disabled_skill_paths: HashSet<PathUri>,
     pub has_enabled_skills: bool,
     pub mcp_servers: HashMap<String, M>,
@@ -141,7 +144,17 @@ impl<M: Clone> PluginLoadOutcome<M> {
             let Some(plugin_namespace) = &plugin.plugin_namespace else {
                 continue;
             };
-            for path in &plugin.skill_roots {
+            let roots = plugin
+                .skill_roots
+                .iter()
+                .map(|path| (path, plugin.skill_discovery_mode))
+                .chain(
+                    plugin
+                        .command_roots
+                        .iter()
+                        .map(|path| (path, SkillDiscoveryMode::CommandFiles)),
+                );
+            for (path, discovery_mode) in roots {
                 if seen_paths.insert(path.clone()) {
                     skill_roots.push(PluginSkillRoot {
                         path: path.clone(),
@@ -151,7 +164,7 @@ impl<M: Clone> PluginLoadOutcome<M> {
                         },
                         plugin_namespace: plugin_namespace.clone(),
                         plugin_root: plugin.root.clone(),
-                        discovery_mode: plugin.skill_discovery_mode,
+                        discovery_mode,
                     });
                 }
             }
@@ -240,6 +253,7 @@ mod tests {
             enabled: true,
             skill_roots,
             skill_discovery_mode: SkillDiscoveryMode::Recursive,
+            command_roots: Vec::new(),
             disabled_skill_paths: HashSet::new(),
             has_enabled_skills: true,
             mcp_servers: HashMap::new(),
@@ -272,6 +286,27 @@ mod tests {
                 plugin_root: test_path("zeta@test"),
                 discovery_mode: SkillDiscoveryMode::Recursive,
             }]
+        );
+    }
+
+    #[test]
+    fn effective_plugin_skill_roots_load_command_roots_as_command_files() {
+        let skills = test_path("demo-skills");
+        let commands = test_path("demo-commands");
+        let mut plugin = loaded_plugin("demo@claude", vec![skills.clone()]);
+        plugin.command_roots = vec![commands.clone()];
+        let outcome = PluginLoadOutcome::from_plugins(vec![plugin]);
+
+        assert_eq!(
+            outcome
+                .effective_plugin_skill_roots()
+                .into_iter()
+                .map(|root| (root.path, root.discovery_mode))
+                .collect::<Vec<_>>(),
+            vec![
+                (commands, SkillDiscoveryMode::CommandFiles),
+                (skills, SkillDiscoveryMode::Recursive),
+            ]
         );
     }
 }

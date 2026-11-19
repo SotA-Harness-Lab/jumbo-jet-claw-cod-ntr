@@ -888,6 +888,7 @@ async fn load_plugin(
         enabled: plugin.enabled.unwrap_or(true),
         skill_roots: Vec::new(),
         skill_discovery_mode: SkillDiscoveryMode::Recursive,
+        command_roots: Vec::new(),
         disabled_skill_paths: HashSet::new(),
         has_enabled_skills: false,
         mcp_servers: HashMap::new(),
@@ -956,6 +957,9 @@ async fn load_plugin(
             loaded_plugin.manifest_description = manifest.description.clone();
             loaded_plugin.skill_roots =
                 plugin_skill_roots(&plugin_root, manifest_paths, loaded_manifest.format);
+            if loaded_manifest.format == PluginManifestFormat::Legacy {
+                loaded_plugin.command_roots = plugin_command_roots(&plugin_root);
+            }
             let plugin_identity = PluginIdentity {
                 plugin_id: loaded_plugin_id.as_key(),
                 remote_plugin_id: loaded_plugin.remote_plugin_id.clone(),
