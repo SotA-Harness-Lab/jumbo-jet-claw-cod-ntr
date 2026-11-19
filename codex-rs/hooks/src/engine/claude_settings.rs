@@ -55,12 +55,12 @@ pub fn claude_entrypoint(source: &codex_protocol::protocol::SessionSource) -> Op
 
 impl ClaudeHookSettings {
     /// The settings of the user's home directory and of `project_dir`, or nothing when
-    /// `CODEX_CLAUDE_COMPAT=0` turns Claude Code compatibility off.
+    /// `CCN_CLAUDE_COMPAT=0` turns Claude Code compatibility off.
     pub fn discover(
         project_dir: Option<AbsolutePathBuf>,
         entrypoint: Option<String>,
     ) -> Option<Self> {
-        if std::env::var_os("CODEX_CLAUDE_COMPAT").is_some_and(|value| value == "0") {
+        if std::env::var_os("CCN_CLAUDE_COMPAT").is_some_and(|value| value == "0") {
             return None;
         }
         let user_dir = std::env::var_os("HOME")

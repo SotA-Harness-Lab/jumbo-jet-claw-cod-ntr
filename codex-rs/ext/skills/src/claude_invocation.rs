@@ -5,7 +5,7 @@
 //! skill: <dir>`, with `$ARGUMENTS`, `$ARGUMENTS[N]`, `$N`, named arguments,
 //! `${CLAUDE_SKILL_DIR}` and `${CLAUDE_SESSION_ID}` replaced. A skill mentioned as `$<name>`
 //! keeps its text, apart from `${CLAUDE_SKILL_DIR}` and `${CLAUDE_SESSION_ID}`. Nothing is
-//! changed when `CODEX_CLAUDE_COMPAT=0`.
+//! changed when `CCN_CLAUDE_COMPAT=0`.
 
 use std::path::Path;
 

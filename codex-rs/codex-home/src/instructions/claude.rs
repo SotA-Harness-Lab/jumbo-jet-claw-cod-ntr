@@ -19,7 +19,7 @@ skill of that name; the hooks and `settings.json` entries they describe may not 
 Codex, so follow the rules those would have enforced yourself.";
 
 /// Returns the user's Claude Code configuration directory, `~/.claude`, or nothing when
-/// `CODEX_CLAUDE_COMPAT=0` turns the compatibility mode off.
+/// `CCN_CLAUDE_COMPAT=0` turns the compatibility mode off.
 pub fn default_claude_home() -> Option<AbsolutePathBuf> {
     if !codex_claude_compat::enabled() {
         return None;

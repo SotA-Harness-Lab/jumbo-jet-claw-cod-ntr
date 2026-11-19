@@ -5,7 +5,7 @@ and in projects, so skills and instructions are maintained in one place and used
 Nothing is copied or generated, and there is nothing to set up: when the files below exist, they
 are used.
 
-The user's Claude Code configuration directory is `~/.claude`. Setting `CODEX_CLAUDE_COMPAT=0`
+The user's Claude Code configuration directory is `~/.claude`. Setting `CCN_CLAUDE_COMPAT=0`
 in the environment turns the whole mode off.
 
 ## What is shared
@@ -128,7 +128,7 @@ configuration match one to one. It is off by default; turn it on in `config.toml
 claude_tools = true
 ```
 
-`CODEX_CLAUDE_COMPAT=0` turns it off again, with the rest of the compatibility.
+`CCN_CLAUDE_COMPAT=0` turns it off again, with the rest of the compatibility.
 
 The Claude tools are a thin layer over Codex's tools. Each takes Claude Code's parameters
 and description, hands the work to the Codex tool it replaces, and gives the model Claude
@@ -442,7 +442,7 @@ In the TUI, `/<name> <args>` invokes the skill `<name>` as in Claude Code, for a
 lists (Claude Code's and Codex's own). A built-in command of the same name wins. Once a name is
 typed after `/`, the slash popup lists the matching skills after the commands; Enter or Tab
 completes the name. The message is sent as typed, with the skill attached as `$<name>` would
-attach it. This works with `CODEX_CLAUDE_COMPAT=0` too, since such a name was an error before;
+attach it. This works with `CCN_CLAUDE_COMPAT=0` too, since such a name was an error before;
 only the expansion below is turned off.
 
 When the skill's `SKILL.md` is a skill on this machine and Codex itself puts it into the

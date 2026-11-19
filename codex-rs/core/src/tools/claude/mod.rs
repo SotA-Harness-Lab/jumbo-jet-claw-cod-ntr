@@ -51,7 +51,7 @@ pub(crate) use permissions::rule_allows;
 pub(crate) use subagent_tools::restrict_to_subagent_tools;
 
 /// Whether the model is offered Claude Code's tools instead of Codex's: the `claude_tools`
-/// feature is on and `CODEX_CLAUDE_COMPAT` is not `0`.
+/// feature is on and `CCN_CLAUDE_COMPAT` is not `0`.
 pub(crate) fn enabled(turn_context: &TurnContext) -> bool {
     turn_context.config.features.enabled(Feature::ClaudeTools) && codex_claude_compat::enabled()
 }
