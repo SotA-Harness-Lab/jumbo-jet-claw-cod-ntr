@@ -83,10 +83,10 @@ pub use subagents::parse_subagent;
 /// Name of Claude Code's configuration directory, in the home directory and in a project.
 pub const CLAUDE_DIR: &str = ".claude";
 
-const COMPAT_ENV: &str = "CODEX_CLAUDE_COMPAT";
+const COMPAT_ENV: &str = "CCN_CLAUDE_COMPAT";
 
 /// Whether Claude Code's configuration is shared with Codex: on unless
-/// `CODEX_CLAUDE_COMPAT=0`.
+/// `CCN_CLAUDE_COMPAT=0`.
 pub fn enabled() -> bool {
     std::env::var_os(COMPAT_ENV).is_none_or(|value| value != "0")
 }

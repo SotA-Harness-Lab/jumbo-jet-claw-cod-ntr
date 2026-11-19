@@ -1,11 +1,10 @@
 ---
 source: tui/src/startup_draft_tests.rs
-assertion_line: 144
 expression: "snapshots.join(\"\\n---\\n\")"
 ---
 empty (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ Codex NTR (v<VERSION>)
      loading
 
 
@@ -15,7 +14,7 @@ empty (48 columns):
 ---
 configured (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ Codex NTR (v<VERSION>)
      workspace
 
 
@@ -25,7 +24,7 @@ configured (48 columns):
 ---
 resuming (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ Codex NTR (v<VERSION>)
      loading
   Resuming session…
 
@@ -35,7 +34,7 @@ resuming (48 columns):
 ---
 forking (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ Codex NTR (v<VERSION>)
      loading
   Forking session…
 
@@ -44,7 +43,7 @@ forking (48 columns):
 ---
 multiline (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ Codex NTR (v<VERSION>)
      loading
 
 
@@ -54,7 +53,7 @@ multiline (48 columns):
 ---
 narrow (18 columns):
 
-  >_ OpenAI Codex…
+  >_ Codex NTR (v…
      loading
 
 

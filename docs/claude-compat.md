@@ -5,7 +5,7 @@ and in projects, so skills and instructions are maintained in one place and used
 Nothing is copied or generated, and there is nothing to set up: when the files below exist, they
 are used.
 
-The user's Claude Code configuration directory is `~/.claude`. Setting `CODEX_CLAUDE_COMPAT=0`
+The user's Claude Code configuration directory is `~/.claude`. Setting `CCN_CLAUDE_COMPAT=0`
 in the environment turns the whole mode off.
 
 ## The fork's own settings (ccn-config.toml)
@@ -33,7 +33,7 @@ enable = []
 | `claude.tools` | boolean | `false` | The Claude tool set in place of Codex's tools |
 | `claude.plugins.enable` | list of strings | `[]` | Claude Code plugins used even when found incompatible |
 
-`CODEX_CLAUDE_COMPAT=0` overrides both: with it, neither the Claude tool set nor Claude Code's
+`CCN_CLAUDE_COMPAT=0` overrides both: with it, neither the Claude tool set nor Claude Code's
 plugins are used.
 
 ## What is shared
@@ -159,7 +159,7 @@ configuration match one to one. It is off by default; turn it on in `$CODEX_HOME
 tools = true
 ```
 
-`CODEX_CLAUDE_COMPAT=0` turns it off again, with the rest of the compatibility.
+`CCN_CLAUDE_COMPAT=0` turns it off again, with the rest of the compatibility.
 
 The Claude tools are a thin layer over Codex's tools. Each takes Claude Code's parameters
 and description, hands the work to the Codex tool it replaces, and gives the model Claude
@@ -486,7 +486,7 @@ skills, so they are listed, invoked and expanded as skills are:
   only `/<name>` runs it. `$ARGUMENTS`, `$1`... and `arguments` work as for skills.
 - Plugins whose commands Codex migrated into skills when it installed them (Codex's own plugin
   format) keep those; the commands of Claude Code's plugins are never copied.
-- `CODEX_CLAUDE_COMPAT=0` leaves out the user's and the projects' commands with the skills.
+- `CCN_CLAUDE_COMPAT=0` leaves out the user's and the projects' commands with the skills.
 
 ## Invoking skills
 
@@ -494,7 +494,7 @@ In the TUI, `/<name> <args>` invokes the skill `<name>` as in Claude Code, for a
 lists (Claude Code's and Codex's own). A built-in command of the same name wins. Once a name is
 typed after `/`, the slash popup lists the matching skills after the commands; Enter or Tab
 completes the name. The message is sent as typed, with the skill attached as `$<name>` would
-attach it. This works with `CODEX_CLAUDE_COMPAT=0` too, since such a name was an error before;
+attach it. This works with `CCN_CLAUDE_COMPAT=0` too, since such a name was an error before;
 only the expansion below is turned off.
 
 When the skill's `SKILL.md` is a skill on this machine and Codex itself puts it into the
@@ -546,7 +546,7 @@ at its install path: nothing is copied, and Codex's `config.toml` is not written
 loads it as one of its own: skills as `<plugin>:<skill>`, MCP servers, hooks. A plugin Codex
 configures under the same id, or has installed under the same name from any marketplace, wins,
 and the Claude Code one is left out. `[plugins]` policy in Codex's configuration applies to these
-plugins as to Codex's own, and `CODEX_CLAUDE_COMPAT=0` or turning Codex's `plugins` feature off
+plugins as to Codex's own, and `CCN_CLAUDE_COMPAT=0` or turning Codex's `plugins` feature off
 leaves them all out.
 
 ### Which plugins are used

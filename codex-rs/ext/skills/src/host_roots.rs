@@ -29,7 +29,7 @@ const SKILLS_DIR_NAME: &str = "skills";
 /// Claude Code's custom slash commands, loaded as skills beside `.claude/skills`.
 const COMMANDS_DIR_NAME: &str = "commands";
 const CLAUDE_DIR_NAME: &str = ".claude";
-const CLAUDE_COMPAT_ENV: &str = "CODEX_CLAUDE_COMPAT";
+const CLAUDE_COMPAT_ENV: &str = "CCN_CLAUDE_COMPAT";
 const MAX_CONCURRENT_ANCESTOR_PROBES: usize = 8;
 
 #[derive(Default)]
@@ -96,7 +96,7 @@ pub(crate) async fn resolve_skill_roots<'a>(
 }
 
 /// Whether the Claude Code skills of the real home directory are shared with Codex: on
-/// unless `CODEX_CLAUDE_COMPAT=0`. Unit tests, which resolve roots against the real home
+/// unless `CCN_CLAUDE_COMPAT=0`. Unit tests, which resolve roots against the real home
 /// directory, never see them.
 fn claude_compat_enabled() -> bool {
     !cfg!(test) && std::env::var_os(CLAUDE_COMPAT_ENV).is_none_or(|value| value != "0")

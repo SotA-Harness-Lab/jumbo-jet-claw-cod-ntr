@@ -8,7 +8,7 @@ use serde_json::json;
 use tempfile::TempDir;
 
 fn codex_command(codex_home: &Path) -> Result<assert_cmd::Command> {
-    let mut cmd = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("codex")?);
+    let mut cmd = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
     cmd.env("CODEX_HOME", codex_home)
         .env_remove("CODEX_ACCESS_TOKEN")
         .env_remove("CODEX_API_KEY")
@@ -131,7 +131,7 @@ fn agents_reject_inputs_that_cannot_be_applied() -> Result<()> {
 #[test]
 fn app_server_emits_json_info_events() -> Result<()> {
     let codex_home = TempDir::new()?;
-    let event = app_server_json_shutdown_event("codex", &["app-server"], codex_home.path())?;
+    let event = app_server_json_shutdown_event("ccn", &["app-server"], codex_home.path())?;
 
     assert_eq!(
         event,
@@ -311,7 +311,7 @@ async fn print_startup_config_is_independent_of_a_locked_history_database() -> R
 
     let home = TempDir::new()?;
     let sqlite = TempDir::new()?;
-    let binary = codex_utils_cargo_bin::cargo_bin("codex")?;
+    let binary = codex_utils_cargo_bin::cargo_bin("ccn")?;
     let mut command = Command::new(&binary);
     command
         .env("CODEX_HOME", home.path())

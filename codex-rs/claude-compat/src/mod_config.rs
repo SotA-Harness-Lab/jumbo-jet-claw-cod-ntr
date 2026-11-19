@@ -83,7 +83,7 @@ impl ModConfig {
     }
 
     /// Whether the model is offered Claude Code's tool set: `[claude] tools = true`, and
-    /// `CODEX_CLAUDE_COMPAT` is not `0`.
+    /// `CCN_CLAUDE_COMPAT` is not `0`.
     pub fn claude_tools(&self) -> bool {
         self.claude.tools && crate::enabled()
     }
