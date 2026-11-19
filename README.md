@@ -1,89 +1,164 @@
-<p align="center"><strong>Codex CLI</strong> is a coding agent from OpenAI that runs locally on your computer.
 <p align="center">
-  <img src="https://github.com/openai/codex/blob/main/.github/codex-cli-splash.png" alt="Codex CLI splash" width="80%" />
+  <img src="./.github/cod-claw-ntr-logo.svg" alt="CodClaw NTR logo" width="96">
 </p>
-</br>
-If you want Codex in your code editor (VS Code, Cursor, Windsurf), <a href="https://developers.openai.com/codex/ide">install in your IDE.</a>
-</br>If you want the desktop app experience, run <code>codex app</code> or visit <a href="https://chatgpt.com/codex?app-landing-page=true">the Codex App page</a>.
-</br>If you are looking for the <em>cloud-based agent</em> from OpenAI, <strong>Codex Web</strong>, go to <a href="https://chatgpt.com/codex">chatgpt.com/codex</a>.</p>
 
----
+# CodClaw NTR
+<p align="right">
+    <strong>English</strong> | <a href="./README/README_CN.md">中文</a>
+</p>
 
-## Quickstart
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-### Installing and running Codex CLI
+> *"Who says you can't have your cake and eat it too?"*
+>
+> — an old English proverb, turned around
 
-Run the following on Mac or Linux to install Codex CLI:
+CodClaw NTR is a fork of OpenAI's Codex CLI that runs on the configuration you already keep for Claude
+Code: your `CLAUDE.md` files, rules, skills, hooks, settings, subagents and MCP servers are read in
+place, so one setup serves both tools and an edit in `~/.claude` reaches Codex at its next request.
+
+NTR stands for Native Tooling Ready: Claude Code's native configuration works as it is, with nothing to
+convert or migrate.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [What Is Not Compatible](#what-is-not-compatible)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Docs](#docs)
+- [Disclaimer](#disclaimer)
+- [License](#license)
+- [Author](#author)
+
+## Overview
+
+CodClaw NTR keeps Codex itself (its models, sandbox, approvals, TUI and IDE extension) and adds a
+compatibility layer that reads Claude Code's files where Claude Code keeps them. Nothing is copied or
+converted: there is no sync step, and `CCN_CLAUDE_COMPAT=0` turns the whole layer off. Where Codex
+already has a mechanism, the layer hands the work to it; it only adds what Codex lacks. The details,
+item by item, are in [Claude Code compatibility](./docs/claude-compat.md).
+
+The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `config.toml`.
+
+## Features
+
+- **Instructions**: `~/.claude/CLAUDE.md`, project `CLAUDE.md`, `.claude/CLAUDE.md` and
+  `CLAUDE.local.md` with `@` imports, and the rules under `.claude/rules`. Rules limited by `paths:` and
+  the `CLAUDE.md` files of nested directories are shown once a file they cover is read or edited.
+- **Skills**: `~/.claude/skills` and each project's `.claude/skills`, with Claude Code's frontmatter
+  (`disable-model-invocation`, `when_to_use`, `arguments`). In the TUI, `/<skill-name> <args>` invokes a
+  skill with `$ARGUMENTS`, `${CLAUDE_SKILL_DIR}` and the other substitutions.
+- **Hooks**: the hooks of `settings.json` run as they do in Claude Code, including `Notification`,
+  `PostToolUseFailure` and `StopFailure`, with Claude Code's tool names and input.
+- **Settings**: `env` is added to the commands' environment; Bash permission rules become Codex command
+  rules.
+- **Auto memory**: the project's `MEMORY.md` is loaded, and Codex writes new memories where and how
+  Claude Code does, so both tools share one memory.
+- **Custom slash commands**: `~/.claude/commands`, a project's `.claude/commands` and plugins'
+  `commands/` are loaded in place as skills, named after their path (`git/commit.md` is
+  `/git:commit`, a plugin's `/<plugin>:<command>`).
+- **Subagents**: `~/.claude/agents/*.md` and a project's `.claude/agents` become agent roles.
+- **MCP servers**: those of `~/.claude.json` and approved `.mcp.json` files.
+- **Plugins**: the plugins enabled in Claude Code are loaded in place; one that relies on a mechanism
+  Codex does not have (such as Claude Code's status line) is disabled, unless `ccn-config.toml` enables
+  it.
+- **Claude Code's tool set** (optional, `[claude] tools = true` in `ccn-config.toml`): `Bash`, `Read`,
+  `Write`, `Edit`, `Glob`, `Grep`, `WebFetch`, `WebSearch`, `TodoWrite`, `AskUserQuestion` and `Agent`
+  replace Codex's tools, as a layer over them. Permission rules (`Read(...)`, `Edit(...)`,
+  `WebFetch(domain:...)`), subagent `tools` and hook matchers then match Claude Code one to one.
+
+## What Is Not Compatible
+
+- `defaultMode` and `additionalDirectories` of `permissions`, managed (enterprise) settings, output
+  styles and the status line: Codex has no counterpart.
+- Skill bodies' shell injection (`` !`command` ``), and substitutions in a skill the model opens by
+  itself rather than through `/<name>`.
+- Claude Code's own models and account: CodClaw NTR talks to the models Codex supports.
+- Windows: this fork builds for macOS and Linux only.
+
+## Installation
+
+CodClaw NTR has no release yet; build it from source.
+
+### Building from Source
+
+See [Installing & building](./docs/install.md). In short, with Rust installed:
 
 ```shell
-curl -fsSL https://chatgpt.com/codex/install.sh | sh
+cd codex-rs
+eval "$(bash ../scripts/fetch-rusty-v8.sh)"
+cargo build --release -p codex-cli --bin ccn
+cargo build --release -p codex-code-mode-host
 ```
 
-Run the following on Windows to install Codex CLI:
+`scripts/fetch-rusty-v8.sh` downloads the prebuilt V8 that the build links against.
 
-```shell
-powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"
+## Usage
+
+Run `ccn` in a project. It signs in like Codex: choose **Sign in with ChatGPT**, or set up an API key as
+described in [Codex's authentication docs](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
+
+A build from source has no background server package: start the TUI with `ccn --no-daemon`.
+
+To use Claude Code's tool set, create `~/.codex/ccn-config.toml`:
+
+```toml
+[claude]
+tools = true
 ```
-
-The standalone installers download from `https://releases.openai.com/codex` by default and fall back to GitHub Releases if a metadata or asset download is unavailable. To force GitHub Releases, set `CODEX_INSTALLER_USE_RELEASES_OPENAI_COM` to `false` (`0` and `no` are also accepted):
-
-```shell
-curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_INSTALLER_USE_RELEASES_OPENAI_COM=false sh
-```
-
-```powershell
-$env:CODEX_INSTALLER_USE_RELEASES_OPENAI_COM='false'; irm https://chatgpt.com/codex/install.ps1 | iex
-```
-
-Codex CLI can also be installed via the following package managers:
-
-```shell
-# Install using npm
-npm install -g @openai/codex
-```
-
-```shell
-# Install using Homebrew
-brew install --cask codex
-```
-
-Then simply run `codex` to get started.
-
-<details>
-<summary>You can also go to the <a href="https://github.com/openai/codex/releases/latest">latest GitHub Release</a> and download the appropriate binary for your platform.</summary>
-
-Each GitHub Release contains many executables, but in practice, you likely want one of these:
-
-- macOS
-  - Apple Silicon/arm64: `codex-aarch64-apple-darwin.tar.gz`
-  - x86_64 (older Mac hardware): `codex-x86_64-apple-darwin.tar.gz`
-- Linux
-  - x86_64: `codex-x86_64-unknown-linux-musl.tar.gz`
-  - arm64: `codex-aarch64-unknown-linux-musl.tar.gz`
-
-Each archive contains a single entry with the platform baked into the name (e.g., `codex-x86_64-unknown-linux-musl`), so you likely want to rename it to `codex` after extracting it.
-
-</details>
-
-### Using Codex with your ChatGPT plan
-
-Run `codex` and select **Sign in with ChatGPT**. We recommend signing into your ChatGPT account to use Codex as part of your Plus, Pro, Business, Edu, or Enterprise plan. [Learn more about what's included in your ChatGPT plan](https://help.openai.com/en/articles/11369540-codex-in-chatgpt).
-
-You can also use Codex with an API key, but this requires [additional setup](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
-
-## Claude Code compatibility
-
-This fork uses the Claude Code configuration in place, the user's and the project's: skills,
-`CLAUDE.md` files and rules (those limited by `paths:` when a matching file is worked on), auto
-memory, the hooks, `env` and Bash permissions of `settings.json`, subagents and MCP servers are
-read where Claude Code keeps them, and an edit there reaches Codex without a sync step. See
-[Claude Code compatibility](./docs/claude-compat.md) for what maps to what and what is left out.
 
 ## Docs
 
+- [**Claude Code compatibility**](./docs/claude-compat.md)
 - [**Codex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](./docs/contributing.md)
 - [**Installing & building**](./docs/install.md)
 - [**Open source fund**](./docs/open-source-fund.md)
 
-This repository is licensed under the [Apache-2.0 License](LICENSE).
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or sponsored by OpenAI. "Codex" is a trademark of OpenAI and is referenced here solely for descriptive purposes.
+
+This project is not affiliated with, endorsed by, or sponsored by Anthropic. "Claude" and "Claude Code" are trademarks of Anthropic and are referenced here solely for descriptive purposes.
+
+## License
+
+Copyright 2026 Tianyu (Sky) Lu
+
+Except for the third-party code listed below, this repository is 
+licensed under the Apache License, Version 2.0 (the "License"); you may 
+not use these files except in compliance with the License. You may 
+obtain a copy of the License at
+
+```plaintext
+http://www.apache.org/licenses/LICENSE-2.0
+```
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+### Third-Party Code
+
+This repository includes the following third-party code, which remains under its respective original licenses:
+
+| Code | Included As | License | Copyright | Modified |
+|------|-------------|---------|-----------|----------|
+| [Codex](https://github.com/openai/codex) | Forked from | [Apache-2.0](LICENSES/Codex-Apache-2.0.txt) | Copyright 2025 OpenAI | Yes |
+| [bubblewrap](https://github.com/containers/bubblewrap) | Vendored in `codex-rs/vendor/bubblewrap` | [LGPL-2.0-or-later](codex-rs/vendor/bubblewrap/COPYING) | Copyright (C) 2016 Alexander Larsson | No |
+
+All other code in this repository, including changes made to the code 
+above, is licensed under the Apache License, Version 2.0. The commit history of 
+this repository, together with snippets and file headers marked in the 
+source files, identifies which code belongs to which project. Files that 
+contain code from more than one project are subject to all applicable 
+licenses. Contributions to this repository are accepted only under the 
+Apache License, Version 2.0 ("inbound = outbound" principle).
+
+## Author
+
+Tianyu (Sky) Lu

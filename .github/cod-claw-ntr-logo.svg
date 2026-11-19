@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="640" height="640" viewBox="0 0 640 640"
+     role="img" aria-label="C-path logo">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect id="background" x="64" y="48" width="512" height="512" rx="112"
+        fill="#1C2028" filter="url(#shadow)"/>
+
+  <rect id="edge" x="68" y="52" width="504" height="504" rx="108"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="8"/>
+
+  <g transform="translate(64 112) scale(0.8)">
+    <path fill="#F4F2ED" d="M94 80H234V144H158V336H234V400H94Z"/>
+
+    <g fill="#D68B70">
+      <path d="M240 80H342L366 144H240Z"/>
+      <path d="M240 336H438L462 400H240Z"/>
+    </g>
+
+    <path fill="#628FE3" d="M358 80H426L546 400H478Z"/>
+  </g>
+</svg>
