@@ -54,17 +54,17 @@ pub(crate) fn feedback_success_cell(
     feedback_audience: FeedbackAudience,
 ) -> history_cell::WebHyperlinkHistoryCell {
     let prefix = if include_logs {
-        "• Feedback uploaded."
+        crate::i18n::tr!("feedback-view-uploaded")
     } else {
-        "• Feedback recorded (no logs)."
+        crate::i18n::tr!("feedback-view-recorded-no-logs")
     };
     let issue_url = issue_url_for_category(category, thread_id, feedback_audience);
     let mut lines = vec![Line::from(match issue_url.as_ref() {
         Some(_) if feedback_audience == FeedbackAudience::OpenAiEmployee => {
-            format!("{prefix} You can share this in #codex-feedback:")
+            crate::i18n::tr!("feedback-view-share-in-slack", prefix = prefix)
         }
-        Some(_) => format!("{prefix} Please open an issue using the following URL:"),
-        None => format!("{prefix} Thanks for the feedback!"),
+        Some(_) => crate::i18n::tr!("feedback-view-open-issue", prefix = prefix),
+        None => crate::i18n::tr!("feedback-view-thanks", prefix = prefix),
     })];
     match issue_url {
         Some(url) if feedback_audience == FeedbackAudience::OpenAiEmployee => {
@@ -76,11 +76,11 @@ pub(crate) fn feedback_success_cell(
                 ]),
                 "".into(),
                 Line::from(vec![
-                    "  Sentry Feedback ID: ".into(),
+                    crate::i18n::tr!("feedback-view-sentry-id").into(),
                     thread_id.to_string().bold(),
                 ]),
                 Line::from(vec![
-                    "  Sentry URL: ".into(),
+                    crate::i18n::tr!("feedback-view-sentry-url").into(),
                     format!("https://go/codex-feedback/{thread_id}")
                         .fg(crate::style::accent_color())
                         .underlined(),
@@ -96,16 +96,19 @@ pub(crate) fn feedback_success_cell(
                 ]),
                 "".into(),
                 Line::from(vec![
-                    "  Or mention your thread ID ".into(),
+                    crate::i18n::tr!("feedback-view-or-mention").into(),
                     thread_id.to_string().bold(),
-                    " in an existing issue.".into(),
+                    crate::i18n::tr!("feedback-view-in-existing-issue").into(),
                 ]),
             ]);
         }
         None => {
             lines.extend([
                 "".into(),
-                Line::from(vec!["  Thread ID: ".into(), thread_id.to_string().bold()]),
+                Line::from(vec![
+                    crate::i18n::tr!("feedback-view-thread-id").into(),
+                    thread_id.to_string().bold(),
+                ]),
             ]);
         }
     }
@@ -147,36 +150,36 @@ pub(crate) fn feedback_selection_params(
     app_event_tx: AppEventSender,
 ) -> super::SelectionViewParams {
     super::SelectionViewParams {
-        title: Some("How was this?".to_string()),
+        title: Some(crate::i18n::tr!("feedback-view-how-was-this").to_string()),
         items: vec![
             make_feedback_item(
                 app_event_tx.clone(),
-                "bug",
-                "Crash, error message, hang, or broken UI/behavior",
+                crate::i18n::tr!("feedback-view-cat-bug"),
+                crate::i18n::tr!("feedback-view-cat-bug-desc"),
                 FeedbackCategory::Bug,
             ),
             make_feedback_item(
                 app_event_tx.clone(),
-                "bad result",
-                "Output was off-target, incorrect, incomplete, or unhelpful",
+                crate::i18n::tr!("feedback-view-cat-bad-result"),
+                crate::i18n::tr!("feedback-view-cat-bad-result-desc"),
                 FeedbackCategory::BadResult,
             ),
             make_feedback_item(
                 app_event_tx.clone(),
-                "good result",
-                "Helpful, correct, high‑quality, or delightful result worth celebrating",
+                crate::i18n::tr!("feedback-view-cat-good-result"),
+                crate::i18n::tr!("feedback-view-cat-good-result-desc"),
                 FeedbackCategory::GoodResult,
             ),
             make_feedback_item(
                 app_event_tx.clone(),
-                "safety check",
-                "Benign usage blocked due to safety checks or refusals",
+                crate::i18n::tr!("feedback-view-cat-safety-check"),
+                crate::i18n::tr!("feedback-view-cat-safety-check-desc"),
                 FeedbackCategory::SafetyCheck,
             ),
             make_feedback_item(
                 app_event_tx,
-                "other",
-                "Slowness, feature suggestion, UX feedback, or anything else",
+                crate::i18n::tr!("feedback-view-cat-other"),
+                crate::i18n::tr!("feedback-view-cat-other-desc"),
                 FeedbackCategory::Other,
             ),
         ],
@@ -235,19 +238,23 @@ pub(crate) fn feedback_consent_params(
     });
 
     let disclosure = if can_save {
-        "Saving a ZIP does not submit feedback to OpenAI.\nFiles may contain prompts, commands, and tool output:"
+        crate::i18n::tr!("feedback-view-disclosure-zip")
     } else {
-        "Files may contain prompts, commands, and tool output:"
+        crate::i18n::tr!("feedback-view-disclosure")
     };
     let mut header_lines: Vec<Box<dyn crate::render::renderable::Renderable>> = vec![
-        Line::from("Include logs and session history?".bold()).into(),
+        Line::from(crate::i18n::tr!("feedback-view-include-logs").bold()).into(),
         Line::from("").into(),
         Paragraph::new(disclosure)
             .dim()
             .wrap(Wrap { trim: false })
             .into(),
         Line::from(vec!["  • ".into(), "codex-logs.log".into()]).into(),
-        Line::from(vec!["  • ".into(), "client-logs.txt (if available)".into()]).into(),
+        Line::from(vec![
+            "  • ".into(),
+            crate::i18n::tr!("feedback-view-client-logs").into(),
+        ])
+        .into(),
         Line::from(vec![
             "  • ".into(),
             DOCTOR_REPORT_ATTACHMENT_FILENAME.into(),
@@ -255,12 +262,20 @@ pub(crate) fn feedback_consent_params(
         .into(),
         Line::from(vec![
             "  • ".into(),
-            format!("{CODEX_APPS_TOOLS_CACHE_ATTACHMENT_FILENAME} (if available)").into(),
+            crate::i18n::tr!(
+                "feedback-view-file-if-available",
+                filename = CODEX_APPS_TOOLS_CACHE_ATTACHMENT_FILENAME
+            )
+            .into(),
         ])
         .into(),
         Line::from(vec![
             "  • ".into(),
-            format!("{CODEX_APP_DIRECTORY_CACHE_ATTACHMENT_FILENAME} (if available)").into(),
+            crate::i18n::tr!(
+                "feedback-view-file-if-available",
+                filename = CODEX_APP_DIRECTORY_CACHE_ATTACHMENT_FILENAME
+            )
+            .into(),
         ])
         .into(),
     ];
@@ -292,7 +307,7 @@ pub(crate) fn feedback_consent_params(
     }
     if should_show_feedback_connectivity_details(category, feedback_diagnostics) {
         header_lines.push(Line::from("").into());
-        header_lines.push(Line::from("Connectivity diagnostics".bold()).into());
+        header_lines.push(Line::from(crate::i18n::tr!("feedback-view-connectivity").bold()).into());
         for diagnostic in feedback_diagnostics.diagnostics() {
             header_lines
                 .push(Line::from(vec!["  - ".into(), diagnostic.headline.clone().into()]).into());
@@ -306,15 +321,15 @@ pub(crate) fn feedback_consent_params(
         footer_hint: Some(standard_popup_hint_line()),
         items: vec![
             super::SelectionItem {
-                name: "Yes".to_string(),
-                description: Some("Include session logs and diagnostics in the report".to_string()),
+                name: crate::i18n::tr!("feedback-view-yes").to_string(),
+                description: Some(crate::i18n::tr!("feedback-view-yes-desc").to_string()),
                 actions: vec![yes_action],
                 dismiss_on_select: true,
                 ..Default::default()
             },
             super::SelectionItem {
-                name: "No".to_string(),
-                description: Some("Keep only your note and report metadata".to_string()),
+                name: crate::i18n::tr!("feedback-view-no").to_string(),
+                description: Some(crate::i18n::tr!("feedback-view-no-desc").to_string()),
                 actions: vec![no_action],
                 dismiss_on_select: true,
                 ..Default::default()

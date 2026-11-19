@@ -7,12 +7,12 @@ use codex_protocol::models::BUILT_IN_PERMISSION_PROFILE_WORKSPACE;
 
 pub(super) fn permission_preset_description(preset: &ApprovalPreset) -> &'static str {
     match preset.id {
-        "read-only" => "Read workspace files, with approval required for edits or internet access",
+        "read-only" => crate::i18n::tr!("permissions-menu-read-only-desc"),
         "auto" => {
-            "Read and edit workspace files and run commands, with approval required for internet access or edits outside the workspace"
+            crate::i18n::tr!("permissions-menu-auto-desc")
         }
         "full-access" => {
-            "Use with caution: Codex can edit files outside this workspace and access the internet without approval"
+            crate::i18n::tr!("permissions-menu-full-access-desc")
         }
         _ => preset.description,
     }
@@ -60,8 +60,7 @@ impl ChatWidget {
         let reviewer = match profile_id {
             ":approve-for-me" if !self.config.features.enabled(Feature::GuardianApproval) => {
                 self.add_error_message(
-                    "Approve for me is unavailable. Run `/permissions` to see available profiles."
-                        .into(),
+                    crate::i18n::tr!("permissions-menu-approve-for-me-unavailable").into(),
                 );
                 return false;
             }
@@ -77,8 +76,9 @@ impl ChatWidget {
             .iter()
             .find(|profile| profile.id == profile_id)
         else {
-            self.add_error_message(format!(
-                "Unknown permission profile `{profile_id}`. Run `/permissions` to see available profiles."
+            self.add_error_message(crate::i18n::tr!(
+                "permissions-menu-unknown-profile",
+                profile_id = profile_id
             ));
             return false;
         };
@@ -95,8 +95,7 @@ impl ChatWidget {
             && !self.config.features.enabled(Feature::GuardianApproval)
         {
             self.add_error_message(
-                "Approve for me is unavailable. Run `/permissions` to see available profiles."
-                    .into(),
+                crate::i18n::tr!("permissions-menu-approve-for-me-unavailable").into(),
             );
             return false;
         }
@@ -105,8 +104,10 @@ impl ChatWidget {
             approval_policy,
             approvals_reviewer.map(Into::into),
         ) {
-            self.add_error_message(format!(
-                "Permission profile `{profile_id}` is unavailable: {reason}."
+            self.add_error_message(crate::i18n::tr!(
+                "permissions-menu-profile-unavailable",
+                profile_id = profile_id,
+                reason = reason
             ));
             return false;
         }
@@ -216,7 +217,7 @@ impl ChatWidget {
                         profile
                             .description
                             .as_deref()
-                            .unwrap_or("Configured permission profile"),
+                            .unwrap_or(crate::i18n::tr!("permissions-menu-configured-profile")),
                         active_profile_id.as_deref(),
                         discovery.disabled_reason(
                             &profile.id,
@@ -237,19 +238,19 @@ impl ChatWidget {
             items.push(Self::permission_profile_selection_item(
                 id,
                 id,
-                "Current permission profile",
+                crate::i18n::tr!("permissions-menu-current-profile"),
                 Some(id),
-                Some("Not available on this server".to_string()),
+                Some(crate::i18n::tr!("permissions-menu-not-available-on-server").to_string()),
             ));
         }
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(super::permission_discovery::VIEW_ID),
             items,
-            title: Some("Update Model Permissions".to_string()),
+            title: Some(crate::i18n::tr!("permissions-menu-title").to_string()),
             subtitle: discovery
                 .profiles
                 .is_empty()
-                .then(|| "No permission profiles returned by the server.".to_string()),
+                .then(|| crate::i18n::tr!("permissions-menu-no-profiles").to_string()),
             ..SelectionViewParams::picker()
         });
     }

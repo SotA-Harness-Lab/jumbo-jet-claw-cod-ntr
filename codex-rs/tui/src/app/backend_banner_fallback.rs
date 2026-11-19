@@ -100,12 +100,13 @@ impl App {
             self.sync_active_thread_service_tier_to_cached_session()
                 .await;
             let (prefix, suffix) = match switch.reason {
-                AutomaticModelSwitchReason::UsageLimit => {
-                    ("Automatically switched to", " due to usage limits.")
-                }
+                AutomaticModelSwitchReason::UsageLimit => (
+                    crate::i18n::tr!("backend-banner-fallback-switched-to"),
+                    crate::i18n::tr!("backend-banner-fallback-usage-limits"),
+                ),
                 AutomaticModelSwitchReason::UsageRecovered => (
-                    "Automatically switched back to",
-                    " because ordinary usage is available again.",
+                    crate::i18n::tr!("backend-banner-fallback-switched-back-to"),
+                    crate::i18n::tr!("backend-banner-fallback-usage-recovered"),
                 ),
             };
             let mut message = format!("{prefix} {}", model_display_name(&target.model));

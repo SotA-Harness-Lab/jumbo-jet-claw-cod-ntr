@@ -23,8 +23,9 @@ fn parse_approval_policy(value: &str) -> Result<AskForApproval, String> {
         "on-request" => Ok(AskForApproval::OnRequest),
         "never" => Ok(AskForApproval::Never),
         value => serde_json::from_str(value).map_err(|_| {
-            format!(
-                "Unknown approval policy `{value}`. Expected `untrusted`, `on-request`, `never`, or a granular policy."
+            crate::i18n::tr!(
+                "permission-discovery-unknown-policy",
+                value = value.to_string()
             )
         }),
     }
@@ -34,20 +35,25 @@ fn parse_reviewer(value: &str) -> Result<ApprovalsReviewer, String> {
     match value {
         "user" => Ok(ApprovalsReviewer::User),
         "auto_review" => Ok(ApprovalsReviewer::AutoReview),
-        value => Err(format!(
-            "Unknown permission reviewer `{value}`. Expected `user` or `auto_review`."
+        value => Err(crate::i18n::tr!(
+            "permission-discovery-unknown-reviewer",
+            value = value.to_string()
         )),
     }
 }
 
 fn parse_permission_profile_args(args: &str) -> Result<PermissionProfileArgs, String> {
     let parsed = slash_command_args::parse(args, &["--approval-policy", "--reviewer"], &[], &[])?;
-    let profile_id = parsed.positionals.first().cloned().ok_or_else(|| {
-        "Usage: /permissions <profile-id> [--approval-policy=<policy>] [--reviewer=user|auto_review]"
-            .to_string()
-    })?;
+    let profile_id = parsed
+        .positionals
+        .first()
+        .cloned()
+        .ok_or_else(|| crate::i18n::tr!("permission-discovery-usage").to_string())?;
     if let Some(argument) = parsed.positionals.get(1) {
-        return Err(format!("Unexpected permission argument `{argument}`."));
+        return Err(crate::i18n::tr!(
+            "permission-discovery-unexpected-argument",
+            argument = argument.to_string()
+        ));
     }
     Ok(PermissionProfileArgs {
         profile_id,
@@ -149,9 +155,9 @@ impl ChatWidget {
         }
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(VIEW_ID),
-            title: Some("Update Model Permissions".into()),
+            title: Some(crate::i18n::tr!("permission-discovery-update-title").into()),
             items: vec![SelectionItem {
-                name: "Loading permission profiles…".to_string(),
+                name: crate::i18n::tr!("permission-discovery-loading-profiles").to_string(),
                 is_disabled: true,
                 ..Default::default()
             }],
@@ -218,10 +224,10 @@ impl ChatWidget {
                 let retry_args = self.pending_permission_profile_args().map(str::to_owned);
                 self.bottom_pane.show_selection_view(SelectionViewParams {
                     view_id: Some(VIEW_ID),
-                    title: Some("Update Model Permissions".to_string()),
+                    title: Some(crate::i18n::tr!("permission-discovery-update-title").to_string()),
                     subtitle: Some(message),
                     items: vec![SelectionItem {
-                        name: "Retry".to_string(),
+                        name: crate::i18n::tr!("permission-discovery-retry").to_string(),
                         actions: vec![Box::new(move |tx| {
                             if let Some(args) = retry_args.clone() {
                                 tx.send(AppEvent::ResolvePermissionProfile { profile_id: args });

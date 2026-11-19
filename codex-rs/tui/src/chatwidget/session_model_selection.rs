@@ -68,15 +68,22 @@ impl ChatWidget {
         let mut hints = Vec::new();
         if let Some(accept) = keymap.primary_hint(ListAction::Accept) {
             let label = if effort == Some(ReasoningEffortConfig::Ultra) {
-                " apply · "
+                crate::i18n::tr!("session-model-selection-apply")
             } else {
-                " default · "
+                crate::i18n::tr!("session-model-selection-default")
             };
             hints.extend([accept.into(), label.dim()]);
         }
-        hints.extend([key.into(), " session".dim()]);
+        hints.extend([
+            key.into(),
+            crate::i18n::tr!("session-model-selection-session").dim(),
+        ]);
         if let Some(cancel) = keymap.primary_hint(ListAction::Cancel) {
-            hints.extend([" · ".dim(), cancel.into(), " back".dim()]);
+            hints.extend([
+                " · ".dim(),
+                cancel.into(),
+                crate::i18n::tr!("session-model-selection-back").dim(),
+            ]);
         }
         let warning = effort
             .as_ref()

@@ -17,6 +17,17 @@ pub(super) const TASK_FILTERS: &[(&str, Option<AgentsOverviewGroup>)] = &[
     ("Inactive", Some(AgentsOverviewGroup::Finished)),
 ];
 
+/// The label of the task filter at `index` of [`TASK_FILTERS`], in the TUI's language.
+pub(super) fn task_filter_label(index: usize) -> &'static str {
+    match index {
+        0 => crate::i18n::tr!("agent-center-filter-all"),
+        1 => crate::i18n::tr!("agent-center-filter-needs-you"),
+        2 => crate::i18n::tr!("agent-center-filter-working"),
+        3 => crate::i18n::tr!("agent-center-filter-ready"),
+        _ => crate::i18n::tr!("agent-center-filter-inactive"),
+    }
+}
+
 impl AgentsOverviewView {
     pub(in crate::app::agents_overview_view) fn selectable_indices(&self) -> Vec<usize> {
         let mut indices = self.visible_indices();

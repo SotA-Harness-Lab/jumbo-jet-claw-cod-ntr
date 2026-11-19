@@ -39,8 +39,9 @@ impl ChatWidget {
                 match request_permissions_from_params(params) {
                     Ok(event) => self.on_request_permissions(event),
                     Err(err) => {
-                        self.add_error_message(format!(
-                            "failed to localize requested filesystem paths: {err}"
+                        self.add_error_message(crate::i18n::tr!(
+                            "protocol-requests-localize-permission-paths",
+                            err = err.to_string()
                         ));
                     }
                 }
@@ -80,8 +81,9 @@ impl ChatWidget {
         let action = match action.try_into() {
             Ok(action) => action,
             Err(err) => {
-                self.add_error_message(format!(
-                    "failed to localize guardian filesystem paths: {err}"
+                self.add_error_message(crate::i18n::tr!(
+                    "protocol-requests-localize-guardian-paths",
+                    err = format!("{err}")
                 ));
                 return;
             }

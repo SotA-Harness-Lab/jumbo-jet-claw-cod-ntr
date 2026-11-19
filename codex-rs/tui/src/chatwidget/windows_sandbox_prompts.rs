@@ -35,18 +35,16 @@ impl ChatWidget {
         let setup_choice_is_required =
             !allow_unelevated || self.elevated_windows_sandbox_setup_required();
         let mut header = ColumnRenderable::new();
-        header.push(*Box::new(
-            crate::terminal_hyperlinks::HyperlinkText::new(if allow_unelevated {
-                vec![
-                    line!["Set up the Codex agent sandbox to protect your files and control network access. Learn more <https://developers.openai.com/codex/windows>"],
-                ]
+        header.push(*Box::new(crate::terminal_hyperlinks::HyperlinkText::new(
+            if allow_unelevated {
+                vec![line![crate::i18n::tr!("windows-sandbox-setup-intro")]]
             } else {
                 vec![
-                    line!["Your organization requires the default Codex agent sandbox to continue. Set it up to protect your files and control network access."],
-                    line!["Learn more <https://developers.openai.com/codex/windows>"],
+                    line![crate::i18n::tr!("windows-sandbox-org-requires")],
+                    line![crate::i18n::tr!("windows-sandbox-learn-more")],
                 ]
-            }),
-        ));
+            },
+        )));
 
         let accept_otel = self.session_telemetry.clone();
         let legacy_otel = self.session_telemetry.clone();
@@ -56,7 +54,7 @@ impl ChatWidget {
         let retry_preset = preset.clone();
         let retry_profile_selection = profile_selection.clone();
         let elevated_item = SelectionItem {
-            name: "Set up default sandbox (requires Administrator permissions)".to_string(),
+            name: crate::i18n::tr!("windows-sandbox-setup-default").to_string(),
             description: None,
             actions: vec![Box::new(move |tx| {
                 accept_otel.counter(
@@ -82,7 +80,7 @@ impl ChatWidget {
         };
         if allow_unelevated {
             items.push(SelectionItem {
-                name: "Use non-admin sandbox (higher risk if prompt injected)".to_string(),
+                name: crate::i18n::tr!("windows-sandbox-use-non-admin").to_string(),
                 description: None,
                 actions: vec![Box::new(move |tx| {
                     legacy_otel.counter(
@@ -101,7 +99,7 @@ impl ChatWidget {
             });
         }
         items.push(SelectionItem {
-            name: "Quit".to_string(),
+            name: crate::i18n::tr!("windows-sandbox-quit").to_string(),
             description: None,
             actions: vec![Box::new(move |tx| {
                 quit_otel.counter(
@@ -157,21 +155,15 @@ impl ChatWidget {
             !allow_unelevated || self.elevated_windows_sandbox_setup_required();
         let mut lines = Vec::new();
         lines.push(line![
-            "Couldn't set up your sandbox with Administrator permissions".bold()
+            crate::i18n::tr!("windows-sandbox-fallback-title").bold()
         ]);
         lines.push(line![""]);
         if allow_unelevated {
-            lines.push(line![
-                "You can still use Codex in a non-admin sandbox. It carries greater risk if prompt injected."
-            ]);
+            lines.push(line![crate::i18n::tr!("windows-sandbox-fallback-still")]);
         } else {
-            lines.push(line![
-                "Your organization requires the default sandbox before Codex can continue."
-            ]);
+            lines.push(line![crate::i18n::tr!("windows-sandbox-fallback-org")]);
         }
-        lines.push(line![
-            "Learn more <https://developers.openai.com/codex/windows>"
-        ]);
+        lines.push(line![crate::i18n::tr!("windows-sandbox-learn-more")]);
 
         let mut header = ColumnRenderable::new();
         header.push(crate::terminal_hyperlinks::HyperlinkText::new(lines));
@@ -184,7 +176,7 @@ impl ChatWidget {
         let legacy_profile_selection = profile_selection;
         let quit_otel = self.session_telemetry.clone();
         let elevated_item = SelectionItem {
-            name: "Try setting up admin sandbox again".to_string(),
+            name: crate::i18n::tr!("windows-sandbox-retry-admin").to_string(),
             description: None,
             actions: vec![Box::new({
                 let otel = self.session_telemetry.clone();
@@ -214,7 +206,7 @@ impl ChatWidget {
         };
         if allow_unelevated {
             items.push(SelectionItem {
-                name: "Use Codex with non-admin sandbox".to_string(),
+                name: crate::i18n::tr!("windows-sandbox-use-codex-non-admin").to_string(),
                 description: None,
                 actions: vec![Box::new({
                     let otel = self.session_telemetry.clone();
@@ -237,7 +229,7 @@ impl ChatWidget {
             });
         }
         items.push(SelectionItem {
-            name: "Quit".to_string(),
+            name: crate::i18n::tr!("windows-sandbox-quit").to_string(),
             description: None,
             actions: vec![Box::new(move |tx| {
                 quit_otel.counter(
@@ -304,15 +296,15 @@ impl ChatWidget {
         // accidentally queue messages that will run under an unexpected mode.
         self.bottom_pane.set_composer_input_enabled(
             /*enabled*/ false,
-            Some("Input disabled until setup completes.".to_string()),
+            Some(crate::i18n::tr!("windows-sandbox-input-disabled").to_string()),
         );
         self.bottom_pane.reset_status_timer(Duration::ZERO);
         self.bottom_pane.ensure_status_indicator();
         self.bottom_pane
             .set_interrupt_hint_visible(/*visible*/ false);
         self.set_status(
-            "Setting up sandbox...".to_string(),
-            Some("Hang tight, this may take a few minutes".to_string()),
+            crate::i18n::tr!("windows-sandbox-setting-up").to_string(),
+            Some(crate::i18n::tr!("windows-sandbox-hang-tight").to_string()),
             StatusDetailsCapitalization::CapitalizeFirst,
             STATUS_DETAILS_DEFAULT_MAX_LINES,
         );

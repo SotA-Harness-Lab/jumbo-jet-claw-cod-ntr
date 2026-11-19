@@ -25,8 +25,9 @@ struct ModelCommand {
 fn parse_model_command_args(args: &str) -> Result<ModelCommandArgs, String> {
     let parsed = slash_command_args::parse(args, &["--reasoning", "--speed"], &[], &[])?;
     if let Some(unexpected) = parsed.positionals.get(1) {
-        return Err(format!(
-            "Unexpected argument '{unexpected}'. Use '--reasoning=<level>' or '--speed=<tier>'."
+        return Err(crate::i18n::tr!(
+            "model-command-unexpected-argument",
+            unexpected = unexpected.to_string()
         ));
     }
     Ok(ModelCommandArgs {
@@ -70,9 +71,11 @@ fn resolve_reasoning_effort(
                 .collect::<Vec<_>>()
                 .join(", ")
         };
-        format!(
-            "Reasoning level '{effort}' is unavailable for {}. Available: {available}.",
-            model.model
+        crate::i18n::tr!(
+            "model-command-reasoning-unavailable",
+            effort = effort.to_string(),
+            model = model.model.to_string(),
+            available = available
         )
     })
 }
@@ -108,9 +111,11 @@ fn resolve_service_tier(
             )
             .collect::<Vec<_>>()
             .join(", ");
-        format!(
-            "Speed '{speed}' is unavailable for {}. Available: {available}.",
-            model.model
+        crate::i18n::tr!(
+            "model-command-speed-unavailable",
+            speed = speed.to_string(),
+            model = model.model.to_string(),
+            available = available
         )
     })
 }
@@ -118,13 +123,10 @@ fn resolve_service_tier(
 fn resolve_model_command(chat: &ChatWidget, args: &str) -> Result<ModelCommand, String> {
     let args = parse_model_command_args(args)?;
     if chat.thread_id().is_none() {
-        return Err("Session is still starting; try /model again in a moment.".into());
+        return Err(crate::i18n::tr!("model-command-session-starting").into());
     }
     if chat.restrict_model_picker_to_luna_reserve() {
-        return Err(
-            "Model arguments are unavailable while using Reserve. Use /model to adjust effort."
-                .into(),
-        );
+        return Err(crate::i18n::tr!("model-command-reserve-args-unavailable").into());
     }
     if let Some(message) = chat.model_picker_unavailable() {
         return Err(message);
@@ -138,8 +140,9 @@ fn resolve_model_command(chat: &ChatWidget, args: &str) -> Result<ModelCommand, 
             model.model == model_name && (args.model.is_none() || model.show_in_picker)
         })
     else {
-        return Err(format!(
-            "Model '{model_name}' is unavailable. Use /model to see available models."
+        return Err(crate::i18n::tr!(
+            "model-command-model-unavailable",
+            model_name = model_name
         ));
     };
     Ok(ModelCommand {

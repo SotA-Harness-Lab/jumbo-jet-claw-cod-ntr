@@ -62,16 +62,34 @@ fn bindings(props: &FooterProps) -> [(&'static str, Vec<Entry>); 3] {
         key_hint::ctrl(K::Char('v'))
     };
     let compose = vec![
-        Entry::key(key_hint::plain(K::Char('/')), "Commands"),
-        Entry::key(key_hint::plain(K::Char('@')), "Mention files"),
-        Entry::key(key_hint::plain(K::Char('!')), "Shell command"),
-        Entry::hint(hints.insert_newline, "New line"),
-        Entry::key(paste, "Paste image"),
-        Entry::hint(hints.external_editor, "External editor"),
-        Entry::hint(hints.history_search, "Search history"),
+        Entry::key(
+            key_hint::plain(K::Char('/')),
+            crate::i18n::tr!("shortcut-overlay-commands"),
+        ),
+        Entry::key(
+            key_hint::plain(K::Char('@')),
+            crate::i18n::tr!("shortcut-overlay-mention-files"),
+        ),
+        Entry::key(
+            key_hint::plain(K::Char('!')),
+            crate::i18n::tr!("shortcut-overlay-shell-command"),
+        ),
+        Entry::hint(
+            hints.insert_newline,
+            crate::i18n::tr!("shortcut-overlay-new-line"),
+        ),
+        Entry::key(paste, crate::i18n::tr!("shortcut-overlay-paste-image")),
+        Entry::hint(
+            hints.external_editor,
+            crate::i18n::tr!("shortcut-overlay-external-editor"),
+        ),
+        Entry::hint(
+            hints.history_search,
+            crate::i18n::tr!("shortcut-overlay-search-history"),
+        ),
         Entry {
             keys: [hints.edit_previous, None],
-            action: "Edit last message",
+            action: crate::i18n::tr!("shortcut-overlay-edit-last-message"),
             repeat_label: !props.esc_backtrack_hint,
         },
     ];
@@ -80,52 +98,73 @@ fn bindings(props: &FooterProps) -> [(&'static str, Vec<Entry>); 3] {
         Entry::hint(
             hints.queue,
             if props.is_task_running || props.queue_submissions {
-                "Queue message"
+                crate::i18n::tr!("shortcut-overlay-queue-message")
             } else {
-                "Send message"
+                crate::i18n::tr!("shortcut-overlay-send-message")
             },
         ),
         Entry::hint(
             props
                 .collaboration_modes_enabled
                 .then_some(key_hint::shift(K::Tab).into()),
-            "Change mode",
+            crate::i18n::tr!("shortcut-overlay-change-mode"),
         ),
-        Entry::hint(hints.reasoning_down, "Less reasoning"),
-        Entry::hint(hints.reasoning_up, "More reasoning"),
-        Entry::hint(hints.toggle_voice, "Voice"),
-        Entry::hint(hints.agents, "Agents (empty prompt)"),
+        Entry::hint(
+            hints.reasoning_down,
+            crate::i18n::tr!("shortcut-overlay-less-reasoning"),
+        ),
+        Entry::hint(
+            hints.reasoning_up,
+            crate::i18n::tr!("shortcut-overlay-more-reasoning"),
+        ),
+        Entry::hint(
+            hints.toggle_voice,
+            crate::i18n::tr!("shortcut-overlay-voice"),
+        ),
+        Entry::hint(hints.agents, crate::i18n::tr!("shortcut-overlay-agents")),
         Entry::pair(
-            "Subagents (empty prompt)",
+            crate::i18n::tr!("shortcut-overlay-subagents"),
             [previous_agent_shortcut(), next_agent_shortcut()],
         ),
-        Entry::hint(hints.focus_activity, "Inspect activity"),
+        Entry::hint(
+            hints.focus_activity,
+            crate::i18n::tr!("shortcut-overlay-inspect-activity"),
+        ),
         Entry::key(
             key_hint::ctrl(K::Char('c')),
             if props.is_task_running {
-                "Interrupt"
+                crate::i18n::tr!("shortcut-overlay-interrupt")
             } else {
-                "Quit"
+                crate::i18n::tr!("shortcut-overlay-quit")
             },
         ),
     ];
 
     let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
     let transcript = vec![
-        Entry::hint(hints.show_transcript, "Open transcript"),
-        Entry::hint(hints.find_transcript, "Find text"),
+        Entry::hint(
+            hints.show_transcript,
+            crate::i18n::tr!("shortcut-overlay-open-transcript"),
+        ),
+        Entry::hint(
+            hints.find_transcript,
+            crate::i18n::tr!("shortcut-overlay-find-text"),
+        ),
         Entry::pair(
-            "Scroll",
+            crate::i18n::tr!("shortcut-overlay-scroll"),
             [key_hint::plain(K::PageUp), key_hint::plain(K::PageDown)],
         ),
-        Entry::key(key_hint::ctrl(K::Char(' ')), "Start selection"),
+        Entry::key(
+            key_hint::ctrl(K::Char(' ')),
+            crate::i18n::tr!("shortcut-overlay-start-selection"),
+        ),
         Entry::pair(
-            "Top / latest",
+            crate::i18n::tr!("shortcut-overlay-top-latest"),
             [key_hint::ctrl(K::Home), key_hint::ctrl(K::End)],
         ),
         // Keep both jump alternatives: the terminal may be on another OS over SSH.
         Entry::pair(
-            "Top / latest",
+            crate::i18n::tr!("shortcut-overlay-top-latest"),
             [
                 KeyBinding::new(K::Char(','), alt_shift),
                 KeyBinding::new(K::Char('.'), alt_shift),
@@ -134,9 +173,12 @@ fn bindings(props: &FooterProps) -> [(&'static str, Vec<Entry>); 3] {
     ];
 
     [
-        ("Compose", compose),
-        ("Session", session),
-        ("Transcript (open first)", transcript),
+        (crate::i18n::tr!("shortcut-overlay-group-compose"), compose),
+        (crate::i18n::tr!("shortcut-overlay-group-session"), session),
+        (
+            crate::i18n::tr!("shortcut-overlay-group-transcript"),
+            transcript,
+        ),
     ]
 }
 
@@ -165,7 +207,10 @@ pub(super) fn lines(props: &FooterProps, width: u16) -> Vec<Line<'static>> {
             .collect();
         Group { title, entries }
     });
-    let mut result = vec![Line::from("Keyboard shortcuts").bold(), Line::default()];
+    let mut result = vec![
+        Line::from(crate::i18n::tr!("shortcut-overlay-keyboard-shortcuts")).bold(),
+        Line::default(),
+    ];
     result.extend(crate::shortcut_help::group_lines(groups, width));
     let width = usize::from(width.max(/*other*/ 1));
     result.push(Line::default());
@@ -180,10 +225,12 @@ pub(super) fn close_hint(props: &FooterProps, width: u16) -> Line<'static> {
         line.push_span(" / ".set_style(secondary_text_style()));
     }
     line.extend(key_hint::plain(KeyCode::Esc).spans());
-    line.push_span(" close".set_style(secondary_text_style()));
+    line.push_span(crate::i18n::tr!("shortcut-overlay-close").set_style(secondary_text_style()));
     if line.width() > usize::from(width) {
         line = Line::from(key_hint::plain(KeyCode::Esc).spans());
-        line.push_span(" close".set_style(secondary_text_style()));
+        line.push_span(
+            crate::i18n::tr!("shortcut-overlay-close").set_style(secondary_text_style()),
+        );
     }
     line
 }
@@ -192,7 +239,7 @@ fn footer_lines(width: usize) -> Vec<Line<'static>> {
     word_wrap_lines(
         [Line::from(vec![
             "/keymap".fg(accent_color()),
-            " customize".set_style(secondary_text_style()),
+            crate::i18n::tr!("shortcut-overlay-customize").set_style(secondary_text_style()),
         ])],
         width,
     )
@@ -207,7 +254,7 @@ pub(super) fn render(props: &FooterProps, area: Rect, buf: &mut Buffer) {
         let body_height = height.saturating_sub(footer.len());
         lines.truncate(body_height.saturating_sub(/*rhs*/ 1));
         if body_height > 0 {
-            lines.push(Line::from("… resize to see all").dim());
+            lines.push(Line::from(crate::i18n::tr!("shortcut-overlay-resize")).dim());
         }
         lines.extend(footer);
     }

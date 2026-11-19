@@ -49,17 +49,17 @@ impl AgentsOverviewView {
         if indices.is_empty() {
             line(
                 if state.connection_notice.is_some() {
-                    "Reconnecting…"
+                    crate::i18n::tr!("rows-reconnecting")
                 } else if state.history.is_some() {
-                    "No matching tasks"
+                    crate::i18n::tr!("rows-no-matching-tasks")
                 } else if state.loading && self.rows.is_empty() {
-                    "Loading tasks…"
+                    crate::i18n::tr!("rows-loading-tasks")
                 } else if state.refresh_failed {
-                    "Could not load tasks"
+                    crate::i18n::tr!("rows-could-not-load-tasks")
                 } else if self.rows.is_empty() {
-                    "No tasks yet"
+                    crate::i18n::tr!("rows-no-tasks-yet")
                 } else {
-                    "No matching tasks"
+                    crate::i18n::tr!("rows-no-matching-tasks")
                 }
                 .dim(),
                 area,
@@ -80,9 +80,9 @@ impl AgentsOverviewView {
         let viewport = row(area, padding, area.height - padding * 2);
         if padding > 0 {
             let (title, status, updated) = columns(row(area, /*offset*/ 0, /*height*/ 1));
-            line("Tasks".dim(), title, buf);
-            line("Status".dim(), status, buf);
-            Line::from("Updated".dim())
+            line(crate::i18n::tr!("rows-column-tasks").dim(), title, buf);
+            line(crate::i18n::tr!("rows-column-status").dim(), status, buf);
+            Line::from(crate::i18n::tr!("rows-column-updated").dim())
                 .right_aligned()
                 .render(updated, buf);
         }
@@ -125,18 +125,18 @@ impl AgentsOverviewView {
                     );
                     let label = if let Some(search) = &state.history {
                         if search.loading {
-                            "Searching history…"
+                            crate::i18n::tr!("rows-searching-history")
                         } else if search.failed {
-                            "Show more (retry)"
+                            crate::i18n::tr!("rows-show-more-retry")
                         } else {
-                            "Show more matches"
+                            crate::i18n::tr!("rows-show-more-matches")
                         }
                     } else if state.loading {
-                        "Loading more…"
+                        crate::i18n::tr!("rows-loading-more")
                     } else if state.refresh_failed {
-                        "Show more (retry)"
+                        crate::i18n::tr!("rows-show-more-retry")
                     } else {
-                        "Show more"
+                        crate::i18n::tr!("rows-show-more")
                     };
                     let marker = if selected { "›" } else { " " };
                     line(
@@ -152,7 +152,7 @@ impl AgentsOverviewView {
             if matches!(entry, CenterRow::Group(_)) {
                 let group = match state.grouping {
                     AgentsOverviewGrouping::Status => task.group.label().to_owned(),
-                    _ if self.is_pinned(index) => "Pinned".to_owned(),
+                    _ if self.is_pinned(index) => crate::i18n::tr!("rows-pinned").to_owned(),
                     AgentsOverviewGrouping::Project => format_directory_display(
                         &self.project_groups[index].heading,
                         /*max_width*/ None,
@@ -176,7 +176,7 @@ impl AgentsOverviewView {
                 let count = if count == total {
                     count.to_string()
                 } else {
-                    format!("{count} of {total}")
+                    crate::i18n::tr!("rows-count-of-total", count = count, total = total)
                 };
                 let group = if matches!(
                     state.grouping,
@@ -241,7 +241,11 @@ impl AgentsOverviewView {
                     /*height*/ 1,
                 );
                 title.width -= 8;
-                line(Line::from("  voice").style(style), badge, buf);
+                line(
+                    Line::from(crate::i18n::tr!("rows-voice-badge")).style(style),
+                    badge,
+                    buf,
+                );
             }
             let title_style = if index == self.selected {
                 style

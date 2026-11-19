@@ -57,14 +57,14 @@ impl ProviderErrorNotice {
         if self.can_continue {
             shortcuts.extend([
                 crate::key_hint::plain(KeyCode::Char('c')).into(),
-                " continue in new chat · ".into(),
+                crate::i18n::tr!("provider-error-continue-in-new-chat").into(),
             ]);
         }
         shortcuts.extend([
             crate::key_hint::plain(KeyCode::Char('n')).into(),
-            " start fresh · ".into(),
+            crate::i18n::tr!("provider-error-start-fresh").into(),
             crate::key_hint::plain(KeyCode::Esc).into(),
-            " other chats".into(),
+            crate::i18n::tr!("provider-error-other-chats").into(),
         ]);
         let footer = Line::from(shortcuts).style(crate::style::secondary_text_style());
         notice.push(
@@ -97,15 +97,15 @@ impl ChatWidget {
             } => {
                 let provider = provider_name(model_provider);
                 let current = provider_name(current_model_provider);
-                format!(
-                    "This chat uses {provider}, but Codex now uses {current}, so this chat is read-only."
+                crate::i18n::tr!(
+                    "provider-error-chat-read-only",
+                    provider = provider,
+                    current = current
                 )
             }
             ModelProviderError::ModelProviderNotConfigured { model_provider } => {
                 let provider = provider_name(model_provider);
-                format!(
-                    "This chat uses model provider “{provider}”, which is no longer configured. Restore this provider’s configuration to continue."
-                )
+                crate::i18n::tr!("provider-error-not-configured", provider = provider)
             }
             ModelProviderError::ModelProviderPolicyConflict {
                 model_provider,
@@ -113,8 +113,10 @@ impl ChatWidget {
             } if model_provider != required_model_provider => {
                 let provider = provider_name(model_provider);
                 let required = provider_name(required_model_provider);
-                format!(
-                    "This chat uses model provider “{provider}”, but your organization requires “{required}”. Contact your administrator or start a new chat using the required provider."
+                crate::i18n::tr!(
+                    "provider-error-policy-conflict",
+                    provider = provider,
+                    required = required
                 )
             }
             ModelProviderError::ModelProviderPolicyConflict { .. } => error.to_string(),

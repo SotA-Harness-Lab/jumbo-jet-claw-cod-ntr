@@ -88,9 +88,6 @@ use crate::text_formatting::truncate_text;
 /// Maximum display length for item names before truncation.
 const ITEM_NAME_TRUNCATE_LEN: usize = 21;
 
-/// Placeholder text shown in the search input when empty.
-const SEARCH_PLACEHOLDER: &str = "Type to search";
-
 const SECTION_BREAK_ROW: &str = "  ───────────────────────";
 
 /// Direction for reordering items in the list.
@@ -638,7 +635,7 @@ impl Renderable for MultiSelectPicker {
         self.header.render(header_area, buf);
         if search_area.height > 0 {
             let query_span = if self.search_query.is_empty() {
-                SEARCH_PLACEHOLDER.dim()
+                crate::i18n::tr!("multi-select-type-to-search").dim()
             } else {
                 self.search_query.clone().into()
             };
@@ -653,7 +650,7 @@ impl Renderable for MultiSelectPicker {
                 &rows.rows,
                 &rows.state,
                 usize::from(body.height),
-                "no matches",
+                crate::i18n::tr!("multi-select-no-matches"),
                 ColumnWidthConfig::default(),
             );
             picker_style::render_scroll_indicators(list_area, buf, rendered);
@@ -815,7 +812,10 @@ impl MultiSelectPickerBuilder {
         }
 
         let instructions = if self.instructions.is_empty() {
-            let mut spans = vec![key_hint::plain(KeyCode::Char(' ')).into(), " toggle".dim()];
+            let mut spans = vec![
+                key_hint::plain(KeyCode::Char(' ')).into(),
+                crate::i18n::tr!("multi-select-toggle").dim(),
+            ];
             if self.ordering_enabled
                 && let (Some(left), Some(right)) = (
                     self.keymap.primary_hint(ListAction::MoveLeft),
@@ -828,13 +828,16 @@ impl MultiSelectPickerBuilder {
                     left.display_label(),
                     right.display_label()
                 )));
-                spans.push(" reorder".dim());
+                spans.push(crate::i18n::tr!("multi-select-reorder").dim());
             }
-            for (action, label) in [(ListAction::Accept, "save"), (ListAction::Cancel, "cancel")] {
+            for (action, label) in [
+                (ListAction::Accept, crate::i18n::tr!("multi-select-save")),
+                (ListAction::Cancel, crate::i18n::tr!("multi-select-cancel")),
+            ] {
                 if let Some(hint) = self.keymap.primary_hint(action) {
                     spans.push(" · ".dim());
                     spans.extend(hint.spans());
-                    spans.push(format!(" {label}").dim());
+                    spans.push(label.dim());
                 }
             }
             spans

@@ -39,16 +39,18 @@ impl MentionType {
             Self::File => base_style.cyan(),
             Self::Directory => base_style,
         };
-        format!("{:<width$}", self.label(), width = TAG_WIDTH).set_style(style)
+        let label = self.label();
+        let padding = TAG_WIDTH.saturating_sub(unicode_width::UnicodeWidthStr::width(label));
+        format!("{label}{}", " ".repeat(padding)).set_style(style)
     }
 
     fn label(self) -> &'static str {
         match self {
-            Self::Plugin => "Plugin",
-            Self::Skill => "Skill",
-            Self::Task => "Task",
-            Self::File => "File",
-            Self::Directory => "Dir",
+            Self::Plugin => crate::i18n::tr!("mention-candidate-plugin"),
+            Self::Skill => crate::i18n::tr!("mention-candidate-skill"),
+            Self::Task => crate::i18n::tr!("mention-candidate-task"),
+            Self::File => crate::i18n::tr!("mention-candidate-file"),
+            Self::Directory => crate::i18n::tr!("mention-candidate-dir"),
         }
     }
 }

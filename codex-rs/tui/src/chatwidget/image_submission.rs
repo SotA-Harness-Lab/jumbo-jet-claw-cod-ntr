@@ -42,7 +42,12 @@ impl ChatWidget {
                 prepare_images(images, remote_bytes)
             })
             .await
-            .unwrap_or_else(|error| Err(format!("Failed to prepare images: {error}")));
+            .unwrap_or_else(|error| {
+                Err(crate::i18n::tr!(
+                    "image-submission-failed-images",
+                    error = error.to_string()
+                ))
+            });
             if tx.send(prepared).is_ok() {
                 events.send(AppEvent::ImagesPrepared(id));
             }
@@ -65,11 +70,12 @@ impl ChatWidget {
         else {
             return;
         };
-        match pending
-            .result
-            .try_recv()
-            .unwrap_or_else(|error| Err(format!("Failed to prepare images: {error}")))
-        {
+        match pending.result.try_recv().unwrap_or_else(|error| {
+            Err(crate::i18n::tr!(
+                "image-submission-failed-images",
+                error = error.to_string()
+            ))
+        }) {
             Ok(images) => {
                 let (accepted, _) = self.submit_user_message_with_prepared_images(
                     pending.message,
@@ -145,7 +151,7 @@ fn prepare_images(
             };
             let prepared = (|| -> std::io::Result<()> {
                 let too_large =
-                    || std::io::Error::other("image attachments exceed the 32 MiB transport limit");
+                    || std::io::Error::other(crate::i18n::tr!("image-submission-too-large"));
                 if std::fs::metadata(&image.path)?.len() > (remaining_image_bytes / 4 * 3) as u64 {
                     return Err(too_large());
                 }
@@ -162,7 +168,11 @@ fn prepare_images(
                 Ok(())
             })();
             prepared.map_err(|error| {
-                format!("Failed to prepare image: {}: {error}", image.path.display())
+                crate::i18n::tr!(
+                    "image-submission-failed-image",
+                    path = image.path.display().to_string(),
+                    error = error.to_string()
+                )
             })?;
             let mut input = UserInput::from(input);
             if let UserInput::Image { detail, .. } = &mut input {

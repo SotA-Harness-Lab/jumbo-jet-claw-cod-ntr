@@ -51,16 +51,18 @@ impl ChatWidget {
         name: Option<String>,
     ) {
         let title = match mode {
-            ManagedWorktreeMode::New => "Where should the new conversation run?",
-            ManagedWorktreeMode::Fork => "Where should the forked conversation run?",
+            ManagedWorktreeMode::New => crate::i18n::tr!("worktree-picker-where-new"),
+            ManagedWorktreeMode::Fork => crate::i18n::tr!("worktree-picker-where-fork"),
         };
         let current_name = name.clone();
         self.bottom_pane.show_selection_view(SelectionViewParams {
             title: Some(title.into()),
             items: vec![
                 SelectionItem {
-                    name: "Use current Git worktree".to_string(),
-                    description: Some("Keep using the current working directory".to_string()),
+                    name: crate::i18n::tr!("worktree-picker-use-current").to_string(),
+                    description: Some(
+                        crate::i18n::tr!("worktree-picker-use-current-desc").to_string(),
+                    ),
                     actions: vec![Box::new(move |tx| match mode {
                         ManagedWorktreeMode::New => {
                             tx.send(AppEvent::NewSessionInCurrentWorktree {
@@ -77,10 +79,9 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: "Create new Git worktree".to_string(),
+                    name: crate::i18n::tr!("worktree-picker-create-new").to_string(),
                     description: Some(
-                        "Create a separate checkout of this repository in another directory"
-                            .to_string(),
+                        crate::i18n::tr!("worktree-picker-create-new-desc").to_string(),
                     ),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::StartManagedWorktree {
@@ -99,16 +100,18 @@ impl ChatWidget {
 
     pub(super) fn show_managed_worktree_picker(&mut self) {
         if !self.managed_worktree_available() {
-            self.add_error_message("Managed worktrees require a local Git repository.".to_string());
+            self.add_error_message(crate::i18n::tr!("worktree-picker-require-local").to_string());
             return;
         }
 
         self.bottom_pane.show_selection_view(SelectionViewParams {
-            title: Some("Worktrees".into()),
+            title: Some(crate::i18n::tr!("worktree-picker-title").into()),
             items: vec![
                 SelectionItem {
-                    name: "Continue current conversation".to_string(),
-                    description: Some("Preserve this conversation in the new checkout".to_string()),
+                    name: crate::i18n::tr!("worktree-picker-continue").to_string(),
+                    description: Some(
+                        crate::i18n::tr!("worktree-picker-continue-desc").to_string(),
+                    ),
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::StartManagedWorktree {
                             mode: ManagedWorktreeMode::Fork,
@@ -119,8 +122,10 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: "Start new conversation".to_string(),
-                    description: Some("Open a fresh conversation in the new checkout".to_string()),
+                    name: crate::i18n::tr!("worktree-picker-start-new").to_string(),
+                    description: Some(
+                        crate::i18n::tr!("worktree-picker-start-new-desc").to_string(),
+                    ),
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::StartManagedWorktree {
                             mode: ManagedWorktreeMode::New,
@@ -131,10 +136,8 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: "Browse worktrees".to_string(),
-                    description: Some(
-                        "Resume an owner thread or copy a working directory".to_string(),
-                    ),
+                    name: crate::i18n::tr!("worktree-picker-browse").to_string(),
+                    description: Some(crate::i18n::tr!("worktree-picker-browse-desc").to_string()),
                     actions: vec![Box::new(|tx| tx.send(AppEvent::BrowseManagedWorktrees))],
                     dismiss_on_select: true,
                     ..Default::default()
@@ -159,9 +162,9 @@ impl ChatWidget {
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(BROWSER_VIEW_ID),
             picker_surface: PickerSurface::Panel,
-            title: Some("Managed worktrees".into()),
+            title: Some(crate::i18n::tr!("worktree-picker-managed-title").into()),
             items: vec![SelectionItem {
-                name: "Loading worktrees…".to_string(),
+                name: crate::i18n::tr!("worktree-picker-loading").to_string(),
                 is_disabled: true,
                 ..Default::default()
             }],
@@ -196,17 +199,20 @@ impl ChatWidget {
             Ok(entries) => entries,
             Err(error) => {
                 self.worktree_popup_request_id = None;
-                self.add_error_message(format!("Cannot list managed worktrees: {error}"));
+                self.add_error_message(crate::i18n::tr!(
+                    "worktree-picker-list-error",
+                    error = error
+                ));
                 return;
             }
         };
         self.bottom_pane.show_selection_view(SelectionViewParams {
-            title: Some("Managed worktrees".to_string()),
+            title: Some(crate::i18n::tr!("worktree-picker-managed-title").to_string()),
             subtitle: Some(
                 if entries.is_empty() {
-                    "No worktrees in this repository's configured pool"
+                    crate::i18n::tr!("worktree-picker-empty")
                 } else {
-                    "Select a worktree to resume, copy its path, or delete it"
+                    crate::i18n::tr!("worktree-picker-select")
                 }
                 .to_string(),
             ),
@@ -218,31 +224,45 @@ impl ChatWidget {
                     let (name, description) = match &entry.owner {
                         Owner::None | Owner::Unavailable(_) => {
                             let status = if matches!(entry.owner, Owner::None) {
-                                "No attached thread"
+                                crate::i18n::tr!("worktree-picker-no-thread")
                             } else {
-                                "Owner thread unavailable"
+                                crate::i18n::tr!("worktree-picker-owner-unavailable")
                             };
                             (
                                 entry.cwd.display().to_string(),
-                                format!("{status} · {}", entry.cwd.display()),
+                                crate::i18n::tr!(
+                                    "worktree-picker-status-line",
+                                    status = status,
+                                    cwd = entry.cwd.display().to_string()
+                                ),
                             )
                         }
                         Owner::Archived(thread) | Owner::Resumable(thread) => {
-                            let status = match &entry.owner {
-                                Owner::Archived(_) => "Archived · ",
-                                Owner::Resumable(_) => "",
+                            let archived = match &entry.owner {
+                                Owner::Archived(_) => true,
+                                Owner::Resumable(_) => false,
                                 Owner::None | Owner::Unavailable(_) => unreachable!(),
                             };
+                            let ago = worktree_updated_ago(
+                                thread.updated_at,
+                                chrono::Utc::now().timestamp(),
+                            );
+                            let cwd = entry.cwd.display().to_string();
                             (
                                 thread.title.clone(),
-                                format!(
-                                    "{status}updated {} · {}",
-                                    worktree_updated_ago(
-                                        thread.updated_at,
-                                        chrono::Utc::now().timestamp()
-                                    ),
-                                    entry.cwd.display()
-                                ),
+                                if archived {
+                                    crate::i18n::tr!(
+                                        "worktree-picker-archived-updated",
+                                        ago = ago,
+                                        cwd = cwd
+                                    )
+                                } else {
+                                    crate::i18n::tr!(
+                                        "worktree-picker-updated",
+                                        ago = ago,
+                                        cwd = cwd
+                                    )
+                                },
                             )
                         }
                     };
@@ -277,7 +297,7 @@ impl ChatWidget {
             Action::Resume(owner) => AppEvent::ResumeSessionByIdOrName(owner.to_string()),
             Action::Copy(cwd) => AppEvent::CopySelection {
                 text: cwd.to_str()?.into(),
-                label: "Worktree working directory".to_string(),
+                label: crate::i18n::tr!("worktree-picker-copy-label").to_string(),
                 format: crate::clipboard_copy::CopyFormat::PlainText,
             },
             Action::Remove(root) => AppEvent::RemoveManagedWorktree {
@@ -296,7 +316,7 @@ impl ChatWidget {
             let owner = thread.id;
             let request = request.clone();
             items.push(SelectionItem {
-                name: "Resume owner thread".to_string(),
+                name: crate::i18n::tr!("worktree-picker-resume-owner").to_string(),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::ManagedWorktreeAction {
                         request: request.clone(),
@@ -310,13 +330,13 @@ impl ChatWidget {
         let cwd = entry.cwd.clone();
         let copy_request = request.clone();
         items.push(SelectionItem {
-            name: "Copy working directory".to_string(),
+            name: crate::i18n::tr!("worktree-picker-copy-cwd").to_string(),
             is_disabled: entry.cwd.to_str().is_none(),
             disabled_reason: entry
                 .cwd
                 .to_str()
                 .is_none()
-                .then(|| "Path is not valid UTF-8".to_string()),
+                .then(|| crate::i18n::tr!("worktree-picker-not-utf8").to_string()),
             actions: vec![Box::new(move |tx| {
                 tx.send(AppEvent::ManagedWorktreeAction {
                     request: copy_request.clone(),
@@ -330,10 +350,10 @@ impl ChatWidget {
         let root = entry.root.clone();
         let delete_request = request;
         items.push(SelectionItem {
-            name: "Delete worktree".to_string(),
+            name: crate::i18n::tr!("worktree-picker-delete").to_string(),
             is_disabled: !can_delete,
             disabled_reason: (!can_delete)
-                .then(|| "Switch to another checkout before deleting this one".to_string()),
+                .then(|| crate::i18n::tr!("worktree-picker-switch-first").to_string()),
             actions: vec![Box::new(move |tx| {
                 tx.send(AppEvent::ConfirmManagedWorktreeRemoval {
                     request: delete_request.clone(),
@@ -345,9 +365,11 @@ impl ChatWidget {
         });
         let title = match &entry.owner {
             Owner::Archived(thread) | Owner::Resumable(thread) => {
-                format!("Worktree: {}", thread.title)
+                crate::i18n::tr!("worktree-picker-titled", title = thread.title.clone())
             }
-            Owner::None | Owner::Unavailable(_) => "Worktree".to_string(),
+            Owner::None | Owner::Unavailable(_) => {
+                crate::i18n::tr!("worktree-picker-single").to_string()
+            }
         };
         self.bottom_pane.show_selection_view(SelectionViewParams {
             title: Some(title),
@@ -362,20 +384,18 @@ impl ChatWidget {
             return;
         }
         self.bottom_pane.show_selection_view(SelectionViewParams {
-            title: Some("Delete this worktree?".to_string()),
+            title: Some(crate::i18n::tr!("worktree-picker-delete-title").to_string()),
             subtitle: Some(root.display().to_string()),
             items: vec![
                 SelectionItem {
-                    name: "Cancel".to_string(),
+                    name: crate::i18n::tr!("worktree-picker-cancel").to_string(),
                     actions: vec![],
                     dismiss_on_select: true,
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: "Delete worktree".to_string(),
-                    description: Some(
-                        "Keeps thread history; may disrupt other sessions".to_string(),
-                    ),
+                    name: crate::i18n::tr!("worktree-picker-delete").to_string(),
+                    description: Some(crate::i18n::tr!("worktree-picker-delete-desc").to_string()),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::ManagedWorktreeAction {
                             request: request.clone(),
@@ -394,12 +414,12 @@ impl ChatWidget {
 fn worktree_updated_ago(updated_at: i64, now: i64) -> String {
     let seconds = now.saturating_sub(updated_at).max(0);
     if seconds < 60 {
-        "just now".to_string()
+        crate::i18n::tr!("worktree-picker-just-now").to_string()
     } else if seconds < 3_600 {
-        format!("{}m ago", seconds / 60)
+        crate::i18n::tr!("worktree-picker-minutes-ago", minutes = seconds / 60)
     } else if seconds < 86_400 {
-        format!("{}h ago", seconds / 3_600)
+        crate::i18n::tr!("worktree-picker-hours-ago", hours = seconds / 3_600)
     } else {
-        format!("{}d ago", seconds / 86_400)
+        crate::i18n::tr!("worktree-picker-days-ago", days = seconds / 86_400)
     }
 }

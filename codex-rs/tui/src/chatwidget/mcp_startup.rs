@@ -16,8 +16,13 @@ use codex_app_server_protocol::McpServerStatusUpdatedNotification;
 
 use super::ChatWidget;
 
-const MCP_STARTUP_SINGLE_HEADER_PREFIX: &str = "Booting MCP server:";
-const MCP_STARTUP_MULTI_HEADER_PREFIX: &str = "Starting MCP servers";
+fn mcp_startup_single_header_prefix() -> &'static str {
+    crate::i18n::tr!("mcp-startup-single-header-prefix")
+}
+
+fn mcp_startup_multi_header_prefix() -> &'static str {
+    crate::i18n::tr!("mcp-startup-multi-header-prefix")
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum McpStartupStatus {
@@ -104,11 +109,12 @@ impl ChatWidget {
         let first = to_show.first()?;
         Some(if total > 1 {
             format!(
-                "{MCP_STARTUP_MULTI_HEADER_PREFIX} ({completed}/{total}): {}",
+                "{} ({completed}/{total}): {}",
+                mcp_startup_multi_header_prefix(),
                 to_show.join(", ")
             )
         } else {
-            format!("{MCP_STARTUP_SINGLE_HEADER_PREFIX} {first}")
+            format!("{} {first}", mcp_startup_single_header_prefix())
         })
     }
 
@@ -147,9 +153,9 @@ impl ChatWidget {
         if !cancelled.is_empty() {
             cancelled.sort();
             self.add_mcp_startup_warning(
-                vec![format!(
-                    "MCP startup interrupted. The following servers were not initialized: {}",
-                    cancelled.join(", ")
+                vec![crate::i18n::tr!(
+                    "mcp-startup-interrupted",
+                    servers = cancelled.join(", ")
                 )],
                 cancelled,
                 /*failure_reason*/ None,
@@ -158,9 +164,9 @@ impl ChatWidget {
         if !failed.is_empty() {
             failed.sort();
             self.add_mcp_startup_warning(
-                vec![format!(
-                    "MCP startup incomplete (failed: {})",
-                    failed.join(", ")
+                vec![crate::i18n::tr!(
+                    "mcp-startup-incomplete",
+                    servers = failed.join(", ")
                 )],
                 failed,
                 /*failure_reason*/ None,
@@ -196,12 +202,12 @@ impl ChatWidget {
         self.status_state
             .current_status
             .header
-            .starts_with(MCP_STARTUP_SINGLE_HEADER_PREFIX)
+            .starts_with(mcp_startup_single_header_prefix())
             || self
                 .status_state
                 .current_status
                 .header
-                .starts_with(MCP_STARTUP_MULTI_HEADER_PREFIX)
+                .starts_with(mcp_startup_multi_header_prefix())
     }
 
     fn add_mcp_startup_warning(
@@ -240,10 +246,17 @@ impl ChatWidget {
                     failure_reason: notification.failure_reason,
                     error: match notification.error {
                         Some(error) if notification.environment_id.is_some() => {
-                            format!("{server}: {error}")
+                            crate::i18n::tr!(
+                                "mcp-startup-server-error",
+                                server = server,
+                                error = error
+                            )
                         }
                         Some(error) => error,
-                        None => format!("MCP client for `{server}` failed to start"),
+                        None => crate::i18n::tr!(
+                            "mcp-startup-client-failed",
+                            server = server
+                        ),
                     },
                 }
             }

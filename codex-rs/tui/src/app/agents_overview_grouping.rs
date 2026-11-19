@@ -44,7 +44,7 @@ pub(super) fn model_name(thread: &Thread) -> &str {
         .model
         .as_deref()
         .filter(|model| !model.is_empty())
-        .unwrap_or("Unknown")
+        .unwrap_or(crate::i18n::tr!("agents-overview-grouping-unknown"))
 }
 
 impl AgentsOverviewView {
@@ -155,8 +155,9 @@ impl App {
                 .apply()
                 .await
         {
-            self.add_agents_overview_error(format!(
-                "Failed to save Command Center grouping: {err}"
+            self.add_agents_overview_error(crate::i18n::tr!(
+                "agents-overview-grouping-save-failed",
+                err = err.to_string()
             ));
         }
     }

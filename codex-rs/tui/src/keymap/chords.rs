@@ -388,10 +388,10 @@ impl RuntimeChordKeymap {
                 }
                 if let Some(completion) = raw.strip_prefix("leader ") {
                     let invalid_binding = || {
-                        format!(
-                            "Invalid `{}` = `{raw}`. Use `leader` followed by one key, such as \
-`leader c`.",
-                            action.config_path()
+                        crate::i18n::tr!(
+                            "chords-invalid-leader-binding",
+                            path = action.config_path(),
+                            raw = raw
                         )
                     };
                     leader_bindings.push((
@@ -403,10 +403,10 @@ impl RuntimeChordKeymap {
                     ));
                 } else if let Some((prefix, completion)) = raw.split_once(' ') {
                     let invalid_binding = || {
-                        format!(
-                            "Invalid `{}` = `{raw}`. Use a single key such as `ctrl-a` \
-or a two-stroke chord such as `ctrl-x ctrl-t`.",
-                            action.config_path()
+                        crate::i18n::tr!(
+                            "chords-invalid-chord-binding",
+                            path = action.config_path(),
+                            raw = raw
                         )
                     };
                     keymap_chords.bindings.push(RuntimeChordBinding {
@@ -469,9 +469,9 @@ or a two-stroke chord such as `ctrl-x ctrl-t`.",
             .len()
             .saturating_mul(keymap_chords.leader.len());
         if explicit_count > MAX_LEADER_CHORD_BINDINGS {
-            return Err(format!(
-                "Too many leader shortcut combinations (maximum {MAX_LEADER_CHORD_BINDINGS}). \
-Reduce `tui.keymap.global.leader` alternatives or `leader ...` bindings."
+            return Err(crate::i18n::tr!(
+                "chords-too-many-leader-combinations",
+                max = MAX_LEADER_CHORD_BINDINGS
             ));
         }
         for (action, completion, spec) in leader_bindings {
@@ -631,7 +631,7 @@ impl PendingChord {
         Some(ShortcutHud::new(
             self.prefix.display_label(),
             rows,
-            vec!["Esc cancel".dim().into()],
+            vec![crate::i18n::tr!("chords-esc-cancel").dim().into()],
         ))
     }
 
@@ -784,16 +784,16 @@ pub(super) fn install_dispatch_bindings(keymap: &mut RuntimeKeymap) -> Result<()
         .collect::<std::collections::HashSet<_>>();
     for action in actions {
         let binding = dispatch_binding(action).ok_or_else(|| {
-            format!(
-                "Cannot dispatch `{}`: the keymap action inventory exceeds {} internal tokens.",
-                action.config_path(),
-                LAST_DISPATCH_FUNCTION_KEY - FIRST_DISPATCH_FUNCTION_KEY + 1,
+            crate::i18n::tr!(
+                "chords-cannot-dispatch-inventory",
+                path = action.config_path(),
+                max = LAST_DISPATCH_FUNCTION_KEY - FIRST_DISPATCH_FUNCTION_KEY + 1,
             )
         })?;
         if !push_binding_for_action(keymap, action, binding) {
-            return Err(format!(
-                "Cannot dispatch unknown keymap action `{}`.",
-                action.config_path()
+            return Err(crate::i18n::tr!(
+                "chords-cannot-dispatch-unknown",
+                path = action.config_path()
             ));
         }
     }
@@ -882,10 +882,10 @@ pub(super) fn validate_chord_conflicts(keymap: &RuntimeKeymap) -> Result<(), Str
                         && leader.overlaps(binding.action)
                 }))
         {
-            return Err(format!(
-                "Ambiguous `{}` = `{}`: repeating the leader is reserved for cancellation.",
-                binding.action.config_path(),
-                binding.spec,
+            return Err(crate::i18n::tr!(
+                "chords-leader-repeat-reserved",
+                path = binding.action.config_path(),
+                spec = binding.spec.as_str(),
             ));
         }
 
@@ -897,12 +897,11 @@ pub(super) fn validate_chord_conflicts(keymap: &RuntimeKeymap) -> Result<(), Str
                 })
             })
         {
-            return Err(format!(
-                "Ambiguous `{}` = `{}`: its prefix shadows `{}`. \
-Unbind or remap the existing shortcut before using it as a chord prefix.",
-                binding.action.config_path(),
-                binding.spec,
-                conflict.id.config_path(),
+            return Err(crate::i18n::tr!(
+                "chords-prefix-shadows",
+                path = binding.action.config_path(),
+                spec = binding.spec.as_str(),
+                other = conflict.id.config_path(),
             ));
         }
 
@@ -924,12 +923,11 @@ Unbind or remap the existing shortcut before using it as a chord prefix.",
                     )
                 )
             {
-                return Err(format!(
-                    "Ambiguous `{}` = `{}`: the same chord is already assigned to `{}`. \
-Choose a unique chord and retry.",
-                    binding.action.config_path(),
-                    binding.spec,
-                    previous.action.config_path(),
+                return Err(crate::i18n::tr!(
+                    "chords-chord-already-assigned",
+                    path = binding.action.config_path(),
+                    spec = binding.spec.as_str(),
+                    other = previous.action.config_path(),
                 ));
             }
         }
@@ -946,10 +944,10 @@ fn validate_binding_shape(binding: &RuntimeChordBinding) -> Result<(), String> {
         && crate::key_hint::is_altgr(prefix_modifiers)
         && !binding.action.context.allows_plain_chord_prefix()
     {
-        return Err(format!(
-            "Invalid `{path}` = `{}`: a ctrl-alt character prefix may be AltGr text input on \
-Windows. Choose a different chord and retry.",
-            binding.spec
+        return Err(crate::i18n::tr!(
+            "chords-altgr-prefix",
+            path = path.as_str(),
+            spec = binding.spec.as_str()
         ));
     }
 
@@ -958,10 +956,10 @@ Windows. Choose a different chord and retry.",
         && !binding.action.context.allows_plain_chord_prefix()
         && binding.action.context != KeymapContext::Agents
     {
-        return Err(format!(
-            "Invalid `{path}` = `{}`: a chord prefix outside Vim or the command center must use ctrl, \
-alt, super, or a non-character key so ordinary text input is not intercepted.",
-            binding.spec
+        return Err(crate::i18n::tr!(
+            "chords-plain-prefix",
+            path = path.as_str(),
+            spec = binding.spec.as_str()
         ));
     }
 
@@ -976,27 +974,29 @@ fn validate_reserved_strokes(binding: &RuntimeChordBinding) -> Result<(), String
     ];
 
     if strokes.contains(&(KeyCode::Esc, KeyModifiers::NONE)) {
-        return Err(format!(
-            "Ambiguous `{path}` = `{}`: plain `esc` is reserved for cancelling a pending chord.",
-            binding.spec
+        return Err(crate::i18n::tr!(
+            "chords-esc-reserved",
+            path = path.as_str(),
+            spec = binding.spec.as_str()
         ));
     }
 
     if binding.action.context == KeymapContext::Agents
         && binding.chord.prefix.parts() == (KeyCode::Backspace, KeyModifiers::NONE)
     {
-        return Err(format!(
-            "Invalid `{path}` = `{}`: `backspace` is reserved for editing task input.",
-            binding.spec
+        return Err(crate::i18n::tr!(
+            "chords-backspace-reserved",
+            path = path.as_str(),
+            spec = binding.spec.as_str()
         ));
     }
 
     #[cfg(unix)]
     if strokes.contains(&crate::key_hint::ctrl(KeyCode::Char('z')).parts()) {
-        return Err(format!(
-            "Ambiguous `{path}` = `{}`: `ctrl-z` is reserved for suspending the terminal on Unix. \
-Choose a different chord and retry.",
-            binding.spec
+        return Err(crate::i18n::tr!(
+            "chords-ctrl-z-reserved",
+            path = path.as_str(),
+            spec = binding.spec.as_str()
         ));
     }
 
@@ -1020,10 +1020,11 @@ Choose a different chord and retry.",
                 && (binding.action.context != KeymapContext::List
                     || reserved.parts() == ctrl(KeyCode::Char('c')).parts())
     }) {
-        return Err(format!(
-            "Ambiguous `{path}` = `{}`: the chord uses the key reserved by \
-`{reserved_action}`. Choose a different chord and retry.",
-            binding.spec
+        return Err(crate::i18n::tr!(
+            "chords-key-reserved",
+            path = path.as_str(),
+            spec = binding.spec.as_str(),
+            reserved_action = *reserved_action
         ));
     }
 

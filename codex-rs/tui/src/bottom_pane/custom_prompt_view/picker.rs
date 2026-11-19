@@ -94,9 +94,9 @@ impl CustomPromptView {
         }
 
         let cancel_label = if self.prefer_esc_to_handle_key_event() {
-            " normal mode"
+            crate::i18n::tr!("custom-prompt-picker-normal-mode")
         } else {
-            " back"
+            crate::i18n::tr!("custom-prompt-picker-back")
         };
         let hint = Line::from(vec![
             key_hint::plain(KeyCode::Enter).into(),

@@ -55,19 +55,27 @@ impl HistoryCell for StartupWarningsCell {
             .iter()
             .map(|message| WarningEntry {
                 id: WarningId::Message(message.clone()),
-                source: "Startup".into(),
+                source: crate::i18n::tr!("startup-warnings-startup").into(),
                 details: message.clone(),
             })
             .chain(self.mcp_servers.iter().map(|server| WarningEntry {
                 id: WarningId::McpServer(server.clone()),
-                source: format!("MCP · {server}"),
+                source: crate::i18n::tr!("startup-warnings-mcp-source", server = server.as_str()),
                 details: {
                     let mut details = self.mcp_details.get(server).map_or_else(
-                        || format!("MCP startup incomplete: {server}"),
+                        || {
+                            crate::i18n::tr!(
+                                "startup-warnings-mcp-incomplete",
+                                server = server.as_str()
+                            )
+                        },
                         |messages| messages.join("\n\n"),
                     );
                     if self.sign_in_servers.contains(server) {
-                        details.push_str("\n\nSign-in required.");
+                        details.push_str(&format!(
+                            "\n\n{}",
+                            crate::i18n::tr!("startup-warnings-sign-in-required")
+                        ));
                     }
                     details
                 },

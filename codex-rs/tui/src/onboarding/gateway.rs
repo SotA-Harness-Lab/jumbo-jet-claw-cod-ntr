@@ -59,10 +59,9 @@ impl GatewayStep {
                         .retain(|p| matches!(p.settings, ProviderSettings::CustomGateway { .. }));
                     Self::Picking(Box::new(Picker::new(page, /*selected*/ None, notice)))
                 }
-                Ok(_) => Self::load_error(
-                    "The default provider is set by configuration policy or a launch override."
-                        .into(),
-                ),
+                Ok(_) => {
+                    Self::load_error(crate::i18n::tr!("gateway-default-provider-locked").into())
+                }
                 Err(message) => Self::load_error(message),
             }
         }))
@@ -119,11 +118,17 @@ impl GatewayStep {
 
     pub(super) fn render(&self, area: Rect, buf: &mut Buffer) {
         match self {
-            Self::Loading(_) => Widget::render(Line::from("Loading gateways…".dim()), area, buf),
+            Self::Loading(_) => Widget::render(
+                Line::from(crate::i18n::tr!("gateway-loading").dim()),
+                area,
+                buf,
+            ),
             Self::Editing { form, .. } => form.render(area, buf),
-            Self::Saving(_) | Self::Selecting(_) => {
-                Widget::render(Line::from("Saving gateway settings…".dim()), area, buf)
-            }
+            Self::Saving(_) | Self::Selecting(_) => Widget::render(
+                Line::from(crate::i18n::tr!("gateway-saving").dim()),
+                area,
+                buf,
+            ),
             Self::LoadError(list) => list.render(area, buf),
             Self::Picking(picker) => picker.list.render(area, buf),
         }
@@ -152,12 +157,12 @@ impl Picker {
                 keymap.primary_hint(ListAction::Accept),
                 accept,
                 keymap.primary_hint(ListAction::Cancel),
-                "to go back",
+                crate::i18n::tr!("gateway-hint-to-go-back"),
             )
         };
         items.push(SelectionItem {
             name: CREATE_CUSTOM_PROVIDER.into(),
-            footer_hint: Some(hint("to create")),
+            footer_hint: Some(hint(crate::i18n::tr!("gateway-hint-to-create"))),
             ..Default::default()
         });
         // Like the other startup pickers, consume the selection directly before the app event loop exists.
@@ -165,7 +170,7 @@ impl Picker {
         let list = ListSelectionView::new(
             SelectionViewParams {
                 title: Some(USE_CUSTOM_PROVIDER.into()),
-                footer_hint: Some(hint("to use as default")),
+                footer_hint: Some(hint(crate::i18n::tr!("gateway-hint-to-use-as-default"))),
                 footer_note: notice.map(Into::into),
                 initial_selected_idx: selected,
                 auto_number_shortcuts: false,

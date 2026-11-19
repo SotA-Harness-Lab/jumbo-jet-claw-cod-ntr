@@ -32,8 +32,8 @@ impl ChatWidget {
     pub(crate) fn open_skills_menu(&mut self) {
         let items = vec![
             SelectionItem {
-                name: "List skills".to_string(),
-                description: Some("Tip: press $ to open this list directly".to_string()),
+                name: crate::i18n::tr!("skills-list-skills").to_string(),
+                description: Some(crate::i18n::tr!("skills-tip-dollar").to_string()),
                 actions: vec![Box::new(|tx| {
                     tx.send(AppEvent::OpenSkillsList);
                 })],
@@ -41,8 +41,8 @@ impl ChatWidget {
                 ..Default::default()
             },
             SelectionItem {
-                name: "Enable/Disable Skills".to_string(),
-                description: Some("Enable or disable skills".to_string()),
+                name: crate::i18n::tr!("skills-enable-disable").to_string(),
+                description: Some(crate::i18n::tr!("skills-enable-or-disable").to_string()),
                 actions: vec![Box::new(|tx| {
                     tx.send(AppEvent::OpenManageSkillsPopup);
                 })],
@@ -52,8 +52,8 @@ impl ChatWidget {
         ];
 
         self.bottom_pane.show_selection_view(SelectionViewParams {
-            title: Some("Skills".to_string()),
-            subtitle: Some("Choose an action".to_string()),
+            title: Some(crate::i18n::tr!("skills-title").to_string()),
+            subtitle: Some(crate::i18n::tr!("skills-choose-action").to_string()),
             footer_hint: Some(standard_popup_hint_line()),
             items,
             ..SelectionViewParams::picker()
@@ -62,7 +62,10 @@ impl ChatWidget {
 
     pub(crate) fn open_manage_skills_popup(&mut self) {
         if self.skills_all.is_empty() {
-            self.add_info_message("No skills available.".to_string(), /*hint*/ None);
+            self.add_info_message(
+                crate::i18n::tr!("skills-none-available").to_string(),
+                /*hint*/ None,
+            );
             return;
         }
 
@@ -131,13 +134,13 @@ impl ChatWidget {
         if enabled_count == 0 && disabled_count == 0 {
             return;
         }
-        let enabled_suffix = if enabled_count == 1 { "" } else { "s" };
-        let disabled_suffix = if disabled_count == 1 { "" } else { "s" };
         let summary = match (enabled_count, disabled_count) {
-            (0, _) => format!("Disabled {disabled_count} skill{disabled_suffix}"),
-            (_, 0) => format!("Enabled {enabled_count} skill{enabled_suffix}"),
-            _ => format!(
-                "Enabled {enabled_count} skill{enabled_suffix}, disabled {disabled_count} skill{disabled_suffix}"
+            (0, _) => crate::i18n::tr!("skills-disabled-count", count = disabled_count),
+            (_, 0) => crate::i18n::tr!("skills-enabled-count", count = enabled_count),
+            _ => crate::i18n::tr!(
+                "skills-enabled-and-disabled",
+                enabled = enabled_count,
+                disabled = disabled_count
             ),
         };
         self.add_info_message(summary, /*hint*/ None);
@@ -172,7 +175,11 @@ impl ChatWidget {
                     .iter()
                     .find(|skill| skill.path.to_inferred_path_uri().as_ref() == Some(&path))
             {
-                *name = format!("{name} ({} skill)", skill.name);
+                *name = crate::i18n::tr!(
+                    "skills-read-annotation",
+                    name = name.clone(),
+                    skill = skill.name.clone()
+                );
             }
         }
 

@@ -47,15 +47,13 @@ impl ChatWidget {
             ServerNotification::McpServerOauthLoginCompleted(notification) => {
                 if notification.success {
                     self.add_info_message(
-                        format!("Signed in to {}.", notification.name),
+                        crate::i18n::tr!("protocol-signed-in-to", name = notification.name),
                         /*hint*/ None,
                     );
                 } else {
-                    self.add_error_message(
-                        notification
-                            .error
-                            .unwrap_or_else(|| "MCP sign-in failed.".to_string()),
-                    );
+                    self.add_error_message(notification.error.unwrap_or_else(|| {
+                        crate::i18n::tr!("protocol-mcp-sign-in-failed").to_string()
+                    }));
                 }
             }
             ServerNotification::ThreadTokenUsageUpdated(notification) => {
@@ -230,7 +228,10 @@ impl ChatWidget {
                                 && let Some(attempt) =
                                     error.message.strip_prefix("Reconnecting... ")
                             {
-                                format!("Server is busy, reconnecting {attempt}")
+                                crate::i18n::tr!(
+                                    "protocol-server-busy-reconnecting",
+                                    attempt = attempt
+                                )
                             } else {
                                 error.message
                             };
@@ -307,8 +308,7 @@ impl ChatWidget {
             ServerNotification::StrictReviewRequired(_) => {
                 self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
                     history_cell::new_warning_event(
-                        "This request requires additional safety checks, some tool calls might take extra time"
-                            .to_string(),
+                        crate::i18n::tr!("protocol-extra-safety-checks").to_string(),
                     ),
                 )));
                 self.request_redraw();

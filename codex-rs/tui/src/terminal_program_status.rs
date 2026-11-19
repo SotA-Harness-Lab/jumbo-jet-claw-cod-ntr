@@ -108,9 +108,11 @@ pub(crate) enum ProgramStatusKind {
 impl ProgramStatus {
     fn iterm_label(self) -> &'static str {
         match self {
-            Self::Idle | Self::Done | Self::Error => "Idle",
-            Self::Working => "Working",
-            Self::Blocked(_) => "Waiting",
+            Self::Idle | Self::Done | Self::Error => {
+                crate::i18n::tr!("terminal-program-status-idle")
+            }
+            Self::Working => crate::i18n::tr!("terminal-program-status-working"),
+            Self::Blocked(_) => crate::i18n::tr!("terminal-program-status-waiting"),
         }
     }
 

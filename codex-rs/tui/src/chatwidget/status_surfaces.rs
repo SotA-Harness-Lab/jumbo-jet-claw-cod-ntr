@@ -39,8 +39,13 @@ pub(super) const TERMINAL_TITLE_SPINNER_INTERVAL: Duration = Duration::from_mill
 const TERMINAL_TITLE_ACTION_REQUIRED_INTERVAL: Duration = Duration::from_secs(1);
 
 /// Prefix shown in the terminal title when the agent is blocked on user input.
-const TERMINAL_TITLE_ACTION_REQUIRED_PREFIX: &str = "[ ! ] Action Required";
-const TERMINAL_TITLE_ACTION_REQUIRED_PREFIX_HIDDEN: &str = "[ . ] Action Required";
+fn terminal_title_action_required_prefix() -> &'static str {
+    crate::i18n::tr!("status-surfaces-action-required-shown")
+}
+
+fn terminal_title_action_required_prefix_hidden() -> &'static str {
+    crate::i18n::tr!("status-surfaces-action-required-hidden")
+}
 
 #[derive(Debug)]
 /// Parsed status-surface configuration for one refresh pass.
@@ -105,14 +110,10 @@ impl ChatWidget {
                 .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
                 .is_ok()
         {
-            let label = if invalid_items.len() == 1 {
-                "item"
-            } else {
-                "items"
-            };
-            let message = format!(
-                "Ignored invalid status line {label}: {}.",
-                proper_join(invalid_items)
+            let message = crate::i18n::tr!(
+                "status-surfaces-ignored-invalid-status-line",
+                count = invalid_items.len(),
+                items = proper_join(invalid_items)
             );
             self.on_warning(message);
         }
@@ -126,14 +127,10 @@ impl ChatWidget {
                 .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
                 .is_ok()
         {
-            let label = if invalid_items.len() == 1 {
-                "item"
-            } else {
-                "items"
-            };
-            let message = format!(
-                "Ignored invalid terminal title {label}: {}.",
-                proper_join(invalid_items)
+            let message = crate::i18n::tr!(
+                "status-surfaces-ignored-invalid-terminal-title",
+                count = invalid_items.len(),
+                items = proper_join(invalid_items)
             );
             self.on_warning(message);
         }
@@ -332,7 +329,7 @@ impl ChatWidget {
     pub(super) fn iterm_session_detail(&self, status: ProgramStatus) -> Option<&str> {
         (status == ProgramStatus::Working && self.bottom_pane.is_task_running())
             .then_some(self.status_state.current_status.header.as_str())
-            .filter(|detail| *detail != "Working")
+            .filter(|detail| *detail != crate::i18n::tr!("status-indicator-working"))
     }
 
     pub(super) fn terminal_title_shows_action_required(&self) -> bool {
@@ -386,15 +383,15 @@ impl ChatWidget {
 
     fn action_required_terminal_title_prefix_at(&self, now: Instant) -> &'static str {
         if !(self.local_settings.tui.animations && self.local_settings.tui.effects.title) {
-            return TERMINAL_TITLE_ACTION_REQUIRED_PREFIX;
+            return terminal_title_action_required_prefix();
         }
 
         let elapsed = now.saturating_duration_since(self.terminal_title_animation_origin);
         let phase = (elapsed.as_millis() / TERMINAL_TITLE_ACTION_REQUIRED_INTERVAL.as_millis()) % 2;
         if phase == 0 {
-            TERMINAL_TITLE_ACTION_REQUIRED_PREFIX
+            terminal_title_action_required_prefix()
         } else {
-            TERMINAL_TITLE_ACTION_REQUIRED_PREFIX_HIDDEN
+            terminal_title_action_required_prefix_hidden()
         }
     }
 
@@ -740,10 +737,13 @@ impl ChatWidget {
             StatusLineItem::Reasoning => Some(self.reasoning_display_name()),
             StatusLineItem::Profile => self
                 .status_line_config_profile()
-                .map(|name| format!("profile: {name}")),
-            StatusLineItem::Provider => self
-                .thread_id
-                .map(|_| format!("provider: {}", self.config.model_provider_id)),
+                .map(|name| crate::i18n::tr!("status-surfaces-profile", name = name)),
+            StatusLineItem::Provider => self.thread_id.map(|_| {
+                crate::i18n::tr!(
+                    "status-surfaces-provider",
+                    provider = self.config.model_provider_id.clone()
+                )
+            }),
             StatusLineItem::CurrentDir => Some(self.workspace_directory_display()),
             StatusLineItem::ProjectRoot => self.status_line_project_root_name(),
             StatusLineItem::Hostname => os_host_name(),
@@ -752,14 +752,16 @@ impl ChatWidget {
                 .status_line_git_summary
                 .as_ref()
                 .and_then(|summary| summary.pull_request.as_ref())
-                .map(|pull_request| format!("PR #{}", pull_request.number)),
+                .map(|pull_request| {
+                    crate::i18n::tr!("status-surfaces-pull-request", number = pull_request.number)
+                }),
             StatusLineItem::BranchChanges => self
                 .status_line_git_summary
                 .as_ref()
                 .and_then(|summary| summary.branch_change_stats.as_ref())
                 .map(|stats| {
                     if stats.additions == 0 && stats.deletions == 0 {
-                        "No changes".to_string()
+                        crate::i18n::tr!("status-surfaces-no-changes").to_string()
                     } else {
                         format!("+{} -{}", stats.additions, stats.deletions)
                     }
@@ -773,15 +775,21 @@ impl ChatWidget {
                 if total <= 0 {
                     None
                 } else {
-                    Some(format!("{} used", format_tokens_compact(total)))
+                    Some(crate::i18n::tr!(
+                        "status-surfaces-tokens-used",
+                        tokens = format_tokens_compact(total)
+                    ))
                 }
             }
-            StatusLineItem::ContextRemaining => self
-                .status_line_context_remaining_percent()
-                .map(|remaining| format!("Context {remaining}% left")),
+            StatusLineItem::ContextRemaining => {
+                self.status_line_context_remaining_percent()
+                    .map(|remaining| {
+                        crate::i18n::tr!("status-surfaces-context-left", percent = remaining)
+                    })
+            }
             StatusLineItem::ContextUsed => self
                 .status_line_context_used_percent()
-                .map(|used| format!("Context {used}% used")),
+                .map(|used| crate::i18n::tr!("status-surfaces-context-used", percent = used)),
             StatusLineItem::FiveHourLimit => {
                 let (window, is_secondary) = self
                     .rate_limit_snapshots_by_limit_id
@@ -799,41 +807,53 @@ impl ChatWidget {
                 self.status_line_limit_display(Some(window), &label)
             }
             StatusLineItem::CodexVersion => Some(CODEX_CLI_VERSION.to_string()),
-            StatusLineItem::ContextWindowSize => self
-                .status_line_context_window_size()
-                .map(|cws| format!("{} window", format_tokens_compact(cws))),
+            StatusLineItem::ContextWindowSize => {
+                self.status_line_context_window_size().map(|cws| {
+                    crate::i18n::tr!(
+                        "status-surfaces-context-window",
+                        tokens = format_tokens_compact(cws)
+                    )
+                })
+            }
             StatusLineItem::TotalInputTokens => (!self.token_usage_pending).then(|| {
-                format!(
-                    "{} in",
-                    format_tokens_compact(self.status_line_total_usage().input_tokens)
+                crate::i18n::tr!(
+                    "status-surfaces-tokens-in",
+                    tokens = format_tokens_compact(self.status_line_total_usage().input_tokens)
                 )
             }),
             StatusLineItem::TotalOutputTokens => (!self.token_usage_pending).then(|| {
-                format!(
-                    "{} out",
-                    format_tokens_compact(self.status_line_total_usage().output_tokens)
+                crate::i18n::tr!(
+                    "status-surfaces-tokens-out",
+                    tokens = format_tokens_compact(self.status_line_total_usage().output_tokens)
                 )
             }),
-            StatusLineItem::ThreadCredits => self
-                .status_line_thread_credits_micros()
-                .map(|credits| format!("{} credits", format_credit_micros(credits))),
+            StatusLineItem::ThreadCredits => {
+                self.status_line_thread_credits_micros().map(|credits| {
+                    crate::i18n::tr!(
+                        "status-surfaces-credits",
+                        credits = format_credit_micros(credits)
+                    )
+                })
+            }
             StatusLineItem::EstimatedThreadCost => self
                 .status_line_thread_cost_micros()
                 .and_then(format_estimated_usd_micros),
             StatusLineItem::SessionId => self.thread_id.map(|id| id.to_string()),
             StatusLineItem::FastMode => Some(
                 self.processing_tier_display_name()
-                    .unwrap_or("Standard")
+                    .unwrap_or(crate::i18n::tr!("status-surfaces-standard"))
                     .to_string(),
             ),
             StatusLineItem::Daybreak => Some(
                 if self.daybreak_enabled && !self.side_conversation_active() {
-                    "Daybreak on".to_string()
+                    crate::i18n::tr!("status-surfaces-daybreak-on").to_string()
                 } else {
-                    "Daybreak off".to_string()
+                    crate::i18n::tr!("status-surfaces-daybreak-off").to_string()
                 },
             ),
-            StatusLineItem::RawOutput => self.raw_output_mode().then(|| "raw output".to_string()),
+            StatusLineItem::RawOutput => self
+                .raw_output_mode()
+                .then(|| crate::i18n::tr!("status-surfaces-raw-output").to_string()),
             StatusLineItem::ThreadName => {
                 self.status_surface_thread_label(/*fallback*/ None, /*max_chars*/ None)
             }
@@ -1111,7 +1131,11 @@ impl ChatWidget {
         if total == 0 {
             return None;
         }
-        Some(format!("Tasks {completed}/{total}"))
+        Some(crate::i18n::tr!(
+            "status-surfaces-tasks-progress",
+            completed = completed,
+            total = total
+        ))
     }
 
     fn status_surface_thread_label(
@@ -1262,26 +1286,28 @@ pub(super) fn permissions_display(config: &Config) -> String {
     if let Some(details) = summary.strip_prefix("read-only")
         && !details.contains("(network access enabled)")
     {
-        return "Read Only".to_string();
+        return crate::i18n::tr!("status-surfaces-permissions-read-only").to_string();
     }
     if let Some(details) = summary.strip_prefix("workspace-write")
         && !details.contains("(network access enabled)")
     {
-        return "Workspace".to_string();
+        return crate::i18n::tr!("status-surfaces-permissions-workspace").to_string();
     }
     if permission_profile == PermissionProfile::Disabled {
-        return "Full Access".to_string();
+        return crate::i18n::tr!("status-surfaces-permissions-full-access").to_string();
     }
 
-    "Custom permissions".to_string()
+    crate::i18n::tr!("status-surfaces-permissions-custom").to_string()
 }
 
 fn approval_mode_display(config: &Config) -> String {
     let approval_policy = AskForApproval::from(config.permissions.approval_policy.value());
     if approval_policy == AskForApproval::OnRequest {
         return match config.approvals_reviewer {
-            ApprovalsReviewer::AutoReview => "Approve for me".to_string(),
-            ApprovalsReviewer::User => "Ask for approval".to_string(),
+            ApprovalsReviewer::AutoReview => {
+                crate::i18n::tr!("status-surfaces-approval-auto-review").to_string()
+            }
+            ApprovalsReviewer::User => crate::i18n::tr!("status-surfaces-approval-ask").to_string(),
         };
     }
 

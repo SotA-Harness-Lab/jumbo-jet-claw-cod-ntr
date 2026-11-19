@@ -33,8 +33,10 @@ impl App {
                 }
                 // Finish paste before the next key, but never wait on the copy worker's lock.
                 if tui.clipboard.is_busy() || self.pending_right_click_paste.is_some() {
-                    self.chat_widget
-                        .add_info_message("Clipboard busy; try again".into(), /*hint*/ None);
+                    self.chat_widget.add_info_message(
+                        crate::i18n::tr!("clipboard-busy").into(),
+                        /*hint*/ None,
+                    );
                 } else {
                     match self.chat_widget.paste_image(context, text_fallback) {
                         Ok(()) => {}
@@ -47,8 +49,10 @@ impl App {
                         }
                         Err(err) => {
                             tracing::warn!("failed to paste image: {err}");
-                            self.chat_widget
-                                .add_error_message(format!("Failed to paste image: {err}"));
+                            self.chat_widget.add_error_message(crate::i18n::tr!(
+                                "clipboard-paste-image-failed",
+                                err = err.to_string()
+                            ));
                         }
                     }
                 }

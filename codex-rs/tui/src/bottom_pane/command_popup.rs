@@ -259,7 +259,7 @@ impl CommandPopup {
                     description: Some(description),
                     is_disabled: unavailable,
                     disabled_reason: unavailable
-                        .then(|| "not available in a side conversation".to_string()),
+                        .then(|| crate::i18n::tr!("command-popup-unavailable-side").to_string()),
                     ..Default::default()
                 }
             })
@@ -337,7 +337,7 @@ impl WidgetRef for CommandPopup {
             &rows,
             &self.state,
             MAX_POPUP_ROWS,
-            "no matches",
+            crate::i18n::tr!("command-popup-no-matches"),
             COMMAND_COLUMN_WIDTH,
         );
     }

@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
+use fluent::FluentValue;
 use i18n_embed::DesktopLanguageRequester;
 use i18n_embed::LanguageLoader;
 use i18n_embed::fluent::FluentLanguageLoader;
@@ -66,6 +67,12 @@ pub(crate) fn static_message(id: &'static str, message: impl FnOnce() -> String)
         .or_insert_with(|| Box::leak(message().into_boxed_str()))
 }
 
+/// A message argument as a Fluent value, its type fixed before `fl!` converts it: numbers stay
+/// numbers (plural selection needs them), text becomes a string.
+pub(crate) fn arg<'a>(value: impl Into<FluentValue<'a>>) -> FluentValue<'a> {
+    value.into()
+}
+
 /// A translated message: `tr!("id")` is a `&'static str`; `tr!("id", name = value, ...)` a
 /// `String` with the arguments filled in.
 macro_rules! tr {
@@ -74,8 +81,12 @@ macro_rules! tr {
             i18n_embed_fl::fl!($crate::i18n::LOADER, $id)
         })
     };
-    ($id:literal, $($args:tt)*) => {
-        i18n_embed_fl::fl!($crate::i18n::LOADER, $id, $($args)*)
+    ($id:literal, $($name:ident = $value:expr),+ $(,)?) => {
+        i18n_embed_fl::fl!(
+            $crate::i18n::LOADER,
+            $id,
+            $($name = $crate::i18n::arg($value)),+
+        )
     };
 }
 pub(crate) use tr;

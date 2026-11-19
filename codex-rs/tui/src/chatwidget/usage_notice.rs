@@ -42,23 +42,33 @@ impl UsageNoticeState {
         } else {
             format!("{}%", 100 - window.used_percent)
         };
-        let emphasis = if window.used_percent >= 95 {
-            "only "
+        let summary = if window.used_percent >= 95 {
+            crate::i18n::tr!(
+                "usage-notice-summary-only",
+                label = label.to_string(),
+                remaining = remaining.clone()
+            )
         } else {
-            ""
+            crate::i18n::tr!(
+                "usage-notice-summary",
+                label = label.to_string(),
+                remaining = remaining.clone()
+            )
         };
-        let summary = format!("⚠ {label} limit: {emphasis}{remaining} left");
         let reset = window
             .resets_at
             .and_then(|timestamp| DateTime::from_timestamp(timestamp, /*nsecs*/ 0))
             .filter(|reset| *reset > now)
             .map(|reset| {
                 format!(
-                    " · resets at {}",
-                    crate::status::format_reset_timestamp(
-                        reset.with_timezone(&Local),
-                        now,
-                        clock_format
+                    " · {}",
+                    crate::i18n::tr!(
+                        "usage-notice-resets-at",
+                        time = crate::status::format_reset_timestamp(
+                            reset.with_timezone(&Local),
+                            now,
+                            clock_format
+                        )
                     )
                 )
             })
@@ -67,7 +77,11 @@ impl UsageNoticeState {
         if window.used_percent >= 90 {
             style = style.bold();
         }
-        let compact = Line::from(format!("⚠ {label} {remaining} left"));
+        let compact = Line::from(crate::i18n::tr!(
+            "usage-notice-compact",
+            label = label,
+            remaining = remaining
+        ));
         // Prefer half the row, but keep a complete warning on narrow terminals.
         let notice_width = (usize::from(width) / 2)
             .max(compact.width())

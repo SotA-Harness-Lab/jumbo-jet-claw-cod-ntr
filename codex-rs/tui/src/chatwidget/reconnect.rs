@@ -48,10 +48,10 @@ impl ChatWidget {
         self.bottom_pane.ensure_status_indicator();
         self.bottom_pane
             .set_interrupt_hint_visible(/*visible*/ false);
-        self.set_status_header("Reconnecting to server…".to_string());
+        self.set_status_header(crate::i18n::tr!("reconnect-reconnecting").to_string());
         self.set_footer_hint_override(Some(vec![(
             crate::key_hint::ctrl(KeyCode::Char('c')).display_label(),
-            "quit".into(),
+            crate::i18n::tr!("reconnect-quit").into(),
         )]));
         self.statusline_disconnected = true;
         self.refresh_status_line();
@@ -110,12 +110,11 @@ impl ChatWidget {
         {
             let preview = user_message_preview_text(message, /*history_record*/ None);
             let preview = if preview.trim().is_empty() {
-                "message with attachments".into()
+                crate::i18n::tr!("reconnect-message-with-attachments").into()
             } else {
                 crate::text_formatting::truncate_text(&preview, /*max_graphemes*/ 80)
             };
-            let notice =
-                format!("Couldn't confirm whether “{preview}” was sent. It hasn't been resent.");
+            let notice = crate::i18n::tr!("reconnect-unconfirmed", preview = preview);
             self.add_info_message(notice, /*hint*/ None);
         }
         self.turn_lifecycle.restore_running(running, Instant::now());
@@ -249,7 +248,7 @@ impl ChatWidget {
         if mode == RestrictedInputMode::Disconnected {
             self.set_footer_hint_override(Some(vec![(
                 crate::key_hint::ctrl(KeyCode::Char('c')).display_label(),
-                "quit".into(),
+                crate::i18n::tr!("reconnect-quit").into(),
             )]));
         }
         if startup_key_handled {
@@ -290,9 +289,7 @@ impl ChatWidget {
     }
 
     pub(crate) fn reconnect_failed(&mut self) {
-        self.set_status_header("Reconnect failed — check the endpoint, then relaunch".into());
-        self.add_error_message(
-            "Automatic reconnect could not restore this session. Your draft is still editable. Copy it before quitting with Ctrl+C, then reconnect with the same command.".into(),
-        );
+        self.set_status_header(crate::i18n::tr!("reconnect-failed-header").into());
+        self.add_error_message(crate::i18n::tr!("reconnect-failed-body").into());
     }
 }

@@ -7,11 +7,11 @@ use crate::bottom_pane::SelectionViewParams;
 use crate::bottom_pane::popup_consts::standard_popup_hint_line;
 
 pub(super) const PLAN_IMPLEMENTATION_TITLE: &str = "Implement this plan?";
-const PLAN_IMPLEMENTATION_YES: &str = "Yes, implement this plan";
-const PLAN_IMPLEMENTATION_CLEAR_CONTEXT: &str = "Yes, clear context and implement";
-const PLAN_IMPLEMENTATION_NO: &str = "No, stay in Plan mode";
 pub(super) const PLAN_IMPLEMENTATION_CODING_MESSAGE: &str = "Implement the plan.";
+/// English text of the two disabled reasons, which the tests compare against.
+#[cfg(test)]
 pub(super) const PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE: &str = "Default mode unavailable";
+#[cfg(test)]
 pub(super) const PLAN_IMPLEMENTATION_NO_APPROVED_PLAN: &str = "No approved plan available";
 
 /// Builds the confirmation prompt shown after a plan is approved in Plan mode.
@@ -38,7 +38,7 @@ pub(super) fn selection_view_params(
         }
         None => (
             Vec::new(),
-            Some(PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE.to_string()),
+            Some(crate::i18n::tr!("plan-implementation-default-unavailable").to_string()),
         ),
     };
 
@@ -46,7 +46,7 @@ pub(super) fn selection_view_params(
     {
         (None, _) => (
             Vec::new(),
-            Some(PLAN_IMPLEMENTATION_DEFAULT_UNAVAILABLE.to_string()),
+            Some(crate::i18n::tr!("plan-implementation-default-unavailable").to_string()),
         ),
         (Some(_), Some(plan_markdown)) if !plan_markdown.trim().is_empty() => {
             let plan = plan_markdown.to_owned();
@@ -57,23 +57,23 @@ pub(super) fn selection_view_params(
         }
         (Some(_), _) => (
             Vec::new(),
-            Some(PLAN_IMPLEMENTATION_NO_APPROVED_PLAN.to_string()),
+            Some(crate::i18n::tr!("plan-implementation-no-approved-plan").to_string()),
         ),
     };
 
     let clear_context_description = clear_context_usage_label.map_or_else(
-        || "Fresh thread with this plan".to_string(),
-        |label| format!("Start a fresh thread (current context: {label})"),
+        || crate::i18n::tr!("plan-implementation-fresh-thread").to_string(),
+        |label| crate::i18n::tr!("plan-implementation-fresh-thread-context", label = label),
     );
 
     SelectionViewParams {
-        title: Some(PLAN_IMPLEMENTATION_TITLE.to_string()),
+        title: Some(crate::i18n::tr!("plan-implementation-title").to_string()),
         subtitle: None,
         footer_hint: Some(standard_popup_hint_line()),
         items: vec![
             SelectionItem {
-                name: PLAN_IMPLEMENTATION_YES.to_string(),
-                description: Some("Switch to Default and start coding".to_string()),
+                name: crate::i18n::tr!("plan-implementation-yes").to_string(),
+                description: Some(crate::i18n::tr!("plan-implementation-yes-desc").to_string()),
                 selected_description: None,
                 is_current: false,
                 actions: implement_actions,
@@ -82,7 +82,7 @@ pub(super) fn selection_view_params(
                 ..Default::default()
             },
             SelectionItem {
-                name: PLAN_IMPLEMENTATION_CLEAR_CONTEXT.to_string(),
+                name: crate::i18n::tr!("plan-implementation-clear-context").to_string(),
                 description: Some(clear_context_description),
                 selected_description: None,
                 is_current: false,
@@ -92,8 +92,8 @@ pub(super) fn selection_view_params(
                 ..Default::default()
             },
             SelectionItem {
-                name: PLAN_IMPLEMENTATION_NO.to_string(),
-                description: Some("Continue planning with the model".to_string()),
+                name: crate::i18n::tr!("plan-implementation-no").to_string(),
+                description: Some(crate::i18n::tr!("plan-implementation-no-desc").to_string()),
                 selected_description: None,
                 is_current: false,
                 actions: Vec::new(),

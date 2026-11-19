@@ -88,9 +88,13 @@ fn format_unified_exec_interaction(command: &[String], input: Option<&str>) -> S
     match input {
         Some(data) if !data.is_empty() => {
             let preview = summarize_interaction_input(data);
-            format!("Interacted with `{command_display}`, sent `{preview}`")
+            crate::i18n::tr!(
+                "render-interacted-with",
+                command_display = command_display,
+                preview = preview
+            )
         }
-        _ => format!("Waited for `{command_display}`"),
+        _ => crate::i18n::tr!("render-waited-for", command_display = command_display),
     }
 }
 
@@ -254,14 +258,9 @@ impl HistoryCell for ExecCell {
             if nonzero_exits > 0
                 && let Some(header) = lines.first_mut()
             {
-                let exit_label = if nonzero_exits == 1 {
-                    "nonzero exit"
-                } else {
-                    "nonzero exits"
-                };
-                header
-                    .line
-                    .push_span(format!(" · {nonzero_exits} {exit_label}").bold());
+                header.line.push_span(
+                    crate::i18n::tr!("render-nonzero-exits", count = nonzero_exits).bold(),
+                );
             }
             lines
                 .into_iter()
@@ -298,7 +297,11 @@ impl HistoryCell for ExecCell {
             .map(|call| {
                 let active = call.duration.is_none();
                 let (running, finished, target) = match call.parsed.as_slice() {
-                    [ParsedCommand::Read { name, .. }] => ("Reading", "Read", name.clone()),
+                    [ParsedCommand::Read { name, .. }] => (
+                        crate::i18n::tr!("render-reading"),
+                        crate::i18n::tr!("render-read-past"),
+                        name.clone(),
+                    ),
                     [
                         ParsedCommand::Search {
                             query: Some(query),
@@ -307,29 +310,48 @@ impl HistoryCell for ExecCell {
                         },
                     ] => {
                         let target = match path {
-                            Some(path) => format!("{query} in {path}"),
+                            Some(path) => crate::i18n::tr!(
+                                "render-query-in-path",
+                                query = query.as_str(),
+                                path = path.as_str()
+                            ),
                             None => query.clone(),
                         };
-                        ("Searching for", "Searched for", target)
+                        (
+                            crate::i18n::tr!("render-searching-for"),
+                            crate::i18n::tr!("render-searched-for"),
+                            target,
+                        )
                     }
                     [
                         ParsedCommand::Search {
                             path: Some(path), ..
                         },
-                    ] => ("Searching files in", "Searched files in", path.clone()),
+                    ] => (
+                        crate::i18n::tr!("render-searching-files-in"),
+                        crate::i18n::tr!("render-searched-files-in"),
+                        path.clone(),
+                    ),
                     [ParsedCommand::ListFiles { path, .. }] => (
-                        "Listing files in",
-                        "Listed files in",
+                        crate::i18n::tr!("render-listing-files-in"),
+                        crate::i18n::tr!("render-listed-files-in"),
                         path.as_deref().unwrap_or(".").to_owned(),
                     ),
-                    _ => ("Running", "Ran", strip_bash_lc_and_escape(&call.command)),
+                    _ => (
+                        crate::i18n::tr!("render-running"),
+                        crate::i18n::tr!("render-ran"),
+                        strip_bash_lc_and_escape(&call.command),
+                    ),
                 };
                 let verb = if active { running } else { finished };
                 let mut label = format!("{verb} {target}");
                 if let Some(output) = &call.output
                     && output.exit_code != 0
                 {
-                    label.push_str(&format!(" (exit {})", output.exit_code));
+                    label.push_str(&crate::i18n::tr!(
+                        "render-exit-code",
+                        code = output.exit_code
+                    ));
                 }
                 label
             })
@@ -351,8 +373,11 @@ impl HistoryCell for ExecCell {
 
 impl ExecCell {
     fn output_ellipsis_text(omitted: usize) -> String {
-        let noun = if omitted == 1 { "line" } else { "lines" };
-        format!("… +{omitted} {noun} ({})", transcript_hint())
+        crate::i18n::tr!(
+            "render-lines-omitted-hint",
+            omitted = omitted,
+            hint = transcript_hint()
+        )
     }
 
     fn output_ellipsis_line(omitted: usize) -> Line<'static> {
@@ -370,9 +395,9 @@ impl ExecCell {
                 },
                 " ".into(),
                 if self.is_active() {
-                    "Exploring".bold()
+                    crate::i18n::tr!("render-exploring").bold()
                 } else {
-                    "Explored".bold()
+                    crate::i18n::tr!("render-explored").bold()
                 },
             ])
             .into(),
@@ -419,7 +444,7 @@ impl ExecCell {
                     })
                     .unique();
                 vec![(
-                    "Read",
+                    crate::i18n::tr!("render-title-read"),
                     Itertools::intersperse(names.into_iter().map(Into::into), ", ".dim()).collect(),
                 )]
             } else {
@@ -427,23 +452,36 @@ impl ExecCell {
                 for parsed in &call.parsed {
                     match parsed {
                         ParsedCommand::Read { name, .. } => {
-                            lines.push(("Read", vec![name.clone().into()]));
+                            lines.push((
+                                crate::i18n::tr!("render-title-read"),
+                                vec![name.clone().into()],
+                            ));
                         }
                         ParsedCommand::ListFiles { cmd, path } => {
-                            lines.push(("List", vec![path.clone().unwrap_or(cmd.clone()).into()]));
+                            lines.push((
+                                crate::i18n::tr!("render-title-list"),
+                                vec![path.clone().unwrap_or(cmd.clone()).into()],
+                            ));
                         }
                         ParsedCommand::Search { cmd, query, path } => {
                             let spans = match (query, path) {
                                 (Some(q), Some(p)) => {
-                                    vec![q.clone().into(), " in ".dim(), p.clone().into()]
+                                    vec![
+                                        q.clone().into(),
+                                        crate::i18n::tr!("render-in").dim(),
+                                        p.clone().into(),
+                                    ]
                                 }
                                 (Some(q), None) => vec![q.clone().into()],
                                 _ => vec![cmd.clone().into()],
                             };
-                            lines.push(("Search", spans));
+                            lines.push((crate::i18n::tr!("render-title-search"), spans));
                         }
                         ParsedCommand::Unknown { cmd } => {
-                            lines.push(("Run", vec![cmd.clone().into()]));
+                            lines.push((
+                                crate::i18n::tr!("render-title-run"),
+                                vec![cmd.clone().into()],
+                            ));
                         }
                     }
                 }
@@ -457,9 +495,9 @@ impl ExecCell {
                 {
                     // A compound command has one exit code, not an outcome for each parsed action.
                     let status = if call.parsed.len() > 1 {
-                        format!(" (command exit {code})")
+                        crate::i18n::tr!("render-command-exit-code", code = code)
                     } else {
-                        format!(" (exit {code})")
+                        crate::i18n::tr!("render-exit-code", code = code)
                     };
                     // Search exit 1 can mean no matches; report the code without calling it a failure.
                     line.push(
@@ -517,11 +555,11 @@ impl ExecCell {
         let title = if is_interaction {
             ""
         } else if self.is_active() {
-            "Running"
+            crate::i18n::tr!("render-running")
         } else if call.is_user_shell_command() {
-            "You ran"
+            crate::i18n::tr!("render-you-ran")
         } else {
-            "Ran"
+            crate::i18n::tr!("render-ran")
         };
 
         let header_line = if is_interaction {
@@ -605,7 +643,7 @@ impl ExecCell {
             if !call.is_user_shell_command() {
                 let preview = output_preview_lines(output, layout.output_block.wrap_width(width));
                 let preview = if preview.is_empty() && !call.is_unified_exec_interaction() {
-                    vec![Line::from("(no output)".dim()).into()]
+                    vec![Line::from(crate::i18n::tr!("render-no-output").dim()).into()]
                 } else {
                     preview
                 };
@@ -635,7 +673,7 @@ impl ExecCell {
             if raw_output.lines.is_empty() {
                 if !call.is_unified_exec_interaction() {
                     lines.extend(prefix_hyperlink_lines(
-                        vec![Line::from("(no output)".dim()).into()],
+                        vec![Line::from(crate::i18n::tr!("render-no-output").dim()).into()],
                         Span::from(layout.output_block.initial_prefix).dim(),
                         Span::from(layout.output_block.subsequent_prefix),
                     ));
@@ -807,8 +845,9 @@ impl ExecCell {
     }
 
     fn ellipsis_line(omitted: usize) -> Line<'static> {
-        let noun = if omitted == 1 { "line" } else { "lines" };
-        Line::from(vec![format!("… +{omitted} {noun}").dim()])
+        Line::from(vec![
+            crate::i18n::tr!("render-lines-omitted", omitted = omitted).dim(),
+        ])
     }
 
     fn output_ellipsis_row_count(

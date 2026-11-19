@@ -7,7 +7,9 @@ use crate::terminal_hyperlinks::remap_source_wrapped_line;
 use crate::wrapping::adaptive_wrap_line_to_width;
 
 #[cfg_attr(not(test), allow(dead_code))]
-const RECAP_HEADING: &str = "Conversation recap";
+fn recap_heading() -> &'static str {
+    crate::i18n::tr!("notices-conversation-recap")
+}
 
 #[cfg_attr(debug_assertions, allow(dead_code))]
 #[derive(Debug)]
@@ -32,30 +34,32 @@ impl HistoryCell for UpdateAvailableHistoryCell {
         use ratatui_macros::text;
         let update_instruction = if let Some(update_action) = self.update_action {
             line![
-                "Run ",
+                crate::i18n::tr!("notices-run"),
                 update_action.command_str().fg(accent_color()),
-                " to update."
+                crate::i18n::tr!("notices-to-update")
             ]
         } else {
             line![
-                "See ",
+                crate::i18n::tr!("notices-see"),
                 "https://github.com/openai/codex"
                     .fg(accent_color())
                     .underlined(),
-                " for installation options."
+                crate::i18n::tr!("notices-for-installation-options")
             ]
         };
 
         let content = text![
             line![
                 "✨\u{200A}".bold().fg(accent_color()),
-                "Update available!".bold().fg(accent_color()),
+                crate::i18n::tr!("notices-update-available")
+                    .bold()
+                    .fg(accent_color()),
                 " ",
                 format!("{CODEX_CLI_VERSION} -> {}", self.latest_version).bold(),
             ],
             update_instruction,
             "",
-            "See full release notes:",
+            crate::i18n::tr!("notices-see-full-release-notes"),
             "https://github.com/openai/codex/releases/latest"
                 .fg(accent_color())
                 .underlined(),
@@ -71,16 +75,21 @@ impl HistoryCell for UpdateAvailableHistoryCell {
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
         let update_instruction = if let Some(update_action) = self.update_action {
-            format!("Run {} to update.", update_action.command_str())
+            format!(
+                "{}{}{}",
+                crate::i18n::tr!("notices-run"),
+                update_action.command_str(),
+                crate::i18n::tr!("notices-to-update")
+            )
         } else {
-            "See https://github.com/openai/codex for installation options.".to_string()
+            crate::i18n::tr!("notices-see-installation-options-raw").to_string()
         };
         vec![
-            Line::from("Update available!"),
+            Line::from(crate::i18n::tr!("notices-update-available")),
             Line::from(format!("{CODEX_CLI_VERSION} -> {}", self.latest_version)),
             Line::from(update_instruction),
             Line::from(""),
-            Line::from("See full release notes:"),
+            Line::from(crate::i18n::tr!("notices-see-full-release-notes")),
             Line::from("https://github.com/openai/codex/releases/latest"),
         ]
     }
@@ -123,10 +132,10 @@ pub(crate) fn new_server_version_warning(
     let mut lines = vec![Line::from(notice.message.set_style(style))];
     if notice.offer_update {
         lines.push(Line::from(
-            "Use /daemon to manage the local background server.".fg(accent_color()),
+            crate::i18n::tr!("notices-use-daemon").fg(accent_color()),
         ));
         lines.push(Line::from(
-            "Updating may interrupt active or queued work.".set_style(style),
+            crate::i18n::tr!("notices-updating-may-interrupt").set_style(style),
         ));
     }
     WarningHistoryCell {
@@ -147,22 +156,25 @@ pub(crate) struct SafetyAccessBlockCell {
     title: &'static str,
     pub(crate) explanation: Option<String>,
     body: &'static str,
-    actions: &'static [(&'static str, &'static str)],
+    actions: Vec<(&'static str, &'static str)>,
 }
 
 const SAFETY_ACCESS_BLOCK_LEARN_MORE_URL: &str = "https://help.openai.com/en/articles/20001326";
 
 pub(crate) fn new_safety_access_block_event() -> SafetyAccessBlockCell {
     SafetyAccessBlockCell {
-        title: "This content can't be shown",
-        explanation: Some("We take extra caution with requests involving biological research and applications that could pose safety risks.".into()),
-        body: "Eligible researchers can apply for Trusted Access.",
-        actions: &[
+        title: crate::i18n::tr!("notices-content-cant-be-shown"),
+        explanation: Some(crate::i18n::tr!("notices-extra-caution-biological").into()),
+        body: crate::i18n::tr!("notices-eligible-researchers"),
+        actions: vec![
             (
-                "Trusted Access",
+                crate::i18n::tr!("notices-trusted-access"),
                 "https://chatgpt.com/r/b749fb02595e04c3007a54375f3f4374",
             ),
-            ("Learn more", SAFETY_ACCESS_BLOCK_LEARN_MORE_URL),
+            (
+                crate::i18n::tr!("notices-learn-more"),
+                SAFETY_ACCESS_BLOCK_LEARN_MORE_URL,
+            ),
         ],
     }
 }
@@ -171,37 +183,46 @@ pub(crate) fn new_cyber_policy_error_event(
     notice: crate::daybreak::Notice,
 ) -> SafetyAccessBlockCell {
     use crate::daybreak::Notice;
-    let (body, actions): (_, &'static [(&str, &str)]) = match notice {
+    let (body, actions): (_, Vec<(&'static str, &'static str)>) = match notice {
         Notice::Apply => (
-            "If you’re doing authorized security work, apply for Daybreak to get broader access.",
-            &[
-                ("Learn more", SAFETY_ACCESS_BLOCK_LEARN_MORE_URL),
+            crate::i18n::tr!("notices-daybreak-apply-body"),
+            vec![
                 (
-                    "Apply for Daybreak",
+                    crate::i18n::tr!("notices-learn-more"),
+                    SAFETY_ACCESS_BLOCK_LEARN_MORE_URL,
+                ),
+                (
+                    crate::i18n::tr!("notices-apply-for-daybreak"),
                     "https://chatgpt.com/admin/status-and-access",
                 ),
             ],
         ),
         Notice::Disabled => (
-            "Daybreak is currently off. If you’re doing authorized security work, turn it on and try your request again.",
-            &[("Learn more", SAFETY_ACCESS_BLOCK_LEARN_MORE_URL)],
+            crate::i18n::tr!("notices-daybreak-off-body"),
+            vec![(
+                crate::i18n::tr!("notices-learn-more"),
+                SAFETY_ACCESS_BLOCK_LEARN_MORE_URL,
+            )],
         ),
         Notice::Astra => (
-            "Daybreak isn’t available for Astra. Some cybersecurity requests may still be limited.",
-            &[(
-                "Learn more",
+            crate::i18n::tr!("notices-daybreak-astra-body"),
+            vec![(
+                crate::i18n::tr!("notices-learn-more"),
                 "https://help.openai.com/en/articles/20001258-openai-daybreak-trusted-access-for-cyber-overview#reduced-refusals-behavior-by-model",
             )],
         ),
         Notice::Enabled => (
-            "Some cybersecurity requests are still limited, even when Daybreak is on.",
-            &[("Learn more", SAFETY_ACCESS_BLOCK_LEARN_MORE_URL)],
+            crate::i18n::tr!("notices-daybreak-enabled-body"),
+            vec![(
+                crate::i18n::tr!("notices-learn-more"),
+                SAFETY_ACCESS_BLOCK_LEARN_MORE_URL,
+            )],
         ),
     };
     SafetyAccessBlockCell {
-        title: "This content can’t be shown",
+        title: crate::i18n::tr!("notices-content-cant-be-shown-curly"),
         explanation: (notice == Notice::Apply)
-            .then(|| "We take extra care with some cybersecurity requests.".into()),
+            .then(|| crate::i18n::tr!("notices-extra-care-cyber").into()),
         body,
         actions,
     }
@@ -235,7 +256,7 @@ impl HistoryCell for SafetyAccessBlockCell {
         push_owned_lines(&wrapped, &mut wrapped_body);
         lines.extend(plain_hyperlink_lines(wrapped_body));
 
-        for &(label, url) in self.actions {
+        for &(label, url) in &self.actions {
             let source = crate::terminal_hyperlinks::annotate_web_urls_in_line(
                 vec![
                     format!("  {label}: ").dim(),
@@ -289,7 +310,7 @@ impl HistoryCell for DeprecationNoticeCell {
     fn warning_entries(&self) -> Vec<WarningEntry> {
         vec![WarningEntry {
             id: WarningId::Message(self.summary.clone()),
-            source: "Deprecation".into(),
+            source: crate::i18n::tr!("notices-deprecation").into(),
             details: self
                 .raw_lines()
                 .iter()
@@ -350,7 +371,7 @@ pub(crate) struct InterruptionNotice(pub(crate) Option<String>);
 impl HistoryCell for InterruptionNotice {
     fn display_lines(&self, _width: u16) -> Vec<Line<'static>> {
         vec![
-            Line::from("■ Conversation interrupted - use /feedback if something went wrong")
+            Line::from(crate::i18n::tr!("notices-conversation-interrupted"))
                 .style(crate::style::secondary_text_style()),
         ]
     }
@@ -394,7 +415,7 @@ impl HistoryCell for ThreadRecapLoadingCell {
                 )
                 .unwrap_or_else(|| "•".dim()),
                 " ".into(),
-                "Generating conversation recap".bold(),
+                crate::i18n::tr!("notices-generating-recap").bold(),
                 "…".dim(),
             ]
             .into(),
@@ -402,7 +423,9 @@ impl HistoryCell for ThreadRecapLoadingCell {
     }
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
-        vec![Line::from("Generating conversation recap...")]
+        vec![Line::from(crate::i18n::tr!(
+            "notices-generating-recap-dots"
+        ))]
     }
 
     fn transcript_animation_tick(&self) -> Option<u64> {
@@ -451,17 +474,28 @@ impl HistoryCell for ThreadRecapHistoryCell {
         if let Some(action) = &self.next_action {
             body.extend(prefix_lines(
                 raw_lines_from_source(action),
-                "Next: ".bold().fg(accent_color()),
+                crate::i18n::tr!("notices-next-prefix")
+                    .bold()
+                    .fg(accent_color()),
                 "".into(),
             ));
         }
         let mut body = body.into_iter().map(Line::italic).collect::<Vec<_>>();
-        let prefix = Line::from(vec!["  ".into(), "↳ ".dim(), "Recap: ".bold()]).italic();
+        let prefix = Line::from(vec![
+            "  ".into(),
+            "↳ ".dim(),
+            crate::i18n::tr!("notices-recap-prefix").bold(),
+        ])
+        .italic();
         let mut options = if wrap_width <= prefix.width() {
             // Keep the text readable when the terminal cannot fit the hanging indent.
             body.insert(
                 /*index*/ 0,
-                Line::from(vec!["↳ ".dim(), "Recap:".bold()]).italic(),
+                Line::from(vec![
+                    "↳ ".dim(),
+                    crate::i18n::tr!("notices-recap-prefix-short").bold(),
+                ])
+                .italic(),
             );
             RtOptions::new(wrap_width)
         } else {
@@ -496,10 +530,13 @@ impl HistoryCell for ThreadRecapHistoryCell {
     }
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
-        let mut lines = vec![Line::from(RECAP_HEADING)];
+        let mut lines = vec![Line::from(recap_heading())];
         lines.extend(raw_lines_from_source(&self.recap));
         if let Some(action) = &self.next_action {
-            lines.extend(raw_lines_from_source(&format!("Next: {action}")));
+            lines.extend(raw_lines_from_source(&crate::i18n::tr!(
+                "notices-next-action",
+                action = action.as_str()
+            )));
         }
         lines
     }

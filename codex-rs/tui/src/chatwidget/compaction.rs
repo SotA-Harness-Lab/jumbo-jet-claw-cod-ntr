@@ -35,12 +35,12 @@ impl ChatWidget {
         if self.status_state.compaction.take().is_some() {
             self.bottom_pane
                 .set_status_timer_origin(/*started_at*/ None);
-            self.set_status_header("Working".to_string());
+            self.set_status_header(crate::i18n::tr!("compaction-working").to_string());
         }
     }
 
     pub(super) fn on_context_compaction_completed(&mut self, id: &str, from_replay: bool) {
-        let mut message = "Context compacted".to_string();
+        let mut message = crate::i18n::tr!("compaction-context-compacted").to_string();
         if let Some(active) = self.status_state.compaction.as_ref()
             && active.id == id
         {
@@ -48,7 +48,8 @@ impl ChatWidget {
                 let elapsed = crate::status_indicator_widget::fmt_elapsed_compact(
                     active.started_at.elapsed().as_secs(),
                 );
-                message = format!("Context compacted · {elapsed}");
+                message =
+                    crate::i18n::tr!("compaction-context-compacted-elapsed", elapsed = elapsed);
             }
             self.clear_context_compaction();
         }

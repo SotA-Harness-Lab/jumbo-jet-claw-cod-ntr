@@ -82,7 +82,7 @@ fn parse_terminal_title_command(
         .collect::<Result<Vec<_>, _>>()?;
     let clear = args.has_switch("--clear");
     if clear && !items.is_empty() {
-        return Err("Cannot combine --clear with terminal-title items.".into());
+        return Err(crate::i18n::tr!("status-surface-commands-clear-title").into());
     }
     Ok(if clear { Vec::new() } else { items })
 }
@@ -108,7 +108,7 @@ fn status_line_items(
     clear: bool,
 ) -> Result<Option<Vec<StatusLineItem>>, String> {
     if clear && !items.is_empty() {
-        return Err("Cannot combine --clear with status-line items.".into());
+        return Err(crate::i18n::tr!("status-surface-commands-clear-status").into());
     }
     Ok(if clear {
         Some(Vec::new())
@@ -144,17 +144,29 @@ where
         (true, false) => five_hour_id,
         (false, true) => weekly_id,
         (true, true) => {
-            return Err(format!(
-                "Ambiguous {surface} item '{token}'. Use '{five_hour_id}' or '{weekly_id}'."
+            return Err(crate::i18n::tr!(
+                "status-surface-commands-ambiguous",
+                surface = surface,
+                token = token,
+                five_hour_id = five_hour_id,
+                weekly_id = weekly_id
             ));
         }
         (false, false) => {
-            return Err(format!(
-                "Unknown {surface} item '{token}'. Use {command} to see available items."
+            return Err(crate::i18n::tr!(
+                "status-surface-commands-unknown",
+                surface = surface,
+                token = token,
+                command = command
             ));
         }
     };
     id.parse().map_err(|_| {
-        format!("Unknown {surface} item '{token}'. Use {command} to see available items.")
+        crate::i18n::tr!(
+            "status-surface-commands-unknown",
+            surface = surface,
+            token = token,
+            command = command
+        )
     })
 }

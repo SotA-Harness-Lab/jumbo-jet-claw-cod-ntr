@@ -62,7 +62,7 @@ impl StatuslinePicker {
             name = format!("{name} · {plugin}");
         }
         if self.offline || (self.worker.is_none() && provider.is_none()) {
-            name.push_str(" (Unavailable)");
+            name.push_str(crate::i18n::tr!("statusline-picker-unavailable"));
         }
         SelectionItem {
             name,
@@ -80,7 +80,7 @@ impl StatuslinePicker {
             items.push(self.provider_row(id, self.provider(id)));
         }
         items.push(SelectionItem {
-            name: "Default status line".into(),
+            name: crate::i18n::tr!("statusline-picker-default").into(),
             is_current: self.selected.is_none(),
             on_accept_key: Some(self.choose(/*id*/ None)),
             ..Default::default()
@@ -91,16 +91,16 @@ impl StatuslinePicker {
             }
         }
         let subtitle = if self.offline {
-            Some("Plugin providers are unavailable while disconnected.")
+            Some(crate::i18n::tr!("statusline-picker-offline"))
         } else {
             self.worker
                 .as_ref()
-                .map(|_| "Discovering MCP status line providers…")
+                .map(|_| crate::i18n::tr!("statusline-picker-discovering"))
         };
         let scan = self.id;
         SelectionViewParams {
             view_id: Some(PICKER),
-            title: Some("Select a status line provider".into()),
+            title: Some(crate::i18n::tr!("statusline-picker-title").into()),
             subtitle: subtitle.map(str::to_owned),
             items,
             initial_selected_idx,
@@ -254,9 +254,9 @@ impl App {
             .save_status_line_provider(selection, provider_from_picker)
             .await
         {
-            self.chat_widget.report_config_save_error(format!(
-                "Failed to save status line selection: {}",
-                format_config_error(&error)
+            self.chat_widget.report_config_save_error(crate::i18n::tr!(
+                "statusline-picker-save-failed",
+                error = format_config_error(&error)
             ));
             return;
         }

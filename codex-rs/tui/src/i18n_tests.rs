@@ -15,7 +15,8 @@ fn messages(language: &str) -> BTreeMap<String, BTreeSet<String>> {
     let mut messages = BTreeMap::new();
     let mut current: Option<String> = None;
     for line in text.lines() {
-        if let Some((id, _)) = line.split_once(" = ")
+        // A message starts at the line's beginning; a multiline one ends its first line with " =".
+        if let Some((id, _)) = line.split_once(" =")
             && !line.starts_with([' ', '#'])
         {
             current = Some(id.to_string());
@@ -34,10 +35,15 @@ fn messages(language: &str) -> BTreeMap<String, BTreeSet<String>> {
 }
 
 #[test]
-fn every_translation_matches_an_english_message_and_its_variables() {
+fn every_translation_has_an_english_message_with_its_variables() {
     let english = messages("en-US");
     for (id, variables) in messages("zh-CN") {
-        assert_eq!(english.get(&id), Some(&variables), "zh-CN message {id}");
+        // A translation may leave out a variable (the count of an English plural), never add one.
+        let english_variables = english.get(&id);
+        assert!(
+            english_variables.is_some_and(|english| variables.is_subset(english)),
+            "zh-CN message {id} uses {variables:?}, English has {english_variables:?}"
+        );
     }
 }
 

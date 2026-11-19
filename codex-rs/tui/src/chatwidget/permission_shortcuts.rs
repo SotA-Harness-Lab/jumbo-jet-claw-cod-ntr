@@ -139,7 +139,7 @@ impl ChatWidget {
             });
         } else {
             self.add_info_message(
-                "No other permission modes are available.".to_string(),
+                crate::i18n::tr!("permission-shortcuts-none-available").to_string(),
                 /*hint*/ None,
             );
         }

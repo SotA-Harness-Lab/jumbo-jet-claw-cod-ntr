@@ -59,18 +59,11 @@ impl WidgetRef for &TrustDirectoryWidget {
         let mut children = vec![(
             0,
             Paragraph::new(if self.restricted && self.existing_task {
-                "This existing task may retain settings \
-                 and history, including project configuration or hooks loaded while it was trusted. \
-                 To use restricted settings, start a new task. The folder's trust setting will not change."
+                crate::i18n::tr!("trust-directory-existing-task-notice")
             } else if self.restricted {
-                "Config, hooks, and exec policies from untrusted folders stay disabled. \
-                 Trusted project folders can still contribute settings. Skills still load, \
-                 and tools follow your permission settings. Opening will not change saved trust."
+                crate::i18n::tr!("trust-directory-restricted-notice")
             } else {
-                "Trust this folder? Codex can read, edit, and run files here, subject to \
-                 your permission settings. Folder settings can run code automatically, \
-                 even without a model request. Continue only if you trust these files. \
-                 Your trust decision will be saved."
+                crate::i18n::tr!("trust-directory-trust-prompt")
             })
             .wrap(Wrap { trim: true })
             .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),
@@ -80,19 +73,23 @@ impl WidgetRef for &TrustDirectoryWidget {
         let options: Vec<(&str, TrustDirectorySelection)> = vec![
             (
                 if self.restricted && self.existing_task {
-                    "Open existing task"
+                    crate::i18n::tr!("trust-directory-open-existing-task")
                 } else if self.restricted {
-                    "Open restricted"
+                    crate::i18n::tr!("trust-directory-open-restricted")
                 } else {
-                    "Trust and continue"
+                    crate::i18n::tr!("trust-directory-trust-and-continue")
                 },
                 TrustDirectorySelection::Trust,
             ),
             (
                 match self.cancel {
-                    TrustCancelAction::Quit => "Quit",
-                    TrustCancelAction::AgentsOverview => "Back to Agent Command Center",
-                    TrustCancelAction::CurrentTask => "Keep current directory",
+                    TrustCancelAction::Quit => crate::i18n::tr!("trust-directory-quit"),
+                    TrustCancelAction::AgentsOverview => {
+                        crate::i18n::tr!("trust-directory-back-to-agents")
+                    }
+                    TrustCancelAction::CurrentTask => {
+                        crate::i18n::tr!("trust-directory-keep-current-dir")
+                    }
                 },
                 TrustDirectorySelection::Quit,
             ),
@@ -123,16 +120,20 @@ impl WidgetRef for &TrustDirectoryWidget {
             Paragraph::new(Line::from(vec![
                 keys::CONFIRM[0].into(),
                 if self.show_windows_create_sandbox_hint && !self.restricted {
-                    " continue and create sandbox".dim()
+                    crate::i18n::tr!("trust-directory-hint-continue-sandbox").dim()
                 } else {
-                    " continue".dim()
+                    crate::i18n::tr!("trust-directory-hint-continue").dim()
                 },
                 " · ".dim(),
                 keys::CANCEL[0].into(),
                 match self.cancel {
-                    TrustCancelAction::Quit => " quit",
-                    TrustCancelAction::AgentsOverview => " back",
-                    TrustCancelAction::CurrentTask => " cancel",
+                    TrustCancelAction::Quit => crate::i18n::tr!("trust-directory-hint-quit"),
+                    TrustCancelAction::AgentsOverview => {
+                        crate::i18n::tr!("trust-directory-hint-back")
+                    }
+                    TrustCancelAction::CurrentTask => {
+                        crate::i18n::tr!("trust-directory-hint-cancel")
+                    }
                 }
                 .dim(),
             ]))
@@ -143,12 +144,10 @@ impl WidgetRef for &TrustDirectoryWidget {
 
         #[allow(clippy::disallowed_methods)]
         let git_root_warning = (!self.restricted && self.cwd != self.trust_target).then(|| {
-            Paragraph::new(
-                "Note: You’re in a subdirectory of a Git project. Trusting will apply to the repository root:",
-            )
-            .yellow()
-            .wrap(Wrap { trim: true })
-            .inset(Insets::vh(/*v*/ 0, /*h*/ 2))
+            Paragraph::new(crate::i18n::tr!("trust-directory-git-subdir-note"))
+                .yellow()
+                .wrap(Wrap { trim: true })
+                .inset(Insets::vh(/*v*/ 0, /*h*/ 2))
         });
         let reserved_height = children
             .iter()
@@ -181,7 +180,9 @@ impl WidgetRef for &TrustDirectoryWidget {
         column.push(/*flex*/ 1, RenderableItem::Borrowed(&""));
         column.push(
             /*flex*/ 0,
-            RenderableItem::Owned(Box::new(Line::from("  Folder access".bold()))),
+            RenderableItem::Owned(Box::new(Line::from(
+                crate::i18n::tr!("trust-directory-folder-access").bold(),
+            ))),
         );
         if cwd_height > 0 {
             column.push(/*flex*/ 0, path(&self.cwd, cwd_height));

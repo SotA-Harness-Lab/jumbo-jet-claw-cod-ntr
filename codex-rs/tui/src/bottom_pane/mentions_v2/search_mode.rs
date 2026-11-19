@@ -36,9 +36,9 @@ impl SearchMode {
 
     pub(super) fn label(self) -> &'static str {
         match self {
-            Self::Results => "All Results",
-            Self::FilesystemOnly => "Filesystem Only",
-            Self::Tools => "Plugins",
+            Self::Results => crate::i18n::tr!("mentions-mode-all-results"),
+            Self::FilesystemOnly => crate::i18n::tr!("mentions-mode-filesystem-only"),
+            Self::Tools => crate::i18n::tr!("mentions-mode-plugins"),
         }
     }
 }

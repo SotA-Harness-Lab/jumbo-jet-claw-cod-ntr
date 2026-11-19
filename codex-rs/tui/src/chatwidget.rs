@@ -172,11 +172,9 @@ use tracing::warn;
 
 const DEFAULT_MODEL_DISPLAY_NAME: &str = "loading";
 const TRUSTED_ACCESS_FOR_CYBER_VERIFICATION_WARNING: &str = "Your conversations have multiple flags for possible cybersecurity risk. Responses may take longer because extra safety checks are on. To get authorized for security work, join the Trusted Access for Cyber program: https://chatgpt.com/cyber";
-const MEMORIES_ENABLE_NOTICE: &str = "Memories will be enabled in the next session.";
 const MEMORIES_DOC_URL: &str = "https://developers.openai.com/codex/memories";
+#[cfg(test)]
 const PLAN_MODE_REASONING_SCOPE_TITLE: &str = "Apply reasoning change";
-const PLAN_MODE_REASONING_SCOPE_PLAN_ONLY: &str = "Apply to Plan mode override";
-const PLAN_MODE_REASONING_SCOPE_ALL_MODES: &str = "Apply to global default and Plan mode override";
 const CONNECTORS_SELECTION_VIEW_ID: &str = "connectors-selection";
 const PET_SELECTION_LOADING_VIEW_ID: &str = "pet-selection-loading";
 const AMBIENT_PET_WRAP_GAP_COLUMNS: u16 = 2;
@@ -476,8 +474,8 @@ use codex_utils_approval_presets::builtin_approval_presets;
 use strum::IntoEnumIterator;
 use unicode_segmentation::UnicodeSegmentation;
 
+#[cfg(test)]
 const USER_SHELL_COMMAND_HELP_TITLE: &str = "Prefix a command with ! to run it locally";
-const USER_SHELL_COMMAND_HELP_HINT: &str = "Example: !ls";
 const ASK_FOR_APPROVAL_LABEL: &str = "Ask for approval";
 const APPROVE_FOR_ME_LABEL: &str = "Approve for me";
 const AUTO_REVIEW_DESCRIPTION: &str = "Only ask for actions detected as potentially unsafe";
@@ -1009,9 +1007,9 @@ impl ChatWidget {
     pub(crate) fn open_feedback(&mut self, mode: crate::ThreadParamsMode) {
         use crate::ThreadParamsMode;
         let unavailable = match mode {
-            ThreadParamsMode::Cloud => "Feedback is unavailable in Cloud threads.",
+            ThreadParamsMode::Cloud => crate::i18n::tr!("chatwidget-feedback-unavailable-cloud"),
             ThreadParamsMode::Remote if !self.config.feedback_enabled => {
-                "Feedback uploads are disabled, and saving a ZIP requires a local app server."
+                crate::i18n::tr!("chatwidget-feedback-uploads-disabled")
             }
             _ => {
                 return self.show_selection_view(crate::bottom_pane::feedback_selection_params(
@@ -1109,26 +1107,34 @@ impl ChatWidget {
 
     pub(crate) fn open_feature_enable_prompt(&mut self, feature: Feature) {
         let (label, name) = match feature {
-            Feature::Collab => ("Subagents", "subagents"),
-            Feature::MemoryTool => ("Memories", "memories"),
+            Feature::Collab => (
+                crate::i18n::tr!("chatwidget-feature-subagents"),
+                crate::i18n::tr!("chatwidget-feature-subagents-lower"),
+            ),
+            Feature::MemoryTool => (
+                crate::i18n::tr!("chatwidget-feature-memories"),
+                crate::i18n::tr!("chatwidget-feature-memories-lower"),
+            ),
             _ => return,
         };
         self.bottom_pane.show_selection_view(SelectionViewParams {
-            title: Some(format!("Enable {name}?")),
-            subtitle: Some(format!("{label} are disabled in this TUI session.")),
+            title: Some(crate::i18n::tr!("chatwidget-enable-feature", name = name)),
+            subtitle: Some(crate::i18n::tr!(
+                "chatwidget-feature-disabled",
+                label = label
+            )),
             footer_note: (feature == Feature::MemoryTool).then(|| {
                 Line::from(vec![
-                    "Learn more: ".dim(),
+                    crate::i18n::tr!("chatwidget-learn-more").dim(),
                     MEMORIES_DOC_URL.cyan().underlined(),
                 ])
             }),
             footer_hint: Some(standard_popup_hint_line()),
             items: vec![
                 SelectionItem {
-                    name: "Yes, enable".to_string(),
+                    name: crate::i18n::tr!("chatwidget-yes-enable").to_string(),
                     description: Some(
-                        "Save on the server for new threads without changing this thread"
-                            .to_string(),
+                        crate::i18n::tr!("chatwidget-enable-for-new-threads").to_string(),
                     ),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::EnableFeatureForNewThreads(feature));
@@ -1137,8 +1143,8 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: "Not now".to_string(),
-                    description: Some(format!("Keep {name} disabled")),
+                    name: crate::i18n::tr!("chatwidget-not-now").to_string(),
+                    description: Some(crate::i18n::tr!("chatwidget-keep-disabled", name = name)),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
@@ -1347,7 +1353,7 @@ impl ChatWidget {
         if !from_replay {
             self.bottom_pane.ensure_status_indicator();
         }
-        let banner = format!(">> Code review started: {hint} <<");
+        let banner = crate::i18n::tr!("chatwidget-code-review-started", hint = hint);
         self.add_to_history(history_cell::new_review_status_line(banner));
         self.request_redraw();
     }
@@ -1359,7 +1365,7 @@ impl ChatWidget {
         self.review.is_review_mode = false;
         self.restore_pre_review_token_info();
         self.add_to_history(history_cell::new_review_status_line(
-            "<< Code review finished >>".to_string(),
+            crate::i18n::tr!("chatwidget-code-review-finished").to_string(),
         ));
         self.request_redraw();
     }
@@ -1564,7 +1570,7 @@ impl ChatWidget {
         self.submit_op(AppCommand::clean_background_terminals());
         self.clear_background_terminals();
         self.add_info_message(
-            "Stopping all background terminals.".to_string(),
+            crate::i18n::tr!("chatwidget-stopping-bg-terminals").to_string(),
             /*hint*/ None,
         );
     }
@@ -1625,7 +1631,7 @@ impl ChatWidget {
 
     pub(crate) fn add_memories_enable_notice(&mut self) {
         self.add_to_history(history_cell::new_warning_event(
-            MEMORIES_ENABLE_NOTICE.to_string(),
+            crate::i18n::tr!("chatwidget-memories-enable-notice").to_string(),
         ));
         self.request_redraw();
     }
@@ -1744,9 +1750,9 @@ impl ChatWidget {
 
     pub(crate) fn raw_output_mode_notice(enabled: bool) -> &'static str {
         if enabled {
-            "Raw output mode on: transcript text is shown for clean terminal selection."
+            crate::i18n::tr!("chatwidget-raw-output-on")
         } else {
-            "Raw output mode off: rich transcript rendering restored."
+            crate::i18n::tr!("chatwidget-raw-output-off")
         }
     }
 
@@ -1826,9 +1832,9 @@ impl ChatWidget {
     pub(crate) fn toggle_vim_mode_and_notify(&mut self) {
         let enabled = self.bottom_pane.toggle_vim_enabled();
         let message = if enabled {
-            "Vim mode enabled."
+            crate::i18n::tr!("chatwidget-vim-enabled")
         } else {
-            "Vim mode disabled."
+            crate::i18n::tr!("chatwidget-vim-disabled")
         };
         self.add_info_message(message.to_string(), /*hint*/ None);
     }

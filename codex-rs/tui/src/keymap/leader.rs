@@ -26,7 +26,7 @@ pub(super) fn resolve(config: &TuiKeymap, chords: &mut RuntimeChordKeymap) -> Re
             .iter()
             .any(|spec| spec.as_str().contains(' '))
     }) {
-        return Err("Invalid `tui.keymap.global.leader`: use a single prefix key.".into());
+        return Err(crate::i18n::tr!("leader-single-prefix-key").into());
     }
     let defaults = [default];
     chords.leader = resolve_bindings(
@@ -46,26 +46,20 @@ pub(super) fn resolve(config: &TuiKeymap, chords: &mut RuntimeChordKeymap) -> Re
             && (key_hint::is_plain_text_key_event(KeyEvent::new(key, modifiers))
                 || key_hint::is_altgr(modifiers))
         {
-            return Err(format!(
-                "Invalid `tui.keymap.global.leader` = `{label}`: use ctrl, alt, super, or a \
-non-character key so ordinary text input is not intercepted. Ctrl-alt characters may be AltGr \
-input on Windows."
-            ));
+            return Err(crate::i18n::tr!("leader-needs-modifier", label = label));
         }
         #[cfg(unix)]
         if *prefix == key_hint::ctrl(KeyCode::Char('z')) {
-            return Err(format!(
-                "Invalid `tui.keymap.global.leader` = `{label}`: ctrl-z is reserved for suspending \
-the terminal on Unix."
-            ));
+            return Err(crate::i18n::tr!("leader-ctrl-z-reserved", label = label));
         }
         if let Some((reserved_action, _)) = MAIN_RESERVED_BINDINGS
             .iter()
             .find(|(_, reserved)| prefix.parts() == reserved.parts())
         {
-            return Err(format!(
-                "Invalid `tui.keymap.global.leader` = `{label}`: this key is reserved by \
-`{reserved_action}`."
+            return Err(crate::i18n::tr!(
+                "leader-key-reserved",
+                label = label,
+                reserved_action = *reserved_action
             ));
         }
     }

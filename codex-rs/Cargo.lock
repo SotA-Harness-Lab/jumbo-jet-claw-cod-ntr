@@ -5309,6 +5309,7 @@ dependencies = [
  "diffy",
  "dirs",
  "dunce",
+ "fluent",
  "futures",
  "http 1.4.0",
  "i18n-embed",

@@ -83,10 +83,10 @@ fn active_goal_usage(
 
 fn stopped_goal_budget_usage(token_budget: Option<i64>, tokens_used: i64) -> Option<String> {
     token_budget.map(|token_budget| {
-        format!(
-            "{} / {} tokens",
-            format_tokens_compact(tokens_used),
-            format_tokens_compact(token_budget)
+        crate::i18n::tr!(
+            "goal-status-budget-tokens",
+            used = format_tokens_compact(tokens_used),
+            budget = format_tokens_compact(token_budget)
         )
     })
 }
@@ -97,7 +97,10 @@ fn completed_goal_usage(
     time_used_seconds: i64,
 ) -> String {
     if token_budget.is_some() {
-        return format!("{} tokens", format_tokens_compact(tokens_used));
+        return crate::i18n::tr!(
+            "goal-status-tokens",
+            used = format_tokens_compact(tokens_used)
+        );
     }
 
     format_goal_elapsed_seconds(time_used_seconds)

@@ -36,27 +36,29 @@ pub(super) fn reset_credit_options(
                 Some(expires_at) => DateTime::<Utc>::from_timestamp(expires_at, 0)
                     .map(|expires_at| {
                         let expires_at = expires_at.with_timezone(&Local);
-                        format!(
-                            "Expires {} on {}",
-                            expires_at.format(clock_format.time_format()),
-                            expires_at.format("%-d %b %Y")
+                        crate::i18n::tr!(
+                            "reset-credits-expires",
+                            time = expires_at.format(clock_format.time_format()).to_string(),
+                            date = expires_at.format("%-d %b %Y").to_string()
                         )
                     })
-                    .unwrap_or_else(|| "Expiration unavailable".to_string()),
-                None => "Does not expire".to_string(),
+                    .unwrap_or_else(|| {
+                        crate::i18n::tr!("reset-credits-expiration-unavailable").to_string()
+                    }),
+                None => crate::i18n::tr!("reset-credits-does-not-expire").to_string(),
             };
             let reset_title = credit
                 .title
                 .as_deref()
                 .map(str::trim)
                 .filter(|title| !title.is_empty())
-                .unwrap_or("Full reset");
+                .unwrap_or(crate::i18n::tr!("reset-credits-full-reset"));
             let reset_description = credit
                 .description
                 .as_deref()
                 .map(str::trim)
                 .filter(|description| !description.is_empty())
-                .unwrap_or("Reset your current usage limits");
+                .unwrap_or(crate::i18n::tr!("reset-credits-reset-limits"));
             ResetCreditOption {
                 credit_id: Some(credit.id.clone()),
                 name: reset_title.to_string(),
@@ -69,9 +71,9 @@ pub(super) fn reset_credit_options(
     if options.is_empty() {
         options.push(ResetCreditOption {
             credit_id: None,
-            name: "Full reset".to_string(),
+            name: crate::i18n::tr!("reset-credits-full-reset").to_string(),
             detail: None,
-            description: "Reset your current usage limits".to_string(),
+            description: crate::i18n::tr!("reset-credits-reset-limits").to_string(),
         });
     }
 

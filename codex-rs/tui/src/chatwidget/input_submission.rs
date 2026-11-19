@@ -40,8 +40,8 @@ impl ChatWidget {
         if cmd.is_empty() {
             self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
                 history_cell::new_info_event(
-                    USER_SHELL_COMMAND_HELP_TITLE.to_string(),
-                    Some(USER_SHELL_COMMAND_HELP_HINT.to_string()),
+                    crate::i18n::tr!("input-submission-shell-help-title").to_string(),
+                    Some(crate::i18n::tr!("input-submission-shell-help-hint").to_string()),
                 ),
             )));
             QueueDrain::Continue
@@ -469,7 +469,7 @@ impl ChatWidget {
         let effective_mode = self.effective_collaboration_mode();
         if effective_mode.model().trim().is_empty() {
             self.add_error_message(
-                "Thread model is unavailable. Wait for the thread to finish syncing or choose a model before sending input.".to_string(),
+                crate::i18n::tr!("input-submission-model-unavailable").to_string(),
             );
             self.restore_user_message_to_composer(user_message_for_restore(
                 UserMessage {

@@ -53,36 +53,76 @@ impl StatusSurfacePreviewItem {
             StatusSurfacePreviewItem::ProjectRoot => "my-project",
             StatusSurfacePreviewItem::CurrentDir => "~/my-project/subdir",
             StatusSurfacePreviewItem::Hostname => "my-host",
-            StatusSurfacePreviewItem::Status => "Working",
-            StatusSurfacePreviewItem::ThreadName => "thread name",
-            StatusSurfacePreviewItem::ThreadTitle => "thread title",
+            StatusSurfacePreviewItem::Status => {
+                crate::i18n::tr!("status-surface-preview-sample-status")
+            }
+            StatusSurfacePreviewItem::ThreadName => {
+                crate::i18n::tr!("status-surface-preview-sample-thread-name")
+            }
+            StatusSurfacePreviewItem::ThreadTitle => {
+                crate::i18n::tr!("status-surface-preview-sample-thread-title")
+            }
             StatusSurfacePreviewItem::GitBranch => "feat/awesome-feature",
             StatusSurfacePreviewItem::PullRequestNumber => "PR #123",
             StatusSurfacePreviewItem::BranchChanges => "+12 -3",
-            StatusSurfacePreviewItem::Permissions => "Workspace",
+            StatusSurfacePreviewItem::Permissions => {
+                crate::i18n::tr!("status-surface-preview-sample-permissions")
+            }
             StatusSurfacePreviewItem::ApprovalMode => "on-request",
-            StatusSurfacePreviewItem::ContextRemaining => "Context 0% left",
-            StatusSurfacePreviewItem::ContextUsed => "Context 0% used",
-            StatusSurfacePreviewItem::FiveHourLimit => "primary 0%",
-            StatusSurfacePreviewItem::WeeklyLimit => "secondary 0%",
+            StatusSurfacePreviewItem::ContextRemaining => {
+                crate::i18n::tr!("status-surface-preview-sample-context-remaining")
+            }
+            StatusSurfacePreviewItem::ContextUsed => {
+                crate::i18n::tr!("status-surface-preview-sample-context-used")
+            }
+            StatusSurfacePreviewItem::FiveHourLimit => {
+                crate::i18n::tr!("status-surface-preview-sample-five-hour-limit")
+            }
+            StatusSurfacePreviewItem::WeeklyLimit => {
+                crate::i18n::tr!("status-surface-preview-sample-weekly-limit")
+            }
             StatusSurfacePreviewItem::CodexVersion => "0.0.0",
-            StatusSurfacePreviewItem::ContextWindowSize => "0 window",
-            StatusSurfacePreviewItem::UsedTokens => "0 used",
-            StatusSurfacePreviewItem::TotalInputTokens => "0 in",
-            StatusSurfacePreviewItem::TotalOutputTokens => "0 out",
-            StatusSurfacePreviewItem::ThreadCredits => "5.2 credits",
+            StatusSurfacePreviewItem::ContextWindowSize => {
+                crate::i18n::tr!("status-surface-preview-sample-context-window-size")
+            }
+            StatusSurfacePreviewItem::UsedTokens => {
+                crate::i18n::tr!("status-surface-preview-sample-used-tokens")
+            }
+            StatusSurfacePreviewItem::TotalInputTokens => {
+                crate::i18n::tr!("status-surface-preview-sample-total-input-tokens")
+            }
+            StatusSurfacePreviewItem::TotalOutputTokens => {
+                crate::i18n::tr!("status-surface-preview-sample-total-output-tokens")
+            }
+            StatusSurfacePreviewItem::ThreadCredits => {
+                crate::i18n::tr!("status-surface-preview-sample-thread-credits")
+            }
             StatusSurfacePreviewItem::EstimatedThreadCost => "~$1.82",
             StatusSurfacePreviewItem::SessionId => "550e8400-e29b-41d4",
-            StatusSurfacePreviewItem::FastMode => "Fast",
-            StatusSurfacePreviewItem::Daybreak => "Daybreak off",
-            StatusSurfacePreviewItem::RawOutput => "raw output",
-            StatusSurfacePreviewItem::WorkspaceHeadline => "Workspace headline",
+            StatusSurfacePreviewItem::FastMode => {
+                crate::i18n::tr!("status-surface-preview-sample-fast-mode")
+            }
+            StatusSurfacePreviewItem::Daybreak => {
+                crate::i18n::tr!("status-surface-preview-sample-daybreak")
+            }
+            StatusSurfacePreviewItem::RawOutput => {
+                crate::i18n::tr!("status-surface-preview-sample-raw-output")
+            }
+            StatusSurfacePreviewItem::WorkspaceHeadline => {
+                crate::i18n::tr!("status-surface-preview-sample-workspace-headline")
+            }
             StatusSurfacePreviewItem::Model => "gpt-5.2-codex",
             StatusSurfacePreviewItem::ModelWithReasoning => "gpt-5.2-codex medium",
             StatusSurfacePreviewItem::Reasoning => "medium",
-            StatusSurfacePreviewItem::Profile => "profile: <name>",
-            StatusSurfacePreviewItem::Provider => "provider: <id>",
-            StatusSurfacePreviewItem::TaskProgress => "Tasks 0/0",
+            StatusSurfacePreviewItem::Profile => {
+                crate::i18n::tr!("status-surface-preview-sample-profile")
+            }
+            StatusSurfacePreviewItem::Provider => {
+                crate::i18n::tr!("status-surface-preview-sample-provider")
+            }
+            StatusSurfacePreviewItem::TaskProgress => {
+                crate::i18n::tr!("status-surface-preview-sample-task-progress")
+            }
         }
     }
 
@@ -276,37 +316,37 @@ fn rate_limit_preview_copy(value: &str) -> Option<RateLimitPreviewCopy> {
     if value.starts_with("secondary usage ") {
         Some(RateLimitPreviewCopy {
             name: "secondary-usage-limit",
-            description: "Remaining usage on the secondary usage limit (omitted when unavailable)",
+            description: crate::i18n::tr!("status-surface-preview-limit-desc-secondary"),
         })
     } else if value.starts_with("usage ") {
         Some(RateLimitPreviewCopy {
             name: "usage-limit",
-            description: "Remaining usage on the primary usage limit (omitted when unavailable)",
+            description: crate::i18n::tr!("status-surface-preview-limit-desc-primary"),
         })
     } else if value.starts_with("5h ") {
         Some(RateLimitPreviewCopy {
             name: "five-hour-limit",
-            description: "Remaining usage on the 5-hour usage limit (omitted when unavailable)",
+            description: crate::i18n::tr!("status-surface-preview-limit-desc-five-hour"),
         })
     } else if value.starts_with("daily ") {
         Some(RateLimitPreviewCopy {
             name: "daily-limit",
-            description: "Remaining usage on the daily usage limit (omitted when unavailable)",
+            description: crate::i18n::tr!("status-surface-preview-limit-desc-daily"),
         })
     } else if value.starts_with("weekly ") {
         Some(RateLimitPreviewCopy {
             name: "weekly-limit",
-            description: "Remaining usage on the weekly usage limit (omitted when unavailable)",
+            description: crate::i18n::tr!("status-surface-preview-limit-desc-weekly"),
         })
     } else if value.starts_with("monthly ") {
         Some(RateLimitPreviewCopy {
             name: "monthly-limit",
-            description: "Remaining usage on the monthly usage limit (omitted when unavailable)",
+            description: crate::i18n::tr!("status-surface-preview-limit-desc-monthly"),
         })
     } else if value.starts_with("annual ") {
         Some(RateLimitPreviewCopy {
             name: "annual-limit",
-            description: "Remaining usage on the annual usage limit (omitted when unavailable)",
+            description: crate::i18n::tr!("status-surface-preview-limit-desc-annual"),
         })
     } else {
         None
