@@ -338,7 +338,9 @@ impl super::ChatComposer {
                 shortcuts.push_span(" · ".set_style(secondary_text_style()));
             }
             shortcuts.extend(key.spans());
-            shortcuts.push_span(" shortcuts".set_style(secondary_text_style()));
+            shortcuts.push_span(
+                crate::i18n::tr!("footer-state-shortcuts").set_style(secondary_text_style()),
+            );
             if line.width() + shortcuts.width() <= usize::from(hint_area.width) {
                 line.extend(shortcuts.spans);
             }

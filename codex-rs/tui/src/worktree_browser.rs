@@ -87,7 +87,7 @@ pub(crate) fn fetch(
                                 .lines()
                                 .next()
                                 .filter(|preview| !preview.trim().is_empty())
-                                .unwrap_or("Untitled conversation")
+                                .unwrap_or(crate::i18n::tr!("worktree-browser-untitled"))
                                 .to_string()
                         });
                     let title = if title.chars().count() > 80 {

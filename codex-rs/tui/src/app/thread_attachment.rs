@@ -217,9 +217,10 @@ pub(super) async fn prepare(
                 .thread_read(thread_id, /*include_turns*/ false)
                 .await?;
             if thread.ephemeral {
-                return Err(color_eyre::eyre::eyre!(
-                    "Agent thread {thread_id} is not yet available for replay or live attach."
-                ));
+                return Err(color_eyre::eyre::eyre!(crate::i18n::tr!(
+                    "thread-attachment-not-yet-available",
+                    thread_id = thread_id.to_string()
+                )));
             }
             match app_server
                 .hydrate_initial_thread_history(
@@ -239,9 +240,10 @@ pub(super) async fn prepare(
             if thread.turns.is_empty() {
                 // A `thread/read` fallback without turns would create a blank local replay
                 // channel with no live listener attached, which blocks later real re-attach.
-                return Err(color_eyre::eyre::eyre!(
-                    "Agent thread {thread_id} is not yet available for replay or live attach."
-                ));
+                return Err(color_eyre::eyre::eyre!(crate::i18n::tr!(
+                    "thread-attachment-not-yet-available",
+                    thread_id = thread_id.to_string()
+                )));
             }
             Ok(PreparedAttachment::ReplayOnly(Box::new(thread)))
         }

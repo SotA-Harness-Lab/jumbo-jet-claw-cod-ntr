@@ -170,7 +170,11 @@ fn take_unsent_text() -> Option<String> {
 /// Display unsent text only after the caller has restored normal terminal modes.
 pub(crate) fn print_unsent_draft() {
     if let Some(text) = take_unsent_text() {
-        let _ = writeln!(std::io::stderr().lock(), "\nUnsent draft:\n{text}\n");
+        let _ = writeln!(
+            std::io::stderr().lock(),
+            "{}",
+            crate::i18n::tr!("startup-recovery-unsent-draft", text = text)
+        );
     }
 }
 

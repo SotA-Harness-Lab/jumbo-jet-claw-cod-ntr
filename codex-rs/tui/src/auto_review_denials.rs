@@ -55,17 +55,24 @@ pub(crate) fn action_summary(action: &GuardianAssessmentAction) -> String {
                 &format!("{stdin:?}"),
                 /*max_graphemes*/ 80,
             );
-            format!("send input to terminal {process_id}: {stdin}")
+            crate::i18n::tr!(
+                "auto-review-send-input",
+                process_id = process_id.to_string(),
+                stdin = stdin
+            )
         }
         GuardianAssessmentAction::ApplyPatch { files, .. } => {
             if files.len() == 1 {
-                format!("apply_patch touching {}", files[0].render_for_ui())
+                crate::i18n::tr!(
+                    "auto-review-apply-patch-one",
+                    file = files[0].render_for_ui()
+                )
             } else {
-                format!("apply_patch touching {} files", files.len())
+                crate::i18n::tr!("auto-review-apply-patch-many", count = files.len() as i64)
             }
         }
         GuardianAssessmentAction::NetworkAccess { target, .. } => {
-            format!("network access to {target}")
+            crate::i18n::tr!("auto-review-network-access", target = target.to_string())
         }
         GuardianAssessmentAction::McpToolCall {
             server,
@@ -74,12 +81,21 @@ pub(crate) fn action_summary(action: &GuardianAssessmentAction) -> String {
             ..
         } => {
             let label = connector_name.as_deref().unwrap_or(server.as_str());
-            format!("MCP {tool_name} on {label}")
+            crate::i18n::tr!(
+                "auto-review-mcp-on",
+                tool_name = tool_name.to_string(),
+                label = label.to_string()
+            )
         }
         GuardianAssessmentAction::RequestPermissions { reason, .. } => reason
             .as_deref()
-            .map(|reason| format!("permission request: {reason}"))
-            .unwrap_or_else(|| "permission request".to_string()),
+            .map(|reason| {
+                crate::i18n::tr!(
+                    "auto-review-permission-request-reason",
+                    reason = reason.to_string()
+                )
+            })
+            .unwrap_or_else(|| crate::i18n::tr!("auto-review-permission-request").to_string()),
     }
 }
 

@@ -9,11 +9,15 @@ impl ChatWidget {
         if let Some(handle) = self.realtime_conversation.handle.as_ref() {
             if let Err(error) = handle.set_microphone_muted(muted) {
                 let (message, cause) = match handle.take_error() {
-                    Some((cause, error)) => {
-                        (format!("Voice conversation failed: {error}"), cause.into())
-                    }
+                    Some((cause, error)) => (
+                        crate::i18n::tr!("recording-controls-voice-failed", error = error),
+                        cause.into(),
+                    ),
                     None => (
-                        format!("Failed to update microphone: {error}"),
+                        crate::i18n::tr!(
+                            "recording-controls-mic-update-failed",
+                            error = error.to_string()
+                        ),
                         RealtimeFailureCause::AudioControls,
                     ),
                 };
@@ -21,7 +25,9 @@ impl ChatWidget {
                 return;
             }
         } else if self.realtime_conversation.phase != RealtimeConversationPhase::Starting {
-            self.add_realtime_error("Start voice mode before muting the microphone.".to_string());
+            self.add_realtime_error(
+                crate::i18n::tr!("recording-controls-start-voice-first").to_string(),
+            );
             return;
         }
 
@@ -146,7 +152,10 @@ impl ChatWidget {
             return;
         };
         if let Some((cause, error)) = handle.take_error() {
-            self.on_realtime_error(format!("Voice conversation failed: {error}"), cause.into());
+            self.on_realtime_error(
+                crate::i18n::tr!("recording-controls-voice-failed", error = error),
+                cause.into(),
+            );
             return;
         }
         if self.realtime_conversation.phase == RealtimeConversationPhase::Starting {
@@ -252,24 +261,24 @@ impl ChatWidget {
         }
 
         let activity = if self.realtime_conversation.phase == RealtimeConversationPhase::Starting {
-            "connecting"
+            crate::i18n::tr!("recording-controls-connecting")
         } else if self.realtime_conversation.microphone_muted {
-            "muted"
+            crate::i18n::tr!("recording-controls-muted")
         } else if self
             .realtime_conversation
             .interruption_acknowledged_until
             .is_some_and(|deadline| deadline > Instant::now())
         {
-            "heard"
+            crate::i18n::tr!("recording-controls-heard")
         } else if self.realtime_conversation.speaker_level > 0
             || self
                 .realtime_conversation
                 .speaker_active_until
                 .is_some_and(|deadline| deadline > Instant::now())
         {
-            "speaking"
+            crate::i18n::tr!("recording-controls-speaking")
         } else {
-            "listening"
+            crate::i18n::tr!("recording-controls-listening")
         };
         self.bottom_pane.set_voice_strip(Some(VoiceStripState {
             mute_hint: self.chat_keymap.voice_mute_hint(),

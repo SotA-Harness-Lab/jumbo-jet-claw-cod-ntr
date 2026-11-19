@@ -195,9 +195,9 @@ impl LocalSettings {
                 codex_config::merge_toml_values(&mut audio, value);
             }
         }
-        self.audio = audio
-            .try_into()
-            .map_err(|error: toml::de::Error| format!("Invalid machine audio settings: {error}"));
+        self.audio = audio.try_into().map_err(|error: toml::de::Error| {
+            crate::i18n::tr!("local-settings-invalid-audio", error = error.to_string())
+        });
     }
 }
 

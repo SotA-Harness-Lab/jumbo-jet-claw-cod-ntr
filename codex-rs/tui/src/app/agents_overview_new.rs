@@ -35,7 +35,14 @@ impl App {
         title: Option<&'static str>,
         reason: impl std::fmt::Display,
     ) {
-        self.show_agents_overview_error(title, format!("{reason} A checkout was retained at {}; remove it with `git worktree remove <checkout-path>` from the source repository if it is no longer needed.", checkout.root.display()));
+        self.show_agents_overview_error(
+            title,
+            crate::i18n::tr!(
+                "agents-overview-new-checkout-retained",
+                reason = reason.to_string(),
+                path = checkout.root.display().to_string()
+            ),
+        );
     }
 
     pub(in crate::app) async fn new_agents_overview_session(
@@ -109,7 +116,7 @@ impl App {
                 self.agents_overview_retained_worktree_error(
                     checkout,
                     /*title*/ None,
-                    "Could not start the session.",
+                    crate::i18n::tr!("agents-overview-new-could-not-start"),
                 );
             }
             return Ok(AppRunControl::Continue);
@@ -127,7 +134,7 @@ impl App {
                 self.agents_overview_retained_worktree_error(
                     checkout,
                     /*title*/ None,
-                    "Could not load the new session settings.",
+                    crate::i18n::tr!("agents-overview-new-could-not-load-settings"),
                 );
             }
             return Ok(AppRunControl::Continue);
@@ -179,17 +186,23 @@ impl App {
                     Some(TypedRequestError::Server { source, .. })
                         if is_server_shutting_down_error(source)
                 ) {
-                    let mut message = String::from(
-                        "New sessions are paused while active turns finish or are canceled. The default shutdown wait is up to one minute.",
-                    );
+                    let mut message =
+                        String::from(crate::i18n::tr!("agents-overview-new-sessions-paused"));
                     if !matches!(self.app_server_target, AppServerTarget::Embedded) {
-                        message.push_str(
-                            " If the server restarts, Codex will reconnect automatically.",
-                        );
+                        message.push_str(crate::i18n::tr!("agents-overview-new-will-reconnect"));
                     }
-                    (Some("Codex's background server is shutting down"), message)
+                    (
+                        Some(crate::i18n::tr!("agents-overview-new-server-shutting-down")),
+                        message,
+                    )
                 } else {
-                    (None, format!("Failed to start session: {error}"))
+                    (
+                        None,
+                        crate::i18n::tr!(
+                            "agents-overview-new-start-failed",
+                            error = error.to_string()
+                        ),
+                    )
                 };
                 if let Some((_, checkout)) = &managed_worktree {
                     self.agents_overview_retained_worktree_error(checkout, title, message);
@@ -209,9 +222,9 @@ impl App {
             let result =
                 if crate::session_resume::cwds_differ(started.session.cwd.as_path(), &checkout.cwd)
                 {
-                    Err(anyhow::anyhow!(
-                        "The server did not apply the worktree directory."
-                    ))
+                    Err(anyhow::anyhow!(crate::i18n::tr!(
+                        "agents-overview-new-worktree-not-applied"
+                    )))
                 } else {
                     manager.bind_thread(&checkout.root, &thread_id.to_string())
                 };
@@ -243,7 +256,7 @@ impl App {
                 self.agents_overview_retained_worktree_error(
                     checkout,
                     /*title*/ None,
-                    "Could not open the new session.",
+                    crate::i18n::tr!("agents-overview-new-could-not-open"),
                 );
             }
         }
@@ -267,7 +280,7 @@ impl App {
             self.environment_manager.as_ref(),
         ) {
             self.add_agents_overview_error(
-                "Managed worktrees require local worktree support.".to_string(),
+                crate::i18n::tr!("agents-overview-new-worktree-support").to_string(),
             );
             return;
         }
@@ -280,7 +293,7 @@ impl App {
         let setup = async {
             anyhow::ensure!(
                 !config.active_project.is_untrusted(),
-                "The source project is not trusted."
+                crate::i18n::tr!("agents-overview-new-project-untrusted")
             );
             let host = crate::legacy_core::config::load_config_toml_with_layer_stack(
                 &self.config.codex_home,
@@ -323,7 +336,12 @@ impl App {
                     .map_err(|error| error.to_string())
             })
             .await
-            .unwrap_or_else(|error| Err(format!("Worktree creation task failed: {error}")));
+            .unwrap_or_else(|error| {
+                Err(crate::i18n::tr!(
+                    "agents-overview-new-worktree-task-failed",
+                    error = error.to_string()
+                ))
+            });
             sender.send(AppEvent::AgentsOverviewWorktreeCreated(result));
         });
     }

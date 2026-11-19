@@ -5,9 +5,9 @@ use super::auth::AuthModeWidget;
 use super::auth::SignInState;
 use super::keys;
 use super::provider_setup::ProviderInput;
-use crate::app::provider::CREATE_CUSTOM_PROVIDER;
 use crate::app::provider::Draft;
 use crate::app::provider::ProviderForm;
+use crate::app::provider::create_custom_provider;
 use crate::app::provider::provider_item;
 use crate::app::provider::rpc;
 use crate::app_event_sender::AppEventSender;
@@ -35,7 +35,9 @@ use ratatui::text::Line;
 use ratatui::widgets::Widget;
 use tokio::sync::mpsc::unbounded_channel;
 
-pub(super) const USE_CUSTOM_PROVIDER: &str = "Use a custom provider or gateway";
+pub(super) fn use_custom_provider() -> &'static str {
+    crate::i18n::tr!("gateway-use-custom-provider")
+}
 
 // Requests stay on the onboarding thread so a redraw can stop polling without losing the reply.
 pub(super) enum GatewayStep {
@@ -59,10 +61,9 @@ impl GatewayStep {
                         .retain(|p| matches!(p.settings, ProviderSettings::CustomGateway { .. }));
                     Self::Picking(Box::new(Picker::new(page, /*selected*/ None, notice)))
                 }
-                Ok(_) => Self::load_error(
-                    "The default provider is set by configuration policy or a launch override."
-                        .into(),
-                ),
+                Ok(_) => {
+                    Self::load_error(crate::i18n::tr!("gateway-default-provider-locked").into())
+                }
                 Err(message) => Self::load_error(message),
             }
         }))
@@ -71,7 +72,7 @@ impl GatewayStep {
     fn load_error(message: String) -> Self {
         let (tx, _) = unbounded_channel();
         Self::LoadError(Box::new(ListSelectionView::new(
-            crate::app::provider::load_error(USE_CUSTOM_PROVIDER, message),
+            crate::app::provider::load_error(use_custom_provider(), message),
             AppEventSender::new(tx),
             RuntimeKeymap::defaults().list,
         )))
@@ -96,7 +97,7 @@ impl GatewayStep {
                     )))
                 }
                 Ok(rpc::ProviderWrite::UnconfirmedCreate) => {
-                    GatewayStep::load(handle, Some(rpc::UNCONFIRMED_CREATE.into()))
+                    GatewayStep::load(handle, Some(rpc::unconfirmed_create().into()))
                 }
                 Err(message) => {
                     form.error = Some(message);
@@ -119,11 +120,17 @@ impl GatewayStep {
 
     pub(super) fn render(&self, area: Rect, buf: &mut Buffer) {
         match self {
-            Self::Loading(_) => Widget::render(Line::from("Loading gateways…".dim()), area, buf),
+            Self::Loading(_) => Widget::render(
+                Line::from(crate::i18n::tr!("gateway-loading").dim()),
+                area,
+                buf,
+            ),
             Self::Editing { form, .. } => form.render(area, buf),
-            Self::Saving(_) | Self::Selecting(_) => {
-                Widget::render(Line::from("Saving gateway settings…".dim()), area, buf)
-            }
+            Self::Saving(_) | Self::Selecting(_) => Widget::render(
+                Line::from(crate::i18n::tr!("gateway-saving").dim()),
+                area,
+                buf,
+            ),
             Self::LoadError(list) => list.render(area, buf),
             Self::Picking(picker) => picker.list.render(area, buf),
         }
@@ -152,20 +159,20 @@ impl Picker {
                 keymap.primary_hint(ListAction::Accept),
                 accept,
                 keymap.primary_hint(ListAction::Cancel),
-                "to go back",
+                crate::i18n::tr!("gateway-hint-to-go-back"),
             )
         };
         items.push(SelectionItem {
-            name: CREATE_CUSTOM_PROVIDER.into(),
-            footer_hint: Some(hint("to create")),
+            name: create_custom_provider().into(),
+            footer_hint: Some(hint(crate::i18n::tr!("gateway-hint-to-create"))),
             ..Default::default()
         });
         // Like the other startup pickers, consume the selection directly before the app event loop exists.
         let (tx, _) = unbounded_channel();
         let list = ListSelectionView::new(
             SelectionViewParams {
-                title: Some(USE_CUSTOM_PROVIDER.into()),
-                footer_hint: Some(hint("to use as default")),
+                title: Some(use_custom_provider().into()),
+                footer_hint: Some(hint(crate::i18n::tr!("gateway-hint-to-use-as-default"))),
                 footer_note: notice.map(Into::into),
                 initial_selected_idx: selected,
                 auto_number_shortcuts: false,

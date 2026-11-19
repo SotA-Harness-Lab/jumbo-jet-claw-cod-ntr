@@ -153,7 +153,11 @@ fn render_navigation_hints(area: Rect, buf: &mut Buffer, keymap: &PagerKeymap) {
     let (action_groups, _) = actions.as_chunks::<ACTIONS_PER_HINT>();
     let hints = action_groups
         .iter()
-        .zip(["to scroll", "to page", "to jump"])
+        .zip([
+            crate::i18n::tr!("pager-overlay-to-scroll"),
+            crate::i18n::tr!("pager-overlay-to-page"),
+            crate::i18n::tr!("pager-overlay-to-jump"),
+        ])
         .map(|(actions, description)| {
             (
                 actions
@@ -459,7 +463,7 @@ impl StaticOverlay {
         render_navigation_hints(line1, buf, &self.view.keymap);
         let mut pairs = vec![(
             first_or_empty(&self.view.keymap, "close", &self.view.keymap.close),
-            "close",
+            crate::i18n::tr!("pager-overlay-close"),
         )];
         if let Some(action) = &self.action {
             pairs.push((vec![action.key.into()], action.label));

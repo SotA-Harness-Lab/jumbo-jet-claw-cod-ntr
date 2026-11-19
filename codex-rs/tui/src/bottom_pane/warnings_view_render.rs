@@ -34,19 +34,20 @@ impl Renderable for WarningsView {
         let footer = footer.inner(Margin::new(/*horizontal*/ 2, /*vertical*/ 0));
         let entry = self.entries.get(self.current);
         let title = match entry {
-            Some(entry) => format!(
-                "Warnings · {} of {} · {}",
-                self.current + 1,
-                self.entries.len(),
-                entry.source
+            Some(entry) => crate::i18n::tr!(
+                "warnings-view-title-entry",
+                current = self.current + 1,
+                total = self.entries.len(),
+                source = entry.source.to_string()
             ),
-            None => "Warnings".to_string(),
+            None => crate::i18n::tr!("warnings-view-title").to_string(),
         };
         Line::from(title.bold()).render(header, buf);
-        let details = entry.map_or("No warnings", |entry| entry.details.as_str());
-        let restart_hint = (self.daemon_restart_hint_at == Some(self.current)).then_some(
-            "\nThese warnings may reflect settings from when the background server started. If you’ve already fixed them, use /daemon to restart it.",
-        );
+        let details = entry.map_or(crate::i18n::tr!("warnings-view-none"), |entry| {
+            entry.details.as_str()
+        });
+        let restart_hint = (self.daemon_restart_hint_at == Some(self.current))
+            .then_some(crate::i18n::tr!("warnings-view-restart-hint"));
         if body.width > 0
             && body.height > 0
             && let Some(visited) = self.visited.get(self.current)
@@ -93,21 +94,27 @@ impl Renderable for WarningsView {
             .join("/");
         let mut items = Vec::new();
         for (hint, label) in [
-            (Some("k".to_string()), "keep & next"),
+            (
+                Some("k".to_string()),
+                crate::i18n::tr!("warnings-view-keep-next"),
+            ),
             (
                 Some(
                     hint(KeymapContext::List, "cancel")
                         .unwrap_or_else(|| key_hint::ctrl(KeyCode::Char('c')).into())
                         .display_label(),
                 ),
-                "dismiss & close",
+                crate::i18n::tr!("warnings-view-dismiss-close"),
             ),
             (
                 hint(KeymapContext::Global, "copy")
                     .map(crate::key_hint::ShortcutHint::display_label),
-                "copy",
+                crate::i18n::tr!("warnings-view-copy"),
             ),
-            ((!navigation.is_empty()).then_some(navigation), "warning"),
+            (
+                (!navigation.is_empty()).then_some(navigation),
+                crate::i18n::tr!("warnings-view-warning"),
+            ),
             (
                 crate::footer_hint::scroll_keys(
                     offset,
@@ -115,7 +122,7 @@ impl Renderable for WarningsView {
                     list("move_up"),
                     list("move_down"),
                 ),
-                "scroll",
+                crate::i18n::tr!("warnings-view-scroll"),
             ),
         ] {
             if let Some(hint) = hint {

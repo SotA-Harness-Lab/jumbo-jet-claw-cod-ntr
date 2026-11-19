@@ -55,21 +55,37 @@ use codex_protocol::ThreadId;
 use codex_protocol::user_input::TextElement;
 use unicode_width::UnicodeWidthStr;
 
-const NOTES_PLACEHOLDER: &str = "Add notes";
-const ANSWER_PLACEHOLDER: &str = "Type your answer (optional)";
+fn notes_placeholder_text() -> &'static str {
+    crate::i18n::tr!("request-input-add-notes")
+}
+fn answer_placeholder_text() -> &'static str {
+    crate::i18n::tr!("request-input-answer-placeholder")
+}
 // Keep in sync with ChatComposer's minimum composer height.
 const MIN_COMPOSER_HEIGHT: u16 = 3;
-const SELECT_OPTION_PLACEHOLDER: &str = "Select an option to add notes";
+fn select_option_placeholder_text() -> &'static str {
+    crate::i18n::tr!("request-input-select-option")
+}
 pub(super) const TIP_SEPARATOR: &str = " | ";
 pub(super) const DESIRED_SPACERS_BETWEEN_SECTIONS: u16 = 2;
-const OTHER_OPTION_LABEL: &str = "None of the above";
-const OTHER_OPTION_DESCRIPTION: &str = "Optionally, add details in notes (tab)";
-const UNANSWERED_CONFIRM_TITLE: &str = "Submit with unanswered questions?";
-const UNANSWERED_CONFIRM_GO_BACK: &str = "Go back";
-const UNANSWERED_CONFIRM_GO_BACK_DESC: &str = "Return to the first unanswered question";
-const UNANSWERED_CONFIRM_SUBMIT: &str = "Proceed";
-const UNANSWERED_CONFIRM_SUBMIT_DESC_SINGULAR: &str = "question";
-const UNANSWERED_CONFIRM_SUBMIT_DESC_PLURAL: &str = "questions";
+fn other_option_label() -> &'static str {
+    crate::i18n::tr!("request-input-none-of-above")
+}
+fn other_option_description() -> &'static str {
+    crate::i18n::tr!("request-input-other-desc")
+}
+fn unanswered_confirm_title() -> &'static str {
+    crate::i18n::tr!("const-unanswered-confirm-title")
+}
+fn unanswered_confirm_go_back() -> &'static str {
+    crate::i18n::tr!("request-input-go-back")
+}
+fn unanswered_confirm_go_back_desc() -> &'static str {
+    crate::i18n::tr!("request-input-go-back-desc")
+}
+fn unanswered_confirm_submit() -> &'static str {
+    crate::i18n::tr!("request-input-proceed")
+}
 const AUTO_RESOLUTION_HIDDEN_GRACE: Duration = Duration::from_secs(/*secs*/ 60);
 const AUTO_RESOLUTION_VISIBLE_COUNTDOWN: Duration = Duration::from_secs(/*secs*/ 60);
 
@@ -194,7 +210,7 @@ impl RequestUserInputOverlay {
             has_input_focus,
             app_event_tx.clone(),
             enhanced_keys_supported,
-            ANSWER_PLACEHOLDER.to_string(),
+            answer_placeholder_text().to_string(),
             disable_paste_burst,
             ChatComposerConfig::plain_text(),
         );
@@ -313,9 +329,9 @@ impl RequestUserInputOverlay {
 
     fn auto_resolution_countdown_text_at(&self, now: Instant) -> Option<String> {
         match self.auto_resolution_timing_at(now) {
-            AutoResolutionTiming::VisibleCountdown { remaining } => Some(format!(
-                "auto-resolves in {}",
-                format_auto_resolution_remaining(remaining)
+            AutoResolutionTiming::VisibleCountdown { remaining } => Some(crate::i18n::tr!(
+                "request-input-auto-resolves",
+                time = format_auto_resolution_remaining(remaining)
             )),
             AutoResolutionTiming::Disabled
             | AutoResolutionTiming::HiddenGrace { .. }
@@ -327,15 +343,23 @@ impl RequestUserInputOverlay {
         if self.question_count() > 0 {
             let idx = self.current_index() + 1;
             let total = self.question_count();
-            let base = format!("Question {idx}/{total}");
             let unanswered = self.unanswered_count();
             if unanswered > 0 {
-                format!("{base} ({unanswered} unanswered)")
+                crate::i18n::tr!(
+                    "request-input-question-progress-unanswered",
+                    idx = idx as i64,
+                    total = total as i64,
+                    unanswered = unanswered as i64
+                )
             } else {
-                base
+                crate::i18n::tr!(
+                    "request-input-question-progress",
+                    idx = idx as i64,
+                    total = total as i64
+                )
             }
         } else {
-            "No questions".to_string()
+            crate::i18n::tr!("request-input-no-questions").to_string()
         }
     }
 
@@ -460,8 +484,8 @@ impl RequestUserInputOverlay {
                     let wrap_indent = UnicodeWidthStr::width(prefix_label.as_str());
                     rows.push(GenericDisplayRow {
                         selection_style: Some(crate::bottom_pane::selection_style()),
-                        name: format!("{prefix_label}{OTHER_OPTION_LABEL}"),
-                        description: Some(OTHER_OPTION_DESCRIPTION.to_string()),
+                        name: format!("{prefix_label}{}", other_option_label()),
+                        description: Some(other_option_description().to_string()),
                         wrap_indent: Some(wrap_indent),
                         ..Default::default()
                     });
@@ -556,11 +580,11 @@ impl RequestUserInputOverlay {
 
     fn notes_placeholder(&self) -> &'static str {
         if self.has_options() && self.selected_option_index().is_none() {
-            SELECT_OPTION_PLACEHOLDER
+            select_option_placeholder_text()
         } else if self.has_options() {
-            NOTES_PLACEHOLDER
+            notes_placeholder_text()
         } else {
-            ANSWER_PLACEHOLDER
+            answer_placeholder_text()
         }
     }
 
@@ -587,15 +611,18 @@ impl RequestUserInputOverlay {
         let notes_visible = self.notes_ui_visible();
         if self.has_options() {
             if self.selected_option_index().is_some() && !notes_visible {
-                tips.push(shortcut("tab", "to add notes"));
+                tips.push(shortcut(
+                    "tab",
+                    crate::i18n::tr!("request-input-to-add-notes"),
+                ));
             }
             if self.selected_option_index().is_some() && notes_visible {
                 tips.push(Line::from(
                     [
                         crate::key_hint::key_label_spans("tab"),
-                        vec![" or ".dim()],
+                        vec![crate::i18n::tr!("request-input-or").dim()],
                         crate::key_hint::key_label_spans("esc"),
-                        vec![" to clear notes".dim()],
+                        vec![crate::i18n::tr!("request-input-to-clear-notes").dim()],
                     ]
                     .concat(),
                 ));
@@ -613,17 +640,26 @@ impl RequestUserInputOverlay {
         };
         if let Some(submit_key) = submit_key {
             let submit_tip = if question_count == 1 {
-                shortcut(&submit_key, "to submit answer")
+                shortcut(
+                    &submit_key,
+                    crate::i18n::tr!("request-input-to-submit-answer"),
+                )
             } else if is_last_question {
-                shortcut(&submit_key, "to submit all")
+                shortcut(&submit_key, crate::i18n::tr!("request-input-to-submit-all"))
             } else {
-                shortcut(&submit_key, "to submit answer")
+                shortcut(
+                    &submit_key,
+                    crate::i18n::tr!("request-input-to-submit-answer"),
+                )
             };
             tips.push(submit_tip);
         }
         if question_count > 1 {
             if self.has_options() && !self.focus_is_notes() {
-                tips.push(shortcut("←/→", "to navigate questions"));
+                tips.push(shortcut(
+                    "←/→",
+                    crate::i18n::tr!("request-input-to-navigate"),
+                ));
             } else if !self.has_options() {
                 tips.push(shortcut(
                     &format!(
@@ -631,7 +667,7 @@ impl RequestUserInputOverlay {
                         crate::key_hint::ctrl(KeyCode::Char('p')).display_label(),
                         crate::key_hint::ctrl(KeyCode::Char('n')).display_label()
                     ),
-                    "change question",
+                    crate::i18n::tr!("request-input-change-question"),
                 ));
             }
         }
@@ -640,7 +676,10 @@ impl RequestUserInputOverlay {
                 && notes_visible
                 && interrupt_key == ShortcutHint::Single(crate::key_hint::plain(KeyCode::Esc)))
         {
-            tips.push(shortcut(&interrupt_key.display_label(), "to interrupt"));
+            tips.push(shortcut(
+                &interrupt_key.display_label(),
+                crate::i18n::tr!("request-input-to-interrupt"),
+            ));
         }
         tips
     }
@@ -755,7 +794,7 @@ impl RequestUserInputOverlay {
             return options.get(idx).map(|opt| opt.label.clone());
         }
         if idx == options.len() && Self::other_option_enabled_for_question(question) {
-            return Some(OTHER_OPTION_LABEL.to_string());
+            return Some(other_option_label().to_string());
         }
         None
     }
@@ -970,12 +1009,7 @@ impl RequestUserInputOverlay {
 
     fn unanswered_submit_description(&self) -> String {
         let count = self.unanswered_question_count();
-        let suffix = if count == 1 {
-            UNANSWERED_CONFIRM_SUBMIT_DESC_SINGULAR
-        } else {
-            UNANSWERED_CONFIRM_SUBMIT_DESC_PLURAL
-        };
-        format!("Submit with {count} unanswered {suffix}")
+        crate::i18n::tr!("request-input-submit-unanswered", count = count as i64)
     }
 
     fn first_unanswered_index(&self) -> Option<usize> {
@@ -996,12 +1030,12 @@ impl RequestUserInputOverlay {
             .unwrap_or(0);
         let entries = [
             (
-                UNANSWERED_CONFIRM_SUBMIT,
+                unanswered_confirm_submit(),
                 self.unanswered_submit_description(),
             ),
             (
-                UNANSWERED_CONFIRM_GO_BACK,
-                UNANSWERED_CONFIRM_GO_BACK_DESC.to_string(),
+                unanswered_confirm_go_back(),
+                unanswered_confirm_go_back_desc().to_string(),
             ),
         ];
         entries
@@ -3272,7 +3306,7 @@ mod tests {
         assert_eq!(other_row.name, "  4. None of the above");
         assert_eq!(
             other_row.description.as_deref(),
-            Some(OTHER_OPTION_DESCRIPTION)
+            Some(other_option_description())
         );
 
         let other_idx = overlay.options_len().saturating_sub(1);
@@ -3298,7 +3332,7 @@ mod tests {
         assert_eq!(
             answer.answers,
             vec![
-                OTHER_OPTION_LABEL.to_string(),
+                other_option_label().to_string(),
                 "user_note: Custom answer".to_string(),
             ]
         );

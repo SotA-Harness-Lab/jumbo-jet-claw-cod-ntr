@@ -161,14 +161,14 @@ impl App {
     ) -> Result<(), String> {
         let slot = backends
             .listening_slot(owner)
-            .ok_or("That connection is unavailable. Choose another and try again.")?;
+            .ok_or(crate::i18n::tr!("backend-selection-connection-unavailable"))?;
         if self.windows_sandbox_blocks_thread_switch()
             || self.reject_pending_permission_root_switch()
         {
             return Ok(());
         }
         if self.voice_owner_thread_id().is_some() {
-            return Err("End the voice call before switching.".into());
+            return Err(crate::i18n::tr!("backend-selection-end-voice-call").into());
         }
         let displayed_thread = self.current_displayed_thread_id();
         let outgoing_slot = backends.displayed;
@@ -176,7 +176,7 @@ impl App {
         if let Some(thread_id) = displayed_thread
             && self.active_turn_id_for_thread(thread_id).await.is_some()
         {
-            return Err("Wait for the current turn to finish before switching.".into());
+            return Err(crate::i18n::tr!("backend-selection-wait-for-turn").into());
         }
         let mut settings = if !switching_backend {
             self.backend_settings()
@@ -185,7 +185,7 @@ impl App {
                 .settings
                 .get(&owner)
                 .cloned()
-                .ok_or("Connection settings are unavailable.")?
+                .ok_or(crate::i18n::tr!("backend-selection-settings-unavailable"))?
         };
         if settings.target == AppServerTarget::Cloud && self.chat_widget.thread_id().is_some() {
             self.remember_attached_host_project(backends.session_at(outgoing_slot));
@@ -235,7 +235,12 @@ impl App {
         };
         let bootstrap = destination
             .bootstrap_for_new_thread(&settings.config)
-            .map_err(|error| format!("Failed to prepare the new conversation: {error}"));
+            .map_err(|error| {
+                crate::i18n::tr!(
+                    "backend-selection-prepare-new-failed",
+                    error = error.to_string()
+                )
+            });
         let Some(bootstrap) = if responsive_cloud_switch {
             let events = tui.event_stream();
             wait_for_cloud_switch(self, tui, bootstrap, events, clipboard_after_bootstrap).await
@@ -300,8 +305,12 @@ impl App {
             )
             .await
         };
-        let Some((config, local_settings)) =
-            loaded.map_err(|error| format!("Failed to read new session defaults: {error}"))?
+        let Some((config, local_settings)) = loaded.map_err(|error| {
+            crate::i18n::tr!(
+                "backend-selection-read-defaults-failed",
+                error = error.to_string()
+            )
+        })?
         else {
             return Ok(());
         };
@@ -324,7 +333,12 @@ impl App {
                 /*selected_profile*/ None,
                 cloud_start,
             )
-            .map_err(|error| format!("Failed to start the new conversation: {error}"));
+            .map_err(|error| {
+                crate::i18n::tr!(
+                    "backend-selection-start-new-failed",
+                    error = error.to_string()
+                )
+            });
         let Some(started) = if responsive_cloud_switch {
             let events = tui.event_stream();
             wait_for_cloud_switch(
@@ -357,7 +371,10 @@ impl App {
                     return Ok(());
                 }
             }
-            return Err(format!("Failed to open the new conversation: {error}"));
+            return Err(crate::i18n::tr!(
+                "backend-selection-open-new-failed",
+                error = error.to_string()
+            ));
         }
         let destination_thread = started.session.thread_id;
         let outgoing_has_queue = self.chat_widget.has_queued_follow_up_messages();
@@ -484,8 +501,9 @@ impl App {
                             .insert(user.clone(), key.clone());
                     }
                 }
-                Err(error) => self.chat_widget.add_error_message(format!(
-                    "Switched, but could not save the default for this project: {error}"
+                Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
+                    "backend-selection-save-default-failed",
+                    error = error.to_string()
                 )),
             }
         }
@@ -594,19 +612,20 @@ impl App {
                 && self.active_turn_id_for_thread(thread_id).await.is_some()
             {
                 self.add_session_picker_error(
-                    "Wait for the current turn to finish before switching.".into(),
+                    crate::i18n::tr!("backend-selection-wait-for-turn").into(),
                 );
                 return Ok(AppRunControl::Continue);
             }
             let Some(settings) = backends.settings.get(&owner).cloned() else {
                 self.add_session_picker_error(
-                    "Connection settings are unavailable. Open the session picker again.".into(),
+                    crate::i18n::tr!("backend-selection-settings-unavailable-reopen").into(),
                 );
                 return Ok(AppRunControl::Continue);
             };
             let Some(destination_slot) = backends.listening_slot(owner) else {
                 self.add_session_picker_error(
-                    "The connection for this conversation is unavailable. Open the session picker again.".into(),
+                    crate::i18n::tr!("backend-selection-conversation-connection-unavailable")
+                        .into(),
                 );
                 return Ok(AppRunControl::Continue);
             };
@@ -614,7 +633,10 @@ impl App {
             let bootstrap = match destination.bootstrap(&settings.config).await {
                 Ok(bootstrap) => bootstrap,
                 Err(error) => {
-                    let message = format!("Failed to prepare the conversation: {error}");
+                    let message = crate::i18n::tr!(
+                        "backend-selection-prepare-failed",
+                        error = error.to_string()
+                    );
                     self.add_session_picker_error(message);
                     return Ok(AppRunControl::Continue);
                 }

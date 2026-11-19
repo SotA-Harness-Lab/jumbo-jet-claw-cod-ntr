@@ -10,8 +10,8 @@
 pub(crate) const LIVE_PREFIX_COLS: u16 = 2;
 pub(crate) const FOOTER_INDENT_COLS: usize = LIVE_PREFIX_COLS as usize;
 pub(crate) fn transcript_hint() -> String {
-    format!(
-        "{} to view transcript",
-        crate::key_hint::ctrl(crossterm::event::KeyCode::Char('t')).display_label()
+    crate::i18n::tr!(
+        "ui-consts-to-view-transcript",
+        key = crate::key_hint::ctrl(crossterm::event::KeyCode::Char('t')).display_label()
     )
 }

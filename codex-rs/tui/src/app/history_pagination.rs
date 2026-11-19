@@ -183,7 +183,7 @@ impl App {
         {
             self.cancel_transcript_browsing(tui);
             self.chat_widget.add_info_message(
-                "No previous message to edit.".to_string(),
+                crate::i18n::tr!("history-pagination-no-previous-message").to_string(),
                 /*hint*/ None,
             );
         }

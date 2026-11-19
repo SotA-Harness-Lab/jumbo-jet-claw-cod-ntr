@@ -5252,6 +5252,7 @@ dependencies = [
  "codex-arg0",
  "codex-backend-client",
  "codex-build-info",
+ "codex-claude-compat",
  "codex-cloud-config",
  "codex-config",
  "codex-connectors",
@@ -5308,8 +5309,11 @@ dependencies = [
  "diffy",
  "dirs",
  "dunce",
+ "fluent",
  "futures",
  "http 1.4.0",
+ "i18n-embed",
+ "i18n-embed-fl",
  "image",
  "insta",
  "itertools 0.14.0",
@@ -5327,6 +5331,7 @@ dependencies = [
  "ratatui-macros",
  "regex-lite",
  "rmcp",
+ "rust-embed",
  "semver",
  "serde",
  "serde_json",
@@ -9476,6 +9481,7 @@ dependencies = [
  "log",
  "parking_lot",
  "rust-embed",
+ "sys-locale",
  "thiserror 1.0.69",
  "unic-langid",
  "walkdir",
@@ -13856,9 +13862,9 @@ source = "git+https://github.com/dzbarsky/rules_rust?rev=b56cbaa8465e74127f1ea21
 
 [[package]]
 name = "rust-embed"
-version = "8.11.0"
+version = "8.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04113cb9355a377d83f06ef1f0a45b8ab8cd7d8b1288160717d66df5c7988d27"
+checksum = "e98f580cf7a2863aeb6827800283f52cbe6fb3f3bb7c1843783f903c16dcb8ad"
 dependencies = [
  "rust-embed-impl",
  "rust-embed-utils",
@@ -13867,10 +13873,11 @@ dependencies = [
 
 [[package]]
 name = "rust-embed-impl"
-version = "8.11.0"
+version = "8.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da0902e4c7c8e997159ab384e6d0fc91c221375f6894346ae107f47dd0f3ccaa"
+checksum = "a93e2f69cf224a6c7df7509aa5ba4a23f56828ee41b040e92ac8762371eb9ba7"
 dependencies = [
+ "mime_guess",
  "proc-macro2",
  "quote",
  "rust-embed-utils",
@@ -13880,11 +13887,11 @@ dependencies = [
 
 [[package]]
 name = "rust-embed-utils"
-version = "8.11.0"
+version = "8.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bcdef0be6fe7f6fa333b1073c949729274b05f123a0ad7efcb8efd878e5c3b1"
+checksum = "915e33dccbe7deb2b8a342dc4c517503fe85e0230ddbae40a4fb0220493dad9b"
 dependencies = [
- "sha2 0.10.9",
+ "sha2 0.11.0",
  "walkdir",
 ]
 

@@ -43,7 +43,7 @@ pub(crate) async fn materialize_goal_draft(
         &draft.pending_pastes,
     );
     if objective.trim().is_empty() {
-        bail!("Goal objective must not be empty.");
+        bail!(crate::i18n::tr!("goal-files-empty"));
     }
 
     let mut active_placeholders = text_elements
@@ -152,9 +152,11 @@ pub(crate) fn objective_file_reference(path: &GoalFilePath) -> Result<String> {
     let reference = format!("{GOAL_FILE_PREFIX}{path}{GOAL_FILE_SUFFIX}");
     let actual_chars = reference.chars().count();
     if actual_chars > MAX_THREAD_GOAL_OBJECTIVE_CHARS {
-        bail!(
-            "Goal objective file reference is too long: {actual_chars} characters. Limit: {MAX_THREAD_GOAL_OBJECTIVE_CHARS} characters."
-        );
+        bail!(crate::i18n::tr!(
+            "goal-files-reference-too-long",
+            actual_chars = actual_chars as i64,
+            limit = MAX_THREAD_GOAL_OBJECTIVE_CHARS as i64
+        ));
     }
     Ok(reference)
 }

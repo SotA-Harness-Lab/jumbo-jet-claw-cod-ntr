@@ -58,9 +58,12 @@ pub(crate) async fn validate_resume_target(
         let parent_hint = thread
             .parent_thread_id
             .map_or_else(String::new, |parent_id| {
-                format!("\nResume its parent session instead: codex resume {parent_id}")
+                crate::i18n::tr!("session-resume-parent-hint", parent_id = parent_id)
             });
-        color_eyre::eyre::bail!("Cannot resume a Guardian review thread.{parent_hint}");
+        color_eyre::eyre::bail!(crate::i18n::tr!(
+            "session-resume-guardian",
+            parent_hint = parent_hint
+        ));
     }
     Ok(())
 }
@@ -95,9 +98,7 @@ pub(crate) async fn resolve_cwd_for_resume_or_fork(
     }
     let Some(history_cwd) = history_cwd else {
         if matches!(cwd_context.mode, Some(ResumeCwdMode::Session)) {
-            color_eyre::eyre::bail!(
-                "failed to determine the working directory recorded for the selected session"
-            );
+            color_eyre::eyre::bail!(crate::i18n::tr!("session-resume-cwd-unknown"));
         }
         return Ok(ResolveCwdOutcome::Continue(None));
     };

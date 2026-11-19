@@ -41,10 +41,10 @@ mod tests;
 
 fn mcp_auth_status_label(status: McpAuthStatus) -> &'static str {
     match status {
-        McpAuthStatus::Unknown => "Unknown",
-        McpAuthStatus::Unsupported => "Unsupported",
-        McpAuthStatus::NotLoggedIn => "Not logged in",
-        McpAuthStatus::BearerToken => "Bearer token",
+        McpAuthStatus::Unknown => crate::i18n::tr!("history-mcp-auth-unknown"),
+        McpAuthStatus::Unsupported => crate::i18n::tr!("history-mcp-auth-unsupported"),
+        McpAuthStatus::NotLoggedIn => crate::i18n::tr!("history-mcp-auth-not-logged-in"),
+        McpAuthStatus::BearerToken => crate::i18n::tr!("history-mcp-auth-bearer-token"),
         McpAuthStatus::OAuth => "OAuth",
     }
 }
@@ -164,9 +164,9 @@ impl McpToolCallCell {
             .unwrap_or_else(|| "•".dim()),
         };
         let header_text = if status.is_some() {
-            "Called"
+            crate::i18n::tr!("history-mcp-called")
         } else {
-            "Calling"
+            crate::i18n::tr!("history-mcp-calling")
         };
 
         let title = self
@@ -248,7 +248,9 @@ impl McpToolCallCell {
                         && block.is_image
                         && block.text().is_some()
                     {
-                        let marker = HyperlinkLine::new("Returned image".dim().into());
+                        let marker = HyperlinkLine::new(
+                            crate::i18n::tr!("history-mcp-returned-image").dim().into(),
+                        );
                         if mode == McpToolCallRenderMode::Display {
                             preview.push_hyperlink_line(marker);
                         } else {
@@ -278,7 +280,7 @@ impl McpToolCallCell {
                 }
             }
             Some(Err(error)) => {
-                let text = format!("Error: {error}");
+                let text = crate::i18n::tr!("history-mcp-error", error = error.to_string());
                 for segment in text.lines() {
                     if mode == McpToolCallRenderMode::Display {
                         preview.push_line(Line::from(segment.dim()));
@@ -353,11 +355,15 @@ impl McpToolCallCell {
 impl HistoryCell for McpToolCallCell {
     fn tool_call_labels(&self) -> Vec<String> {
         let verb = match self.success() {
-            Some(true) => "Called",
-            Some(false) => "Failed",
-            None => "Calling",
+            Some(true) => crate::i18n::tr!("history-mcp-called"),
+            Some(false) => crate::i18n::tr!("history-mcp-failed-verb"),
+            None => crate::i18n::tr!("history-mcp-calling"),
         };
-        vec![format!("{verb} {}", self.compact_tool_name())]
+        vec![crate::i18n::tr!(
+            "history-mcp-verb-name",
+            verb = verb,
+            name = self.compact_tool_name()
+        )]
     }
 
     fn activity_ids(&self) -> Vec<String> {
@@ -386,13 +392,14 @@ impl HistoryCell for McpToolCallCell {
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
         let header_text = if self.success().is_some() {
-            "Called"
+            crate::i18n::tr!("history-mcp-called")
         } else {
-            "Calling"
+            crate::i18n::tr!("history-mcp-calling")
         };
-        let mut lines = vec![Line::from(format!(
-            "{header_text} {}",
-            format_mcp_invocation(&self.invocation)
+        let mut lines = vec![Line::from(crate::i18n::tr!(
+            "history-mcp-verb-name",
+            verb = header_text,
+            name = format_mcp_invocation(&self.invocation).to_string()
         ))];
 
         if let Some(result) = &self.result {
@@ -403,7 +410,10 @@ impl HistoryCell for McpToolCallCell {
                         lines.extend(raw_lines_from_source(text));
                     }
                 }
-                Err(err) => lines.push(Line::from(format!("Error: {err}"))),
+                Err(err) => lines.push(Line::from(crate::i18n::tr!(
+                    "history-mcp-error",
+                    error = err.to_string()
+                ))),
             }
         }
 
@@ -443,19 +453,28 @@ pub(crate) fn new_active_mcp_tool_call(
 }
 /// Render a summary of configured MCP servers from the current `Config`.
 pub(crate) fn empty_mcp_output() -> WebHyperlinkHistoryCell {
-    let mut docs_line = HyperlinkLine::new(Line::from("    See the "));
+    let mut docs_line = HyperlinkLine::new(Line::from(crate::i18n::tr!("history-mcp-see-the")));
     docs_line.push_span(
-        "MCP docs".underlined(),
+        crate::i18n::tr!("history-mcp-mcp-docs").underlined(),
         Some("https://developers.openai.com/codex/mcp"),
     );
-    docs_line.push_span(" to configure them.".into(), /*destination*/ None);
+    docs_line.push_span(
+        crate::i18n::tr!("history-mcp-to-configure-them").into(),
+        /*destination*/ None,
+    );
 
     let lines = vec![
         HyperlinkLine::new("/mcp".magenta().into()),
         HyperlinkLine::from(""),
-        HyperlinkLine::new(vec!["🔌  ".into(), "MCP Tools".bold()].into()),
+        HyperlinkLine::new(
+            vec![
+                "🔌  ".into(),
+                crate::i18n::tr!("history-mcp-mcp-tools").bold(),
+            ]
+            .into(),
+        ),
         HyperlinkLine::from(""),
-        HyperlinkLine::new("  • No MCP servers configured.".italic().into()),
+        HyperlinkLine::new(crate::i18n::tr!("history-mcp-no-servers").italic().into()),
         docs_line.style(Style::default().add_modifier(Modifier::DIM)),
     ];
 
@@ -651,7 +670,11 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
     let mut lines: Vec<Line<'static>> = vec![
         "/mcp".magenta().into(),
         "".into(),
-        vec!["🔌  ".into(), "MCP Tools".bold()].into(),
+        vec![
+            "🔌  ".into(),
+            crate::i18n::tr!("history-mcp-mcp-tools").bold(),
+        ]
+        .into(),
         "".into(),
     ];
 
@@ -660,42 +683,62 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
 
     let has_any_tools = statuses.iter().any(|status| !status.tools.is_empty());
     if !has_any_tools && matches!(detail, McpServerStatusDetail::Full) {
-        lines.push("  • No MCP tools available.".italic().into());
+        lines.push(crate::i18n::tr!("history-mcp-no-tools").italic().into());
         lines.push("".into());
     }
 
     for status in statuses {
         let (label, style) = match status.runtime_status {
-            Some(McpServerConnectionStatus::Connected) => {
-                ("connected", status_style(StatusTone::Success))
-            }
-            Some(McpServerConnectionStatus::Starting) => ("starting", accent_style()),
+            Some(McpServerConnectionStatus::Connected) => (
+                crate::i18n::tr!("history-mcp-status-connected"),
+                status_style(StatusTone::Success),
+            ),
+            Some(McpServerConnectionStatus::Starting) => (
+                crate::i18n::tr!("history-mcp-status-starting"),
+                accent_style(),
+            ),
             Some(McpServerConnectionStatus::AuthenticationRequired) => (
-                "authentication required",
+                crate::i18n::tr!("history-mcp-status-auth-required"),
                 status_style(StatusTone::Attention),
             ),
-            Some(McpServerConnectionStatus::Failed) => {
-                ("failed", status_style(StatusTone::Failure))
-            }
-            Some(McpServerConnectionStatus::NotStarted) => ("not started", Style::default().dim()),
-            Some(McpServerConnectionStatus::Disabled) => ("disabled", Style::default().dim()),
-            Some(McpServerConnectionStatus::Cancelled) => ("cancelled", Style::default().dim()),
+            Some(McpServerConnectionStatus::Failed) => (
+                crate::i18n::tr!("history-mcp-status-failed"),
+                status_style(StatusTone::Failure),
+            ),
+            Some(McpServerConnectionStatus::NotStarted) => (
+                crate::i18n::tr!("history-mcp-status-not-started"),
+                Style::default().dim(),
+            ),
+            Some(McpServerConnectionStatus::Disabled) => (
+                crate::i18n::tr!("history-mcp-status-disabled"),
+                Style::default().dim(),
+            ),
+            Some(McpServerConnectionStatus::Cancelled) => (
+                crate::i18n::tr!("history-mcp-status-cancelled"),
+                Style::default().dim(),
+            ),
             None if matches!(
                 status.auth_status,
                 codex_app_server_protocol::McpAuthStatus::NotLoggedIn
             ) =>
             {
                 (
-                    "authentication required",
+                    crate::i18n::tr!("history-mcp-status-auth-required"),
                     status_style(StatusTone::Attention),
                 )
             }
-            None => ("unknown", Style::default().dim()),
+            None => (
+                crate::i18n::tr!("history-mcp-status-unknown"),
+                Style::default().dim(),
+            ),
         };
         let count = status.tools.len();
-        let unit = if count == 1 { "tool" } else { "tools" };
         let name = match &status.environment_id {
-            Some(environment_id) => format!("{} (environment {environment_id})", status.name),
+            Some(environment_id) => crate::i18n::tr!(
+                "history-mcp-name-with-environment",
+                name = status.name.clone(),
+                environment_id = environment_id.clone()
+            ),
             None => status.name.clone(),
         };
         lines.push(
@@ -704,7 +747,7 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
                 name.bold(),
                 ": ".into(),
                 label.set_style(style),
-                format!(" ({count} {unit})").dim(),
+                crate::i18n::tr!("history-mcp-tool-count", count = count as i64).dim(),
             ]
             .into(),
         );
@@ -720,7 +763,7 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
         };
         lines.push(
             vec![
-                "    • Auth: ".into(),
+                crate::i18n::tr!("history-mcp-label-auth").into(),
                 mcp_auth_status_label(auth_status).into(),
             ]
             .into(),
@@ -729,17 +772,24 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
         let mut names = status.tools.keys().cloned().collect::<Vec<_>>();
         names.sort();
         if names.is_empty() {
-            lines.push("    • Tools: (none)".into());
+            lines.push(crate::i18n::tr!("history-mcp-tools-none").into());
         } else {
-            lines.push(vec!["    • Tools: ".into(), names.join(", ").into()].into());
+            lines.push(
+                vec![
+                    crate::i18n::tr!("history-mcp-label-tools").into(),
+                    names.join(", ").into(),
+                ]
+                .into(),
+            );
         }
 
         if matches!(detail, McpServerStatusDetail::Full) {
             let server_resources = status.resources.clone();
             if server_resources.is_empty() {
-                lines.push("    • Resources: (none)".into());
+                lines.push(crate::i18n::tr!("history-mcp-resources-none").into());
             } else {
-                let mut spans: Vec<Span<'static>> = vec!["    • Resources: ".into()];
+                let mut spans: Vec<Span<'static>> =
+                    vec![crate::i18n::tr!("history-mcp-label-resources").into()];
 
                 for (idx, resource) in server_resources.iter().enumerate() {
                     if idx > 0 {
@@ -757,9 +807,10 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
 
             let server_templates = status.resource_templates.clone();
             if server_templates.is_empty() {
-                lines.push("    • Resource templates: (none)".into());
+                lines.push(crate::i18n::tr!("history-mcp-templates-none").into());
             } else {
-                let mut spans: Vec<Span<'static>> = vec!["    • Resource templates: ".into()];
+                let mut spans: Vec<Span<'static>> =
+                    vec![crate::i18n::tr!("history-mcp-label-templates").into()];
 
                 for (idx, template) in server_templates.iter().enumerate() {
                     if idx > 0 {
@@ -781,7 +832,7 @@ pub(crate) fn new_mcp_tools_output_from_statuses(
 
     if matches!(detail, McpServerStatusDetail::ToolsAndAuthOnly) {
         lines.push("".into());
-        lines.push("  Use /mcp verbose for tools and resources.".dim().into());
+        lines.push(crate::i18n::tr!("history-mcp-use-verbose").dim().into());
     }
 
     PlainHistoryCell { lines }
@@ -819,7 +870,7 @@ impl HistoryCell for McpInventoryLoadingCell {
                 )
                 .unwrap_or_else(|| "•".dim()),
                 " ".into(),
-                "Loading MCP inventory".bold(),
+                crate::i18n::tr!("history-mcp-loading-inventory").bold(),
                 "…".dim(),
             ]
             .into(),
@@ -827,7 +878,9 @@ impl HistoryCell for McpInventoryLoadingCell {
     }
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
-        vec![Line::from("Loading MCP inventory...")]
+        vec![Line::from(crate::i18n::tr!(
+            "history-mcp-loading-inventory-raw"
+        ))]
     }
 
     fn transcript_animation_tick(&self) -> Option<u64> {
@@ -861,7 +914,13 @@ fn format_mcp_invocation(invocation: &McpInvocation) -> Line<'_> {
         ")".into(),
     ];
     if let Some(environment_id) = &invocation.environment_id {
-        invocation_spans.push(format!(" (environment {environment_id})").dim());
+        invocation_spans.push(
+            crate::i18n::tr!(
+                "history-mcp-environment-suffix",
+                environment_id = environment_id.clone()
+            )
+            .dim(),
+        );
     }
     invocation_spans.into()
 }

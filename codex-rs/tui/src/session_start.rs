@@ -111,7 +111,12 @@ pub(crate) async fn complete_session_start(
     app_server
         .thread_unarchive(target.thread_id)
         .await
-        .wrap_err_with(|| format!("Failed to unarchive session {}", target.thread_id))?;
+        .wrap_err_with(|| {
+            crate::i18n::tr!(
+                "session-start-failed-unarchive",
+                thread_id = target.thread_id.to_string()
+            )
+        })?;
     // Retry by ID, not by the old rollout path, which unarchiving may have moved.
     action
         .start(app_server, config.config, config.local_settings, target)
@@ -145,7 +150,26 @@ fn session_start_error(
     }
 
     let target_label = target_session.display_label();
-    color_eyre::eyre::eyre!("Failed to {action} session from {target_label}: {err}")
+    let err = err.to_string();
+    if action == "fork" {
+        color_eyre::eyre::eyre!(
+            "{}",
+            crate::i18n::tr!(
+                "session-start-failed-fork",
+                target_label = target_label,
+                err = err
+            )
+        )
+    } else {
+        color_eyre::eyre::eyre!(
+            "{}",
+            crate::i18n::tr!(
+                "session-start-failed-resume",
+                target_label = target_label,
+                err = err
+            )
+        )
+    }
 }
 
 fn archived_session_guidance(err: &color_eyre::Report) -> Option<String> {

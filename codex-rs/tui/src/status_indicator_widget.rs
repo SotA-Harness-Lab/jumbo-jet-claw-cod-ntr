@@ -99,7 +99,7 @@ impl StatusIndicatorWidget {
         effects: codex_config::types::TuiEffects,
     ) -> Self {
         Self {
-            header: String::from("Working"),
+            header: crate::i18n::tr!("status-state-working").to_string(),
             header_started_at: Instant::now(),
             details: None,
             details_max_lines: STATUS_DETAILS_DEFAULT_MAX_LINES,
@@ -255,26 +255,33 @@ impl StatusIndicator<'_> {
         if row.show_interrupt_hint
             && let Some(interrupt_binding) = row.interrupt_binding
         {
-            spans.push(format!("({pretty_elapsed} • ").dim());
+            spans.push(
+                crate::i18n::tr!("status-indicator-elapsed-open", elapsed = pretty_elapsed).dim(),
+            );
             spans.extend(interrupt_binding.spans());
-            spans.push(" to interrupt)".dim());
+            spans.push(crate::i18n::tr!("status-indicator-to-interrupt").dim());
         } else {
             spans.push(format!("({pretty_elapsed})").dim());
         }
         if let Some(message) = &row.inline_message {
             // Keep optional context after elapsed/interrupt text so that core
             // interrupt affordances stay in a fixed visual location.
-            spans.push(" · ".dim());
+            spans.push(crate::i18n::tr!("status-indicator-separator").dim());
             spans.push(message.clone().dim());
         }
 
         let mut header = Line::from(spans);
         let mut hook_overflow = None;
         if let Some(message) = &row.hook_status_message {
-            if line_width(&header) + display_width(" · ") + display_width(message)
+            if line_width(&header)
+                + display_width(crate::i18n::tr!("status-indicator-separator"))
+                + display_width(message)
                 <= usize::from(width)
             {
-                header.spans.extend([" · ".dim(), message.clone().dim()]);
+                header.spans.extend([
+                    crate::i18n::tr!("status-indicator-separator").dim(),
+                    message.clone().dim(),
+                ]);
             } else {
                 hook_overflow = Some(truncate_line_with_ellipsis_if_overflow(
                     Line::from(vec![DETAILS_PREFIX.dim(), message.clone().dim()]),

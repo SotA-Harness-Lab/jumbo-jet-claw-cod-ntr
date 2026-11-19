@@ -43,7 +43,7 @@ pub(crate) fn resize_hint(full: &str, width: u16) -> Line<'_> {
     if full.width() <= usize::from(width) {
         full.dim()
     } else {
-        Line::from("←/→ resize · Enter/Esc done").dim()
+        Line::from(crate::i18n::tr!("sidebar-chooser-resize-hint-short")).dim()
     }
 }
 
@@ -69,10 +69,19 @@ fn list_hint(keymap: &RuntimeKeymap, action: ListAction) -> Option<String> {
 }
 
 pub(crate) fn creation_failure_text(message: &str, keymap: &RuntimeKeymap) -> String {
-    let hints = [(ListAction::Accept, "retry"), (ListAction::Cancel, "back")]
-        .into_iter()
-        .filter_map(|(action, label)| Some(format!("{} {label}", list_hint(keymap, action)?)))
-        .collect::<Vec<_>>();
+    let hints = [
+        (
+            ListAction::Accept,
+            crate::i18n::tr!("sidebar-chooser-hint-retry"),
+        ),
+        (
+            ListAction::Cancel,
+            crate::i18n::tr!("sidebar-chooser-hint-back"),
+        ),
+    ]
+    .into_iter()
+    .filter_map(|(action, label)| Some(format!("{} {label}", list_hint(keymap, action)?)))
+    .collect::<Vec<_>>();
     if hints.is_empty() {
         message.to_owned()
     } else {
@@ -91,8 +100,16 @@ pub(crate) fn footer(
     let hint = |action| list_hint(keymap, action);
     if showing_path {
         let (hints, actions): (Vec<_>, Vec<_>) = [
-            (hint(ListAction::Cancel), "back", Some(ChooserAction::Back)),
-            (hint(ListAction::MoveDown), "scroll", None),
+            (
+                hint(ListAction::Cancel),
+                crate::i18n::tr!("sidebar-chooser-hint-back"),
+                Some(ChooserAction::Back),
+            ),
+            (
+                hint(ListAction::MoveDown),
+                crate::i18n::tr!("sidebar-chooser-hint-scroll"),
+                None,
+            ),
         ]
         .into_iter()
         .filter_map(|(key, label, action)| Some((footer_hint::shortcut(&key?, label), action)))
@@ -126,9 +143,9 @@ pub(crate) fn footer(
                         && matches!(o.state, OpenState::Failed(_))
                 })
             {
-                "retry"
+                crate::i18n::tr!("sidebar-chooser-hint-retry")
             } else {
-                "open"
+                crate::i18n::tr!("sidebar-chooser-hint-open")
             },
             Some(ChooserAction::Open(choice)),
         ),
@@ -138,9 +155,9 @@ pub(crate) fn footer(
                 .opening
                 .is_some_and(|o| !matches!(o.state, OpenState::Failed(_)))
             {
-                "cancel opening"
+                crate::i18n::tr!("sidebar-chooser-hint-cancel-opening")
             } else {
-                "back"
+                crate::i18n::tr!("sidebar-chooser-hint-back")
             },
             Some(ChooserAction::Back),
         ),
@@ -148,11 +165,19 @@ pub(crate) fn footer(
             selected_file
                 .filter(|_| visible && file_path_key_available(keymap))
                 .map(|_| "p".to_owned()),
-            "path",
+            crate::i18n::tr!("sidebar-chooser-hint-path"),
             Some(ChooserAction::FilePath),
         ),
-        ((!movement.is_empty()).then_some(movement), "move", None),
-        (hide, "hide pane", Some(ChooserAction::Hide)),
+        (
+            (!movement.is_empty()).then_some(movement),
+            crate::i18n::tr!("sidebar-chooser-hint-move"),
+            None,
+        ),
+        (
+            hide,
+            crate::i18n::tr!("sidebar-chooser-hint-hide-pane"),
+            Some(ChooserAction::Hide),
+        ),
     ]
     .into_iter()
     .filter_map(|(keys, label, action)| Some((footer_hint::shortcut(&keys?, label), action)))
@@ -285,10 +310,12 @@ pub(crate) fn tab_strip(
                 let name = match tabs.choice_index(id) {
                     Some(number) => match side_chat_label(&tabs.choices[number - 1]) {
                         Some(name) => name.to_owned(),
-                        None if tabs.choices.len() > 1 => format!("Side {number}"),
-                        None => "Side chat".to_owned(),
+                        None if tabs.choices.len() > 1 => {
+                            crate::i18n::tr!("sidebar-chooser-side-n", number = number as i64)
+                        }
+                        None => crate::i18n::tr!("sidebar-chooser-side-chat").to_owned(),
                     },
-                    None => "Side chat".to_owned(),
+                    None => crate::i18n::tr!("sidebar-chooser-side-chat").to_owned(),
                 };
                 tabs.label_style.render(Line::from(name), width)
             }

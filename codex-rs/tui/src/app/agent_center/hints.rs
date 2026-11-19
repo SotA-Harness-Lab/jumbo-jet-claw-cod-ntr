@@ -57,40 +57,77 @@ impl AgentsOverviewView {
 
     pub(super) fn center_help_lines(&self, width: u16) -> Vec<Line<'static>> {
         let mut navigate = Group {
-            title: "Navigate",
+            title: crate::i18n::tr!("hints-navigate"),
             entries: Vec::new(),
         };
         for (action, label) in [
-            (ListAction::MoveUp, "Up"),
-            (ListAction::MoveDown, "Down"),
-            (ListAction::Accept, "Open"),
-            (ListAction::PageUp, "Page up"),
-            (ListAction::PageDown, "Page down"),
+            (ListAction::MoveUp, crate::i18n::tr!("hints-up")),
+            (ListAction::MoveDown, crate::i18n::tr!("hints-down")),
+            (ListAction::Accept, crate::i18n::tr!("hints-open")),
+            (ListAction::PageUp, crate::i18n::tr!("hints-page-up")),
+            (ListAction::PageDown, crate::i18n::tr!("hints-page-down")),
         ] {
             navigate.push(self.center_list_hint(action), label);
         }
-        navigate
-            .entries
-            .push(Shortcut::new(key_hint::ctrl(KeyCode::Char('c')), "Quit"));
+        navigate.entries.push(Shortcut::new(
+            key_hint::ctrl(KeyCode::Char('c')),
+            crate::i18n::tr!("hints-quit"),
+        ));
         let mut tasks = Group {
-            title: "Tasks",
+            title: crate::i18n::tr!("hints-tasks"),
             entries: Vec::new(),
         };
         for (action, bindings, label) in [
-            ("new_task", &self.agents_keymap.new_task, "New"),
+            (
+                "new_task",
+                &self.agents_keymap.new_task,
+                crate::i18n::tr!("hints-new"),
+            ),
             (
                 "new_worktree",
                 &self.agents_keymap.new_worktree,
-                "New worktree",
+                crate::i18n::tr!("hints-new-worktree"),
             ),
-            ("resume", &self.agents_keymap.resume, "Resume"),
-            ("fork", &self.agents_keymap.fork, "Fork"),
-            ("rename", &self.agents_keymap.rename, "Rename"),
-            ("stop", &self.agents_keymap.stop, "Stop"),
-            ("archive", &self.agents_keymap.archive, "Archive"),
-            ("hide", &self.agents_keymap.hide, "Hide"),
-            ("delete", &self.agents_keymap.delete, "Delete"),
-            ("toggle_pin", &self.agents_keymap.toggle_pin, "Pin/unpin"),
+            (
+                "resume",
+                &self.agents_keymap.resume,
+                crate::i18n::tr!("hints-resume"),
+            ),
+            (
+                "fork",
+                &self.agents_keymap.fork,
+                crate::i18n::tr!("hints-fork"),
+            ),
+            (
+                "rename",
+                &self.agents_keymap.rename,
+                crate::i18n::tr!("hints-rename-label"),
+            ),
+            (
+                "stop",
+                &self.agents_keymap.stop,
+                crate::i18n::tr!("hints-stop"),
+            ),
+            (
+                "archive",
+                &self.agents_keymap.archive,
+                crate::i18n::tr!("hints-archive"),
+            ),
+            (
+                "hide",
+                &self.agents_keymap.hide,
+                crate::i18n::tr!("hints-hide"),
+            ),
+            (
+                "delete",
+                &self.agents_keymap.delete,
+                crate::i18n::tr!("hints-delete"),
+            ),
+            (
+                "toggle_pin",
+                &self.agents_keymap.toggle_pin,
+                crate::i18n::tr!("hints-pin-unpin"),
+            ),
         ] {
             if (action != "new_worktree" || self.worktrees_enabled)
                 && (action != "toggle_pin" || self.can_toggle_selected_pin())
@@ -99,27 +136,34 @@ impl AgentsOverviewView {
             }
         }
         let mut view = Group {
-            title: "View",
+            title: crate::i18n::tr!("hints-view"),
             entries: Vec::new(),
         };
         let filter = self.center_filter_hint();
         if !filter.is_empty() {
             view.entries.push(Shortcut {
                 key: filter,
-                action: "Filter",
+                action: crate::i18n::tr!("hints-filter"),
             });
         }
         for (action, bindings, label) in [
-            ("search", &self.agents_keymap.search, "Search"),
+            (
+                "search",
+                &self.agents_keymap.search,
+                crate::i18n::tr!("hints-search"),
+            ),
             (
                 "toggle_grouping",
                 &self.agents_keymap.toggle_grouping,
-                "Group",
+                crate::i18n::tr!("hints-group"),
             ),
         ] {
             view.push(self.agents_keymap.primary_hint(action, bindings), label);
         }
-        let mut lines = vec!["Task shortcuts".bold().into(), Line::default()];
+        let mut lines = vec![
+            crate::i18n::tr!("hints-task-shortcuts").bold().into(),
+            Line::default(),
+        ];
         lines.extend(crate::shortcut_help::group_lines(
             [navigate, tasks, view],
             width,
@@ -139,7 +183,7 @@ impl AgentsOverviewView {
                         .is_pressed(KeyEvent::new(KeyCode::Char('?'), modifiers))
                 })
         {
-            hints.push(("?".into(), "help".into()));
+            hints.push(("?".into(), crate::i18n::tr!("hints-help-short").into()));
         }
         let cancel = if state.help {
             self.keymap.primary_hint(ListAction::Cancel)
@@ -149,7 +193,7 @@ impl AgentsOverviewView {
             None
         };
         if let Some(hint) = cancel {
-            hints.push((hint.display_label(), "back".into()));
+            hints.push((hint.display_label(), crate::i18n::tr!("hints-back").into()));
         }
         if state.help {
             return hints;
@@ -162,16 +206,16 @@ impl AgentsOverviewView {
                 .collect::<Vec<_>>()
                 .join("/");
             if !navigation.is_empty() {
-                hints.push((navigation, "move".into()));
+                hints.push((navigation, crate::i18n::tr!("hints-move").into()));
             }
         }
         if let Some(hint) = self.center_list_hint(ListAction::Accept) {
             hints.push((
                 hint.display_label(),
                 if state.rename_target.is_some() {
-                    "rename"
+                    crate::i18n::tr!("hints-rename-short")
                 } else {
-                    "open"
+                    crate::i18n::tr!("hints-open-short")
                 }
                 .into(),
             ));
@@ -181,7 +225,10 @@ impl AgentsOverviewView {
                 .agents_keymap
                 .primary_hint("new_task", &self.agents_keymap.new_task)
         {
-            hints.push((hint.display_label(), "new".into()));
+            hints.push((
+                hint.display_label(),
+                crate::i18n::tr!("hints-new-short").into(),
+            ));
         }
         hints
     }

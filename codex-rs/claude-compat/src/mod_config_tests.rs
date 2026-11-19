@@ -6,6 +6,7 @@ use super::ClaudeModConfig;
 use super::ClaudePluginsModConfig;
 use super::MOD_CONFIG_FILE;
 use super::ModConfig;
+use super::UiModConfig;
 
 #[test]
 fn parses_every_key() {
@@ -16,6 +17,9 @@ tools = true
 
 [claude.plugins]
 enable = ["claude-hud@claude-hud", "other@m"]
+
+[ui]
+language = "zh-CN"
 "#,
     )
     .expect("parse");
@@ -28,6 +32,9 @@ enable = ["claude-hud@claude-hud", "other@m"]
                 plugins: ClaudePluginsModConfig {
                     enable: vec!["claude-hud@claude-hud".to_string(), "other@m".to_string()],
                 },
+            },
+            ui: UiModConfig {
+                language: Some("zh-CN".to_string()),
             },
         }
     );

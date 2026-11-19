@@ -12,7 +12,7 @@ pub(super) fn build_header(request: &ApplyPatchApprovalRequest) -> Box<dyn Rende
     let mut header = Vec::new();
     if let Some(thread_label) = &request.thread_label {
         header.push(Line::from(vec![
-            "Thread: ".into(),
+            crate::i18n::tr!("apply-patch-header-thread").into(),
             thread_label.clone().bold(),
         ]));
     }
@@ -25,9 +25,9 @@ pub(super) fn build_header(request: &ApplyPatchApprovalRequest) -> Box<dyn Rende
         .reason
         .as_deref()
         .filter(|reason| !reason.is_empty())
-        .unwrap_or("Apply proposed file edits");
+        .unwrap_or(crate::i18n::tr!("apply-patch-header-default-description"));
     header.push(Line::from_iter([
-        "Description: ".into(),
+        crate::i18n::tr!("apply-patch-header-description").into(),
         description.to_string().italic(),
     ]));
 
@@ -59,13 +59,13 @@ pub(super) fn build_header(request: &ApplyPatchApprovalRequest) -> Box<dyn Rende
     destinations.dedup();
     if destinations.is_empty() {
         header.push(Line::from(vec![
-            "Destination: ".into(),
-            "unavailable".bold(),
+            crate::i18n::tr!("apply-patch-header-destination").into(),
+            crate::i18n::tr!("apply-patch-header-unavailable").bold(),
         ]));
     }
     for destination in destinations {
         header.push(Line::from_iter([
-            "Destination: ".into(),
+            crate::i18n::tr!("apply-patch-header-destination").into(),
             destination.bold(),
         ]));
     }

@@ -29,54 +29,80 @@ impl App {
         let can_size = super::side_pane::split_layout(self, tui, area).is_some();
         let can_resize = can_size && side && self.zoomed_thread.is_none();
         let mut groups = [
-            ("Panes", Vec::new()),
-            ("Move", Vec::new()),
-            ("This pane", Vec::new()),
+            (crate::i18n::tr!("workspace-hud-panes"), Vec::new()),
+            (crate::i18n::tr!("workspace-hud-move"), Vec::new()),
+            (crate::i18n::tr!("workspace-hud-this-pane"), Vec::new()),
         ];
         for (action, keys) in pending.actions(&self.keymap.chords) {
             let (group, label) = match action.action {
-                "focus_command_center" => (0, "Command Center"),
-                "focus_main_composer" => (0, "Main composer"),
-                "focus_sidebar_tabs" => (0, "Open in sidebar"),
-                "focus_sidebar_content" if side => (0, "Hide sidebar"),
-                "focus_sidebar_content" => (0, "Sidebar content"),
-                "resize_panes" if can_size => (2, "Resize panes"),
+                "focus_command_center" => (0, crate::i18n::tr!("workspace-hud-command-center")),
+                "focus_main_composer" => (0, crate::i18n::tr!("workspace-hud-main-composer")),
+                "focus_sidebar_tabs" => (0, crate::i18n::tr!("workspace-hud-open-in-sidebar")),
+                "focus_sidebar_content" if side => {
+                    (0, crate::i18n::tr!("workspace-hud-hide-sidebar"))
+                }
+                "focus_sidebar_content" => (0, crate::i18n::tr!("workspace-hud-sidebar-content")),
+                "resize_panes" if can_size => (2, crate::i18n::tr!("workspace-hud-resize-panes")),
                 "resize_panes" => continue,
-                "minimize_pane_width" if can_size => (2, "Minimum width"),
-                "maximize_pane_width" if can_size => (2, "Maximum width"),
-                "equalize_pane_widths" if can_size => (2, "Equal widths"),
+                "minimize_pane_width" if can_size => {
+                    (2, crate::i18n::tr!("workspace-hud-minimum-width"))
+                }
+                "maximize_pane_width" if can_size => {
+                    (2, crate::i18n::tr!("workspace-hud-maximum-width"))
+                }
+                "equalize_pane_widths" if can_size => {
+                    (2, crate::i18n::tr!("workspace-hud-equal-widths"))
+                }
                 "minimize_pane_width" | "maximize_pane_width" | "equalize_pane_widths" => continue,
-                "move_divider_left" if can_resize => (2, "Divider left"),
-                "move_divider_right" if can_resize => (2, "Divider right"),
-                "toggle_pane_zoom" if self.zoomed_thread.is_some() => (2, "Restore layout"),
-                "toggle_pane_zoom" => (2, "Zoom pane"),
+                "move_divider_left" if can_resize => {
+                    (2, crate::i18n::tr!("workspace-hud-divider-left"))
+                }
+                "move_divider_right" if can_resize => {
+                    (2, crate::i18n::tr!("workspace-hud-divider-right"))
+                }
+                "toggle_pane_zoom" if self.zoomed_thread.is_some() => {
+                    (2, crate::i18n::tr!("workspace-hud-restore-layout"))
+                }
+                "toggle_pane_zoom" => (2, crate::i18n::tr!("workspace-hud-zoom-pane")),
                 "move_divider_left" | "move_divider_right" => continue,
                 "close_sidebar_tab" if self.active_side_parent_thread_id().is_some() => {
-                    (2, "Close tab")
+                    (2, crate::i18n::tr!("workspace-hud-close-tab"))
                 }
                 "close_sidebar_tab" => continue,
-                "sidebar_up" => (1, "Previous tab"),
-                "sidebar_down" => (1, "Next tab"),
-                "hide_pane" if side => (2, "Hide pane"),
-                "focus_pane_left" if side && can_switch => (1, "Pane left"),
+                "sidebar_up" => (1, crate::i18n::tr!("workspace-hud-previous-tab")),
+                "sidebar_down" => (1, crate::i18n::tr!("workspace-hud-next-tab")),
+                "hide_pane" if side => (2, crate::i18n::tr!("workspace-hud-hide-pane")),
+                "focus_pane_left" if side && can_switch => {
+                    (1, crate::i18n::tr!("workspace-hud-pane-left"))
+                }
                 "focus_pane_right" if !side && can_switch && self.open_pane_focus().is_some() => {
-                    (1, "Pane right")
+                    (1, crate::i18n::tr!("workspace-hud-pane-right"))
                 }
                 "hide_pane" | "focus_pane_left" | "focus_pane_right" => continue,
-                "choose_cloud_environment" => (2, "Choose environment"),
-                "open_presets" => (2, "Presets ›"),
-                "find_transcript" => (2, "Find text"),
-                "select_transcript" => (2, "Select transcript"),
-                "mark_markdown" => (2, "Mark table cell"),
-                "focus_conversation_composer" => (2, "Composer"),
+                "choose_cloud_environment" => {
+                    (2, crate::i18n::tr!("workspace-hud-choose-environment"))
+                }
+                "open_presets" => (2, crate::i18n::tr!("workspace-hud-presets")),
+                "find_transcript" => (2, crate::i18n::tr!("workspace-hud-find-text")),
+                "select_transcript" => (2, crate::i18n::tr!("workspace-hud-select-transcript")),
+                "mark_markdown" => (2, crate::i18n::tr!("workspace-hud-mark-table-cell")),
+                "focus_conversation_composer" => (2, crate::i18n::tr!("workspace-hud-composer")),
                 other => (2, other),
             };
             let key = keys.join(" / ").fg(crate::style::accent_color());
             groups[group].1.push((key, label.replace('_', " ")));
         }
-        let origin = if side { "Sidebar" } else { "Conversation" };
+        let origin = if side {
+            crate::i18n::tr!("workspace-hud-sidebar")
+        } else {
+            crate::i18n::tr!("workspace-hud-conversation")
+        };
         Some(ShortcutHud::leader(
-            format!("{} · {origin}", pending.prefix.display_label()),
+            crate::i18n::tr!(
+                "workspace-hud-leader-title",
+                prefix = pending.prefix.display_label(),
+                origin = origin
+            ),
             groups
                 .into_iter()
                 .filter_map(|(title, items)| {

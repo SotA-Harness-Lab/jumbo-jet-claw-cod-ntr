@@ -163,7 +163,7 @@ impl AppLinkViewParams {
             app_id,
             title,
             description: None,
-            instructions: "Sign in to this app in your browser, then return here.".to_string(),
+            instructions: crate::i18n::tr!("app-link-sign-in-instructions").to_string(),
             url: url.to_string(),
             is_installed: true,
             is_enabled: true,
@@ -188,16 +188,15 @@ impl AppLinkViewParams {
     ) -> Self {
         Self {
             app_id: elicitation_id.to_string(),
-            title: "Action required".to_string(),
-            description: Some(format!(
-                "Server: {}",
-                crate::app_server_approval_conversions::mcp_server_label(
+            title: crate::i18n::tr!("app-link-action-required").to_string(),
+            description: Some(crate::i18n::tr!(
+                "app-link-server",
+                server = crate::app_server_approval_conversions::mcp_server_label(
                     server_name,
                     environment_id
                 )
             )),
-            instructions: "Complete the requested action in your browser, then return here."
-                .to_string(),
+            instructions: crate::i18n::tr!("app-link-complete-action-instructions").to_string(),
             url: url.to_string(),
             is_installed: true,
             is_enabled: true,
@@ -301,14 +300,26 @@ impl AppLinkView {
     fn action_labels(&self) -> Vec<&'static str> {
         if self.is_auth_suggestion() {
             return match self.screen {
-                AppLinkScreen::Link => vec!["Open sign-in URL", "Back"],
-                AppLinkScreen::InstallConfirmation => vec!["I already signed in", "Back"],
+                AppLinkScreen::Link => vec![
+                    crate::i18n::tr!("app-link-open-sign-in-url"),
+                    crate::i18n::tr!("app-link-back"),
+                ],
+                AppLinkScreen::InstallConfirmation => vec![
+                    crate::i18n::tr!("app-link-already-signed-in"),
+                    crate::i18n::tr!("app-link-back"),
+                ],
             };
         }
         if self.is_external_action_suggestion() {
             return match self.screen {
-                AppLinkScreen::Link => vec!["Open link", "Back"],
-                AppLinkScreen::InstallConfirmation => vec!["I finished", "Back"],
+                AppLinkScreen::Link => vec![
+                    crate::i18n::tr!("app-link-open-link"),
+                    crate::i18n::tr!("app-link-back"),
+                ],
+                AppLinkScreen::InstallConfirmation => vec![
+                    crate::i18n::tr!("app-link-finished"),
+                    crate::i18n::tr!("app-link-back"),
+                ],
             };
         }
 
@@ -316,19 +327,25 @@ impl AppLinkView {
             AppLinkScreen::Link => {
                 if self.is_installed {
                     vec![
-                        "Manage on ChatGPT",
+                        crate::i18n::tr!("app-link-manage-on-chatgpt"),
                         if self.is_enabled {
-                            "Disable app"
+                            crate::i18n::tr!("app-link-disable-app")
                         } else {
-                            "Enable app"
+                            crate::i18n::tr!("app-link-enable-app")
                         },
-                        "Back",
+                        crate::i18n::tr!("app-link-back"),
                     ]
                 } else {
-                    vec!["Install on ChatGPT", "Back"]
+                    vec![
+                        crate::i18n::tr!("app-link-install-on-chatgpt"),
+                        crate::i18n::tr!("app-link-back"),
+                    ]
                 }
             }
-            AppLinkScreen::InstallConfirmation => vec!["I already Installed it", "Back"],
+            AppLinkScreen::InstallConfirmation => vec![
+                crate::i18n::tr!("app-link-already-installed"),
+                crate::i18n::tr!("app-link-back"),
+            ],
         }
     }
 
@@ -517,7 +534,7 @@ impl AppLinkView {
         }
         let is_browser_action_suggestion = self.is_browser_action_suggestion();
         if self.is_installed && !is_browser_action_suggestion {
-            for line in wrap("Use $ to insert this app into the prompt.", usable_width) {
+            for line in wrap(crate::i18n::tr!("app-link-use-dollar-insert"), usable_width) {
                 lines.push(Line::from(line.into_owned()));
             }
             lines.push(Line::from(""));
@@ -537,15 +554,12 @@ impl AppLinkView {
                 lines.push(Line::from(line.into_owned()));
             }
             if !is_browser_action_suggestion {
-                for line in wrap(
-                    "Newly installed apps can take a few minutes to appear in /apps.",
-                    usable_width,
-                ) {
+                for line in wrap(crate::i18n::tr!("app-link-new-apps-delay"), usable_width) {
                     lines.push(Line::from(line.into_owned()));
                 }
                 if !self.is_installed {
                     for line in wrap(
-                        "After installed, use $ to insert this app into the prompt.",
+                        crate::i18n::tr!("app-link-after-installed-insert"),
                         usable_width,
                     ) {
                         lines.push(Line::from(line.into_owned()));
@@ -572,14 +586,14 @@ impl AppLinkView {
         lines.push(Line::from(
             if is_auth_suggestion {
                 if is_codex_apps_auth {
-                    "Finish App Sign In"
+                    crate::i18n::tr!("app-link-finish-app-sign-in")
                 } else {
-                    "Finish Authentication"
+                    crate::i18n::tr!("app-link-finish-authentication")
                 }
             } else if is_external_action_suggestion {
-                "Finish in Browser"
+                crate::i18n::tr!("app-link-finish-in-browser")
             } else {
-                "Finish App Setup"
+                crate::i18n::tr!("app-link-finish-app-setup")
             }
             .bold(),
         ));
@@ -588,39 +602,42 @@ impl AppLinkView {
         if is_auth_suggestion {
             for line in wrap(
                 if is_codex_apps_auth {
-                    "Sign in to the app on ChatGPT in the browser window that just opened."
+                    crate::i18n::tr!("app-link-chatgpt-sign-in-browser")
                 } else {
-                    "Complete authentication in the browser window that just opened."
+                    crate::i18n::tr!("app-link-complete-auth-browser")
                 },
                 usable_width,
             ) {
                 lines.push(Line::from(line.into_owned()));
             }
             for line in wrap(
-                "Then return here and select \"I already signed in\".",
+                crate::i18n::tr!("app-link-return-select-signed-in"),
                 usable_width,
             ) {
                 lines.push(Line::from(line.into_owned()));
             }
         } else if is_external_action_suggestion {
             for line in wrap(
-                "Complete the requested action in the browser window that just opened.",
+                crate::i18n::tr!("app-link-complete-action-browser"),
                 usable_width,
             ) {
                 lines.push(Line::from(line.into_owned()));
             }
-            for line in wrap("Then return here and select \"I finished\".", usable_width) {
+            for line in wrap(
+                crate::i18n::tr!("app-link-return-select-finished"),
+                usable_width,
+            ) {
                 lines.push(Line::from(line.into_owned()));
             }
         } else {
             for line in wrap(
-                "Complete app setup on ChatGPT in the browser window that just opened.",
+                crate::i18n::tr!("app-link-complete-setup-browser"),
                 usable_width,
             ) {
                 lines.push(Line::from(line.into_owned()));
             }
             for line in wrap(
-                "Sign in there if needed, then return here and select \"I already Installed it\".",
+                crate::i18n::tr!("app-link-return-select-installed"),
                 usable_width,
             ) {
                 lines.push(Line::from(line.into_owned()));
@@ -630,11 +647,11 @@ impl AppLinkView {
         lines.push(Line::from(""));
         lines.push(Line::from(vec![
             if is_auth_suggestion {
-                "Sign-in URL:"
+                crate::i18n::tr!("app-link-sign-in-url-label")
             } else if is_external_action_suggestion {
-                "Link:"
+                crate::i18n::tr!("app-link-link-label")
             } else {
-                "Setup URL:"
+                crate::i18n::tr!("app-link-setup-url-label")
             }
             .dim(),
         ]));
@@ -693,16 +710,16 @@ impl AppLinkView {
             spans.push(" ".into());
             spans.extend(move_down.spans());
         }
-        spans.push(" move".into());
+        spans.push(crate::i18n::tr!("app-link-hint-move").into());
         if let Some(accept) = self.list_keymap.primary_hint(ListAction::Accept) {
             spans.push(" · ".into());
             spans.extend(accept.spans());
-            spans.push(" select".into());
+            spans.push(crate::i18n::tr!("app-link-hint-select").into());
         }
         if let Some(cancel) = self.list_keymap.primary_hint(ListAction::Cancel) {
             spans.push(" · ".into());
             spans.extend(cancel.spans());
-            spans.push(" close".into());
+            spans.push(crate::i18n::tr!("app-link-hint-close").into());
         }
         Line::from(spans)
     }
@@ -893,7 +910,7 @@ impl crate::render::renderable::Renderable for AppLinkView {
                 &action_rows,
                 &action_state,
                 action_rows.len().max(1),
-                "No actions",
+                crate::i18n::tr!("app-link-no-actions"),
             );
         }
 

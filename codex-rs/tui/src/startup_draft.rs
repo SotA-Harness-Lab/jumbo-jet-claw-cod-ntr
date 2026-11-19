@@ -272,8 +272,8 @@ impl StartupDraftPump {
     ) {
         if !opened_new_session {
             self.bottom_pane.set_footer_hint_override(Some(vec![(
-                "New conversation did not open".into(),
-                "draft kept".into(),
+                crate::i18n::tr!("startup-draft-did-not-open").into(),
+                crate::i18n::tr!("startup-draft-kept").into(),
             )]));
             if let Err(error) = self.show(tui) {
                 tracing::warn!(%error, "failed to render the new conversation failure");
@@ -576,7 +576,7 @@ impl StartupDraftPump {
 fn startup_session_header(cwd: Option<&Path>) -> Box<dyn HistoryCell> {
     // Execution permissions are unknown until the server initializes the thread.
     Box::new(history_cell::SessionHeaderHistoryCell::new(
-        "loading".to_string(),
+        crate::i18n::tr!("startup-draft-loading").to_string(),
         /*reasoning_effort*/ None,
         cwd.map_or_else(|| PathBuf::from("loading"), Path::to_path_buf),
         CODEX_CLI_VERSION,
@@ -592,8 +592,8 @@ fn startup_draft_renderable<'a>(
     renderable.push(/*flex*/ 1, RenderableItem::Borrowed(header));
     let loading_message = match session_action {
         StartupDraftSessionAction::New | StartupDraftSessionAction::NewWhileRunning => None,
-        StartupDraftSessionAction::Resume => Some("  Resuming session…"),
-        StartupDraftSessionAction::Fork => Some("  Forking session…"),
+        StartupDraftSessionAction::Resume => Some(crate::i18n::tr!("startup-draft-resuming")),
+        StartupDraftSessionAction::Fork => Some(crate::i18n::tr!("startup-draft-forking")),
     };
     if let Some(loading_message) = loading_message {
         renderable.push(
@@ -626,7 +626,7 @@ fn startup_draft_bottom_pane(
             frame_requester,
             has_input_focus: true,
             enhanced_keys_supported,
-            placeholder_text: "Ask Codex to do anything".to_string(),
+            placeholder_text: crate::i18n::tr!("composer-placeholder").to_string(),
             disable_paste_burst: false,
             animations_enabled: crate::system_motion::mode() == crate::motion::MotionMode::Animated,
             effects: Default::default(),

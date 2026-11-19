@@ -281,7 +281,10 @@ impl ChatComposer {
         if self.footer.ide_context_active {
             hints.add(
                 Ide,
-                [Line::from("IDE context".cyan()), Line::from("IDE".cyan())],
+                [
+                    Line::from(crate::i18n::tr!("passive-hints-ide-context").cyan()),
+                    Line::from("IDE".cyan()),
+                ],
             );
         }
         if mode == FooterMode::ComposerHasDraft
@@ -292,8 +295,8 @@ impl ChatComposer {
             hints.add(
                 Action,
                 [
-                    shortcut(key, " to queue message"),
-                    shortcut(key, " to queue"),
+                    shortcut(key, crate::i18n::tr!("passive-hints-to-queue-message")),
+                    shortcut(key, crate::i18n::tr!("passive-hints-to-queue")),
                 ],
             );
         }
@@ -319,12 +322,18 @@ impl ChatComposer {
                     Agents,
                     [shortcut(
                         key_hint::plain(KeyCode::Left).into(),
-                        " for agents",
+                        crate::i18n::tr!("passive-hints-for-agents"),
                     )],
                 );
             }
             if let Some(key) = self.footer.toggle_shortcuts_key {
-                hints.add(Shortcuts, [shortcut(key, " for shortcuts")]);
+                hints.add(
+                    Shortcuts,
+                    [shortcut(
+                        key,
+                        crate::i18n::tr!("passive-hints-for-shortcuts"),
+                    )],
+                );
             }
         }
         let show_warning = self.show_warning_notice(options);

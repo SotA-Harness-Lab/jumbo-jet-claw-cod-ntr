@@ -72,30 +72,32 @@ impl KeymapCaptureView {
     fn lines(&self, width: u16) -> Vec<Line<'static>> {
         let wrap_width = usize::from(width.max(1));
         let header = vec![
-            Line::from("Remap Shortcut".bold()),
+            Line::from(crate::i18n::tr!("capture-remap-shortcut").bold()),
             Line::from(vec![
-                "Action: ".dim(),
+                crate::i18n::tr!("capture-action").dim(),
                 self.label.clone().into(),
                 "  ".into(),
                 format!("{}.{}", self.context, self.action).dim(),
             ]),
             Line::from(vec![
-                "Current: ".dim(),
+                crate::i18n::tr!("capture-current").dim(),
                 self.current_binding.clone().fg(accent_color()),
             ]),
         ];
         let mut lines = word_wrap_lines(&header, wrap_width);
 
         let instructions = match (self.capture_mode, self.first_stroke.as_deref()) {
-            (KeymapCaptureMode::SingleKey, _) => "Press the new key now. Esc cancels.".to_string(),
+            (KeymapCaptureMode::SingleKey, _) => {
+                crate::i18n::tr!("capture-press-new-key").to_string()
+            }
             (KeymapCaptureMode::Chord, None) => {
-                "Press the first key, then the second. Esc cancels.".to_string()
+                crate::i18n::tr!("capture-press-first-then-second").to_string()
             }
             (KeymapCaptureMode::Chord, Some(first)) => {
-                format!("First key: {first}. Press the second key. Esc cancels.")
+                crate::i18n::tr!("capture-first-key-press-second", first = first)
             }
             (KeymapCaptureMode::LeaderChord, _) => {
-                "Press the key that follows the configured leader. Esc cancels.".to_string()
+                crate::i18n::tr!("capture-press-after-leader").to_string()
             }
         };
         lines.extend(
@@ -107,7 +109,7 @@ impl KeymapCaptureView {
         if let Some(error) = &self.error_message {
             lines.push(Line::from(""));
             let options = textwrap::Options::new(wrap_width)
-                .initial_indent("Error: ")
+                .initial_indent(crate::i18n::tr!("capture-error-prefix"))
                 .subsequent_indent("       ");
             lines.extend(
                 textwrap::wrap(error, options)

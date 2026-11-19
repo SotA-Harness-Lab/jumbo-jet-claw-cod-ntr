@@ -166,8 +166,8 @@ impl ChatWidget {
     pub(crate) fn add_connectors_output(&mut self) {
         if !self.connectors_enabled() {
             self.add_info_message(
-                "Apps are disabled.".to_string(),
-                Some("Enable the apps feature to use $ or /apps.".to_string()),
+                crate::i18n::tr!("connectors-apps-disabled").to_string(),
+                Some(crate::i18n::tr!("connectors-enable-apps-feature").to_string()),
             );
             return;
         }
@@ -181,7 +181,10 @@ impl ChatWidget {
         match connectors_cache {
             ConnectorsCacheState::Ready(snapshot) => {
                 if snapshot.connectors.is_empty() {
-                    self.add_info_message("No apps available.".to_string(), /*hint*/ None);
+                    self.add_info_message(
+                        crate::i18n::tr!("connectors-no-apps").to_string(),
+                        /*hint*/ None,
+                    );
                 } else {
                     self.open_connectors_popup(&snapshot.connectors);
                 }
@@ -215,11 +218,11 @@ impl ChatWidget {
     fn connectors_loading_popup_params(&self) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(CONNECTORS_SELECTION_VIEW_ID),
-            title: Some("Apps".to_string()),
-            subtitle: Some("Loading installed and available apps...".to_string()),
+            title: Some(crate::i18n::tr!("connectors-apps").to_string()),
+            subtitle: Some(crate::i18n::tr!("connectors-loading-installed-available").to_string()),
             items: vec![SelectionItem {
-                name: "Loading apps...".to_string(),
-                description: Some("This updates when the full list is ready".to_string()),
+                name: crate::i18n::tr!("connectors-loading-apps").to_string(),
+                description: Some(crate::i18n::tr!("connectors-updates-when-ready").to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
@@ -230,21 +233,20 @@ impl ChatWidget {
     fn connectors_error_popup_params(&self) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(CONNECTORS_SELECTION_VIEW_ID),
-            title: Some("Apps".to_string()),
-            subtitle: Some("Failed to load apps.".to_string()),
+            title: Some(crate::i18n::tr!("connectors-apps").to_string()),
+            subtitle: Some(crate::i18n::tr!("connectors-failed-to-load").to_string()),
             items: vec![
                 SelectionItem {
-                    name: "App directory unavailable".to_string(),
+                    name: crate::i18n::tr!("connectors-directory-unavailable").to_string(),
                     description: Some(
-                        "Retry the failed app directory request, or press Esc to continue"
-                            .to_string(),
+                        crate::i18n::tr!("connectors-retry-directory-hint").to_string(),
                     ),
                     is_disabled: true,
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: "Retry".to_string(),
-                    description: Some("Reload installed and available apps".to_string()),
+                    name: crate::i18n::tr!("connectors-retry").to_string(),
+                    description: Some(crate::i18n::tr!("connectors-reload-apps").to_string()),
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::RefreshConnectors {
                             force_refetch: true,
@@ -268,9 +270,16 @@ impl ChatWidget {
             .filter(|connector| connector.is_accessible)
             .count();
         let header = Paragraph::new(vec![
-            Line::from("Apps".bold()),
-            Line::from("Use $ to insert an installed app into your prompt.".dim()),
-            Line::from(format!("Installed {installed} of {total} available apps.").dim()),
+            Line::from(crate::i18n::tr!("connectors-apps").bold()),
+            Line::from(crate::i18n::tr!("connectors-use-dollar").dim()),
+            Line::from(
+                crate::i18n::tr!(
+                    "connectors-installed-of-total",
+                    installed = installed,
+                    total = total
+                )
+                .dim(),
+            ),
         ])
         .wrap(Wrap { trim: false });
         let initial_selected_idx = selected_connector_id.and_then(|selected_connector_id| {
@@ -294,17 +303,21 @@ impl ChatWidget {
             };
             let is_installed = connector.is_accessible;
             let selected_label = if is_installed {
-                format!(
-                    "{status_label} · Press Enter to open the app page to install, manage, or enable/disable this app"
+                crate::i18n::tr!("connectors-status-open-manage", status_label = status_label)
+            } else {
+                crate::i18n::tr!(
+                    "connectors-status-open-install",
+                    status_label = status_label
                 )
-            } else {
-                format!("{status_label} · Press Enter to open the app page to install this app")
             };
-            let missing_label = format!("{status_label} · App link unavailable");
+            let missing_label = crate::i18n::tr!(
+                "connectors-status-link-unavailable",
+                status_label = status_label
+            );
             let instructions = if connector.is_accessible {
-                "Manage this app in your browser."
+                crate::i18n::tr!("connectors-manage-in-browser")
             } else {
-                "Install this app in your browser, then reload Codex."
+                crate::i18n::tr!("connectors-install-in-browser")
             };
             if let Some(install_url) = connector.install_url.clone() {
                 let app_id = connector.id.clone();
@@ -346,7 +359,7 @@ impl ChatWidget {
             header: Box::new(header),
             items,
             is_searchable: true,
-            search_placeholder: Some("Type to search apps".to_string()),
+            search_placeholder: Some(crate::i18n::tr!("connectors-search-apps").to_string()),
             col_width_mode: ColumnWidthMode::AutoAllRows,
             initial_selected_idx,
             ..SelectionViewParams::picker()
@@ -376,7 +389,11 @@ impl ChatWidget {
     fn connector_brief_description(connector: &AppInfo) -> String {
         let status_label = Self::connector_status_label(connector);
         match Self::connector_description(connector) {
-            Some(description) => format!("{status_label} · {description}"),
+            Some(description) => crate::i18n::tr!(
+                "connectors-status-description",
+                status_label = status_label,
+                description = description
+            ),
             None => status_label.to_string(),
         }
     }
@@ -384,12 +401,12 @@ impl ChatWidget {
     fn connector_status_label(connector: &AppInfo) -> &'static str {
         if connector.is_accessible {
             if connector.is_enabled {
-                "Installed"
+                crate::i18n::tr!("connectors-status-installed")
             } else {
-                "Installed · Disabled"
+                crate::i18n::tr!("connectors-status-installed-disabled")
             }
         } else {
-            "Can be installed"
+            crate::i18n::tr!("connectors-status-can-install")
         }
     }
 

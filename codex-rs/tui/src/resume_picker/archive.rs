@@ -54,7 +54,7 @@ impl PickerState {
             return;
         };
         let Some(thread_id) = row.thread_id else {
-            self.inline_error = Some(String::from("Selected session does not have a thread ID."));
+            self.inline_error = Some(String::from(crate::i18n::tr!("archive-no-thread-id")));
             self.request_frame();
             return;
         };
@@ -67,9 +67,7 @@ impl PickerState {
                 current_thread_id: Some(current_thread_id)
             } if current_thread_id == key
         ) {
-            self.inline_error = Some(String::from(
-                "Use /archive to archive the current session and exit.",
-            ));
+            self.inline_error = Some(String::from(crate::i18n::tr!("archive-use-archive-cmd")));
             self.request_frame();
             return;
         }
@@ -109,7 +107,10 @@ impl PickerState {
         self.archive_state = ArchiveState::Idle;
 
         if let Err(error) = result {
-            self.inline_error = Some(format!("Failed to archive session: {error}"));
+            self.inline_error = Some(crate::i18n::tr!(
+                "archive-session-failed",
+                error = error.to_string()
+            ));
             self.request_frame();
             return;
         }
@@ -185,7 +186,10 @@ impl PickerState {
         match result {
             Ok(target) => Some(SessionSelection::Resume(target)),
             Err(error) => {
-                self.inline_error = Some(format!("Failed to restore archived session: {error}"));
+                self.inline_error = Some(crate::i18n::tr!(
+                    "archive-restore-failed",
+                    error = error.to_string()
+                ));
                 self.request_frame();
                 None
             }

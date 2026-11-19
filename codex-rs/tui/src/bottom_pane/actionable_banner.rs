@@ -200,12 +200,16 @@ impl BottomPane {
                 item.dismiss_on_select = false;
             }
             let hint = match (dismissal, has_actions) {
-                (BannerDismissal::Persistent, true) => "Press a number to choose",
+                (BannerDismissal::Persistent, true) => {
+                    crate::i18n::tr!("actionable-banner-press-number")
+                }
                 (BannerDismissal::Persistent, false) => "",
                 (BannerDismissal::Dismissible, true) => {
-                    "Press a number to choose · esc to dismiss · type to continue"
+                    crate::i18n::tr!("actionable-banner-number-esc-type")
                 }
-                (BannerDismissal::Dismissible, false) => "esc to dismiss · type to continue",
+                (BannerDismissal::Dismissible, false) => {
+                    crate::i18n::tr!("actionable-banner-esc-type")
+                }
             };
             let hint: Line<'static> = hint.dim().into();
             params.footer_hint = Some(hint.clone());

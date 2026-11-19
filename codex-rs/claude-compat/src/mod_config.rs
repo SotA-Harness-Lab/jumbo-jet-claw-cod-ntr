@@ -7,6 +7,9 @@
 //!
 //! [claude.plugins]
 //! enable = ["claude-hud@claude-hud"] # Claude Code plugins used even when found incompatible
+//!
+//! [ui]
+//! language = "zh-CN"                 # the TUI's language; the system's when left out
 //! ```
 //!
 //! A missing file means the defaults. A file that does not parse, or names a key this fork does
@@ -27,6 +30,17 @@ pub const MOD_CONFIG_FILE: &str = "ccn-config.toml";
 pub struct ModConfig {
     /// `[claude]`: how Claude Code's configuration is used.
     pub claude: ClaudeModConfig,
+    /// `[ui]`: the terminal interface.
+    pub ui: UiModConfig,
+}
+
+/// `[ui]` of `ccn-config.toml`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct UiModConfig {
+    /// `language`: the TUI's language as a BCP 47 tag (`en`, `zh-CN`). When left out, the
+    /// system's language is used, and English when the TUI has no translation for it.
+    pub language: Option<String>,
 }
 
 /// `[claude]` of `ccn-config.toml`.

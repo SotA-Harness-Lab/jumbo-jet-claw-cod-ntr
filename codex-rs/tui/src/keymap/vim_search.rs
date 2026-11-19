@@ -105,9 +105,10 @@ impl RuntimeKeymap {
                 .iter()
                 .find(|other| other.bindings.iter().any(|key| bindings.contains(key)))
             {
-                return Err(format!(
-                    "Conflicting `{path}` and `{}` bindings",
-                    other.id.config_path()
+                return Err(crate::i18n::tr!(
+                    "vim-search-conflicting-bindings",
+                    path = path,
+                    other = other.id.config_path()
                 ));
             }
         }

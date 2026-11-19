@@ -113,12 +113,16 @@ impl ToolOutputPreview {
     pub(crate) fn finish_hyperlink_lines(mut self) -> Vec<HyperlinkLine> {
         if self.omitted > 0 {
             let omitted = self.omitted;
-            let unit = if omitted == 1 { "line" } else { "lines" };
             self.lines.push(
                 truncate_line_with_ellipsis_if_overflow(
-                    format!("+{omitted} {unit} ({})", transcript_hint())
-                        .dim()
-                        .into(),
+                    crate::i18n::tr!(
+                        "tool-output-omitted-lines",
+                        count = omitted as i64,
+                        omitted = omitted as i64,
+                        hint = transcript_hint()
+                    )
+                    .dim()
+                    .into(),
                     self.width,
                 )
                 .into(),

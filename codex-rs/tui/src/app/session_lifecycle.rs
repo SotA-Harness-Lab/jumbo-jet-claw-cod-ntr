@@ -173,8 +173,10 @@ impl App {
         }
 
         if self.agent_navigation.is_empty() {
-            self.chat_widget
-                .add_info_message("No agents available yet.".to_string(), /*hint*/ None);
+            self.chat_widget.add_info_message(
+                crate::i18n::tr!("session-lifecycle-no-agents").to_string(),
+                /*hint*/ None,
+            );
             return;
         }
 
@@ -212,7 +214,7 @@ impl App {
                 let uuid = thread_id.to_string();
                 SelectionItem {
                     name: if is_pending {
-                        format!("{name} (needs approval)")
+                        crate::i18n::tr!("session-lifecycle-needs-approval", name = name.clone())
                     } else {
                         name.clone()
                     },
@@ -232,7 +234,7 @@ impl App {
 
         SelectionViewParams {
             view_id: Some(AGENT_PICKER_VIEW_ID),
-            title: Some("Subagents".to_string()),
+            title: Some(crate::i18n::tr!("session-lifecycle-subagents").to_string()),
             subtitle: Some(AgentNavigationState::picker_subtitle()),
             footer_hint: Some(standard_popup_hint_line()),
             items,
@@ -666,7 +668,7 @@ impl App {
             .is_some_and(|side| side.close_request.is_some())
         {
             self.chat_widget.add_info_message(
-                "Side chat is still closing. Try again in a moment.".to_string(),
+                crate::i18n::tr!("session-lifecycle-side-closing").to_string(),
                 /*hint*/ None,
             );
             return Ok(());
@@ -709,8 +711,9 @@ impl App {
                 .refresh_agent_picker_thread_liveness(app_server, thread_id)
                 .await)
         {
-            self.add_agents_overview_error(format!(
-                "Agent thread {thread_id} is no longer available."
+            self.add_agents_overview_error(crate::i18n::tr!(
+                "session-lifecycle-thread-unavailable",
+                thread_id = thread_id.to_string()
             ));
             return Ok(());
         }
@@ -725,8 +728,10 @@ impl App {
                     SelectionMode::ReplayOnly
                 }
                 Err(err) => {
-                    self.add_agents_overview_error(format!(
-                        "Failed to attach to agent thread {thread_id}: {err}"
+                    self.add_agents_overview_error(crate::i18n::tr!(
+                        "session-lifecycle-attach-failed",
+                        thread_id = thread_id.to_string(),
+                        err = err.to_string()
                     ));
                     return Ok(());
                 }
@@ -759,7 +764,7 @@ impl App {
         }
         if self.windows_sandbox_blocks_thread_switch() {
             self.chat_widget.add_info_message(
-                "Finish Windows sandbox setup before switching threads.".to_string(),
+                crate::i18n::tr!("session-lifecycle-finish-sandbox").to_string(),
                 /*hint*/ None,
             );
             return false;
@@ -796,7 +801,10 @@ impl App {
         self.active_thread_id = None;
         let Some((receiver, mut snapshot)) = self.activate_thread_for_replay(thread_id).await
         else {
-            self.add_agents_overview_error(format!("Agent thread {thread_id} is already active."));
+            self.add_agents_overview_error(crate::i18n::tr!(
+                "session-lifecycle-already-active",
+                thread_id = thread_id.to_string()
+            ));
             if let Some(previous_thread_id) = previous_thread_id {
                 self.activate_thread_channel(previous_thread_id).await;
             }
@@ -830,8 +838,9 @@ impl App {
         // Refreshing can merge restored turns into the store, so recap progress must be read only
         // after the refresh while the activated thread channel is still retained.
         let Some(channel) = self.thread_event_channels.get(&thread_id) else {
-            self.add_agents_overview_error(format!(
-                "Agent thread {thread_id} is no longer available."
+            self.add_agents_overview_error(crate::i18n::tr!(
+                "session-lifecycle-thread-unavailable",
+                thread_id = thread_id.to_string()
             ));
             return Ok(());
         };
@@ -929,11 +938,15 @@ impl App {
         {
             self.chat_widget.pause_unavailable_thread();
             let message = if attached_replay_only {
-                format!(
-                    "Agent thread {thread_id} could not be resumed live. Replaying saved transcript."
+                crate::i18n::tr!(
+                    "session-lifecycle-resume-live-failed",
+                    thread_id = thread_id.to_string()
                 )
             } else {
-                format!("Agent thread {thread_id} is closed. Replaying saved transcript.")
+                crate::i18n::tr!(
+                    "session-lifecycle-thread-closed",
+                    thread_id = thread_id.to_string()
+                )
             };
             self.chat_widget.add_info_message(message, /*hint*/ None);
         }
@@ -1838,7 +1851,7 @@ impl App {
         }
         if self.windows_sandbox_blocks_thread_switch() {
             self.chat_widget.add_info_message(
-                "Finish Windows sandbox setup before switching threads.".to_string(),
+                crate::i18n::tr!("session-lifecycle-finish-sandbox").to_string(),
                 /*hint*/ None,
             );
             return Ok(AppRunControl::Continue);

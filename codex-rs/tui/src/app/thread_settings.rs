@@ -265,8 +265,10 @@ impl App {
             }
             Err(err) => {
                 tracing::warn!("failed to update app-server thread settings from TUI: {err}");
-                self.chat_widget
-                    .add_error_message(format!("Failed to update thread settings: {err}"));
+                self.chat_widget.add_error_message(crate::i18n::tr!(
+                    "thread-settings-failed-update",
+                    err = err.to_string()
+                ));
                 false
             }
         }

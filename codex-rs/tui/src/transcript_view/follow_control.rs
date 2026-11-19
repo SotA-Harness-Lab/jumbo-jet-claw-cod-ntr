@@ -61,19 +61,19 @@ impl TranscriptView {
         }
         let labels = if self.unseen_activity {
             [
-                " New activity · ↓ Back to bottom · esc ",
-                " New activity · ↓ Bottom ",
-                " New · ↓ Bottom ",
-                " ↓ Bottom ",
-                " ↓ ",
+                crate::i18n::tr!("follow-control-new-back-esc"),
+                crate::i18n::tr!("follow-control-new-bottom"),
+                crate::i18n::tr!("follow-control-new-short"),
+                crate::i18n::tr!("follow-control-bottom"),
+                crate::i18n::tr!("follow-control-arrow"),
             ]
         } else {
             [
-                " ↓ Back to bottom · esc ",
-                " ↓ Back to bottom ",
-                " ↓ Bottom · esc ",
-                " ↓ Bottom ",
-                " ↓ ",
+                crate::i18n::tr!("follow-control-back-esc"),
+                crate::i18n::tr!("follow-control-back"),
+                crate::i18n::tr!("follow-control-bottom-esc"),
+                crate::i18n::tr!("follow-control-bottom"),
+                crate::i18n::tr!("follow-control-arrow"),
             ]
         };
         labels

@@ -45,19 +45,17 @@ pub(super) async fn reconnect(
     presentation: ReconnectPresentation,
 ) -> Result<Reconnected> {
     if matches!(target, AppServerTarget::Cloud) {
-        color_eyre::eyre::bail!("Reopen Codex to reconnect the cloud backend.");
+        color_eyre::eyre::bail!(crate::i18n::tr!("reconnect-reopen-cloud"));
     }
     let mode = target.thread_params_mode();
     if matches!(target, AppServerTarget::Embedded) {
-        color_eyre::eyre::bail!("in-process sessions have no connection to restore");
+        color_eyre::eyre::bail!(crate::i18n::tr!("reconnect-in-process"));
     }
     if let ThreadToolTransport::Mcp(server) = &task_tools {
         server.suspend();
     }
     if presentation == ReconnectPresentation::Conversation && thread_id.is_none() {
-        color_eyre::eyre::bail!(
-            "The initial thread may have been created, but its ID was not received. Nothing was retried. Your prompt is editable; inspect your tasks before relaunching."
-        );
+        color_eyre::eyre::bail!(crate::i18n::tr!("reconnect-initial-thread-unknown"));
     }
     // Connecting already has transport deadlines. Give healthy history/inventory hydration one
     // shared budget instead of repeatedly discarding its progress on a short per-attempt timer.
@@ -150,7 +148,13 @@ pub(super) async fn reconnect(
         }
     }
     tracing::warn!(stage, "automatic reconnect timed out");
-    color_eyre::eyre::bail!("Automatic reconnect timed out while {stage}.");
+    // The log keeps the English stage; the message shown to the user is translated.
+    let stage = match stage {
+        "loading session settings" => crate::i18n::tr!("reconnect-stage-loading-settings"),
+        "resuming the conversation" => crate::i18n::tr!("reconnect-stage-resuming"),
+        _ => crate::i18n::tr!("reconnect-stage-connecting"),
+    };
+    color_eyre::eyre::bail!(crate::i18n::tr!("reconnect-timed-out", stage = stage));
 }
 
 impl App {
@@ -319,7 +323,7 @@ impl App {
                         .is_some())
             {
                 if let Ok(mut state) = self.agents_overview.view_state.lock() {
-                    state.connection_notice = Some("Reconnecting — agent list is stale");
+                    state.connection_notice = Some(crate::i18n::tr!("reconnect-agent-list-stale"));
                 }
                 ReconnectPresentation::Overview
             } else {
@@ -604,7 +608,10 @@ impl App {
             if self.thread_unavailable(id) && !self.chat_widget.is_read_only_view() {
                 self.agent_navigation.mark_stopped(id);
                 self.chat_widget.pause_unavailable_thread();
-                self.chat_widget.add_info_message("This conversation is unavailable. Its cached transcript and draft remain here; input is paused. Open the agent picker or return to the parent to continue.".into(), /*hint*/ None);
+                self.chat_widget.add_info_message(
+                    crate::i18n::tr!("reconnect-conversation-unavailable").into(),
+                    /*hint*/ None,
+                );
             } else {
                 self.schedule_recap_check(id, Instant::now());
             }
@@ -644,10 +651,8 @@ impl App {
         // WINDOWS-REMNANT
         #[cfg(any(target_os = "windows", test))]
         if interrupted_windows_setup {
-            self.chat_widget.add_error_message(
-                "Windows sandbox setup was interrupted. Restart Codex before using Agent mode."
-                    .to_string(),
-            );
+            self.chat_widget
+                .add_error_message(crate::i18n::tr!("reconnect-sandbox-interrupted").to_string());
         }
         // Only accept fresh task-tool calls once this connection and its event queue are adopted.
         if let ThreadToolTransport::Mcp(server) = app_server.thread_tool_transport() {

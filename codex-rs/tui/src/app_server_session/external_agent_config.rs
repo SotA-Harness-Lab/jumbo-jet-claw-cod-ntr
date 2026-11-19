@@ -25,7 +25,7 @@ impl AppServerSession {
         migration_source: String,
     ) -> Result<()> {
         if self.external_agent_config_import_in_progress() {
-            color_eyre::eyre::bail!(EXTERNAL_AGENT_CONFIG_IMPORT_IN_PROGRESS_MESSAGE);
+            color_eyre::eyre::bail!(external_agent_config_import_in_progress_message());
         }
         let request_id = self.next_request_id();
         let response: ExternalAgentConfigImportResponse = self

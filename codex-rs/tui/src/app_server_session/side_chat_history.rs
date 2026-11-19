@@ -261,7 +261,7 @@ impl AppServerSession {
                             Some(codex_protocol::protocol::ThreadSource::Feature(source))
                                 if source == ATTACHED_SIDE_CHAT_SOURCE
                         ),
-                    "The conversation has an attachment outside the TUI sidebar. Remove it before deleting the conversation."
+                    crate::i18n::tr!("side-chat-history-outside-attachment")
                 );
                 children.insert(child);
             }

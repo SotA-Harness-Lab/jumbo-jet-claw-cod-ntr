@@ -11,15 +11,15 @@ pub(crate) enum ReadOnlyThread {
 impl ReadOnlyThread {
     pub(super) fn message(self) -> &'static str {
         match self {
-            Self::ExternalWriter => "Close it there and press R to continue here.",
-            Self::Archived => "Press U to unarchive this thread and continue here.",
+            Self::ExternalWriter => crate::i18n::tr!("read-only-external-writer"),
+            Self::Archived => crate::i18n::tr!("read-only-archived"),
         }
     }
 
     pub(super) fn action(self) -> (&'static str, &'static str) {
         match self {
-            Self::ExternalWriter => ("r", "retry"),
-            Self::Archived => ("u", "unarchive"),
+            Self::ExternalWriter => ("r", crate::i18n::tr!("read-only-retry")),
+            Self::Archived => ("u", crate::i18n::tr!("read-only-unarchive")),
         }
     }
 }

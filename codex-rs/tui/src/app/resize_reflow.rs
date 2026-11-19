@@ -736,9 +736,9 @@ impl App {
         let Some(binding) = crate::keymap::primary_binding(&self.keymap.app.open_transcript) else {
             return;
         };
-        let notice = Line::from(format!(
-            "Earlier messages are available — press {} to view the full transcript",
-            binding.display_label()
+        let notice = Line::from(crate::i18n::tr!(
+            "resize-reflow-earlier-messages",
+            key = binding.display_label()
         ))
         .dim();
         let notice_lines =

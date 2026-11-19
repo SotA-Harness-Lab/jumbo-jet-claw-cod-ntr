@@ -72,14 +72,14 @@ impl Draft {
 
     pub(super) fn patch(&self) -> Result<ModelProviderConfigWriteParams, &'static str> {
         if self.provider.as_ref().is_some_and(|p| !p.can_edit) {
-            return Err("This provider configuration is read-only.");
+            return Err(crate::i18n::tr!("form-read-only"));
         }
         for (field, original) in self.fields() {
             if self.required(field) && self.value(field, original).trim().is_empty() {
                 return Err(if field == Field::Name {
-                    "Enter a provider name."
+                    crate::i18n::tr!("form-enter-name")
                 } else {
-                    "Enter a base URL."
+                    crate::i18n::tr!("form-enter-base-url")
                 });
             }
         }
@@ -88,12 +88,12 @@ impl Draft {
         {
             let original_url = self.provider.as_ref().and_then(|p| p.base_url.as_deref());
             if self.value(Field::Url, original_url).trim().is_empty() {
-                return Err("Enter a base URL to use this API key variable.");
+                return Err(crate::i18n::tr!("form-enter-base-url-for-key"));
             }
             if !(key.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
                 && key.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_'))
             {
-                return Err("Enter an environment variable name such as TEAM_API_KEY.");
+                return Err(crate::i18n::tr!("form-enter-env-var"));
             }
         }
         let changed = |field| {
@@ -118,7 +118,7 @@ impl Draft {
                         Some(AMAZON_BEDROCK_RUNTIME_PROVIDER_ID) => {
                             BedrockProviderId::AmazonBedrockRuntime
                         }
-                        _ => return Err("Unrecognized Bedrock provider."),
+                        _ => return Err(crate::i18n::tr!("form-unrecognized-bedrock")),
                     },
                     profile: changed(Field::Profile),
                     region: changed(Field::Region),
@@ -131,7 +131,7 @@ impl Draft {
                 credential_file: changed(Field::Credentials),
             }),
             Some(ProviderSettings::OpenAi) => {
-                return Err("This provider configuration is read-only.");
+                return Err(crate::i18n::tr!("form-read-only"));
             }
         };
         Ok(ModelProviderConfigWriteParams { settings })

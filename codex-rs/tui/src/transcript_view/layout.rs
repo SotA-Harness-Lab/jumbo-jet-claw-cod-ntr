@@ -36,13 +36,17 @@ pub(super) fn activity_layout(
         return layout;
     }
     let label = match (expanded, lines.disclosure) {
-        (true, Some(ActivityDisclosure::OutputLines(_))) => "− Show less".to_owned(),
-        (true, Some(ActivityDisclosure::Generic) | None) => "− Hide details".to_owned(),
+        (true, Some(ActivityDisclosure::OutputLines(_))) => {
+            crate::i18n::tr!("layout-show-less").to_owned()
+        }
+        (true, Some(ActivityDisclosure::Generic) | None) => {
+            crate::i18n::tr!("layout-hide-details").to_owned()
+        }
         (false, Some(ActivityDisclosure::OutputLines(count))) => {
-            let noun = if count == 1 { "line" } else { "lines" };
-            let mut label = format!("+ {count} {noun}");
+            let mut label = crate::i18n::tr!("layout-more-lines", count = count as i64);
             if let Some(shortcut) = shortcut {
-                let hint = format!(" ({} to expand)", shortcut.display_label());
+                let hint =
+                    crate::i18n::tr!("layout-to-expand-hint", key = shortcut.display_label());
                 let indent = usize::from(width / 4).min(/*other*/ 4);
                 if Line::from(format!("{label}{hint}")).width() + indent <= usize::from(width) {
                     label.push_str(&hint);
@@ -50,7 +54,9 @@ pub(super) fn activity_layout(
             }
             label
         }
-        (false, Some(ActivityDisclosure::Generic) | None) => "+ Show details".to_owned(),
+        (false, Some(ActivityDisclosure::Generic) | None) => {
+            crate::i18n::tr!("layout-show-details").to_owned()
+        }
     };
     match source_offset {
         Some(offset) => layout.with_disclosure_control_at(label, offset),

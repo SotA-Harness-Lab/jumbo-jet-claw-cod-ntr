@@ -33,7 +33,7 @@ impl ChatWidget {
         if self.status_state.current_status.is_guardian_review() {
             let header = self
                 .mcp_startup_status_header()
-                .unwrap_or_else(|| String::from("Working"));
+                .unwrap_or_else(|| crate::i18n::tr!("status-state-working").to_string());
             self.set_status_header(header);
         }
     }
@@ -74,7 +74,11 @@ impl ChatWidget {
     pub(super) fn log_websocket_timing_totals(&mut self, delta: RuntimeMetricsSummary) {
         if let Some(label) = history_cell::runtime_metrics_label(delta.responses_api_summary()) {
             self.add_plain_history_lines(vec![
-                vec!["• ".dim(), format!("WebSocket timing: {label}").dark_gray()].into(),
+                vec![
+                    "• ".dim(),
+                    crate::i18n::tr!("turn-runtime-websocket-timing", label = label).dark_gray(),
+                ]
+                .into(),
             ]);
         }
     }
@@ -113,7 +117,7 @@ impl ChatWidget {
             .set_interrupt_hint_visible(/*visible*/ true);
         self.status_state.terminal_title_status_kind = TerminalTitleStatusKind::Working;
         if self.mcp_startup_status.is_none() || !self.status_header_is_mcp_startup_owned() {
-            self.set_status_header(String::from("Working"));
+            self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
         }
         self.reasoning_summary_parts.clear();
         self.reasoning_buffer.clear();
@@ -289,7 +293,7 @@ impl ChatWidget {
                 context_usage_label.as_deref(),
             ));
         self.notify(Notification::PlanModePrompt {
-            title: PLAN_IMPLEMENTATION_TITLE.to_string(),
+            title: plan_implementation_title().to_string(),
         });
     }
 
@@ -310,13 +314,19 @@ impl ChatWidget {
             if used_percent <= 0 {
                 return None;
             }
-            return Some(format!("{used_percent}% used"));
+            return Some(crate::i18n::tr!(
+                "turn-runtime-percent-used",
+                used_percent = used_percent
+            ));
         }
 
         if let Some(tokens) = used_tokens
             && tokens > 0
         {
-            return Some(format!("{} used", format_tokens_compact(tokens)));
+            return Some(crate::i18n::tr!(
+                "turn-runtime-tokens-used",
+                tokens = format_tokens_compact(tokens)
+            ));
         }
 
         None
@@ -400,7 +410,7 @@ impl ChatWidget {
         self.finalize_turn();
 
         let message = if message.trim().is_empty() {
-            "Codex is currently experiencing high load.".to_string()
+            crate::i18n::tr!("turn-runtime-high-load").to_string()
         } else {
             message
         };
@@ -454,10 +464,10 @@ impl ChatWidget {
             && let Some(thread_id) = self.thread_id
         {
             self.bottom_pane.show_selection_view(SelectionViewParams {
-                title: Some("Turn on Daybreak for your next request?".into()),
+                title: Some(crate::i18n::tr!("turn-runtime-daybreak-title").into()),
                 items: vec![
                     SelectionItem {
-                        name: "Enable Daybreak".into(),
+                        name: crate::i18n::tr!("turn-runtime-daybreak-enable").into(),
                         actions: vec![Box::new(move |tx| {
                             tx.send(AppEvent::PersistDaybreakSelection {
                                 thread_id,
@@ -468,7 +478,7 @@ impl ChatWidget {
                         ..Default::default()
                     },
                     SelectionItem {
-                        name: "Not now".into(),
+                        name: crate::i18n::tr!("turn-runtime-daybreak-not-now").into(),
                         dismiss_on_select: true,
                         ..Default::default()
                     },
@@ -510,19 +520,19 @@ impl ChatWidget {
         // Keep owner remediation in history even when the optional backend banner is unavailable.
         let (message, nudge) = match rate_limit_reached_type {
             Some(RateLimitReachedType::WorkspaceOwnerCreditsDepleted) => (
-                    "You're out of credits. Your workspace is out of credits. Add credits to continue using Codex."
-                        .to_string(),
-                    None,
+                crate::i18n::tr!("turn-runtime-out-of-credits").to_string(),
+                None,
             ),
             Some(RateLimitReachedType::WorkspaceOwnerUsageLimitReached) => (
-                    "Usage limit reached. You've reached your usage limit. Increase your limits to continue using codex."
-                        .to_string(),
-                    None,
+                crate::i18n::tr!("turn-runtime-usage-limit-reached").to_string(),
+                None,
             ),
-            Some(RateLimitReachedType::WorkspaceMemberCreditsDepleted) =>
-                (message, Some(AddCreditsNudgeCreditType::Credits)),
-            Some(RateLimitReachedType::WorkspaceMemberUsageLimitReached) =>
-                (message, Some(AddCreditsNudgeCreditType::UsageLimit)),
+            Some(RateLimitReachedType::WorkspaceMemberCreditsDepleted) => {
+                (message, Some(AddCreditsNudgeCreditType::Credits))
+            }
+            Some(RateLimitReachedType::WorkspaceMemberUsageLimitReached) => {
+                (message, Some(AddCreditsNudgeCreditType::UsageLimit))
+            }
             Some(RateLimitReachedType::RateLimitReached) | None => (message, None),
         };
         self.on_error(message);
@@ -603,7 +613,7 @@ impl ChatWidget {
         verifications: &[AppServerModelVerification],
     ) {
         if verifications.contains(&AppServerModelVerification::TrustedAccessForCyber) {
-            self.on_warning(TRUSTED_ACCESS_FOR_CYBER_VERIFICATION_WARNING);
+            self.on_warning(trusted_access_for_cyber_verification_warning());
         }
     }
 

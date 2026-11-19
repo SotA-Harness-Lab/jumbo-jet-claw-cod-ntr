@@ -19,7 +19,7 @@ use codex_protocol::openai_models::ReasoningEffort as ReasoningEffortConfig;
 use crossterm::event::KeyEvent;
 
 use super::ChatWidget;
-use super::PARENT_OWNED_INPUT_MESSAGE;
+use super::parent_owned_input_message;
 use crate::app_event::AppEvent;
 use crate::key_hint::KeyBindingListExt;
 
@@ -34,8 +34,8 @@ impl ReasoningShortcutDirection {
     fn bound_message(self, effort: &ReasoningEffortConfig) -> String {
         let label = ChatWidget::reasoning_effort_sentence_label(effort);
         match self {
-            Self::Lower => format!("Reasoning is already at the lowest level ({label})."),
-            Self::Raise => format!("Reasoning is already at the highest level ({label})."),
+            Self::Lower => crate::i18n::tr!("reasoning-shortcuts-lowest", label = label),
+            Self::Raise => crate::i18n::tr!("reasoning-shortcuts-highest", label = label),
         }
     }
 }
@@ -74,13 +74,13 @@ impl ChatWidget {
         }
 
         if self.blocks_direct_input {
-            self.add_error_message(PARENT_OWNED_INPUT_MESSAGE.to_string());
+            self.add_error_message(parent_owned_input_message().to_string());
             return true;
         }
 
         if !self.is_session_configured() {
             self.add_info_message(
-                "Reasoning shortcuts are disabled until startup completes.".to_string(),
+                crate::i18n::tr!("reasoning-shortcuts-disabled-startup").to_string(),
                 /*hint*/ None,
             );
             return true;
@@ -89,7 +89,7 @@ impl ChatWidget {
         let current_model = self.current_model().to_string();
         let Some(preset) = self.current_model_preset() else {
             self.add_info_message(
-                format!("Reasoning shortcuts are unavailable for {current_model}."),
+                crate::i18n::tr!("reasoning-shortcuts-unavailable", model = current_model),
                 /*hint*/ None,
             );
             return true;
@@ -122,10 +122,10 @@ impl ChatWidget {
             let model_path = if current_model.starts_with("codex-auto-") {
                 current_model
             } else {
-                format!("All models → {current_model}")
+                crate::i18n::tr!("reasoning-shortcuts-all-models", model = current_model)
             };
             self.add_info_message(
-                format!("Ultra is available under /model → {model_path} → More reasoning…"),
+                crate::i18n::tr!("reasoning-shortcuts-ultra-available", path = model_path),
                 /*hint*/ None,
             );
             return true;

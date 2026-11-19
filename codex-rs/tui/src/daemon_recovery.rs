@@ -109,9 +109,9 @@ pub(super) async fn check(
     };
     tui.terminal.clear()?;
     match (selection, issue.restart_features.as_ref()) {
-        (Some(0), _) => Ok(Some(format!(
-            "Running without the shared background server: {}.",
-            issue.reason
+        (Some(0), _) => Ok(Some(crate::i18n::tr!(
+            "daemon-recovery-running-without",
+            reason = issue.reason.to_string()
         ))),
         (Some(1), Some(features)) if managed_daemon => {
             tui.with_restored(crate::tui::TerminalHandoff::Restore, || async {
@@ -145,27 +145,30 @@ fn recovery_view(
     let mut header = ColumnRenderable::new();
     header.push(Line::from(
         if issue.restart_features.is_some() {
-            "Background server has incompatible feature settings"
+            crate::i18n::tr!("daemon-recovery-incompatible-settings")
         } else {
-            "Cannot use the background server"
+            crate::i18n::tr!("daemon-recovery-cannot-use")
         }
         .bold(),
     ));
     header.push(Paragraph::new(issue.reason.clone()).wrap(Wrap { trim: false }));
     if let Some(features) = &issue.restart_features {
-        header.push(Paragraph::new(
-            "These settings persist and can disable functionality for other clients. Restart may interrupt active or queued work."
-        ).wrap(Wrap { trim: false }));
-        header.push(Line::from(
-            "Restart will use these shared feature settings:",
-        ));
+        header.push(
+            Paragraph::new(crate::i18n::tr!("daemon-recovery-settings-persist"))
+                .wrap(Wrap { trim: false }),
+        );
+        header.push(Line::from(crate::i18n::tr!(
+            "daemon-recovery-restart-will-use"
+        )));
         let mut remaining = features.iter();
         for (name, enabled) in remaining.by_ref().take(3) {
             header.push(Line::from(format!("  {name} = {enabled}").dim()));
         }
         let count = remaining.len();
         if count > 0 {
-            header.push(Line::from(format!("  and {count} more").dim()));
+            header.push(Line::from(
+                crate::i18n::tr!("daemon-recovery-and-more", count = count as i64).dim(),
+            ));
         }
     }
     let (tx, _rx) = unbounded_channel::<AppEvent>();
@@ -175,31 +178,31 @@ fn recovery_view(
             initial_selected_idx: Some(2),
             items: vec![
                 SelectionItem {
-                    name: "Run without daemon this time".to_string(),
+                    name: crate::i18n::tr!("daemon-recovery-run-without").to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
                 SelectionItem {
                     name: if can_restart {
-                        "Restart with these settings (recommended)"
+                        crate::i18n::tr!("daemon-recovery-restart-recommended")
                     } else {
-                        "Restart with these settings"
+                        crate::i18n::tr!("daemon-recovery-restart")
                     }
                     .to_string(),
                     dismiss_on_select: true,
                     require_explicit_confirmation: true,
                     is_disabled: !can_restart,
                     disabled_reason: if !managed_daemon {
-                        Some("This server is not managed by Codex.".to_string())
+                        Some(crate::i18n::tr!("daemon-recovery-not-managed").to_string())
                     } else if issue.restart_features.is_none() {
-                        Some("Restart cannot resolve this compatibility check.".to_string())
+                        Some(crate::i18n::tr!("daemon-recovery-cannot-resolve").to_string())
                     } else {
                         None
                     },
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: "Cancel".to_string(),
+                    name: crate::i18n::tr!("daemon-recovery-cancel").to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },

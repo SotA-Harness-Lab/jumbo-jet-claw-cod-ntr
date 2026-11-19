@@ -75,8 +75,8 @@ pub(super) fn render_popup(
         ..rect
     };
     for (offset, line) in [
-        Line::from("Mentions".bold()),
-        Line::from("Files, directories, plugins, skills and tasks".dim()),
+        Line::from(crate::i18n::tr!("mentions-render-title").bold()),
+        Line::from(crate::i18n::tr!("mentions-render-subtitle").dim()),
     ]
     .into_iter()
     .take(usize::from(header.height))
@@ -102,7 +102,7 @@ pub(super) fn render_popup(
         .unwrap_or_default();
     render_filled_tab_bar(&modes.map(SearchMode::label), active, inset(tabs), buf);
     let query = if query.is_empty() {
-        "Type to search mentions"
+        crate::i18n::tr!("mentions-render-type-to-search")
     } else {
         query
     };

@@ -76,19 +76,20 @@ macro_rules! define_keymap_actions {
             }
         )*
     ) => {
-        pub(super) const KEYMAP_ACTIONS: &[KeymapActionDescriptor] = &[
+        pub(super) static KEYMAP_ACTIONS: std::sync::LazyLock<Vec<KeymapActionDescriptor>> =
+            std::sync::LazyLock::new(|| vec![
             $(
                 $(
                     KeymapActionDescriptor {
                         context: stringify!($context),
-                        context_label: $context_label,
+                        context_label: crate::i18n::tr!($context_label),
                         action: stringify!($action),
-                        description: $description,
+                        description: crate::i18n::tr!($description),
                         required_feature: required_feature!($($required_feature)?),
                     },
                 )*
             )*
-        ];
+        ]);
 
         /// Return the mutable root-config binding slot for one catalog action.
         ///
@@ -116,205 +117,205 @@ macro_rules! define_keymap_actions {
 }
 
 define_keymap_actions! {
-    global "Global" {
-        change_host [MultiBackend] => "Change where a new conversation runs.",
-        focus_main_composer [Workspace] => "Focus the main conversation composer.",
-        focus_sidebar_tabs [Workspace] => "Open the sidebar tab chooser.",
-        focus_sidebar_content [Workspace] => "Focus the side conversation, or hide it when already focused.",
-        hide_pane [Workspace] => "Hide the focused sidebar pane.",
-        close_sidebar_tab [Workspace] => "Close the active sidebar tab.",
-        sidebar_up [Workspace] => "Switch to the previous sidebar tab.",
-        sidebar_down [Workspace] => "Switch to the next sidebar tab.",
-        focus_pane_left [Workspace] => "Focus the parent conversation.",
-        focus_pane_right [Workspace] => "Focus the open side conversation.",
-        minimize_pane_width [Workspace] => "Minimize the focused pane width.",
-        maximize_pane_width [Workspace] => "Maximize the focused pane width.",
-        equalize_pane_widths [Workspace] => "Equalize visible pane widths.",
-        resize_panes [Workspace] => "Enter keyboard resize mode for visible dividers.",
-        move_divider_left [Workspace] => "Move the divider left when the side pane has focus.",
-        move_divider_right [Workspace] => "Move the divider right when the side pane has focus.",
-        toggle_pane_zoom [Workspace] => "Zoom or restore the focused pane.",
-        open_agents => "Open the agent command center.",
-        open_transcript => "Open the transcript overlay.",
-        find_transcript => "Find text in the full transcript.",
+    global "keymap-actions-ctx-global" {
+        change_host [MultiBackend] => "keymap-actions-global-change-host",
+        focus_main_composer [Workspace] => "keymap-actions-global-focus-main-composer",
+        focus_sidebar_tabs [Workspace] => "keymap-actions-global-focus-sidebar-tabs",
+        focus_sidebar_content [Workspace] => "keymap-actions-global-focus-sidebar-content",
+        hide_pane [Workspace] => "keymap-actions-global-hide-pane",
+        close_sidebar_tab [Workspace] => "keymap-actions-global-close-sidebar-tab",
+        sidebar_up [Workspace] => "keymap-actions-global-sidebar-up",
+        sidebar_down [Workspace] => "keymap-actions-global-sidebar-down",
+        focus_pane_left [Workspace] => "keymap-actions-global-focus-pane-left",
+        focus_pane_right [Workspace] => "keymap-actions-global-focus-pane-right",
+        minimize_pane_width [Workspace] => "keymap-actions-global-minimize-pane-width",
+        maximize_pane_width [Workspace] => "keymap-actions-global-maximize-pane-width",
+        equalize_pane_widths [Workspace] => "keymap-actions-global-equalize-pane-widths",
+        resize_panes [Workspace] => "keymap-actions-global-resize-panes",
+        move_divider_left [Workspace] => "keymap-actions-global-move-divider-left",
+        move_divider_right [Workspace] => "keymap-actions-global-move-divider-right",
+        toggle_pane_zoom [Workspace] => "keymap-actions-global-toggle-pane-zoom",
+        open_agents => "keymap-actions-global-open-agents",
+        open_transcript => "keymap-actions-global-open-transcript",
+        find_transcript => "keymap-actions-global-find-transcript",
         // Keep the new warnings action out of shared-config writes until older strict readers
         // accept it. Its built-in shortcuts remain available.
-        focus_activity => "Focus transcript activity groups to expand or collapse their details.",
-        open_external_editor => "Open the current draft in an external editor.",
-        copy => "Copy the last agent response to the clipboard.",
-        clear_terminal => "Clear the terminal UI.",
-        toggle_vim_mode => "Turn Vim composer mode on or off.",
-        toggle_fast_mode [FastMode] => "Turn Fast mode on or off.",
-        toggle_raw_output => "Toggle raw scrollback mode.",
-        toggle_side_conversation => "Switch between a side conversation and its parent.",
-        leader => "Set the prefix used by shared leader shortcuts.",
+        focus_activity => "keymap-actions-global-focus-activity",
+        open_external_editor => "keymap-actions-global-open-external-editor",
+        copy => "keymap-actions-global-copy",
+        clear_terminal => "keymap-actions-global-clear-terminal",
+        toggle_vim_mode => "keymap-actions-global-toggle-vim-mode",
+        toggle_fast_mode [FastMode] => "keymap-actions-global-toggle-fast-mode",
+        toggle_raw_output => "keymap-actions-global-toggle-raw-output",
+        toggle_side_conversation => "keymap-actions-global-toggle-side-conversation",
+        leader => "keymap-actions-global-leader",
     }
-    chat "Chat" {
-        interrupt_turn => "Interrupt the active turn.",
-        decrease_reasoning_effort => "Decrease reasoning effort.",
-        increase_reasoning_effort => "Increase reasoning effort.",
-        previous_permission_mode => "Switch to the previous available permission mode.",
-        next_permission_mode => "Switch to the next available permission mode.",
-        edit_queued_message => "Move forward through questions, then edit the last queued message.",
-        prompt_stack_back => "Move back through questions toward the composer.",
-        skip_question => "Skip the focused question.",
-        toggle_voice => "Start or stop a voice conversation.",
-        open_presets => "Run or save reusable inputs.",
-        toggle_voice_mute => "Mute or unmute the voice microphone.",
+    chat "keymap-actions-ctx-chat" {
+        interrupt_turn => "keymap-actions-chat-interrupt-turn",
+        decrease_reasoning_effort => "keymap-actions-chat-decrease-reasoning-effort",
+        increase_reasoning_effort => "keymap-actions-chat-increase-reasoning-effort",
+        previous_permission_mode => "keymap-actions-chat-previous-permission-mode",
+        next_permission_mode => "keymap-actions-chat-next-permission-mode",
+        edit_queued_message => "keymap-actions-chat-edit-queued-message",
+        prompt_stack_back => "keymap-actions-chat-prompt-stack-back",
+        skip_question => "keymap-actions-chat-skip-question",
+        toggle_voice => "keymap-actions-chat-toggle-voice",
+        open_presets => "keymap-actions-chat-open-presets",
+        toggle_voice_mute => "keymap-actions-chat-toggle-voice-mute",
     }
-    composer "Composer" {
-        submit => "Submit the current composer draft.",
-        queue => "Queue the draft while a task is running.",
-        toggle_shortcuts => "Show or hide the composer shortcut overlay.",
-        history_search_previous => "Open history search or move to the previous match.",
-        history_search_next => "Move to the next history search match.",
-        undo => "Undo the last composer edit.",
-        redo => "Redo the last composer edit.",
+    composer "keymap-actions-ctx-composer" {
+        submit => "keymap-actions-composer-submit",
+        queue => "keymap-actions-composer-queue",
+        toggle_shortcuts => "keymap-actions-composer-toggle-shortcuts",
+        history_search_previous => "keymap-actions-composer-history-search-previous",
+        history_search_next => "keymap-actions-composer-history-search-next",
+        undo => "keymap-actions-composer-undo",
+        redo => "keymap-actions-composer-redo",
     }
-    editor "Editor" {
-        insert_newline => "Insert a newline in the editor.",
-        move_left => "Move the cursor left.",
-        move_right => "Move the cursor right.",
-        move_up => "Move the cursor up.",
-        move_down => "Move the cursor down.",
-        move_word_left => "Move to the beginning of the previous word.",
-        move_word_right => "Move to the end of the next word.",
-        move_line_start => "Move to the beginning of the line.",
-        move_line_end => "Move to the end of the line.",
-        delete_backward => "Delete one grapheme to the left.",
-        delete_forward => "Delete one grapheme to the right.",
-        delete_backward_word => "Delete the previous word.",
-        delete_forward_word => "Delete the next word.",
-        kill_line_start => "Delete from cursor to line start.",
-        kill_whole_line => "Delete the current line.",
-        kill_line_end => "Delete from cursor to line end.",
-        yank => "Paste the kill buffer.",
+    editor "keymap-actions-ctx-editor" {
+        insert_newline => "keymap-actions-editor-insert-newline",
+        move_left => "keymap-actions-editor-move-left",
+        move_right => "keymap-actions-editor-move-right",
+        move_up => "keymap-actions-editor-move-up",
+        move_down => "keymap-actions-editor-move-down",
+        move_word_left => "keymap-actions-editor-move-word-left",
+        move_word_right => "keymap-actions-editor-move-word-right",
+        move_line_start => "keymap-actions-editor-move-line-start",
+        move_line_end => "keymap-actions-editor-move-line-end",
+        delete_backward => "keymap-actions-editor-delete-backward",
+        delete_forward => "keymap-actions-editor-delete-forward",
+        delete_backward_word => "keymap-actions-editor-delete-backward-word",
+        delete_forward_word => "keymap-actions-editor-delete-forward-word",
+        kill_line_start => "keymap-actions-editor-kill-line-start",
+        kill_whole_line => "keymap-actions-editor-kill-whole-line",
+        kill_line_end => "keymap-actions-editor-kill-line-end",
+        yank => "keymap-actions-editor-yank",
     }
-    vim_normal "Vim normal" {
-        enter_insert => "Enter insert mode at the cursor.",
-        append_after_cursor => "Enter insert mode after the cursor.",
-        append_line_end => "Enter insert mode at end of line.",
-        insert_line_start => "Enter insert mode at the first non-blank character.",
-        open_line_below => "Open a new line below and enter insert mode.",
-        open_line_above => "Open a new line above and enter insert mode.",
-        enter_replace_mode => "Enter replace mode and overwrite characters.",
-        move_left => "Move left in Vim normal mode.",
-        move_right => "Move right in Vim normal mode.",
-        move_up => "Move up or recall older history in Vim normal mode.",
-        move_down => "Move down or recall newer history in Vim normal mode.",
-        move_word_forward => "Move to the start of the next word.",
-        move_word_backward => "Move to the start of the previous word.",
-        move_word_end => "Move to the end of the current or next word.",
-        move_line_start => "Move to the start of the line.",
-        move_line_end => "Move to the end of the line.",
-        find_forward => "Find the next character on the current line.",
-        find_backward => "Find the previous character on the current line.",
-        till_forward => "Stop before the next character on the current line.",
-        till_backward => "Stop after the previous character on the current line.",
-        jump_top => "Jump to the first buffer line.",
-        jump_bottom => "Jump to the last buffer line.",
-        delete_char => "Delete the character under the cursor.",
-        replace_char => "Replace the character under the cursor.",
-        repeat_last_change => "Repeat the last complete edit.",
-        substitute_char => "Delete the character under the cursor and enter insert mode.",
-        delete_to_line_end => "Delete from cursor to end of line.",
-        change_to_line_end => "Change from cursor to end of line and enter insert mode.",
-        yank_line => "Yank the entire line.",
-        paste_after => "Paste after the cursor.",
-        start_delete_operator => "Begin a delete operator and wait for a motion.",
-        start_yank_operator => "Begin a yank operator and wait for a motion.",
-        start_change_operator => "Begin a change operator and wait for a motion or text object.",
-        undo => "Undo the last complete edit.",
-        redo => "Redo the last undone edit.",
-        cancel_operator => "Cancel a pending Vim operator.",
+    vim_normal "keymap-actions-ctx-vim-normal" {
+        enter_insert => "keymap-actions-vim-normal-enter-insert",
+        append_after_cursor => "keymap-actions-vim-normal-append-after-cursor",
+        append_line_end => "keymap-actions-vim-normal-append-line-end",
+        insert_line_start => "keymap-actions-vim-normal-insert-line-start",
+        open_line_below => "keymap-actions-vim-normal-open-line-below",
+        open_line_above => "keymap-actions-vim-normal-open-line-above",
+        enter_replace_mode => "keymap-actions-vim-normal-enter-replace-mode",
+        move_left => "keymap-actions-vim-normal-move-left",
+        move_right => "keymap-actions-vim-normal-move-right",
+        move_up => "keymap-actions-vim-normal-move-up",
+        move_down => "keymap-actions-vim-normal-move-down",
+        move_word_forward => "keymap-actions-vim-normal-move-word-forward",
+        move_word_backward => "keymap-actions-vim-normal-move-word-backward",
+        move_word_end => "keymap-actions-vim-normal-move-word-end",
+        move_line_start => "keymap-actions-vim-normal-move-line-start",
+        move_line_end => "keymap-actions-vim-normal-move-line-end",
+        find_forward => "keymap-actions-vim-normal-find-forward",
+        find_backward => "keymap-actions-vim-normal-find-backward",
+        till_forward => "keymap-actions-vim-normal-till-forward",
+        till_backward => "keymap-actions-vim-normal-till-backward",
+        jump_top => "keymap-actions-vim-normal-jump-top",
+        jump_bottom => "keymap-actions-vim-normal-jump-bottom",
+        delete_char => "keymap-actions-vim-normal-delete-char",
+        replace_char => "keymap-actions-vim-normal-replace-char",
+        repeat_last_change => "keymap-actions-vim-normal-repeat-last-change",
+        substitute_char => "keymap-actions-vim-normal-substitute-char",
+        delete_to_line_end => "keymap-actions-vim-normal-delete-to-line-end",
+        change_to_line_end => "keymap-actions-vim-normal-change-to-line-end",
+        yank_line => "keymap-actions-vim-normal-yank-line",
+        paste_after => "keymap-actions-vim-normal-paste-after",
+        start_delete_operator => "keymap-actions-vim-normal-start-delete-operator",
+        start_yank_operator => "keymap-actions-vim-normal-start-yank-operator",
+        start_change_operator => "keymap-actions-vim-normal-start-change-operator",
+        undo => "keymap-actions-vim-normal-undo",
+        redo => "keymap-actions-vim-normal-redo",
+        cancel_operator => "keymap-actions-vim-normal-cancel-operator",
     }
-    vim_search "Vim search" {
-        forward => "Search forward in the active buffer.",
-        backward => "Search backward in the active buffer.",
-        next => "Repeat the accepted search.",
-        previous => "Repeat the search in the opposite direction.",
+    vim_search "keymap-actions-ctx-vim-search" {
+        forward => "keymap-actions-vim-search-forward",
+        backward => "keymap-actions-vim-search-backward",
+        next => "keymap-actions-vim-search-next",
+        previous => "keymap-actions-vim-search-previous",
     }
-    vim_operator "Vim operator" {
-        delete_line => "Repeat delete operator to delete the whole line.",
-        yank_line => "Repeat yank operator to yank the whole line.",
-        motion_left => "Operator motion left.",
-        motion_right => "Operator motion right.",
-        motion_up => "Operator motion up.",
-        motion_down => "Operator motion down.",
-        motion_word_forward => "Operator motion to start of next word.",
-        motion_word_backward => "Operator motion to start of previous word.",
-        motion_word_end => "Operator motion to end of word.",
-        motion_line_start => "Operator motion to line start.",
-        motion_line_end => "Operator motion to line end.",
-        motion_find_forward => "Operator motion to the next character on the current line.",
-        motion_find_backward => "Operator motion to the previous character on the current line.",
-        motion_till_forward => "Stop before the next character on the current line.",
-        motion_till_backward => "Stop after the previous character on the current line.",
-        motion_jump_top => "Operator motion to the first buffer line.",
-        motion_jump_bottom => "Operator motion to the last buffer line.",
-        select_inner_text_object => "Select an inner text object.",
-        select_around_text_object => "Select an around text object.",
-        cancel => "Cancel the pending operator.",
+    vim_operator "keymap-actions-ctx-vim-operator" {
+        delete_line => "keymap-actions-vim-operator-delete-line",
+        yank_line => "keymap-actions-vim-operator-yank-line",
+        motion_left => "keymap-actions-vim-operator-motion-left",
+        motion_right => "keymap-actions-vim-operator-motion-right",
+        motion_up => "keymap-actions-vim-operator-motion-up",
+        motion_down => "keymap-actions-vim-operator-motion-down",
+        motion_word_forward => "keymap-actions-vim-operator-motion-word-forward",
+        motion_word_backward => "keymap-actions-vim-operator-motion-word-backward",
+        motion_word_end => "keymap-actions-vim-operator-motion-word-end",
+        motion_line_start => "keymap-actions-vim-operator-motion-line-start",
+        motion_line_end => "keymap-actions-vim-operator-motion-line-end",
+        motion_find_forward => "keymap-actions-vim-operator-motion-find-forward",
+        motion_find_backward => "keymap-actions-vim-operator-motion-find-backward",
+        motion_till_forward => "keymap-actions-vim-operator-motion-till-forward",
+        motion_till_backward => "keymap-actions-vim-operator-motion-till-backward",
+        motion_jump_top => "keymap-actions-vim-operator-motion-jump-top",
+        motion_jump_bottom => "keymap-actions-vim-operator-motion-jump-bottom",
+        select_inner_text_object => "keymap-actions-vim-operator-select-inner-text-object",
+        select_around_text_object => "keymap-actions-vim-operator-select-around-text-object",
+        cancel => "keymap-actions-vim-operator-cancel",
     }
-    vim_text_object "Vim text object" {
-        word => "Target the current word.",
-        big_word => "Target the current WORD.",
-        parentheses => "Target enclosing parentheses.",
-        brackets => "Target enclosing brackets.",
-        braces => "Target enclosing braces.",
-        double_quote => "Target enclosing double quotes.",
-        single_quote => "Target enclosing single quotes.",
-        backtick => "Target enclosing backticks.",
-        cancel => "Cancel the pending text object.",
+    vim_text_object "keymap-actions-ctx-vim-text-object" {
+        word => "keymap-actions-vim-text-object-word",
+        big_word => "keymap-actions-vim-text-object-big-word",
+        parentheses => "keymap-actions-vim-text-object-parentheses",
+        brackets => "keymap-actions-vim-text-object-brackets",
+        braces => "keymap-actions-vim-text-object-braces",
+        double_quote => "keymap-actions-vim-text-object-double-quote",
+        single_quote => "keymap-actions-vim-text-object-single-quote",
+        backtick => "keymap-actions-vim-text-object-backtick",
+        cancel => "keymap-actions-vim-text-object-cancel",
     }
-    pager "Pager" {
-        scroll_up => "Scroll up by one row.",
-        scroll_down => "Scroll down by one row.",
-        page_up => "Scroll up by one page.",
-        page_down => "Scroll down by one page.",
-        half_page_up => "Scroll up by half a page.",
-        half_page_down => "Scroll down by half a page.",
-        jump_top => "Jump to the beginning.",
-        jump_bottom => "Jump to the end.",
-        close => "Close the pager overlay.",
-        close_transcript => "Close the transcript overlay.",
-        find => "Find text in a transcript pager.",
-        mark_markdown => "Mark table cells in transcript selection mode.",
+    pager "keymap-actions-ctx-pager" {
+        scroll_up => "keymap-actions-pager-scroll-up",
+        scroll_down => "keymap-actions-pager-scroll-down",
+        page_up => "keymap-actions-pager-page-up",
+        page_down => "keymap-actions-pager-page-down",
+        half_page_up => "keymap-actions-pager-half-page-up",
+        half_page_down => "keymap-actions-pager-half-page-down",
+        jump_top => "keymap-actions-pager-jump-top",
+        jump_bottom => "keymap-actions-pager-jump-bottom",
+        close => "keymap-actions-pager-close",
+        close_transcript => "keymap-actions-pager-close-transcript",
+        find => "keymap-actions-pager-find",
+        mark_markdown => "keymap-actions-pager-mark-markdown",
     }
-    list "List" {
-        move_up => "Move list selection up.",
-        move_down => "Move list selection down.",
-        move_left => "Move horizontally left in list pickers.",
-        move_right => "Move horizontally right in list pickers.",
-        page_up => "Move list selection up by one page.",
-        page_down => "Move list selection down by one page.",
-        jump_top => "Jump to the first list item.",
-        jump_bottom => "Jump to the last list item.",
-        accept => "Accept the current list selection.",
-        cancel => "Cancel and close selection views.",
+    list "keymap-actions-ctx-list" {
+        move_up => "keymap-actions-list-move-up",
+        move_down => "keymap-actions-list-move-down",
+        move_left => "keymap-actions-list-move-left",
+        move_right => "keymap-actions-list-move-right",
+        page_up => "keymap-actions-list-page-up",
+        page_down => "keymap-actions-list-page-down",
+        jump_top => "keymap-actions-list-jump-top",
+        jump_bottom => "keymap-actions-list-jump-bottom",
+        accept => "keymap-actions-list-accept",
+        cancel => "keymap-actions-list-cancel",
     }
-    agents "Agents" {
-        resume => "Open the session resume picker.",
-        search => "Search the available agent tasks.",
-        new_task => "Open a new session in the selected checkout.",
-        new_worktree => "Open a new session in a worktree from the project default branch.",
-        fork => "Fork the selected conversation and open the new session.",
-        rename => "Rename the selected task.",
-        stop => "Stop the selected running task.",
-        archive => "Archive the selected task and its child agents.",
-        delete => "Permanently delete the selected task and its child agents.",
-        hide => "Hide the selected task until explicitly resumed.",
-        toggle_grouping => "Cycle task grouping by project, directory, status, or model.",
+    agents "keymap-actions-ctx-agents" {
+        resume => "keymap-actions-agents-resume",
+        search => "keymap-actions-agents-search",
+        new_task => "keymap-actions-agents-new-task",
+        new_worktree => "keymap-actions-agents-new-worktree",
+        fork => "keymap-actions-agents-fork",
+        rename => "keymap-actions-agents-rename",
+        stop => "keymap-actions-agents-stop",
+        archive => "keymap-actions-agents-archive",
+        delete => "keymap-actions-agents-delete",
+        hide => "keymap-actions-agents-hide",
+        toggle_grouping => "keymap-actions-agents-toggle-grouping",
     }
-    approval "Approval" {
-        open_fullscreen => "Open approval details fullscreen.",
-        open_thread => "Open the approval source thread when available.",
-        approve => "Approve the primary option.",
-        approve_for_session => "Approve for the session when available.",
-        approve_for_prefix => "Approve with an exec-policy prefix when available.",
-        deny => "Choose the explicit deny option when available.",
-        decline => "Decline and provide corrective guidance.",
-        cancel => "Cancel an elicitation request.",
+    approval "keymap-actions-ctx-approval" {
+        open_fullscreen => "keymap-actions-approval-open-fullscreen",
+        open_thread => "keymap-actions-approval-open-thread",
+        approve => "keymap-actions-approval-approve",
+        approve_for_session => "keymap-actions-approval-approve-for-session",
+        approve_for_prefix => "keymap-actions-approval-approve-for-prefix",
+        deny => "keymap-actions-approval-deny",
+        decline => "keymap-actions-approval-decline",
+        cancel => "keymap-actions-approval-cancel",
     }
 }
 
@@ -325,7 +326,7 @@ define_keymap_actions! {
 /// the stable config contract.
 pub(crate) fn action_label(action: &str) -> String {
     if action == "change_host" {
-        return "Change Where to Run".to_string();
+        return crate::i18n::tr!("keymap-actions-change-where-to-run").to_string();
     }
     action
         .split('_')
@@ -372,14 +373,18 @@ pub(super) fn format_action_binding_summary(
                 .map(|prefix| format!("{prefix} {completion}"))
                 .collect::<Vec<_>>();
             if resolved.is_empty() {
-                format!("{spec} (inactive)")
+                crate::i18n::tr!("keymap-actions-binding-inactive", spec = spec)
             } else {
-                format!("{spec} ({})", resolved.join(", "))
+                crate::i18n::tr!(
+                    "keymap-actions-binding-resolved",
+                    spec = spec,
+                    resolved = resolved.join(", ")
+                )
             }
         })
         .collect::<Vec<_>>();
     if specs.is_empty() {
-        "unbound".to_string()
+        crate::i18n::tr!("keymap-actions-unbound").to_string()
     } else {
         specs.join(", ")
     }
@@ -393,11 +398,11 @@ pub(super) enum KeymapDebugBindingSource {
 }
 
 impl KeymapDebugBindingSource {
-    pub(super) const fn label(&self) -> &'static str {
+    pub(super) fn label(&self) -> &'static str {
         match self {
-            Self::Custom => "Custom",
-            Self::CustomGlobal => "Custom global",
-            Self::Default => "Default",
+            Self::Custom => crate::i18n::tr!("keymap-actions-source-custom"),
+            Self::CustomGlobal => crate::i18n::tr!("keymap-actions-source-custom-global"),
+            Self::Default => crate::i18n::tr!("keymap-actions-source-default"),
         }
     }
 }

@@ -82,7 +82,7 @@ impl DynamicToolCallCell {
         data.interrupted = true;
         data.output
             .get_or_insert_with(Vec::new)
-            .push("Interrupted before this tool returned a result.".to_owned());
+            .push(crate::i18n::tr!("dynamic-interrupted-before-result").to_owned());
     }
 }
 
@@ -119,10 +119,10 @@ impl DynamicToolCallData {
                         .map(|item| match item {
                             DynamicToolCallOutputContentItem::InputText { text } => text,
                             DynamicToolCallOutputContentItem::InputImage { .. } => {
-                                "<image content>".to_owned()
+                                crate::i18n::tr!("dynamic-image-content").to_owned()
                             }
                             DynamicToolCallOutputContentItem::InputAudio { .. } => {
-                                "<audio content>".to_owned()
+                                crate::i18n::tr!("dynamic-audio-content").to_owned()
                             }
                         })
                         .collect()
@@ -138,12 +138,18 @@ impl DynamicToolCallData {
 
     fn header(&self) -> Line<'static> {
         let (marker, verb) = if self.interrupted {
-            ("•".red().bold(), "Interrupted")
+            ("•".red().bold(), crate::i18n::tr!("dynamic-interrupted"))
         } else {
             match self.status {
-                DynamicToolCallStatus::InProgress => ("•".dim(), "Calling"),
-                DynamicToolCallStatus::Completed => ("•".green(), "Called"),
-                DynamicToolCallStatus::Failed => ("•".red().bold(), "Failed"),
+                DynamicToolCallStatus::InProgress => {
+                    ("•".dim(), crate::i18n::tr!("dynamic-calling"))
+                }
+                DynamicToolCallStatus::Completed => {
+                    ("•".green(), crate::i18n::tr!("dynamic-called"))
+                }
+                DynamicToolCallStatus::Failed => {
+                    ("•".red().bold(), crate::i18n::tr!("dynamic-failed"))
+                }
             }
         };
         let mut line = Line::from(vec![
@@ -154,20 +160,26 @@ impl DynamicToolCallData {
             self.name.clone().fg(accent_color()),
         ]);
         if let Some(duration_ms) = self.duration_ms.filter(|duration| *duration >= 0) {
-            line.push_span(format!(" · {duration_ms}ms").dim());
+            line.push_span(
+                crate::i18n::tr!("dynamic-duration-ms", duration_ms = duration_ms).dim(),
+            );
         }
         line
     }
 
     fn output_lines(&self) -> Vec<Line<'static>> {
         match &self.output {
-            Some(output) if output.is_empty() => vec![Line::from("(no output)".dim())],
+            Some(output) if output.is_empty() => {
+                vec![Line::from(crate::i18n::tr!("dynamic-no-output").dim())]
+            }
             Some(output) => output
                 .iter()
                 .flat_map(|text| raw_lines_from_source(text))
                 .collect(),
             None if self.is_active() => Vec::new(),
-            None => vec![Line::from("(output unavailable)".dim())],
+            None => vec![Line::from(
+                crate::i18n::tr!("dynamic-output-unavailable").dim(),
+            )],
         }
     }
 }
@@ -226,7 +238,9 @@ impl HistoryCell for DynamicToolCallCell {
         };
         if skip > 0 {
             lines.push(clipped_line(
-                format!("  … {skip} earlier lines hidden").dim().into(),
+                crate::i18n::tr!("dynamic-earlier-lines-hidden", skip = skip)
+                    .dim()
+                    .into(),
                 width,
             ));
         }
@@ -248,7 +262,7 @@ impl HistoryCell for DynamicToolCallCell {
         let mut lines = vec![data.header().into()];
         let args = serde_json::to_string_pretty(&data.arguments)
             .unwrap_or_else(|_| data.arguments.to_string());
-        let details = raw_lines_from_source(&format!("Arguments: {args}"))
+        let details = raw_lines_from_source(&crate::i18n::tr!("dynamic-arguments", args = args))
             .into_iter()
             .chain(data.output_lines())
             .collect();
@@ -267,9 +281,9 @@ impl HistoryCell for DynamicToolCallCell {
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut lines = vec![data.header()];
-        lines.extend(raw_lines_from_source(&format!(
-            "Arguments: {}",
-            data.arguments
+        lines.extend(raw_lines_from_source(&crate::i18n::tr!(
+            "dynamic-arguments",
+            args = data.arguments.to_string()
         )));
         lines.extend(data.output_lines());
         super::plain_lines(lines)

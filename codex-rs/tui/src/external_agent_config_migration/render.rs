@@ -83,14 +83,14 @@ impl WidgetRef for &ExternalAgentConfigMigrationScreen {
         let error_height = u16::from(self.error.is_some());
         let intro_lines = match self.view {
             MigrationView::Summary => vec![
-                Line::from("Bring over supported setup from another coding agent."),
-                Line::from("Codex may add files to your current project folder."),
-                Line::from("Your existing setup will not be changed."),
+                Line::from(crate::i18n::tr!("external-agent-migration-bring-over")),
+                Line::from(crate::i18n::tr!("external-agent-migration-may-add-files")),
+                Line::from(crate::i18n::tr!("external-agent-migration-not-changed")),
             ],
             MigrationView::Customize => vec![
-                Line::from("Choose items to import."),
-                Line::from("Codex may add files to your current project folder."),
-                Line::from("Your existing setup will not be changed."),
+                Line::from(crate::i18n::tr!("external-agent-migration-choose-items")),
+                Line::from(crate::i18n::tr!("external-agent-migration-may-add-files")),
+                Line::from(crate::i18n::tr!("external-agent-migration-not-changed")),
             ],
         };
         let intro_height = intro_lines.len() as u16;
@@ -123,8 +123,8 @@ impl WidgetRef for &ExternalAgentConfigMigrationScreen {
         .areas(inner_area);
 
         let title = match self.view {
-            MigrationView::Summary => "Import setup",
-            MigrationView::Customize => "Choose what to import",
+            MigrationView::Summary => crate::i18n::tr!("external-agent-migration-import-setup"),
+            MigrationView::Customize => crate::i18n::tr!("external-agent-migration-choose-what"),
         };
         let heading = Line::from(vec!["> ".into(), title.bold()]);
         heading.render(header_area, buf);
@@ -147,15 +147,10 @@ impl WidgetRef for &ExternalAgentConfigMigrationScreen {
             actions.len() + 1,
         ))
         .split(actions_area);
-        let item_label = if self.items.len() == 1 {
-            "item"
-        } else {
-            "items"
-        };
-        let actions_intro = format!(
-            "Selected {} of {} {item_label}.",
-            self.selected_count(),
-            self.items.len()
+        let actions_intro = crate::i18n::tr!(
+            "external-agent-migration-selected-of",
+            selected = self.selected_count() as i64,
+            total = self.items.len() as i64
         );
         Paragraph::new(actions_intro)
             .wrap(Wrap { trim: false })
@@ -171,37 +166,37 @@ impl WidgetRef for &ExternalAgentConfigMigrationScreen {
 
         let footer = match self.view {
             MigrationView::Summary => Line::from(vec![
-                "Use ".dim(),
+                crate::i18n::tr!("external-agent-migration-use").dim(),
                 key_hint::plain(KeyCode::Up).into(),
                 "/".dim(),
                 key_hint::plain(KeyCode::Down).into(),
-                " to move, ".dim(),
+                crate::i18n::tr!("external-agent-migration-to-move").dim(),
                 key_hint::plain(KeyCode::Enter).into(),
-                " to select, ".dim(),
+                crate::i18n::tr!("external-agent-migration-to-select").dim(),
                 "c".fg(crate::style::accent_color()),
-                " to customize".dim(),
+                crate::i18n::tr!("external-agent-migration-to-customize").dim(),
             ]),
             MigrationView::Customize if self.focus == FocusArea::Actions => Line::from(vec![
-                "Press ".dim(),
+                crate::i18n::tr!("external-agent-migration-press").dim(),
                 key_hint::plain(KeyCode::Enter).into(),
-                " to continue, ".dim(),
+                crate::i18n::tr!("external-agent-migration-to-continue").dim(),
                 key_hint::plain(KeyCode::Up).into(),
                 "/".dim(),
                 key_hint::plain(KeyCode::Down).into(),
-                " to move, ".dim(),
+                crate::i18n::tr!("external-agent-migration-to-move").dim(),
                 "b".fg(crate::style::accent_color()),
-                " to go back".dim(),
+                crate::i18n::tr!("external-agent-migration-to-go-back").dim(),
             ]),
             MigrationView::Customize => Line::from(vec![
-                "Use ".dim(),
+                crate::i18n::tr!("external-agent-migration-use").dim(),
                 key_hint::plain(KeyCode::Up).into(),
                 "/".dim(),
                 key_hint::plain(KeyCode::Down).into(),
-                " to move, ".dim(),
+                crate::i18n::tr!("external-agent-migration-to-move").dim(),
                 key_hint::plain(KeyCode::Char(' ')).into(),
-                " to toggle, ".dim(),
+                crate::i18n::tr!("external-agent-migration-to-toggle").dim(),
                 "b".fg(crate::style::accent_color()),
-                " to go back".dim(),
+                crate::i18n::tr!("external-agent-migration-to-go-back").dim(),
             ]),
         };
         footer.render(footer_area, buf);

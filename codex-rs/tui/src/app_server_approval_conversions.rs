@@ -16,7 +16,11 @@ use std::path::PathBuf;
 
 pub(crate) fn mcp_server_label(server_name: &str, environment_id: Option<&str>) -> String {
     match environment_id {
-        Some(environment_id) => format!("{server_name} (environment {environment_id})"),
+        Some(environment_id) => crate::i18n::tr!(
+            "approval-conversions-server-environment",
+            server_name = server_name,
+            environment_id = environment_id
+        ),
         None => server_name.to_string(),
     }
 }

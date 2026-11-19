@@ -82,10 +82,10 @@ pub(super) async fn deliver_feedback(
             .map(|response| FeedbackReceipt::Uploaded {
                 thread_id: response.thread_id,
             })
-            .wrap_err("Failed to upload feedback"),
+            .wrap_err(crate::i18n::tr!("feedback-upload-failed-to-upload")),
         FeedbackDestination::LocalZip => save_feedback_zip(&fs, codex_home.as_ref(), params)
             .await
-            .wrap_err("Failed to save feedback ZIP"),
+            .wrap_err(crate::i18n::tr!("feedback-upload-failed-to-save-zip")),
     };
 
     if let Some(directory) = staging_dir
@@ -101,12 +101,17 @@ async fn save_feedback_zip(
     codex_home: Option<&AppServerPath>,
     params: FeedbackUploadParams,
 ) -> Result<FeedbackReceipt> {
-    let home = codex_home
-        .ok_or_else(|| eyre!("The app server did not report its Codex home directory"))?;
+    let home =
+        codex_home.ok_or_else(|| eyre!(crate::i18n::tr!("feedback-upload-no-codex-home")))?;
     let directory = home.join(FEEDBACK_DIR);
     fs.fs_create_directory_all_path(&directory)
         .await
-        .wrap_err_with(|| format!("Could not create the feedback directory at {directory}"))?;
+        .wrap_err_with(|| {
+            crate::i18n::tr!(
+                "feedback-upload-create-dir-failed",
+                directory = directory.to_string()
+            )
+        })?;
     let id = Uuid::new_v4();
     let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H-%M-%SZ");
     let suffix = id.as_fields().0;
@@ -125,7 +130,7 @@ async fn save_feedback_zip(
             TypedRequestError::Server { source, .. }
                 if is_method_unsupported(source, "feedback/save") =>
             {
-                eyre!("Update the Codex server to save a feedback ZIP")
+                eyre!(crate::i18n::tr!("feedback-upload-update-server"))
             }
             _ => color_eyre::Report::from(err),
         })?;

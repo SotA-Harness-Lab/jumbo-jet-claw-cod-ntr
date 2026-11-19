@@ -38,8 +38,9 @@ impl App {
             }
         };
         if read_only {
-            self.chat_widget.add_error_message(format!(
-                "Preset {slot} is defined outside your user config. Edit its source configuration instead."
+            self.chat_widget.add_error_message(crate::i18n::tr!(
+                "quick-dials-defined-outside-config",
+                slot = slot
             ));
             self.restore_quick_dial_editor(slot, &dial);
             return;
@@ -69,9 +70,10 @@ impl App {
                 .apply()
                 .await
         {
-            self.chat_widget.add_error_message(format!(
-                "Failed to update preset {slot}: {}",
-                format_config_error(&error)
+            self.chat_widget.add_error_message(crate::i18n::tr!(
+                "quick-dials-update-failed",
+                slot = slot,
+                error = format_config_error(&error)
             ));
             self.restore_quick_dial_editor(slot, &dial);
             return;
@@ -80,11 +82,11 @@ impl App {
             Some(mut dial) => {
                 dial.label.get_or_insert_default();
                 self.local_settings.tui.quick_dials.insert(key, dial);
-                format!("Saved preset {slot}.")
+                crate::i18n::tr!("quick-dials-saved", slot = slot)
             }
             None => {
                 self.local_settings.tui.quick_dials.remove(&key);
-                format!("Deleted preset {slot}.")
+                crate::i18n::tr!("quick-dials-deleted", slot = slot)
             }
         };
         self.chat_widget.local_settings.tui.quick_dials =

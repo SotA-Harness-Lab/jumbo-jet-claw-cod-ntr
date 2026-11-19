@@ -127,8 +127,14 @@ impl StartupDraftPump {
                     {
                         self.submission_pending = true;
                         self.bottom_pane.set_footer_hint_override(Some(vec![
-                            ("Waiting for startup".into(), String::new()),
-                            ("esc".into(), "cancel".into()),
+                            (
+                                crate::i18n::tr!("startup-draft-waiting").into(),
+                                String::new(),
+                            ),
+                            (
+                                "esc".into(),
+                                crate::i18n::tr!("startup-draft-cancel").into(),
+                            ),
                         ]));
                     }
                     crate::startup_recovery::remember(

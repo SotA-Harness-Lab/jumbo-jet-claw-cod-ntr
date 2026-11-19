@@ -45,8 +45,10 @@ impl ChatWidget {
                 [question] if !question.title.trim().is_empty() => {
                     truncate_text(question.title.trim(), /*max_graphemes*/ 30)
                 }
-                _ if added_count == 1 => "Question requested".to_string(),
-                _ => format!("{added_count} questions requested"),
+                _ if added_count == 1 => {
+                    crate::i18n::tr!("questions-question-requested").to_string()
+                }
+                _ => crate::i18n::tr!("questions-n-requested", count = added_count),
             };
             self.notify(Notification::AsyncQuestion { title });
         }
@@ -141,7 +143,7 @@ impl ChatWidget {
                     QuestionSubmission::Queue(text) => (text, true),
                 };
                 if self.blocks_direct_input {
-                    self.add_error_message(PARENT_OWNED_INPUT_MESSAGE.to_string());
+                    self.add_error_message(parent_owned_input_message().to_string());
                     return true;
                 }
                 if self.has_misalignment_policy_violation() {

@@ -29,7 +29,10 @@ impl McpToolCallCell {
             .filter(|title| !title.is_empty())
             .unwrap_or_else(|| format!("{}.{}", self.invocation.server, self.invocation.tool));
         if let Some(environment_id) = &self.invocation.environment_id {
-            label.push_str(&format!(" (environment {environment_id})"));
+            label.push_str(&crate::i18n::tr!(
+                "mcp-preview-environment",
+                environment_id = environment_id.to_string()
+            ));
         }
         label
     }
@@ -37,8 +40,8 @@ impl McpToolCallCell {
     pub(super) fn compact_mcp_lines(&self, width: u16) -> Vec<HyperlinkLine> {
         let status = self.success();
         let (marker, verb) = match status {
-            Some(true) => ("•".green().bold(), "Called"),
-            Some(false) => ("•".red().bold(), "Failed"),
+            Some(true) => ("•".green().bold(), crate::i18n::tr!("mcp-preview-called")),
+            Some(false) => ("•".red().bold(), crate::i18n::tr!("mcp-preview-failed")),
             None => (
                 activity_indicator(
                     Some(self.start_time),
@@ -46,7 +49,7 @@ impl McpToolCallCell {
                     ReducedMotionIndicator::StaticBullet,
                 )
                 .unwrap_or_else(|| "•".dim()),
-                "Calling",
+                crate::i18n::tr!("mcp-preview-calling"),
             ),
         };
         let mut lines = vec![clipped_line(
@@ -105,7 +108,9 @@ impl McpToolCallCell {
                             && block.text().is_some()
                             && details.len() < DETAIL_PREVIEW_LINES
                         {
-                            details.push_front("Returned image".to_owned());
+                            details.push_front(
+                                crate::i18n::tr!("mcp-preview-returned-image").to_owned(),
+                            );
                         }
                         if details.len() == DETAIL_PREVIEW_LINES {
                             break;
@@ -117,9 +122,11 @@ impl McpToolCallCell {
                     if error.lines().take(DETAIL_PREVIEW_LINES + 1).count() <= DETAIL_PREVIEW_LINES
                     {
                         if let Some(first) = details.front_mut() {
-                            first.insert_str(0, "Error: ");
+                            first.insert_str(0, crate::i18n::tr!("mcp-preview-error-prefix"));
                         } else {
-                            details.push_front("Error: ".to_owned());
+                            details.push_front(
+                                crate::i18n::tr!("mcp-preview-error-prefix").to_owned(),
+                            );
                         }
                     }
                 }

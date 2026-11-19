@@ -38,7 +38,7 @@ impl App {
         let thread_id = self
             .chat_widget
             .thread_id()
-            .ok_or_else(|| "No active conversation to export.".to_string())?;
+            .ok_or_else(|| crate::i18n::tr!("transcript-export-no-active").to_string())?;
         let visibility = if self.config.show_raw_agent_reasoning {
             RawReasoningVisibility::Visible
         } else {
@@ -69,7 +69,7 @@ impl App {
                 };
                 let path = write_transcript(cwd, &path, &markdown)?;
                 self.chat_widget.add_info_message(
-                    format!("Saved conversation to {}", path.display()),
+                    crate::i18n::tr!("transcript-export-saved", path = path.display().to_string()),
                     /*hint*/ None,
                 );
             }
@@ -88,7 +88,9 @@ pub(super) async fn load_export_transcript(
     let mut thread = app_server
         .thread_read(thread_id, /*include_turns*/ false)
         .await
-        .map_err(|error| format!("could not load conversation: {error}"))?;
+        .map_err(|error| {
+            crate::i18n::tr!("transcript-export-load-failed", error = error.to_string())
+        })?;
     if thread.ephemeral {
         return Ok(visible_transcript);
     }
@@ -116,7 +118,10 @@ pub(super) async fn load_export_transcript(
                 _ => return Ok(visible_transcript),
             }
         } else {
-            return Err(format!("could not load conversation history: {error}"));
+            return Err(crate::i18n::tr!(
+                "transcript-export-load-history-failed",
+                error = error.to_string()
+            ));
         }
     }
     let mut cells: Vec<Arc<dyn HistoryCell>> = Vec::new();
@@ -292,26 +297,42 @@ fn render_markdown_transcript(cells: &[Arc<dyn HistoryCell>]) -> Result<String, 
     if markdown != "# Codex conversation\n" {
         Ok(markdown)
     } else {
-        Err("No conversation content to export.".to_string())
+        Err(crate::i18n::tr!("transcript-export-no-content").to_string())
     }
 }
 
 fn write_transcript(cwd: &Path, requested_path: &Path, markdown: &str) -> Result<PathBuf, String> {
     let path = if let Ok(relative) = requested_path.strip_prefix("~") {
         dirs::home_dir()
-            .ok_or_else(|| "could not determine the home directory".to_string())?
+            .ok_or_else(|| crate::i18n::tr!("transcript-export-no-home-dir").to_string())?
             .join(relative)
     } else if requested_path.is_absolute() {
         requested_path.to_path_buf()
     } else {
         cwd.join(requested_path)
     };
-    let mut file = tempfile::NamedTempFile::new_in(path.parent().unwrap_or(cwd))
-        .map_err(|error| format!("could not create {}: {error}", path.display()))?;
-    file.write_all(markdown.as_bytes())
-        .map_err(|error| format!("could not write {}: {error}", path.display()))?;
-    file.persist_noclobber(&path)
-        .map_err(|error| format!("could not create {}: {error}", path.display()))?;
+    let mut file =
+        tempfile::NamedTempFile::new_in(path.parent().unwrap_or(cwd)).map_err(|error| {
+            crate::i18n::tr!(
+                "transcript-export-create-failed",
+                path = path.display().to_string(),
+                error = error.to_string()
+            )
+        })?;
+    file.write_all(markdown.as_bytes()).map_err(|error| {
+        crate::i18n::tr!(
+            "transcript-export-write-failed",
+            path = path.display().to_string(),
+            error = error.to_string()
+        )
+    })?;
+    file.persist_noclobber(&path).map_err(|error| {
+        crate::i18n::tr!(
+            "transcript-export-create-failed",
+            path = path.display().to_string(),
+            error = error.to_string()
+        )
+    })?;
     Ok(path)
 }
 

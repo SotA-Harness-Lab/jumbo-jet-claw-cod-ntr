@@ -89,7 +89,8 @@ pub(crate) async fn check_directory_trust(
             && !config.active_project.is_untrusted()
         {
             color_eyre::eyre::bail!(
-                "Folder trust changed. Reopen the destination with its restricted settings."
+                "{}",
+                crate::i18n::tr!("directory-trust-folder-trust-changed")
             );
         }
         let remote_trust_key =

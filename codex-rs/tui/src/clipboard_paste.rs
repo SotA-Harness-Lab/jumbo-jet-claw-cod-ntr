@@ -19,10 +19,26 @@ pub enum PasteImageError {
 impl std::fmt::Display for PasteImageError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PasteImageError::ClipboardUnavailable(msg) => write!(f, "clipboard unavailable: {msg}"),
-            PasteImageError::NoImage(msg) => write!(f, "no image on clipboard: {msg}"),
-            PasteImageError::EncodeFailed(msg) => write!(f, "could not encode image: {msg}"),
-            PasteImageError::IoError(msg) => write!(f, "io error: {msg}"),
+            PasteImageError::ClipboardUnavailable(msg) => write!(
+                f,
+                "{}",
+                crate::i18n::tr!("clipboard-paste-unavailable", error = msg.as_str())
+            ),
+            PasteImageError::NoImage(msg) => write!(
+                f,
+                "{}",
+                crate::i18n::tr!("clipboard-paste-no-image", error = msg.as_str())
+            ),
+            PasteImageError::EncodeFailed(msg) => write!(
+                f,
+                "{}",
+                crate::i18n::tr!("clipboard-paste-encode-failed", error = msg.as_str())
+            ),
+            PasteImageError::IoError(msg) => write!(
+                f,
+                "{}",
+                crate::i18n::tr!("clipboard-paste-io-error", error = msg.as_str())
+            ),
         }
     }
 }
@@ -119,7 +135,7 @@ fn read_clipboard_image(
 #[cfg(target_os = "android")]
 pub fn paste_image_as_png() -> Result<(Vec<u8>, PastedImageInfo), PasteImageError> {
     Err(PasteImageError::ClipboardUnavailable(
-        "clipboard image paste is unsupported on Android".into(),
+        crate::i18n::tr!("clipboard-paste-android-unsupported").into(),
     ))
 }
 
@@ -239,7 +255,7 @@ fn try_dump_windows_clipboard_image() -> Option<String> {
 pub fn paste_image_to_temp_png() -> Result<(PathBuf, PastedImageInfo), PasteImageError> {
     // Keep error consistent with paste_image_as_png.
     Err(PasteImageError::ClipboardUnavailable(
-        "clipboard image paste is unsupported on Android".into(),
+        crate::i18n::tr!("clipboard-paste-android-unsupported").into(),
     ))
 }
 

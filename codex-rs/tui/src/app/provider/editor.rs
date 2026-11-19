@@ -1,7 +1,7 @@
 //! Single-screen provider form. Validation preserves the draft and each field owns its editing history.
 
-use super::CREATE_CUSTOM_PROVIDER;
 use super::Field;
+use super::create_custom_provider;
 use crate::app::App;
 use crate::bottom_pane::BottomPaneView;
 use crate::bottom_pane::CancellationEvent;
@@ -165,8 +165,8 @@ impl ProviderForm {
 
     fn layout(&self, width: u16) -> FormLayout {
         let title = self.draft.provider.as_ref().map_or_else(
-            || CREATE_CUSTOM_PROVIDER.to_owned(),
-            |p| format!("Edit {}", p.name),
+            || create_custom_provider().to_owned(),
+            |p| crate::i18n::tr!("editor-edit-provider", name = p.name.as_str()),
         );
         let wrap_width = usize::from(width.max(1));
         let mut lines = word_wrap_lines([Line::from(title.bold())], wrap_width);
@@ -188,7 +188,7 @@ impl ProviderForm {
             };
             let label = format!("{marker}{}{required}  ", field.label()).bold();
             let example = match field {
-                Field::Name => "Team gateway",
+                Field::Name => crate::i18n::tr!("editor-example-team-gateway"),
                 Field::Url => "https://gateway.example/v1",
                 Field::Variable => "TEAM_API_KEY",
                 _ => "",
@@ -219,9 +219,9 @@ impl ProviderForm {
         }
         lines.push(if self.draft.selected == self.inputs.len() {
             focus_row = lines.len() as u16;
-            "› Save".bold().into()
+            crate::i18n::tr!("editor-save-focused").bold().into()
         } else {
-            "  Save".into()
+            crate::i18n::tr!("editor-save").into()
         });
         if let Some(error) = &self.error {
             lines.push(error.clone().red().into());
@@ -230,28 +230,30 @@ impl ProviderForm {
         let has = |field| self.inputs.iter().any(|(key, _)| *key == field);
         if has(Field::Name) {
             let hint = if has(Field::Variable) {
-                "Enter the environment variable name on the app server."
+                crate::i18n::tr!("editor-hint-env-var-name")
             } else {
-                "Authentication is managed on the app server."
+                crate::i18n::tr!("editor-hint-auth-managed")
             };
-            lines.extend(["* Required", hint].map(|text| Line::from(text.dim())));
+            lines.extend(
+                [crate::i18n::tr!("editor-required-note"), hint].map(|text| Line::from(text.dim())),
+            );
         }
         if let Some(suggestion) = self.suggestion() {
             lines.push(Line::from(vec![
                 key_hint::ctrl(KeyCode::Char(' ')).into(),
-                format!(" complete {suggestion}").dim(),
+                crate::i18n::tr!("editor-complete-suggestion", suggestion = suggestion).dim(),
             ]));
         }
         lines.push(Line::from(vec![
             key_hint::plain(KeyCode::Tab).into(),
-            " move · ".dim(),
+            crate::i18n::tr!("editor-key-move").dim(),
             key_hint::plain(KeyCode::Enter).into(),
-            " next/save · ".dim(),
+            crate::i18n::tr!("editor-key-next-save").dim(),
             key_hint::plain(KeyCode::Esc).into(),
             if self.prefer_esc_to_handle_key_event() {
-                " normal mode"
+                crate::i18n::tr!("editor-key-normal-mode")
             } else {
-                " back"
+                crate::i18n::tr!("editor-key-back")
             }
             .dim(),
         ]));

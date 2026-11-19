@@ -114,7 +114,7 @@ pub(super) async fn continue_with_rewrite(
         Err(error) if app.recover_transport_error(&error) && attached_fork.is_some() => return,
         Err(_) => {
             let text = history_cell::sanitize_user_text((&prompt).into());
-            let message = format!("Couldn’t start a new chat for this rewrite. {text}");
+            let message = crate::i18n::tr!("safety-recourse-new-chat-failed", text = text);
             if !app.chat_widget.handle_turn_start_rejection(message.clone()) {
                 app.chat_widget.add_error_message(message);
             }

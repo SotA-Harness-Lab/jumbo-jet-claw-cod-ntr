@@ -43,13 +43,13 @@ pub(super) fn render(source: &str, width: Option<usize>, theme: &Theme) -> Vec<L
         Err(error) => {
             let notice = match error {
                 RenderError::Unsupported => {
-                    "This Mermaid diagram uses features the terminal renderer doesn't support."
+                    crate::i18n::tr!("mermaid-unsupported")
                 }
                 RenderError::TooWide => {
-                    "This Mermaid diagram doesn't fit the current terminal width."
+                    crate::i18n::tr!("mermaid-too-wide")
                 }
                 RenderError::Limit => {
-                    "This Mermaid diagram exceeds the terminal renderer's size limits."
+                    crate::i18n::tr!("mermaid-limit")
                 }
             };
             let mut lines = textwrap::wrap(notice, width.max(/*other*/ 1))

@@ -45,14 +45,14 @@ impl ChatWidget {
 
     pub(super) fn daybreak_command_description(&self) -> Option<&'static str> {
         if self.daybreak_enabled {
-            Some("Disable broader access for cybersecurity work")
+            Some(crate::i18n::tr!("settings-daybreak-disable"))
         } else if !self.daybreak_account_eligible() {
             None
         } else {
             match crate::daybreak::availability(&self.model_catalog.models) {
-                Some(true) => Some("Enable broader access for cybersecurity work"),
-                Some(false) => Some("Learn about broader access for cybersecurity work"),
-                None => Some("Manage broader access for cybersecurity work"),
+                Some(true) => Some(crate::i18n::tr!("settings-daybreak-enable")),
+                Some(false) => Some(crate::i18n::tr!("settings-daybreak-learn")),
+                None => Some(crate::i18n::tr!("settings-daybreak-manage")),
             }
         }
     }
@@ -422,9 +422,9 @@ impl ChatWidget {
     }
 
     pub(super) fn image_inputs_not_supported_message(&self) -> String {
-        format!(
-            "Model {} does not support image inputs. Remove images or switch models.",
-            self.current_model()
+        crate::i18n::tr!(
+            "settings-image-inputs-unsupported",
+            model = self.current_model().to_string()
         )
     }
 
@@ -673,9 +673,10 @@ impl ChatWidget {
             return None;
         }
         let active_mode = self.active_mode_kind();
-        active_mode
-            .is_tui_visible()
-            .then_some(active_mode.display_name())
+        active_mode.is_tui_visible().then(|| match active_mode {
+            ModeKind::Plan => crate::i18n::tr!("collaboration-mode-plan"),
+            ModeKind::Default => crate::i18n::tr!("collaboration-mode-default"),
+        })
     }
 
     fn collaboration_mode_indicator(&self) -> Option<CollaborationModeIndicator> {
@@ -788,18 +789,26 @@ impl ChatWidget {
         if previous_mode != next_mode
             && (previous_model != next_model || previous_effort != next_effort)
         {
-            let mut message = format!("Model changed to {next_model}");
-            if !next_model.starts_with("codex-auto-") {
+            let message = if next_model.starts_with("codex-auto-") {
+                crate::i18n::tr!(
+                    "settings-model-changed",
+                    model = next_model.to_string(),
+                    mode = next_mode.display_name().to_string()
+                )
+            } else {
                 let reasoning_label = match next_effort.as_ref() {
-                    None | Some(ReasoningEffortConfig::None) => "default",
+                    None | Some(ReasoningEffortConfig::None) => {
+                        crate::i18n::tr!("settings-reasoning-default")
+                    }
                     Some(effort) => effort.as_str(),
                 };
-                message.push(' ');
-                message.push_str(reasoning_label);
-            }
-            message.push_str(" for ");
-            message.push_str(next_mode.display_name());
-            message.push_str(" mode.");
+                crate::i18n::tr!(
+                    "settings-model-changed-effort",
+                    model = next_model.to_string(),
+                    effort = reasoning_label.to_string(),
+                    mode = next_mode.display_name().to_string()
+                )
+            };
             self.add_info_message(message, /*hint*/ None);
         }
         self.request_redraw();

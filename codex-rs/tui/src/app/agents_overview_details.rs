@@ -198,26 +198,47 @@ impl App {
                 .or(source.name.as_deref())
                 .unwrap_or(&source.id);
             lines.push(Line::default());
-            lines.push(vec!["Agent: ".dim(), preview_text(name).into()].into());
+            lines.push(
+                vec![
+                    crate::i18n::tr!("agents-overview-details-agent").dim(),
+                    preview_text(name).into(),
+                ]
+                .into(),
+            );
         }
         if AgentsOverviewGroup::for_thread(source) == AgentsOverviewGroup::NeedsYou {
             if !is_child {
-                lines.extend([Line::default(), "Needs attention".red().into()]);
+                lines.extend([
+                    Line::default(),
+                    crate::i18n::tr!("agents-overview-details-needs-attention")
+                        .red()
+                        .into(),
+                ]);
             }
             if let Some(request) = self.agents_overview_request_preview(thread_id) {
                 lines.push(request.into());
             }
-            lines.push("Open task to review.".dim().into());
+            lines.push(
+                crate::i18n::tr!("agents-overview-details-open-to-review")
+                    .dim()
+                    .into(),
+            );
             match &source.status {
                 ThreadStatus::Active { active_flags } => {
                     if active_flags.contains(&ThreadActiveFlag::WaitingOnApproval) {
-                        lines.push("Waiting for approval.".into());
+                        lines.push(
+                            crate::i18n::tr!("agents-overview-details-waiting-approval").into(),
+                        );
                     }
                     if active_flags.contains(&ThreadActiveFlag::WaitingOnUserInput) {
-                        lines.push("Waiting for your response.".into());
+                        lines.push(
+                            crate::i18n::tr!("agents-overview-details-waiting-response").into(),
+                        );
                     }
                 }
-                ThreadStatus::SystemError => lines.push("Task encountered an error.".into()),
+                ThreadStatus::SystemError => {
+                    lines.push(crate::i18n::tr!("agents-overview-details-task-error").into())
+                }
                 ThreadStatus::NotLoaded | ThreadStatus::Idle => {}
             }
         }
@@ -232,7 +253,12 @@ impl App {
             if !is_child {
                 lines.push(Line::default());
             }
-            lines.extend(["Latest activity".dim().into(), header.clone().into()]);
+            lines.extend([
+                crate::i18n::tr!("agents-overview-details-latest-activity")
+                    .dim()
+                    .into(),
+                header.clone().into(),
+            ]);
         }
         let last_message = activity
             .and_then(|activity| activity.last_message.as_ref())

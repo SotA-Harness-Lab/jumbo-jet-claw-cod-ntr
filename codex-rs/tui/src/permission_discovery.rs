@@ -60,7 +60,7 @@ impl PermissionDiscovery {
         reviewer: Option<ApprovalsReviewer>,
     ) -> Option<String> {
         let Some(profile) = self.profiles.iter().find(|profile| profile.id == id) else {
-            return Some("Not available on this server".to_string());
+            return Some(crate::i18n::tr!("permission-discovery-not-available").to_string());
         };
         let requirements = self.requirements.as_ref();
         if !profile.allowed
@@ -74,7 +74,9 @@ impl PermissionDiscovery {
                 .and_then(|r| r.allowed_approvals_reviewers.as_ref())
                 .is_some_and(|allowed| reviewer.is_some_and(|value| !allowed.contains(&value)))
         {
-            return Some("Disabled by requirements".to_string());
+            return Some(
+                crate::i18n::tr!("permission-discovery-disabled-by-requirements").to_string(),
+            );
         }
         None
     }
@@ -92,7 +94,7 @@ pub(crate) fn fetch(
     if mode.settings_owner() == ThreadSettingsOwner::Server {
         tx.send(AppEvent::PermissionProfilesLoaded {
             request_id,
-            result: Err("Cloud conversations use server-selected permissions.".to_string()),
+            result: Err(crate::i18n::tr!("permission-discovery-cloud-server-selected").to_string()),
         });
         return;
     }
@@ -139,7 +141,7 @@ pub(crate) fn fetch(
                     let mut ids = HashSet::new();
                     if !profiles.iter().all(|profile| ids.insert(&profile.id)) {
                         return Err(
-                            "The server returned duplicate permission profiles.".to_string()
+                            crate::i18n::tr!("permission-discovery-duplicate-profiles").to_string()
                         );
                     }
                     return Ok(PermissionDiscovery {
@@ -151,16 +153,13 @@ pub(crate) fn fetch(
                     break;
                 }
             }
-            Err(
-                "Permission discovery exceeded its pagination limit. Try /permissions again."
-                    .to_string(),
-            )
+            Err(crate::i18n::tr!("permission-discovery-pagination-limit").to_string())
         };
         let result = tokio::time::timeout(Duration::from_secs(10), request)
             .await
-            .unwrap_or_else(|_| {
-                Err("Permission discovery timed out. Try /permissions again.".to_string())
-            });
+            .unwrap_or_else(
+                |_| Err(crate::i18n::tr!("permission-discovery-timed-out").to_string()),
+            );
         tx.send(AppEvent::PermissionProfilesLoaded { request_id, result });
     });
 }
@@ -173,9 +172,12 @@ fn discovery_error(error: TypedRequestError) -> String {
                     || source.message.contains("configRequirements/read")
                     || source.message.contains("config/read"))))
     {
-        return "This server does not support permission discovery. Upgrade the Codex server to use this menu.".to_string();
+        return crate::i18n::tr!("permission-discovery-unsupported").to_string();
     }
-    format!("Failed to load permissions: {error}")
+    crate::i18n::tr!(
+        "permission-discovery-load-failed",
+        error = error.to_string()
+    )
 }
 
 #[cfg(test)]

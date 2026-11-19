@@ -97,7 +97,7 @@ impl Renderable for AsyncQuestions {
                 &option_rows,
                 &options_state,
                 option_rows.len().max(1),
-                "No options",
+                crate::i18n::tr!("async-questions-no-options"),
             );
         }
 
@@ -185,24 +185,30 @@ impl AsyncQuestions {
                     if self.keymap.chat.interrupt_turn.contains(&binding)
                         || self.keymap.chat.edit_queued_message.contains(&binding)))
         {
-            tips.push(crate::footer_hint::shortcut(&key.display_label(), "submit"));
+            tips.push(crate::footer_hint::shortcut(
+                &key.display_label(),
+                crate::i18n::tr!("async-questions-submit"),
+            ));
         }
         if let Some(key) = chat_hint("skip_question") {
-            tips.push(crate::footer_hint::shortcut(&key.display_label(), "skip"));
+            tips.push(crate::footer_hint::shortcut(
+                &key.display_label(),
+                crate::i18n::tr!("async-questions-skip"),
+            ));
         }
         tips.extend(option_tip.map(Line::from));
         if let Some(key) = chat_hint("prompt_stack_back") {
             let label = if self.state.current_idx > 0 {
-                "prev question"
+                crate::i18n::tr!("async-questions-prev-question")
             } else {
-                "main prompt"
+                crate::i18n::tr!("async-questions-main-prompt")
             };
             tips.push(crate::footer_hint::shortcut(&key.display_label(), label));
         }
         let next = if self.state.current_idx + 1 < self.state.pending.len() {
-            Some("next question")
+            Some(crate::i18n::tr!("async-questions-next-question"))
         } else if self.has_queued_messages {
-            Some("queued messages")
+            Some(crate::i18n::tr!("async-questions-queued-messages"))
         } else {
             None
         };
@@ -228,10 +234,10 @@ impl AsyncQuestions {
     }
 
     pub(super) fn option_tip(&self) -> Span<'static> {
-        format!(
-            "option {}/{}",
-            self.selected_option_index().unwrap_or(0) + 1,
-            self.options_len()
+        crate::i18n::tr!(
+            "async-questions-option-position",
+            current = self.selected_option_index().unwrap_or(0) + 1,
+            total = self.options_len()
         )
         .dim()
     }

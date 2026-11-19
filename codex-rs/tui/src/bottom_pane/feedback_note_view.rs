@@ -335,7 +335,7 @@ impl Renderable for FeedbackNoteView {
                     key_hint::plain(KeyCode::PageUp).into(),
                     "/".into(),
                     key_hint::plain(KeyCode::PageDown).into(),
-                    " scroll disclosure".into(),
+                    crate::i18n::tr!("feedback-note-scroll-disclosure").into(),
                 ]))
                 .render(blank_area, buf);
             }
@@ -356,13 +356,19 @@ impl Renderable for FeedbackNoteView {
                 }
                 actions.push((
                     key_hint::plain(KeyCode::Esc).display_label(),
-                    "cancel".into(),
+                    crate::i18n::tr!("feedback-note-cancel").into(),
                 ));
                 super::footer::footer_hint_items_line(&actions)
             };
-            let mut hints = action_line("save ZIP", "send to OpenAI");
+            let mut hints = action_line(
+                crate::i18n::tr!("feedback-note-save-zip"),
+                crate::i18n::tr!("feedback-note-send-to-openai"),
+            );
             if hints.width() > usize::from(area.width) {
-                hints = action_line("save", "send");
+                hints = action_line(
+                    crate::i18n::tr!("feedback-note-save"),
+                    crate::i18n::tr!("feedback-note-send"),
+                );
             }
             Paragraph::new(hints).render(
                 Rect {
@@ -407,30 +413,38 @@ impl FeedbackNoteView {
             IntroContent::DisclosureOnly => Vec::new(),
         };
         match self.upload_audience {
-            None => lines.push("Feedback uploads are disabled.".dim().into()),
+            None => lines.push(
+                crate::i18n::tr!("feedback-note-uploads-disabled")
+                    .dim()
+                    .into(),
+            ),
             Some(FeedbackAudience::OpenAiEmployee) => {
                 lines.push(
-                    "Feedback sent to OpenAI may be used to improve our models and products"
+                    crate::i18n::tr!("feedback-note-employee-notice")
                         .bold()
                         .into(),
                 );
                 lines.push(Line::from(vec![
-                    "By submitting feedback, you agree that OpenAI can use your feedback for safety purposes and internal model training, as explained in more detail ".dim(),
-                    "here".fg(crate::style::accent_color()).underlined(),
-                    ". Please avoid sharing tented information under NDA, or privileged, HR-related, or sensitive personal information.".dim(),
+                    crate::i18n::tr!("feedback-note-employee-agree").dim(),
+                    crate::i18n::tr!("feedback-note-here")
+                        .fg(crate::style::accent_color())
+                        .underlined(),
+                    crate::i18n::tr!("feedback-note-employee-avoid").dim(),
                 ]));
             }
             Some(FeedbackAudience::External) => lines.push(Line::from(vec![
-                "Feedback sent to OpenAI can be used to improve ChatGPT. ".dim(),
-                "Learn more".fg(crate::style::accent_color()).underlined(),
+                crate::i18n::tr!("feedback-note-external-notice").dim(),
+                crate::i18n::tr!("feedback-note-learn-more")
+                    .fg(crate::style::accent_color())
+                    .underlined(),
                 ".".dim(),
             ])),
         }
         if self.can_save {
             let disclosure = if self.upload_audience.is_some() {
-                "You can also save feedback to a ZIP file, which is not sent to OpenAI."
+                crate::i18n::tr!("feedback-note-save-zip-also")
             } else {
-                "You can save feedback to a ZIP file, which is not sent to OpenAI."
+                crate::i18n::tr!("feedback-note-save-zip-only")
             };
             lines.push(disclosure.dim().into());
         }
@@ -450,24 +464,24 @@ fn gutter() -> Span<'static> {
 fn feedback_title_and_placeholder(category: FeedbackCategory) -> (String, String) {
     match category {
         FeedbackCategory::BadResult => (
-            "Tell us more (bad result)".to_string(),
-            "(optional) Write a short description to help us further".to_string(),
+            crate::i18n::tr!("feedback-note-title-bad-result").to_string(),
+            crate::i18n::tr!("feedback-note-placeholder-default").to_string(),
         ),
         FeedbackCategory::GoodResult => (
-            "Tell us more (good result)".to_string(),
-            "(optional) Write a short description to help us further".to_string(),
+            crate::i18n::tr!("feedback-note-title-good-result").to_string(),
+            crate::i18n::tr!("feedback-note-placeholder-default").to_string(),
         ),
         FeedbackCategory::Bug => (
-            "Tell us more (bug)".to_string(),
-            "(optional) Write a short description to help us further".to_string(),
+            crate::i18n::tr!("feedback-note-title-bug").to_string(),
+            crate::i18n::tr!("feedback-note-placeholder-default").to_string(),
         ),
         FeedbackCategory::SafetyCheck => (
-            "Tell us more (safety check)".to_string(),
-            "(optional) Share what was refused and why it should have been allowed".to_string(),
+            crate::i18n::tr!("feedback-note-title-safety-check").to_string(),
+            crate::i18n::tr!("feedback-note-placeholder-safety-check").to_string(),
         ),
         FeedbackCategory::Other => (
-            "Tell us more (other)".to_string(),
-            "(optional) Write a short description to help us further".to_string(),
+            crate::i18n::tr!("feedback-note-title-other").to_string(),
+            crate::i18n::tr!("feedback-note-placeholder-default").to_string(),
         ),
     }
 }

@@ -32,7 +32,9 @@ use ratatui::widgets::StatefulWidgetRef;
 use std::time::Duration;
 
 pub(super) const GAP: u16 = 1;
-pub(super) const RESIZE_HINT: &str = "Resize · ←/h →/l · Shift+←/→ 10 cols · Enter/Esc done";
+pub(super) fn resize_hint_text() -> &'static str {
+    crate::i18n::tr!("const-resize-hint")
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct ResizeTarget {
@@ -350,8 +352,10 @@ impl App {
                     .apply()
                     .await
         {
-            self.chat_widget
-                .add_error_message(format!("Could not save sidebar width: {err}"));
+            self.chat_widget.add_error_message(crate::i18n::tr!(
+                "side-pane-save-width-failed",
+                err = err.to_string()
+            ));
             return false;
         }
         self.local_settings.tui.sidebar_width_percent = Some(percent);

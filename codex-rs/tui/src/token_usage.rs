@@ -79,26 +79,29 @@ impl fmt::Display for TokenUsage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Token usage: total={} input={}{} output={}{}",
-            format_with_separators(self.blended_total()),
-            format_with_separators(self.non_cached_input()),
-            if self.cached_input() > 0 {
-                format!(
-                    " (+ {} cached)",
-                    format_with_separators(self.cached_input())
-                )
-            } else {
-                String::new()
-            },
-            format_with_separators(self.output_tokens),
-            if self.reasoning_output_tokens > 0 {
-                format!(
-                    " (reasoning {})",
-                    format_with_separators(self.reasoning_output_tokens)
-                )
-            } else {
-                String::new()
-            }
+            "{}",
+            crate::i18n::tr!(
+                "token-usage-summary",
+                total = format_with_separators(self.blended_total()),
+                input = format_with_separators(self.non_cached_input()),
+                cached = if self.cached_input() > 0 {
+                    crate::i18n::tr!(
+                        "token-usage-cached",
+                        count = format_with_separators(self.cached_input())
+                    )
+                } else {
+                    String::new()
+                },
+                output = format_with_separators(self.output_tokens),
+                reasoning = if self.reasoning_output_tokens > 0 {
+                    crate::i18n::tr!(
+                        "token-usage-reasoning",
+                        count = format_with_separators(self.reasoning_output_tokens)
+                    )
+                } else {
+                    String::new()
+                }
+            )
         )
     }
 }

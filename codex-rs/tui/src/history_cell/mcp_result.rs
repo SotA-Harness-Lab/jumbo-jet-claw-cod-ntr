@@ -74,24 +74,26 @@ impl McpToolResult {
                         if !has_image {
                             has_image = decode_mcp_image(&image.data).is_some();
                         }
-                        McpContentDisplay::Summary("Returned image".into())
+                        McpContentDisplay::Summary(
+                            crate::i18n::tr!("mcp-result-returned-image").into(),
+                        )
                     }
-                    Ok(ContentBlock::Audio(_)) => {
-                        McpContentDisplay::Summary("<audio content>".into())
-                    }
+                    Ok(ContentBlock::Audio(_)) => McpContentDisplay::Summary(
+                        crate::i18n::tr!("mcp-result-audio-content").into(),
+                    ),
                     Ok(ContentBlock::Resource(resource)) => {
                         let summary = match resource.resource {
                             ResourceContents::TextResourceContents { uri, .. }
                             | ResourceContents::BlobResourceContents { uri, .. } => {
-                                format!("embedded resource: {uri}").into()
+                                crate::i18n::tr!("mcp-result-embedded-resource", uri = uri).into()
                             }
-                            _ => "<unknown embedded resource>".into(),
+                            _ => crate::i18n::tr!("mcp-result-unknown-embedded-resource").into(),
                         };
                         McpContentDisplay::Summary(summary)
                     }
-                    Ok(ContentBlock::ResourceLink(link)) => {
-                        McpContentDisplay::Summary(format!("link: {}", link.uri).into())
-                    }
+                    Ok(ContentBlock::ResourceLink(link)) => McpContentDisplay::Summary(
+                        crate::i18n::tr!("mcp-result-link", uri = link.uri).into(),
+                    ),
                     Ok(_) | Err(_) => McpContentDisplay::Json(block.to_string()),
                 };
                 McpContentBlock {

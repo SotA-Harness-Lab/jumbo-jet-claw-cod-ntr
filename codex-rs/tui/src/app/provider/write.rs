@@ -53,10 +53,10 @@ impl Write {
             .or_insert_with(|| app.model_catalog.provider_write.clone());
         let Ok(mut provider_changed) = write.clone().try_lock_owned() else {
             app.chat_widget
-                .add_error_message("A provider change is already saving.".into());
+                .add_error_message(crate::i18n::tr!("provider-write-already-saving").into());
             return;
         };
-        let (view, dismissed) = progress(SAVING_VIEW, "Saving model provider…");
+        let (view, dismissed) = progress(SAVING_VIEW, crate::i18n::tr!("provider-write-saving"));
         let source = match self {
             Self::Default { .. } => LIST_VIEW,
             Self::Settings(_) => editor::VIEW_ID,
@@ -72,7 +72,7 @@ impl Write {
         let offline = app.reconnect.offline;
         tokio::spawn(async move {
             let result = if offline {
-                Err("Could not save provider: Reconnect to the app server and try again.".into())
+                Err(crate::i18n::tr!("provider-write-offline").into())
             } else {
                 self.run(&handle, &mut provider_changed).await
             };
@@ -96,9 +96,9 @@ impl Write {
                 rpc::write_provider(handle, settings.1.clone())
                     .await
                     .map(|result| match result {
-                        rpc::ProviderWrite::Saved(_) => {
-                            SaveNotice::Saved("Saved provider configuration.".into())
-                        }
+                        rpc::ProviderWrite::Saved(_) => SaveNotice::Saved(
+                            crate::i18n::tr!("provider-write-saved-config").into(),
+                        ),
                         rpc::ProviderWrite::UnconfirmedCreate => SaveNotice::UnconfirmedCreate,
                     })
             }
@@ -112,27 +112,40 @@ impl Write {
                     .await
                     .map_err(|error| match error {
                         TypedRequestError::Server { .. } if rpc::unsupported_method(&error) => {
-                            "Update the connected app server to change the default model provider."
-                                .into()
+                            crate::i18n::tr!("provider-write-update-server").into()
                         }
                         TypedRequestError::Server { .. } => {
-                            format!("Could not save provider: {error}")
+                            crate::i18n::tr!(
+                                "provider-write-save-failed",
+                                error = error.to_string()
+                            )
                         }
                         TypedRequestError::Transport { .. }
                         | TypedRequestError::Deserialize { .. } => {
                             // The server may have committed the write before its reply was lost.
                             *provider_changed = true;
-                            format!("Could not confirm whether {name} was saved: {error}")
+                            crate::i18n::tr!(
+                                "provider-write-confirm-failed",
+                                name = name,
+                                error = error.to_string()
+                            )
                         }
                     })?;
                 match response.status {
                     WriteStatus::Ok => {
                         *provider_changed = true;
-                        Ok(SaveNotice::Saved(format!("New chats now use {name}.")))
+                        Ok(SaveNotice::Saved(crate::i18n::tr!(
+                            "provider-write-now-use",
+                            name = name
+                        )))
                     }
                     WriteStatus::OkOverridden => {
                         let reason = rpc::override_reason(response);
-                        Ok(SaveNotice::Saved(format!("Saved {name}. {reason}")))
+                        Ok(SaveNotice::Saved(crate::i18n::tr!(
+                            "provider-write-saved-name",
+                            name = name,
+                            reason = reason
+                        )))
                     }
                 }
             }
@@ -160,7 +173,7 @@ impl Completion {
                         message
                     }
                     SaveNotice::UnconfirmedCreate => {
-                        let message = rpc::UNCONFIRMED_CREATE.to_string();
+                        let message = rpc::unconfirmed_create().to_string();
                         app.chat_widget.add_error_message(message.clone());
                         message
                     }

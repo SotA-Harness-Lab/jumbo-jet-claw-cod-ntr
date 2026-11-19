@@ -27,8 +27,10 @@ pub(crate) fn remote_connection_status_value(
         AppServerTarget::Embedded => return None,
         AppServerTarget::Cloud => {
             return Some(RemoteConnectionStatus {
-                address: "Cloud".into(),
-                version: server_version.unwrap_or("unknown").into(),
+                address: crate::i18n::tr!("remote-connection-cloud").into(),
+                version: server_version
+                    .unwrap_or(crate::i18n::tr!("remote-connection-unknown"))
+                    .into(),
                 is_local_daemon: false,
                 is_managed_daemon: false,
             });
@@ -41,7 +43,9 @@ pub(crate) fn remote_connection_status_value(
         RemoteAppServerEndpoint::WebSocket { websocket_url, .. } => {
             sanitized_websocket_url(websocket_url)
                 .map(|url| url.to_string())
-                .unwrap_or_else(|| "<invalid websocket URL>".to_string())
+                .unwrap_or_else(|| {
+                    crate::i18n::tr!("remote-connection-invalid-websocket-url").to_string()
+                })
         }
         RemoteAppServerEndpoint::UnixSocket { socket_path } => {
             format!("unix://{}", socket_path.display())
@@ -49,7 +53,7 @@ pub(crate) fn remote_connection_status_value(
     };
     let version = server_version
         .map(|version| format!("v{version}"))
-        .unwrap_or_else(|| "unknown".to_string());
+        .unwrap_or_else(|| crate::i18n::tr!("remote-connection-unknown").to_string());
     Some(RemoteConnectionStatus {
         address,
         version,
@@ -60,13 +64,20 @@ pub(crate) fn remote_connection_status_value(
 
 pub(crate) fn server_version_notice(client: &str, server: Option<&str>) -> Option<String> {
     let server = server?;
-    let comparison = match crate::update_versions::server_version_notice_kind(client, server)? {
-        ServerVersionNoticeKind::Older => "older than",
-        ServerVersionNoticeKind::Different => "different from",
-    };
-    Some(format!(
-        "A background Codex service is running v{server}, {comparison} your Codex CLI v{client}."
-    ))
+    Some(
+        match crate::update_versions::server_version_notice_kind(client, server)? {
+            ServerVersionNoticeKind::Older => crate::i18n::tr!(
+                "remote-connection-service-older",
+                server = server,
+                client = client
+            ),
+            ServerVersionNoticeKind::Different => crate::i18n::tr!(
+                "remote-connection-service-different",
+                server = server,
+                client = client
+            ),
+        },
+    )
 }
 
 pub(crate) fn server_version_notice_for_tui(

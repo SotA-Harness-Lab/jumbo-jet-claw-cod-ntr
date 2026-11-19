@@ -46,10 +46,10 @@ enum ActionMenuOption {
 impl ActionMenuOption {
     fn label(self) -> &'static str {
         match self {
-            Self::Proceed => "Import selected",
-            Self::Customize => "Customize selection",
-            Self::Skip => "Cancel",
-            Self::Back => "Review selection",
+            Self::Proceed => crate::i18n::tr!("external-migration-import-selected"),
+            Self::Customize => crate::i18n::tr!("external-migration-customize-selection"),
+            Self::Skip => crate::i18n::tr!("external-migration-cancel"),
+            Self::Back => crate::i18n::tr!("external-migration-review-selection"),
         }
     }
 }
@@ -250,17 +250,12 @@ impl ExternalAgentConfigMigrationScreen {
                     .map(|plugin_group| plugin_group.plugin_names.len())
                     .sum::<usize>();
                 return format!(
-                    "{description} ({marketplace_count} {}, {plugin_count} {})",
-                    if marketplace_count == 1 {
-                        "marketplace"
-                    } else {
-                        "marketplaces"
-                    },
-                    if plugin_count == 1 {
-                        "plugin"
-                    } else {
-                        "plugins"
-                    }
+                    "{description} {}",
+                    crate::i18n::tr!(
+                        "external-migration-plugin-counts",
+                        marketplaces = marketplace_count as i64,
+                        plugins = plugin_count as i64
+                    )
                 );
             }
             return description;
@@ -318,7 +313,10 @@ impl ExternalAgentConfigMigrationScreen {
                     .len()
                     .saturating_sub(plugin_names.len());
                 if hidden_plugin_count > 0 {
-                    plugin_names.push(format!("+{hidden_plugin_count} more"));
+                    plugin_names.push(crate::i18n::tr!(
+                        "external-migration-plus-more",
+                        hidden_plugin_count = hidden_plugin_count as i64
+                    ));
                 }
                 Line::from(format!(
                     "      • {}: {}",
@@ -330,7 +328,11 @@ impl ExternalAgentConfigMigrationScreen {
         let hidden_marketplace_count = plugin_groups.len().saturating_sub(lines.len());
         if hidden_marketplace_count > 0 {
             lines.push(Line::from(format!(
-                "      • +{hidden_marketplace_count} more marketplaces"
+                "      • {}",
+                crate::i18n::tr!(
+                    "external-migration-plus-more-marketplaces",
+                    hidden_marketplace_count = hidden_marketplace_count as i64
+                )
             )));
         }
         lines
@@ -590,10 +592,10 @@ impl ExternalAgentConfigMigrationScreen {
     fn section_title(cwd: Option<&std::path::Path>) -> Line<'static> {
         match cwd {
             Some(cwd) => Line::from(vec![
-                "Current project: ".bold(),
+                crate::i18n::tr!("external-migration-current-project").bold(),
                 cwd.display().to_string().dim(),
             ]),
-            None => Line::from("Home".bold()),
+            None => Line::from(crate::i18n::tr!("external-migration-home").bold()),
         }
     }
 
@@ -635,9 +637,18 @@ impl ExternalAgentConfigMigrationScreen {
                         item_idx: None,
                         kind: RenderLineKind::ItemDetail,
                         line: Line::from(if count_summary.is_empty() {
-                            "      Importing: none".to_string()
+                            format!(
+                                "      {}",
+                                crate::i18n::tr!("external-migration-importing-none")
+                            )
                         } else {
-                            format!("      Importing: {count_summary}")
+                            format!(
+                                "      {}",
+                                crate::i18n::tr!(
+                                    "external-migration-importing-summary",
+                                    count_summary = count_summary
+                                )
+                            )
                         }),
                     },
                 ]

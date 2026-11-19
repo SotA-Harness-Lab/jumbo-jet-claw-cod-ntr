@@ -95,27 +95,27 @@ impl Renderable for VoiceStrip {
             "◌".dark_gray()
         };
         let activity = format!(" {}", self.state.activity).into();
-        let mut status = Line::from(vec!["voice ".dim(), marker, activity]);
+        let mut status = Line::from(vec![
+            crate::i18n::tr!("voice-strip-voice-prefix").dim(),
+            marker,
+            activity,
+        ]);
+        let mute_word = if self.state.microphone_muted {
+            crate::i18n::tr!("voice-strip-unmute")
+        } else {
+            crate::i18n::tr!("voice-strip-mute")
+        };
         let mute = self.state.mute_hint.map_or_else(
             || "/voice mute".to_string(),
-            |hint| {
-                format!(
-                    "{} {}",
-                    hint.display_label(),
-                    if self.state.microphone_muted {
-                        "unmute"
-                    } else {
-                        "mute  "
-                    }
-                )
-            },
+            |hint| format!("{} {}", hint.display_label(), mute_word),
         );
         let full_controls = format!("{mute}   /voice stop");
         let available = usize::from(area.width);
         let can_mute = !connecting || self.state.microphone_live || self.state.microphone_muted;
         if can_mute
             && available < status.width() + full_controls.width() + 1
-            && available >= "voice ".len() + full_controls.width() + 2
+            && available
+                >= crate::i18n::tr!("voice-strip-voice-prefix").width() + full_controls.width() + 2
         {
             status.spans.pop();
         }
@@ -126,7 +126,7 @@ impl Renderable for VoiceStrip {
             "/voice stop"
         };
         if available < status.width() + controls.width() + 1 {
-            status = Line::from(vec!["voice".dim()]);
+            status = Line::from(vec![crate::i18n::tr!("voice-strip-voice").dim()]);
         }
         status.spans.push(
             " ".repeat(available.saturating_sub(status.width() + controls.width()))
@@ -134,11 +134,9 @@ impl Renderable for VoiceStrip {
         );
         if show_full_controls && let Some(hint) = self.state.mute_hint {
             status.spans.extend(hint.spans());
-            status.spans.push(if self.state.microphone_muted {
-                " unmute   /voice stop".dim()
-            } else {
-                " mute     /voice stop".dim()
-            });
+            status
+                .spans
+                .push(format!(" {mute_word}   /voice stop").dim());
         } else {
             status.spans.push(controls.dim());
         }
@@ -151,7 +149,7 @@ impl Renderable for VoiceStrip {
             .saturating_div(/*rhs*/ 2)
             .min(/*other*/ 6);
         let mut meters = Vec::with_capacity(meter_width * 2 + 2);
-        meters.push("  mic ".dim());
+        meters.push(crate::i18n::tr!("voice-strip-mic").dim());
         append_voice_history(
             &mut meters,
             &self.state.microphone_history,
@@ -159,7 +157,7 @@ impl Renderable for VoiceStrip {
             Color::Cyan,
             self.state.microphone_muted || !self.state.microphone_live,
         );
-        meters.push("  codex ".dim());
+        meters.push(crate::i18n::tr!("voice-strip-codex").dim());
         append_voice_history(
             &mut meters,
             &self.state.speaker_history,

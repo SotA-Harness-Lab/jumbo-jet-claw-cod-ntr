@@ -108,7 +108,9 @@ impl App {
             .pending_archives
             .contains_key(&target_session.thread_id)
         {
-            self.add_session_picker_error("This task is still being archived.".into());
+            self.add_session_picker_error(
+                crate::i18n::tr!("resume-preparation-still-archiving").into(),
+            );
             return Err(AppRunControl::Continue);
         }
         if let Some(owner) = self.backend_registry.owner(target_session.thread_id)
@@ -191,8 +193,9 @@ impl App {
                         (thread, true)
                     }
                     Err(read_err) => {
-                        self.add_session_picker_error(format!(
-                            "Failed to load chat history: {read_err}"
+                        self.add_session_picker_error(crate::i18n::tr!(
+                            "resume-preparation-failed-load-history",
+                            read_err = read_err.to_string()
                         ));
                         return Err(AppRunControl::Continue);
                     }
@@ -200,8 +203,10 @@ impl App {
             }
             Err(err) => {
                 let path_display = target_session.display_label();
-                self.add_session_picker_error(format!(
-                    "Failed to resume session from {path_display}: {err}"
+                self.add_session_picker_error(crate::i18n::tr!(
+                    "resume-preparation-failed-resume",
+                    path_display = path_display,
+                    err = err.to_string()
                 ));
                 return Err(AppRunControl::Continue);
             }

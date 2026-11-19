@@ -135,8 +135,13 @@ fn handle_cloud_switch_event(
 
 fn show_cloud_switch_hint(app: &mut App, progress: CloudSwitchProgress) {
     let (label, action) = match progress {
-        CloudSwitchProgress::Connecting(_) => ("Connecting to Cloud…", ""),
-        CloudSwitchProgress::Failed => ("Cloud conversation did not open", "draft kept"),
+        CloudSwitchProgress::Connecting(_) => {
+            (crate::i18n::tr!("cloud-switch-wait-connecting"), "")
+        }
+        CloudSwitchProgress::Failed => (
+            crate::i18n::tr!("cloud-switch-wait-did-not-open"),
+            crate::i18n::tr!("cloud-switch-wait-draft-kept"),
+        ),
     };
     app.chat_widget
         .set_footer_hint_override(Some(vec![(label.into(), action.into())]));

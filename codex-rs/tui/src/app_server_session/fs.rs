@@ -67,9 +67,7 @@ impl AppServerSession {
             })
             .and_then(|envs| envs.first())
             .and_then(|primary| primary.cwd.to_inferred_path_uri())
-            .ok_or_else(|| {
-                color_eyre::eyre::eyre!("File previews require a workspace on the app-server host")
-            })
+            .ok_or_else(|| color_eyre::eyre::eyre!(crate::i18n::tr!("fs-preview-needs-workspace")))
     }
 
     pub(crate) async fn read_document(
@@ -85,12 +83,12 @@ impl AppServerSession {
     }
 
     pub(crate) fn preview_text(bytes: Vec<u8>) -> Result<String> {
-        let text = String::from_utf8(bytes).wrap_err("Not a UTF-8 text file")?;
+        let text = String::from_utf8(bytes).wrap_err(crate::i18n::tr!("fs-not-utf8-text"))?;
         color_eyre::eyre::ensure!(
             !text
                 .chars()
                 .any(|ch| ch.is_control() && !matches!(ch, '\t' | '\n' | '\r')),
-            "Not a text file"
+            crate::i18n::tr!("fs-not-text")
         );
         Ok(text)
     }
@@ -103,19 +101,19 @@ impl AppServerSession {
     ) -> Result<Vec<u8>> {
         color_eyre::eyre::ensure!(
             resolved_path.infer_path_convention() == Some(PathConvention::Posix),
-            "File previews on Windows hosts are unavailable"
+            crate::i18n::tr!("fs-preview-windows-unavailable")
         );
         let workspace = self.preview_workspace(source).await?;
         color_eyre::eyre::ensure!(
             resolve_preview_path(original_path, &workspace)? == *resolved_path,
-            "Workspace changed. Reopen the file to try again."
+            crate::i18n::tr!("fs-workspace-changed")
         );
         // fs/readFile follows symlinks. Only a server-side open can enforce no-follow.
         let path = AppServerPath::from_app_server(resolved_path.inferred_native_path_string());
         let bytes = self.file_system().fs_read_file_path(&path).await?;
         color_eyre::eyre::ensure!(
             self.preview_workspace(source).await? == workspace,
-            "Workspace changed. Reopen the file to try again."
+            crate::i18n::tr!("fs-workspace-changed")
         );
         Ok(bytes)
     }
@@ -132,7 +130,7 @@ fn resolve_preview_path(path: &AppServerPath, cwd: &PathUri) -> Result<PathUri> 
         .resolve_against(cwd, /*user_home_dir*/ None)?;
     color_eyre::eyre::ensure!(
         !path.to_url().has_host(),
-        "File previews require a path on the app-server host"
+        crate::i18n::tr!("fs-preview-needs-host-path")
     );
     Ok(path)
 }

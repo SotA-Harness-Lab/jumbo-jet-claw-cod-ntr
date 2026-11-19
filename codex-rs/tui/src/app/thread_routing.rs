@@ -263,9 +263,9 @@ impl App {
                 label
             }
         } else if is_primary {
-            "Main [default]".to_string()
+            crate::i18n::tr!("thread-routing-main-default").to_string()
         } else {
-            anonymous("Agent")
+            anonymous(crate::i18n::tr!("thread-routing-agent"))
         }
     }
 
@@ -301,7 +301,10 @@ impl App {
         };
 
         self.chat_widget.add_info_message(
-            format!("Already viewing {}.", target_session.display_label()),
+            crate::i18n::tr!(
+                "thread-routing-already-viewing",
+                label = target_session.display_label()
+            ),
             /*hint*/ None,
         );
         true
@@ -588,7 +591,7 @@ impl App {
                 self.chat_widget.reset_realtime_conversation();
             }
             self.chat_widget
-                .add_error_message("No active thread is available.".to_string());
+                .add_error_message(crate::i18n::tr!("thread-routing-no-active-thread").to_string());
             return Ok(());
         };
 
@@ -614,9 +617,8 @@ impl App {
                     .record_realtime_failure(crate::chatwidget::RealtimeFailureCause::LocalRequest);
                 self.chat_widget.reset_realtime_conversation();
             }
-            self.chat_widget.add_error_message(
-                "This conversation is read-only or unavailable; no operation was sent.".into(),
-            );
+            self.chat_widget
+                .add_error_message(crate::i18n::tr!("thread-routing-read-only").into());
             return Ok(());
         }
         if self.chat_widget.rejects_misalignment_policy_op(&op) {
@@ -667,8 +669,10 @@ impl App {
             return Ok(());
         }
 
-        self.chat_widget
-            .add_error_message(format!("Not available in TUI yet for thread {thread_id}."));
+        self.chat_widget.add_error_message(crate::i18n::tr!(
+            "thread-routing-not-available-yet",
+            thread_id = thread_id.to_string()
+        ));
         Ok(())
     }
 
@@ -831,7 +835,10 @@ impl App {
                                 let notification =
                                     ServerNotification::Warning(WarningNotification {
                                         thread_id: Some(thread_id.to_string()),
-                                        message: format!("Failed to interrupt turn: {error}"),
+                                        message: crate::i18n::tr!(
+                                            "thread-routing-interrupt-failed",
+                                            error = error.to_string()
+                                        ),
                                     });
                                 let should_send = {
                                     let mut store = thread_event_store.lock().await;
@@ -880,8 +887,10 @@ impl App {
             AppCommand::SetThreadName { name } => {
                 let name = name.to_string();
                 if let Err(error) = app_server.thread_set_name(thread_id, name.clone()).await {
-                    self.chat_widget
-                        .add_error_message(format!("Failed to rename thread: {error}"));
+                    self.chat_widget.add_error_message(crate::i18n::tr!(
+                        "thread-routing-rename-failed",
+                        error = error.to_string()
+                    ));
                     return Ok(true);
                 }
                 self.chat_widget.display_thread_name(thread_id, name);
@@ -980,8 +989,7 @@ impl App {
                     == crate::app_server_session::ThreadParamsMode::Cloud
                 {
                     self.chat_widget.reject_user_shell_command(
-                        "Shell commands starting with ! are unavailable in Cloud conversations."
-                            .into(),
+                        crate::i18n::tr!("thread-routing-shell-unavailable-cloud").into(),
                     );
                     return Ok(true);
                 }
@@ -1069,8 +1077,10 @@ impl App {
         };
 
         if let Err(err) = reply.resolve(resolution.result).await {
-            self.chat_widget.add_error_message(format!(
-                "Failed to resolve app-server request for thread {thread_id}: {err}"
+            self.chat_widget.add_error_message(crate::i18n::tr!(
+                "thread-routing-resolve-request-failed",
+                thread_id = thread_id.to_string(),
+                err = err.to_string()
             ));
         }
         if ThreadEventStore::op_can_change_pending_replay_state(op) {
@@ -2224,15 +2234,18 @@ impl App {
                 .await?;
             if self.active_thread_id == Some(primary_thread_id) {
                 self.chat_widget.add_info_message(
-                    format!(
-                        "Agent thread {closed_thread_id} closed. Switched back to main thread."
+                    crate::i18n::tr!(
+                        "thread-routing-agent-closed-switched",
+                        closed_thread_id = closed_thread_id.to_string()
                     ),
                     /*hint*/ None,
                 );
             } else {
                 self.clear_active_thread().await;
-                self.chat_widget.add_error_message(format!(
-                    "Agent thread {closed_thread_id} closed. Failed to switch back to main thread {primary_thread_id}.",
+                self.chat_widget.add_error_message(crate::i18n::tr!(
+                    "thread-routing-agent-closed-switch-failed",
+                    closed_thread_id = closed_thread_id.to_string(),
+                    primary_thread_id = primary_thread_id.to_string()
                 ));
             }
             return Ok(());

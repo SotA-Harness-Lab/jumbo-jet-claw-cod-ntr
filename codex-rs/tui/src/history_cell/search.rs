@@ -18,7 +18,11 @@ fn web_search_action_detail(action: &WebSearchAction) -> String {
             pattern.as_deref().filter(|pattern| !pattern.is_empty()),
             url.as_deref().filter(|url| !url.is_empty()),
         ) {
-            (Some(pattern), Some(url)) => format!("'{pattern}' in {url}"),
+            (Some(pattern), Some(url)) => crate::i18n::tr!(
+                "history-search-in-url",
+                pattern = pattern.to_string(),
+                url = url.to_string()
+            ),
             (Some(pattern), None) => format!("'{pattern}'"),
             (None, Some(url)) => url.to_string(),
             (None, None) => String::new(),
@@ -85,10 +89,10 @@ impl WebSearchCell {
         let (header, separator) = match (&self.action, self.completed) {
             (Some(WebSearchAction::OpenPage { .. }), completed) => (
                 match (completed, detail.is_empty()) {
-                    (true, true) => "Opened page",
-                    (true, false) => "Opened",
-                    (false, true) => "Opening page",
-                    (false, false) => "Opening",
+                    (true, true) => crate::i18n::tr!("history-search-opened-page"),
+                    (true, false) => crate::i18n::tr!("history-search-opened"),
+                    (false, true) => crate::i18n::tr!("history-search-opening-page"),
+                    (false, false) => crate::i18n::tr!("history-search-opening"),
                 },
                 " ",
             ),
@@ -96,24 +100,24 @@ impl WebSearchCell {
                 let has_pattern = pattern.as_ref().is_some_and(|pattern| !pattern.is_empty());
                 (
                     match (completed, has_pattern) {
-                        (true, true) => "Searched for",
-                        (true, false) => "Searched page",
-                        (false, true) => "Searching for",
-                        (false, false) => "Searching page",
+                        (true, true) => crate::i18n::tr!("history-search-searched-for"),
+                        (true, false) => crate::i18n::tr!("history-search-searched-page"),
+                        (false, true) => crate::i18n::tr!("history-search-searching-for"),
+                        (false, false) => crate::i18n::tr!("history-search-searching-page"),
                     },
                     " ",
                 )
             }
             (None | Some(WebSearchAction::Other), false) if detail.is_empty() => {
-                ("Browsing the web", " ")
+                (crate::i18n::tr!("history-search-browsing"), " ")
             }
             (Some(WebSearchAction::Search { .. } | WebSearchAction::Other) | None, completed) => (
                 if completed {
-                    "Searched the web"
+                    crate::i18n::tr!("history-search-searched-web")
                 } else {
-                    "Searching the web"
+                    crate::i18n::tr!("history-search-searching-web")
                 },
-                " for ",
+                crate::i18n::tr!("history-search-for"),
             ),
         };
         let mut line = Line::from(header.bold());

@@ -56,7 +56,7 @@ impl ShortcutHud {
             title,
             viewport: None,
             entries: HudEntries::Grouped(groups),
-            commands: vec!["Esc cancel".dim().into()],
+            commands: vec![crate::i18n::tr!("shortcut-hud-esc-cancel").dim().into()],
         }
     }
 
@@ -298,7 +298,7 @@ fn render_clipped(mut lines: Vec<Line<'static>>, area: Rect, buf: &mut Buffer) {
     let height = usize::from(area.height);
     if lines.len() > height {
         lines.truncate(height);
-        lines[height - 1] = "… more shortcuts".dim().into();
+        lines[height - 1] = crate::i18n::tr!("shortcut-hud-more").dim().into();
     }
     Paragraph::new(lines).render(area, buf);
 }

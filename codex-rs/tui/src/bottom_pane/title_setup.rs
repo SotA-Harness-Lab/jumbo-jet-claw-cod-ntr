@@ -99,50 +99,58 @@ pub(crate) enum TerminalTitleItem {
 impl TerminalTitleItem {
     pub(crate) fn description(self) -> &'static str {
         match self {
-            TerminalTitleItem::AppName => "Codex app name",
-            TerminalTitleItem::Project => "Project name (falls back to current directory name)",
-            TerminalTitleItem::CurrentDir => "Current working directory",
+            TerminalTitleItem::AppName => crate::i18n::tr!("terminal-title-item-app-name"),
+            TerminalTitleItem::Project => crate::i18n::tr!("terminal-title-item-project"),
+            TerminalTitleItem::CurrentDir => crate::i18n::tr!("terminal-title-item-current-dir"),
             TerminalTitleItem::Spinner => {
-                "Spinner while working, action-required message while blocked"
+                crate::i18n::tr!("terminal-title-item-spinner")
             }
             TerminalTitleItem::Status => {
-                "Compact session run-state text (Ready, Working, Thinking)"
+                crate::i18n::tr!("terminal-title-item-status")
             }
-            TerminalTitleItem::ThreadName => "Current thread name (omitted when unnamed)",
-            TerminalTitleItem::Thread => "Current thread title, or thread identifier when unnamed",
-            TerminalTitleItem::GitBranch => "Current Git branch (omitted when unavailable)",
+            TerminalTitleItem::ThreadName => crate::i18n::tr!("terminal-title-item-thread-name"),
+            TerminalTitleItem::Thread => crate::i18n::tr!("terminal-title-item-thread"),
+            TerminalTitleItem::GitBranch => crate::i18n::tr!("terminal-title-item-git-branch"),
             TerminalTitleItem::ContextRemaining => {
-                "Percentage of context window remaining (omitted when unknown)"
+                crate::i18n::tr!("terminal-title-item-context-remaining")
             }
             TerminalTitleItem::ContextUsed => {
-                "Percentage of context window used (omitted when unknown)"
+                crate::i18n::tr!("terminal-title-item-context-used")
             }
             TerminalTitleItem::FiveHourLimit => {
-                "Remaining usage on the primary usage limit (omitted when unavailable)"
+                crate::i18n::tr!("terminal-title-item-five-hour-limit")
             }
             TerminalTitleItem::WeeklyLimit => {
-                "Remaining usage on the secondary usage limit (omitted when unavailable)"
+                crate::i18n::tr!("terminal-title-item-weekly-limit")
             }
-            TerminalTitleItem::CodexVersion => "Codex application version",
-            TerminalTitleItem::UsedTokens => "Total tokens used in session (omitted when zero)",
-            TerminalTitleItem::TotalInputTokens => "Total input tokens used in session",
-            TerminalTitleItem::TotalOutputTokens => "Total output tokens used in session",
+            TerminalTitleItem::CodexVersion => {
+                crate::i18n::tr!("terminal-title-item-codex-version")
+            }
+            TerminalTitleItem::UsedTokens => crate::i18n::tr!("terminal-title-item-used-tokens"),
+            TerminalTitleItem::TotalInputTokens => {
+                crate::i18n::tr!("terminal-title-item-total-input-tokens")
+            }
+            TerminalTitleItem::TotalOutputTokens => {
+                crate::i18n::tr!("terminal-title-item-total-output-tokens")
+            }
             TerminalTitleItem::ThreadCredits => {
-                "Estimated current-thread credits (Enterprise workspaces only; omitted when unavailable)"
+                crate::i18n::tr!("terminal-title-item-thread-credits")
             }
             TerminalTitleItem::EstimatedThreadCost => {
-                "Estimated current-thread cost (Enterprise workspaces only; omitted when unavailable)"
+                crate::i18n::tr!("terminal-title-item-estimated-thread-cost")
             }
             TerminalTitleItem::SessionId => {
-                "Current thread identifier (omitted until thread starts)"
+                crate::i18n::tr!("terminal-title-item-session-id")
             }
-            TerminalTitleItem::FastMode => "Effective processing tier for the current model",
-            TerminalTitleItem::Daybreak => "Whether Daybreak is enabled for this thread",
-            TerminalTitleItem::Model => "Current model name",
-            TerminalTitleItem::ModelWithReasoning => "Current model name with reasoning level",
-            TerminalTitleItem::Reasoning => "Current reasoning level",
+            TerminalTitleItem::FastMode => crate::i18n::tr!("terminal-title-item-fast-mode"),
+            TerminalTitleItem::Daybreak => crate::i18n::tr!("terminal-title-item-daybreak"),
+            TerminalTitleItem::Model => crate::i18n::tr!("terminal-title-item-model"),
+            TerminalTitleItem::ModelWithReasoning => {
+                crate::i18n::tr!("terminal-title-item-model-with-reasoning")
+            }
+            TerminalTitleItem::Reasoning => crate::i18n::tr!("terminal-title-item-reasoning"),
             TerminalTitleItem::TaskProgress => {
-                "Latest task progress from update_plan (omitted until available)"
+                crate::i18n::tr!("terminal-title-item-task-progress")
             }
         }
     }
@@ -297,8 +305,8 @@ impl TerminalTitleSetupView {
 
         Self {
             picker: MultiSelectPicker::builder(
-                "Configure Terminal Title".to_string(),
-                Some("Select which items to display in the terminal title.".to_string()),
+                crate::i18n::tr!("title-setup-title").to_string(),
+                Some(crate::i18n::tr!("title-setup-subtitle").to_string()),
                 app_event_tx,
             )
             .list_keymap(list_keymap)

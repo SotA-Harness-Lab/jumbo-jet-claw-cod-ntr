@@ -55,22 +55,22 @@ impl PasteEnvironment {
             return Ok(false);
         }
         if !transcript_mode.is_owned() {
-            return Err("Unavailable in inline mode; use your terminal's paste command");
+            return Err(crate::i18n::tr!("right-click-paste-inline"));
         }
         if self.ssh {
-            return Err("Unavailable over SSH; use your terminal's paste command");
+            return Err(crate::i18n::tr!("right-click-paste-ssh"));
         }
         if self.vscode == VscodeDetection::VsCode {
-            return Err("VS Code handles pasting; use its terminal paste command");
+            return Err(crate::i18n::tr!("right-click-paste-vscode"));
         }
         if mode == RightClickPaste::Auto && self.wsl && self.vscode == VscodeDetection::Unknown {
-            return Err(
-                "Auto cannot identify this WSL terminal; use On or your terminal's paste command",
-            );
+            return Err(crate::i18n::tr!("right-click-paste-wsl"));
         }
         match mode {
             RightClickPaste::Off => Ok(false),
-            RightClickPaste::On if cfg!(target_os = "android") => Err("Unavailable on Android"),
+            RightClickPaste::On if cfg!(target_os = "android") => {
+                Err(crate::i18n::tr!("right-click-paste-android"))
+            }
             RightClickPaste::On => Ok(true),
             RightClickPaste::Auto => Ok(self.platform_default),
         }

@@ -60,21 +60,33 @@ impl GcpState {
     }
 
     pub(super) fn render(&self, area: Rect, buf: &mut Buffer, error: Option<String>) {
-        let mut lines: Vec<Line> = vec!["> Set up Google Cloud Vertex AI".bold().into(), "".into()];
+        let mut lines: Vec<Line> = vec![crate::i18n::tr!("gcp-title").bold().into(), "".into()];
         let (guidance, field) = match &self.view {
             GcpView::Project => (
-                "Enter the Google Cloud project ID to use with Vertex AI.",
-                Some((&self.project_id, "  Project ID: ", "my-project")),
+                crate::i18n::tr!("gcp-guidance-project"),
+                Some((
+                    &self.project_id,
+                    crate::i18n::tr!("gcp-label-project-id"),
+                    "my-project",
+                )),
             ),
             GcpView::Location => (
-                "Press Enter to use global, or enter a Vertex AI location.",
-                Some((&self.location, "  Location (optional): ", "global")),
+                crate::i18n::tr!("gcp-guidance-location"),
+                Some((
+                    &self.location,
+                    crate::i18n::tr!("gcp-label-location"),
+                    "global",
+                )),
             ),
             GcpView::Credentials => (
-                "Enter an absolute file path on the host running Codex, or press Enter to use Application Default Credentials (ADC).",
-                Some((&self.credential_file, "  Credential file (optional): ", "")),
+                crate::i18n::tr!("gcp-guidance-credentials"),
+                Some((
+                    &self.credential_file,
+                    crate::i18n::tr!("gcp-label-credential-file"),
+                    "",
+                )),
             ),
-            GcpView::Configuring(_) => ("Validating credentials and saving configuration…", None),
+            GcpView::Configuring(_) => (crate::i18n::tr!("gcp-validating"), None),
         };
         lines.push(format!("  {guidance}").into());
         if let Some((input, label, placeholder)) = field {
@@ -83,11 +95,7 @@ impl GcpState {
         }
         if matches!(self.view, GcpView::Credentials) {
             lines.push("".into());
-            lines.push(
-                "  To set up ADC with the Google Cloud CLI, run"
-                    .dim()
-                    .into(),
-            );
+            lines.push(crate::i18n::tr!("gcp-adc-hint").dim().into());
             lines.push("  gcloud auth application-default login".cyan().into());
         }
         let mut footer = if self.is_text_entry_active() {
@@ -95,14 +103,14 @@ impl GcpState {
                 "  ".into(),
                 keys::CONFIRM[0].into(),
                 if matches!(self.view, GcpView::Credentials) {
-                    " set up"
+                    crate::i18n::tr!("gcp-footer-set-up")
                 } else {
-                    " continue"
+                    crate::i18n::tr!("gcp-footer-continue")
                 }
                 .dim(),
                 " · ".dim(),
                 keys::CANCEL[0].into(),
-                " back".dim(),
+                crate::i18n::tr!("gcp-footer-back").dim(),
             ])]
         } else {
             Vec::new()
@@ -161,7 +169,7 @@ impl AuthModeWidget {
             match state.view {
                 GcpView::Project if state.project_id.value().is_none() => {
                     *self.error.write().unwrap_or_else(PoisonError::into_inner) =
-                        Some("Enter a Google Cloud project ID.".to_string());
+                        Some(crate::i18n::tr!("gcp-error-project-required").to_string());
                     self.request_frame.schedule_frame();
                     return true;
                 }

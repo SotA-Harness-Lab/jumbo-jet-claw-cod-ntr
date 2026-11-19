@@ -168,6 +168,7 @@ mod goal_display;
 mod goal_files;
 mod history_cell;
 mod hooks_rpc;
+mod i18n;
 mod ide_context;
 mod inline_visualization;
 pub(crate) mod insert_history;
@@ -963,9 +964,7 @@ async fn resolve_startup_resume_or_fork_cwd(
         && cwd_override.is_none()
         && matches!(resume_cwd_mode, Some(ResumeCwdMode::Current))
     {
-        color_eyre::eyre::bail!(
-            "`tui.resume_cwd = \"current\"` requires `--cd` when using a remote workspace"
-        );
+        color_eyre::eyre::bail!(crate::i18n::tr!("resume-config-cwd-needs-cd"));
     }
     if uses_remote_workspace {
         return Ok(ResolveCwdOutcome::Continue(Some(config.cwd.to_path_buf())));
@@ -1030,7 +1029,7 @@ fn app_server_target_for_launch(
         if explicit_remote_endpoint.is_some() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "workload identity must be configured on the remote app-server host",
+                crate::i18n::tr!("lib-workload-identity-remote-host"),
             ));
         }
         return Ok(AppServerTarget::Embedded);
@@ -1448,8 +1447,11 @@ async fn run_ratatui_app(
                 .await?;
             color_eyre::eyre::ensure!(
                 selected.model_provider_id == selected_id,
-                "The current configuration selects {} instead of {selected_id}.",
-                selected.model_provider_id
+                crate::i18n::tr!(
+                    "lib-config-selects-other-provider",
+                    current = selected.model_provider_id.to_string(),
+                    selected_id = selected_id.to_string()
+                )
             );
             embedded_network_policy.bind_config(&mut selected);
             shutdown_app_server_if_present(app_server.take()).await;
@@ -1556,8 +1558,10 @@ async fn run_ratatui_app(
                 archive_warnings: Vec::new(),
                 disconnect_info: None,
                 update_action: None,
-                exit_reason: ExitReason::Fatal(format!(
-                    "No saved session found with ID {id_str}. Run `codex {action}` without an ID to choose from existing sessions."
+                exit_reason: ExitReason::Fatal(crate::i18n::tr!(
+                    "lib-no-saved-session",
+                    id_str = id_str,
+                    action = action
                 )),
             })
         };
@@ -2293,9 +2297,9 @@ async fn run_ratatui_app(
                 cloud_config,
                 local_settings.clone(),
             ),
-            Err(error) => tui.insert_history_lines(vec![ratatui::text::Line::from(format!(
-                "Could not add the Cloud connection. {error}"
-            ))]),
+            Err(error) => tui.insert_history_lines(vec![ratatui::text::Line::from(
+                crate::i18n::tr!("lib-cloud-connection-failed", error = error.to_string()),
+            )]),
         }
     }
 
@@ -2345,7 +2349,8 @@ async fn run_ratatui_app(
 fn report_restore_error(result: color_eyre::Result<()>) {
     if let Err(err) = result {
         eprintln!(
-            "failed to restore terminal. Run `reset` or restart your terminal to recover: {err}"
+            "{}",
+            crate::i18n::tr!("lib-restore-terminal-failed", err = err.to_string())
         );
     }
 }
@@ -2471,7 +2476,10 @@ async fn load_config_or_exit_with_fallback_cwd(
         Ok(config) => config,
         Err(err) => {
             restore_terminal_before_fatal_exit();
-            eprintln!("Error loading configuration: {err}");
+            eprintln!(
+                "{}",
+                crate::i18n::tr!("lib-config-load-error", err = err.to_string())
+            );
             if let Some(worktree) = worktree {
                 worktree.report_startup_failure();
             }
@@ -2544,11 +2552,17 @@ async fn load_bootstrap_config_or_exit(
                 .map(ConfigLoadError::config_error);
             if let Some(config_error) = config_error {
                 eprintln!(
-                    "Error loading config.toml:\n{}",
-                    format_config_error_with_source(config_error)
+                    "{}",
+                    crate::i18n::tr!(
+                        "lib-config-toml-error-detail",
+                        detail = format_config_error_with_source(config_error)
+                    )
                 );
             } else {
-                eprintln!("Error loading config.toml: {err}");
+                eprintln!(
+                    "{}",
+                    crate::i18n::tr!("lib-config-toml-error", err = err.to_string())
+                );
             }
             std::process::exit(1);
         }

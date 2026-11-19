@@ -271,7 +271,10 @@ impl ChatWidget {
         }
         // Emit notices after replacing or removing the placeholder header.
         if self.daybreak_enabled && previous_thread_id != self.thread_id {
-            self.add_info_message("Daybreak is on for new turns.".into(), /*hint*/ None);
+            self.add_info_message(
+                crate::i18n::tr!("session-flow-daybreak-on").into(),
+                /*hint*/ None,
+            );
         }
         self.transcript.saw_copy_source_this_turn = false;
         self.refresh_skills_for_current_cwd(/*force_reload*/ true);
@@ -333,7 +336,7 @@ impl ChatWidget {
         {
             vec![
                 "• ".dim(),
-                "Thread forked from ".into(),
+                crate::i18n::tr!("session-flow-thread-forked-from").into(),
                 name.fg(accent_color()),
                 " (".into(),
                 forked_from_id_text.fg(accent_color()),
@@ -343,7 +346,7 @@ impl ChatWidget {
         } else {
             vec![
                 "• ".dim(),
-                "Thread forked from ".into(),
+                crate::i18n::tr!("session-flow-thread-forked-from").into(),
                 forked_from_id_text.fg(accent_color()),
             ]
             .into()
@@ -408,11 +411,8 @@ impl ChatWidget {
     }
 
     pub(crate) fn emit_prompt_edit_thread_event(&mut self) {
-        let line: Line<'static> = vec![
-            "• ".dim(),
-            "Conversation reverted to this point. File changes are unchanged.".into(),
-        ]
-        .into();
+        let line: Line<'static> =
+            vec!["• ".dim(), crate::i18n::tr!("session-flow-reverted").into()].into();
         self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
             PlainHistoryCell::new(vec![line]),
         )));

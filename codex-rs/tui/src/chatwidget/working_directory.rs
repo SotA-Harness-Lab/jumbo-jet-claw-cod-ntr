@@ -21,9 +21,7 @@ impl ChatWidget {
 
     pub(super) fn request_working_directory_change(&mut self, path: &str) {
         if !self.is_session_configured() {
-            self.add_error_message(
-                "The session must start before you can change its working directory.".to_string(),
-            );
+            self.add_error_message(crate::i18n::tr!("working-directory-not-started").to_string());
             return;
         }
 
@@ -31,8 +29,7 @@ impl ChatWidget {
             return;
         };
         if !self.can_change_working_directory(thread_id) {
-            let message =
-                "Changing directories requires an idle primary session without queued input.";
+            let message = crate::i18n::tr!("working-directory-not-idle");
             self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
                 history_cell::new_error_event(message.to_string()),
             )));
