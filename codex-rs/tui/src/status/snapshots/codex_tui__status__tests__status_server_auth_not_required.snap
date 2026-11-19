@@ -4,7 +4,7 @@ expression: rendered
 ---
 /status
 
-  >_ Codex NTR (v0.0.0)
+  >_ CodClaw NTR (v0.0.0)
 
   Model:           gpt-5.6-sol (reasoning none, summaries auto)
   Model provider:  server-ollama

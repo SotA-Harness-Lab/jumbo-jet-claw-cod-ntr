@@ -3,6 +3,6 @@ source: tui/src/history_cell/tests.rs
 expression: "render_lines(&lines).join(\"\\n\")"
 ---
 
-  >_ Codex NTR (vtest)
+  >_ CodClaw NTR (vtest)
      project
   permissions: YOLO mode
