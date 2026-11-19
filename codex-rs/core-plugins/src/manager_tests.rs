@@ -1152,6 +1152,7 @@ async fn load_plugins_loads_default_skills_and_mcp_servers() {
             enabled: true,
             skill_roots: vec![plugin_root.join("skills").abs()],
             skill_discovery_mode: SkillDiscoveryMode::Recursive,
+            command_roots: Vec::new(),
             disabled_skill_paths: HashSet::new(),
             has_enabled_skills: true,
             mcp_servers: HashMap::from([(
@@ -2907,6 +2908,7 @@ async fn load_plugins_preserves_disabled_plugins_without_effective_contributions
             enabled: false,
             skill_roots: Vec::new(),
             skill_discovery_mode: SkillDiscoveryMode::Recursive,
+            command_roots: Vec::new(),
             disabled_skill_paths: HashSet::new(),
             has_enabled_skills: false,
             mcp_servers: HashMap::new(),
@@ -3088,6 +3090,7 @@ fn capability_index_filters_inactive_and_zero_capability_plugins() {
         enabled: true,
         skill_roots: Vec::new(),
         skill_discovery_mode: SkillDiscoveryMode::Recursive,
+        command_roots: Vec::new(),
         disabled_skill_paths: HashSet::new(),
         has_enabled_skills: false,
         mcp_servers: HashMap::new(),
