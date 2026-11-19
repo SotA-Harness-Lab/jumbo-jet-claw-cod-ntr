@@ -2150,8 +2150,12 @@ impl Drop for ChatWidget {
     }
 }
 
-const PLACEHOLDER: &str = "Ask Codex to do anything";
-const SIDE_PLACEHOLDER: &str = "Ask a follow-up question";
+fn placeholder() -> &'static str {
+    crate::i18n::tr!("composer-placeholder")
+}
+fn side_placeholder() -> &'static str {
+    crate::i18n::tr!("composer-side-placeholder")
+}
 
 // Extract the first bold (Markdown) element in the form **...** from `s`.
 // Returns the inner text if found; otherwise `None`.

@@ -26,14 +26,19 @@ tools = false
 # Claude Code plugins to use even when they are found incompatible with Codex
 # (see "Which plugins are used"), by their <plugin>@<marketplace> id.
 enable = []
+
+[ui]
+# The TUI's language, a BCP 47 tag ("en", "zh-CN"); the system's language when left out.
+# language = "zh-CN"
 ```
 
 | Key | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `claude.tools` | boolean | `false` | The Claude tool set in place of Codex's tools |
 | `claude.plugins.enable` | list of strings | `[]` | Claude Code plugins used even when found incompatible |
+| `ui.language` | string | the system's | The TUI's language: Simplified Chinese (`zh-CN`) or English; a language without a translation is English |
 
-`CCN_CLAUDE_COMPAT=0` overrides both: with it, neither the Claude tool set nor Claude Code's
+The TUI reads `ui.language` once, when it starts. `CCN_CLAUDE_COMPAT=0` overrides the `claude` keys: with it, neither the Claude tool set nor Claude Code's
 plugins are used.
 
 ## What is shared

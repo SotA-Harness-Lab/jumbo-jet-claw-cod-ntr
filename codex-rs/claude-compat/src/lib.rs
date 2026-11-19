@@ -44,6 +44,7 @@ pub use mod_config::ClaudeModConfig;
 pub use mod_config::ClaudePluginsModConfig;
 pub use mod_config::MOD_CONFIG_FILE;
 pub use mod_config::ModConfig;
+pub use mod_config::UiModConfig;
 pub use permissions::PermissionRule;
 pub use permissions::PermissionRules;
 pub use permissions::RuleSource;

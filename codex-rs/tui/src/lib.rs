@@ -168,6 +168,7 @@ mod goal_display;
 mod goal_files;
 mod history_cell;
 mod hooks_rpc;
+mod i18n;
 mod ide_context;
 mod inline_visualization;
 pub(crate) mod insert_history;
