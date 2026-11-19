@@ -16,6 +16,9 @@ const DOT_BITS: [u8; 8] = [1, 8, 2, 16, 4, 32, 64, 128];
 // First three mulberry32 samples with the reference's seed 3371.
 const HALF_DEPTH: f64 = 0.1642880353482906;
 const WOBBLE: f64 = 0.11242630996974184;
+// Far enough that the extruded mark's side walls stay behind its face: a closer camera
+// projects them into the narrow gaps between the parts of a wide mark.
+const CAMERA_DISTANCE: f64 = 40.0;
 const GRAIN_PHASE: f64 = 3.8990964158506114;
 
 fn smooth(value: f64) -> f64 {
@@ -95,7 +98,7 @@ impl Renderer {
             let z2 = y * sx + z1 * cx;
             let x3 = x1 * cz - y2 * sz;
             let y3 = x1 * sz + y2 * cz;
-            let perspective = 4.4 / (4.4 - z2);
+            let perspective = CAMERA_DISTANCE / (CAMERA_DISTANCE - z2);
             let column = ((400.0 + x3 * 206.0 * perspective) / dot_width).floor() as isize;
             let row = ((275.0 + y3 * 206.0 * perspective) / dot_height).floor() as isize;
             if column < 0 || column >= dot_columns as isize || row < 0 || row >= dot_rows as isize {
