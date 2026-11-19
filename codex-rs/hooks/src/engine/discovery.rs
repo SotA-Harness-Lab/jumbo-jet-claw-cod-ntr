@@ -249,16 +249,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
     }
 
     if let Some(claude_settings) = claude_settings {
-        let mut env = HashMap::new();
-        if let Some(project_dir) = &claude_settings.project_dir {
-            env.insert(
-                "CLAUDE_PROJECT_DIR".to_string(),
-                project_dir.display().to_string(),
-            );
-        }
-        if let Some(entrypoint) = &claude_settings.entrypoint {
-            env.insert("CLAUDE_CODE_ENTRYPOINT".to_string(), entrypoint.clone());
-        }
+        let env = claude_hook_env(claude_settings);
         for claude_hooks in super::claude_settings::load(claude_settings, &mut warnings) {
             // Claude Code runs the user's own hooks without asking. A project's hooks of these
             // events have no place in Codex's trust prompt, so only the bypass admits them.
@@ -317,6 +308,26 @@ pub(crate) fn discover_handlers_with_claude_settings(
         }
     }
 
+    // Claude Code's plugins, loaded by Codex's plugin loader, keep Claude Code's rules for
+    // their hooks.
+    let mut plugin_hook_sources = plugin_hook_sources;
+    let mut claude_plugins = ClaudePluginHooks::default();
+    if let Some(claude_settings) = claude_settings
+        && !claude_settings.plugins.is_empty()
+    {
+        if super::claude_settings::disables_all_hooks(claude_settings) {
+            plugin_hook_sources.retain(|source| {
+                !claude_settings
+                    .plugins
+                    .iter()
+                    .any(|plugin| plugin.root == source.plugin_root)
+            });
+        }
+        claude_plugins = ClaudePluginHooks {
+            plugins: &claude_settings.plugins,
+            env: claude_hook_env(claude_settings),
+        };
+    }
     append_plugin_hook_sources(
         &mut handlers,
         &mut hook_entries,
@@ -325,6 +336,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
         plugin_hook_sources,
         &hook_states,
         policy,
+        &claude_plugins,
     );
 
     DiscoveryResult {
@@ -335,6 +347,30 @@ pub(crate) fn discover_handlers_with_claude_settings(
         warnings,
         required_load_errors,
     }
+}
+
+/// What hooks of Claude Code's settings and plugins see besides their own variables.
+fn claude_hook_env(
+    claude_settings: &super::claude_settings::ClaudeHookSettings,
+) -> HashMap<String, String> {
+    let mut env = HashMap::new();
+    if let Some(project_dir) = &claude_settings.project_dir {
+        env.insert(
+            "CLAUDE_PROJECT_DIR".to_string(),
+            project_dir.display().to_string(),
+        );
+    }
+    if let Some(entrypoint) = &claude_settings.entrypoint {
+        env.insert("CLAUDE_CODE_ENTRYPOINT".to_string(), entrypoint.clone());
+    }
+    env
+}
+
+/// The Claude Code plugins among the plugin hook sources, and what their hooks see.
+#[derive(Default)]
+struct ClaudePluginHooks<'a> {
+    plugins: &'a [super::claude_settings::ClaudePluginRoot],
+    env: HashMap<String, String>,
 }
 
 /// Admits the command handlers of the Claude Code events Codex's own configuration does not
@@ -458,6 +494,8 @@ fn append_managed_requirement_handlers(
     required_load_errors
 }
 
+// The Claude Code plugins ride along with the shared discovery state.
+#[allow(clippy::too_many_arguments)]
 fn append_plugin_hook_sources(
     handlers: &mut Vec<ConfiguredHandler>,
     hook_entries: &mut Vec<HookListEntry>,
@@ -466,6 +504,7 @@ fn append_plugin_hook_sources(
     plugin_hook_sources: Vec<PluginHookSource>,
     hook_states: &HashMap<String, HookStateToml>,
     policy: HookDiscoveryPolicy<'_>,
+    claude_plugins: &ClaudePluginHooks<'_>,
 ) {
     if policy.allow_managed_hooks_only {
         return;
@@ -489,7 +528,15 @@ fn append_plugin_hook_sources(
                     super::plugin_fingerprint::plugin_content_hash(&plugin_root, &|| false)
                 })
         });
-        let mut env = HashMap::new();
+        let claude_plugin = claude_plugins
+            .plugins
+            .iter()
+            .find(|plugin| plugin.root == plugin_root);
+        let mut env = if claude_plugin.is_some() {
+            claude_plugins.env.clone()
+        } else {
+            HashMap::new()
+        };
         let plugin_root_value = plugin_root.display().to_string();
         let plugin_data_root_value = plugin_data_root.display().to_string();
         env.insert("PLUGIN_ROOT".to_string(), plugin_root_value.clone());
@@ -512,7 +559,9 @@ fn append_plugin_hook_sources(
                 source: HookSource::Plugin,
                 is_managed: false,
                 requirement: HookRequirement::Optional,
-                bypass_hook_trust: policy.bypass_hook_trust,
+                // Claude Code runs the hooks of a plugin the user enabled without asking.
+                bypass_hook_trust: policy.bypass_hook_trust
+                    || claude_plugin.is_some_and(|plugin| plugin.trusted),
                 hook_states,
                 env,
                 plugin_id: Some(plugin_id),

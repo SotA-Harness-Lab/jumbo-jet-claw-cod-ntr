@@ -248,7 +248,7 @@ impl McpHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn crate::tools::context::ToolOutput>, FunctionCallError> {
-        // Claude Code's permission rules for `mcp__<server>__<tool>`, under `claude_tools`.
+        // Claude Code's permission rules for `mcp__<server>__<tool>`, with the Claude tool set on.
         let hook_tool_name = self.hook_tool_name();
         let _permission = crate::tools::claude::check_permission(
             &invocation,

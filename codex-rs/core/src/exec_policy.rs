@@ -327,7 +327,7 @@ impl ExecPolicyManager {
 
     /// Loads the rules; `claude_bash_rules` adds the Bash prefix rules of the user's Claude
     /// Code settings, which are left out when the Claude tools apply Claude Code's rules
-    /// themselves (`claude_tools`).
+    /// themselves (`[claude] tools` in ccn-config.toml).
     #[instrument(level = "info", skip_all)]
     pub(crate) async fn load_with_claude_bash_rules(
         config_stack: &ConfigLayerStack,

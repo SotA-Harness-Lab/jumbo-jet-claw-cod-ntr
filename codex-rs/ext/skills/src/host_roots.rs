@@ -26,6 +26,8 @@ use crate::loader::HostSkillRoot;
 
 const AGENTS_DIR_NAME: &str = ".agents";
 const SKILLS_DIR_NAME: &str = "skills";
+/// Claude Code's custom slash commands, loaded as skills beside `.claude/skills`.
+const COMMANDS_DIR_NAME: &str = "commands";
 const CLAUDE_DIR_NAME: &str = ".claude";
 const CLAUDE_COMPAT_ENV: &str = "CCN_CLAUDE_COMPAT";
 const MAX_CONCURRENT_ANCESTOR_PROBES: usize = 8;
@@ -87,7 +89,8 @@ pub(crate) async fn resolve_skill_roots<'a>(
         && let Some(home_dir) = &home_dir
     {
         let claude_skills = home_dir.join(CLAUDE_DIR_NAME).join(SKILLS_DIR_NAME);
-        roots.retain(|root| root.path != claude_skills);
+        let claude_commands = home_dir.join(CLAUDE_DIR_NAME).join(COMMANDS_DIR_NAME);
+        roots.retain(|root| root.path != claude_skills && root.path != claude_commands);
     }
     roots
 }
@@ -185,6 +188,11 @@ fn roots_from_layer_stack<'a>(
                         SkillScope::User,
                         host,
                     ));
+                    roots.push(HostSkillRoot::commands(
+                        home_dir.join(CLAUDE_DIR_NAME).join(COMMANDS_DIR_NAME),
+                        SkillScope::User,
+                        host,
+                    ));
                 }
 
                 roots.push(HostSkillRoot::host(
@@ -273,25 +281,33 @@ async fn repo_agents_skill_roots<'a>(
     };
     // Collected first: a borrowing iterator inside the stream makes the future's `Send`
     // bound not general enough for the callers that need it.
+    // Each candidate is a directory and whether it holds Claude Code's commands rather than
+    // skills (`.claude/commands`, next to `.claude/skills`).
     let candidates = directories
         .iter()
         .flat_map(|directory| {
-            config_dirs
-                .iter()
-                .map(|config_dir| directory.join(config_dir).join(SKILLS_DIR_NAME))
+            config_dirs.iter().flat_map(move |config_dir_name| {
+                let config_dir = directory.join(config_dir_name);
+                let commands = (*config_dir_name == CLAUDE_DIR_NAME)
+                    .then(|| (config_dir.join(COMMANDS_DIR_NAME), true));
+                std::iter::once((config_dir.join(SKILLS_DIR_NAME), false)).chain(commands)
+            })
         })
         .collect::<Vec<_>>();
     let mut results = futures::stream::iter(candidates)
-        .map(|agents_skills| async move {
+        .map(|(agents_skills, command_files)| async move {
             let agents_skills_uri = PathUri::from_abs_path(&agents_skills);
             let result = repository_fs_accessor
                 .get_metadata(&agents_skills_uri, GetMetadataOptions::default())
                 .await;
-            (agents_skills, result)
+            (agents_skills, command_files, result)
         })
         .buffered(MAX_CONCURRENT_ANCESTOR_PROBES);
-    while let Some((agents_skills, result)) = results.next().await {
+    while let Some((agents_skills, command_files, result)) = results.next().await {
         match result {
+            Ok(metadata) if metadata.is_directory && command_files => roots.push(
+                HostSkillRoot::commands(agents_skills, SkillScope::Repo, repository_fs_accessor),
+            ),
             Ok(metadata) if metadata.is_directory => roots.push(HostSkillRoot::host(
                 agents_skills,
                 SkillScope::Repo,
@@ -306,11 +322,11 @@ async fn repo_agents_skill_roots<'a>(
             Err(error) if error.kind() == io::ErrorKind::Unsupported => {
                 complete = false;
                 // Let loading report an unsupported sandbox backend instead of hiding this root.
-                roots.push(HostSkillRoot::host(
-                    agents_skills,
-                    SkillScope::Repo,
-                    repository_fs_accessor,
-                ));
+                roots.push(if command_files {
+                    HostSkillRoot::commands(agents_skills, SkillScope::Repo, repository_fs_accessor)
+                } else {
+                    HostSkillRoot::host(agents_skills, SkillScope::Repo, repository_fs_accessor)
+                });
             }
             Err(error) => {
                 complete = false;

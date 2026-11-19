@@ -144,7 +144,7 @@ fn touched_files(invocation: &ToolInvocation, cwd: &Path) -> Vec<PathBuf> {
         ("apply_patch", ToolPayload::Custom { input }) => {
             files.extend(patch_files(input).map(|path| cwd.join(path)));
         }
-        // Claude Code's own tools, offered with the `claude_tools` feature.
+        // Claude Code's own tools, offered with `[claude] tools` in ccn-config.toml.
         ("Bash", ToolPayload::Function { arguments }) => {
             let Ok(args) = serde_json::from_str::<BashPaths>(arguments) else {
                 return Vec::new();

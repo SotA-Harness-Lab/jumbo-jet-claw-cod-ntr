@@ -230,7 +230,7 @@ pub(crate) fn normalize_agent_role_nickname_candidates(
 /// The role file a Claude Code subagent amounts to: its name and description, its body as
 /// developer instructions and its `effort` as the reasoning effort. Model and the other
 /// Claude Code fields have no Codex counterpart and are left out. `tools` and
-/// `disallowedTools` are not part of the role: with `claude_tools` on, the Claude tool layer
+/// `disallowedTools` are not part of the role: with the Claude tool set on, the Claude tool layer
 /// reads them from the role's file when it builds the spawned agent's tools.
 fn claude_subagent_role_toml(contents: &str) -> Option<String> {
     let subagent = codex_claude_compat::parse_subagent(contents)?;

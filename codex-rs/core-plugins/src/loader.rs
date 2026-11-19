@@ -9,6 +9,7 @@ use crate::manifest::PluginManifestFormat;
 use crate::manifest::PluginManifestHooks;
 use crate::manifest::PluginManifestMcpServers;
 use crate::manifest::PluginManifestPaths;
+use crate::manifest::load_plugin_command_paths;
 use crate::manifest::load_plugin_manifest_with_format;
 use crate::marketplace::MarketplacePluginSource;
 use crate::marketplace::find_marketplace_plugin;
@@ -72,6 +73,8 @@ use tracing::warn;
 mod agent_plugin_mcp_overlay;
 
 const DEFAULT_SKILLS_DIR_NAME: &str = "skills";
+const DEFAULT_COMMANDS_DIR_NAME: &str = "commands";
+const CLAUDE_PLUGIN_MANIFEST_PATH: &str = ".claude-plugin/plugin.json";
 const DEFAULT_HOOKS_CONFIG_FILE: &str = "hooks/hooks.json";
 const DEFAULT_MCP_CONFIG_FILE: &str = ".mcp.json";
 const DEFAULT_APP_CONFIG_FILE: &str = ".app.json";
@@ -185,6 +188,7 @@ async fn load_plugins_from_layer_stack_with_scope(
         store,
         remote_global_catalog_active,
     );
+    add_external_plugins(&mut configured_plugins, store);
     for (plugin_id, plugin) in &mut configured_plugins {
         plugin.enabled =
             Some(plugin.enabled.unwrap_or(true) && plugin_policy.allows_plugin(plugin_id));
@@ -316,6 +320,52 @@ fn merge_configured_plugins_with_remote_installed(
     }
 
     configured_plugins
+}
+
+/// Enables the plugins installed outside the store (see
+/// [`PluginStore::with_external_plugin_roots`]). A key Codex's own configuration names is left
+/// to it, and so is a plugin whose name Codex already has installed from any marketplace, since
+/// both would claim the same skill namespace.
+fn add_external_plugins(
+    configured_plugins: &mut HashMap<String, PluginConfig>,
+    store: &PluginStore,
+) {
+    let installed_names = configured_plugins
+        .keys()
+        .filter_map(|plugin_key| PluginId::parse(plugin_key).ok())
+        .filter(|plugin_id| store.active_plugin_version(plugin_id).is_some())
+        .map(|plugin_id| plugin_id.plugin_name)
+        .collect::<HashSet<_>>();
+    for plugin_key in store.external_plugin_roots().keys() {
+        if configured_plugins.contains_key(plugin_key) {
+            continue;
+        }
+        let Ok(plugin_id) = PluginId::parse(plugin_key) else {
+            warn!(
+                plugin = plugin_key,
+                "ignoring external plugin with an invalid key"
+            );
+            continue;
+        };
+        if installed_names.contains(&plugin_id.plugin_name) {
+            tracing::info!(
+                plugin = plugin_key,
+                "external plugin left out: Codex has its own plugin of that name"
+            );
+            continue;
+        }
+        configured_plugins.insert(
+            plugin_key.clone(),
+            PluginConfig {
+                enabled: Some(true),
+                remote_plugin_id: None,
+                release_id: None,
+                auto_provision: None,
+                mcp_servers: HashMap::new(),
+                apps: HashMap::new(),
+            },
+        );
+    }
 }
 
 pub(crate) fn plugin_is_eligible_for_target_marketplace(
@@ -1044,9 +1094,20 @@ pub(crate) async fn load_plugin_skill_inventory(
         PluginManifestFormat::Legacy => SkillDiscoveryMode::Recursive,
         PluginManifestFormat::AgentPlugin => SkillDiscoveryMode::DirectChildren,
     };
+    let command_roots = if manifest_format == PluginManifestFormat::Legacy {
+        plugin_command_roots(plugin_root)
+    } else {
+        Vec::new()
+    };
     let roots = plugin_skill_roots(plugin_root, &manifest.paths, manifest_format)
         .into_iter()
-        .map(|path| PluginSkillRoot {
+        .map(|path| (path, discovery_mode))
+        .chain(
+            command_roots
+                .into_iter()
+                .map(|path| (path, SkillDiscoveryMode::CommandFiles)),
+        )
+        .map(|(path, discovery_mode)| PluginSkillRoot {
             path,
             plugin_identity: plugin_identity.clone(),
             plugin_namespace: manifest.name.clone(),
@@ -1087,6 +1148,28 @@ pub(crate) fn plugin_skill_roots(
     paths.sort_unstable();
     paths.dedup();
     paths
+}
+
+/// The directories of a Claude Code plugin's commands (its manifest is
+/// `.claude-plugin/plugin.json`), read in place as skills named `<plugin>:<command>`: those
+/// the manifest's `commands` lists, else `commands/`. None for other plugins, and when Codex
+/// already migrated the commands into skills of their own at install time. A `commands` entry
+/// naming a single file is left out.
+pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {
+    let claude_manifest = find_plugin_manifest_path(plugin_root.as_path())
+        .is_some_and(|path| path.ends_with(CLAUDE_PLUGIN_MANIFEST_PATH));
+    if !claude_manifest || migrated_command_skills_root(plugin_root).is_dir() {
+        return Vec::new();
+    }
+    let declared = match load_plugin_command_paths(plugin_root.as_path()) {
+        Ok(Some(paths)) => paths
+            .into_iter()
+            .filter_map(|path| AbsolutePathBuf::from_absolute_path(path).ok())
+            .collect(),
+        Ok(None) => vec![plugin_root.join(DEFAULT_COMMANDS_DIR_NAME)],
+        Err(_) => Vec::new(),
+    };
+    declared.into_iter().filter(|path| path.is_dir()).collect()
 }
 
 fn default_skill_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {

@@ -33,6 +33,21 @@ pub struct ClaudeHookSettings {
     /// What hooks see as `CLAUDE_CODE_ENTRYPOINT`, which tells them whether someone attends
     /// the session (`cli`) or a program runs it (`sdk-cli`); see [`claude_entrypoint`].
     pub entrypoint: Option<String>,
+    /// The Claude Code plugins handed to Codex's plugin loader. Their hooks see the
+    /// variables above, are left out when a settings file sets `disableAllHooks`, and run
+    /// without Codex's trust prompt when the user's own settings enable the plugin.
+    pub plugins: Vec<ClaudePluginRoot>,
+}
+
+/// A Claude Code plugin whose hooks Codex's plugin loader found, as its hooks are treated.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClaudePluginRoot {
+    /// The plugin's install path, the root its hooks are loaded from.
+    pub root: AbsolutePathBuf,
+    /// Whether the user's own `~/.claude/settings.json` enables the plugin. Claude Code runs an
+    /// enabled plugin's hooks without asking, so these run like the user's own hooks; a plugin
+    /// a project's settings alone enable waits for Codex's trust like the project's hooks.
+    pub trusted: bool,
 }
 
 /// Claude Code's `CLAUDE_CODE_ENTRYPOINT` for a Codex session started from `source`: the
@@ -70,7 +85,14 @@ impl ClaudeHookSettings {
             user_dir,
             project_dir,
             entrypoint,
+            plugins: Vec::new(),
         })
+    }
+
+    /// The same settings, with the Claude Code plugins handed to Codex's plugin loader.
+    pub fn with_plugins(mut self, plugins: Vec<ClaudePluginRoot>) -> Self {
+        self.plugins = plugins;
+        self
     }
 }
 
@@ -90,24 +112,8 @@ pub(crate) fn load(
     settings: &ClaudeHookSettings,
     warnings: &mut Vec<String>,
 ) -> Vec<ClaudeSettingsHooks> {
-    let mut files = Vec::new();
-    if let Some(user_dir) = &settings.user_dir {
-        files.push((user_dir.join("settings.json"), true));
-    }
-    if let Some(project_dir) = &settings.project_dir {
-        let dot_claude = project_dir.join(".claude");
-        // In the home directory, `.claude` is the user's own configuration.
-        if settings.user_dir.as_ref() != Some(&dot_claude) {
-            files.extend(
-                SETTINGS_FILES
-                    .iter()
-                    .map(|name| (dot_claude.join(name), false)),
-            );
-        }
-    }
-
     let mut loaded = Vec::new();
-    for (path, is_user) in files {
+    for (path, is_user) in settings_files(settings) {
         let Some(settings) = read_settings(&path, warnings) else {
             continue;
         };
@@ -140,6 +146,39 @@ pub(crate) fn load(
         }
     }
     loaded
+}
+
+/// Whether one of the settings files sets `disableAllHooks`, which in Claude Code turns off
+/// the hooks of plugins too.
+pub(crate) fn disables_all_hooks(settings: &ClaudeHookSettings) -> bool {
+    settings_files(settings).iter().any(|(path, _)| {
+        read_settings(path, &mut Vec::new()).is_some_and(|settings| {
+            settings
+                .get("disableAllHooks")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        })
+    })
+}
+
+/// The settings files, user's first, each with whether it is the user's own.
+fn settings_files(settings: &ClaudeHookSettings) -> Vec<(AbsolutePathBuf, bool)> {
+    let mut files = Vec::new();
+    if let Some(user_dir) = &settings.user_dir {
+        files.push((user_dir.join("settings.json"), true));
+    }
+    if let Some(project_dir) = &settings.project_dir {
+        let dot_claude = project_dir.join(".claude");
+        // In the home directory, `.claude` is the user's own configuration.
+        if settings.user_dir.as_ref() != Some(&dot_claude) {
+            files.extend(
+                SETTINGS_FILES
+                    .iter()
+                    .map(|name| (dot_claude.join(name), false)),
+            );
+        }
+    }
+    files
 }
 
 fn read_settings(path: &AbsolutePathBuf, warnings: &mut Vec<String>) -> Option<Value> {
