@@ -1,6 +1,4 @@
-//! Fixed studio lighting, adapted to the terminal's foreground and background.
-
-use crate::color::is_light;
+//! Lighting in the terminal's own foreground color, shaded toward its background.
 
 pub(super) struct Lighting {
     pub(super) background: [f64; 3],
@@ -13,26 +11,17 @@ pub(super) struct Lighting {
 
 impl Lighting {
     pub(super) fn terminal(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Self {
+        // The marks are drawn in the terminal's own text color, shaded toward the background:
+        // no hue of their own, on dark and light themes alike.
         let background = [bg.0.into(), bg.1.into(), bg.2.into()];
-        if is_light(bg) {
-            let key = [fg.0.into(), fg.1.into(), fg.2.into()];
-            Self {
-                background,
-                key,
-                shadow: std::array::from_fn(|i| background[i] * 0.65 + key[i] * 0.35),
-                fill: key,
-                rim: key,
-                highlight: key,
-            }
-        } else {
-            Self {
-                background,
-                key: [210.0, 221.0, 235.0],
-                shadow: [52.0, 71.0, 105.0],
-                fill: [76.0, 118.0, 159.0],
-                rim: [91.0, 196.0, 216.0],
-                highlight: [255.0, 244.0, 218.0],
-            }
+        let key = [fg.0.into(), fg.1.into(), fg.2.into()];
+        Self {
+            background,
+            key,
+            shadow: std::array::from_fn(|i| background[i] * 0.65 + key[i] * 0.35),
+            fill: key,
+            rim: key,
+            highlight: key,
         }
     }
 
