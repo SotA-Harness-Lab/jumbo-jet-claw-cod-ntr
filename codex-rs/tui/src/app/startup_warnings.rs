@@ -64,7 +64,9 @@ impl App {
 }
 
 #[cfg(target_os = "linux")]
-const NFS_MIGRATION_WARNING: &str = "Some Codex SQLite files on NFS have permissions other than 0600. Migration preserves these permissions and requires your confirmation. Before running `codex migrate-nfs-db`, stop Codex on every host that uses these databases.";
+fn nfs_migration_warning() -> &'static str {
+    crate::i18n::tr!("startup-warnings-nfs-migration")
+}
 
 #[cfg(target_os = "linux")]
 pub(super) async fn warn_about_nfs_migration(
@@ -88,7 +90,7 @@ pub(super) async fn warn_about_nfs_migration(
     .await;
     match inspection {
         Ok(true) => app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
-            StartupWarningsCell::new(vec![NFS_MIGRATION_WARNING.to_string()]),
+            StartupWarningsCell::new(vec![nfs_migration_warning().to_string()]),
         ))),
         Ok(false) => {}
         Err(error) => tracing::debug!(%error, "Could not inspect NFS database permissions"),

@@ -84,10 +84,7 @@ impl ChatWidget {
 
     fn model_menu_warning_line(&self) -> Option<Line<'static>> {
         let base_url = self.custom_openai_base_url()?;
-        let warning = crate::i18n::tr!(
-            "model-popups-base-url-warning",
-            base_url = base_url
-        );
+        let warning = crate::i18n::tr!("model-popups-base-url-warning", base_url = base_url);
         Some(Line::from(warning.red()))
     }
 

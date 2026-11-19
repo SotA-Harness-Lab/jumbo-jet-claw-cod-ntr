@@ -224,8 +224,16 @@ pub(super) async fn compatibility_warning(
             }
         });
         if let Some((name, enabled)) = requested.first_key_value() {
-            let state = if *enabled { "enabled" } else { "disabled" };
-            let reason = format!("This session requires {name} to be {state}");
+            let state = if *enabled {
+                crate::i18n::tr!("daemon-startup-state-enabled")
+            } else {
+                crate::i18n::tr!("daemon-startup-state-disabled")
+            };
+            let reason = crate::i18n::tr!(
+                "daemon-startup-requires-feature",
+                name = name.as_str(),
+                state = state
+            );
             restart_features = Some(requested);
             return Err(reason);
         }
@@ -234,9 +242,9 @@ pub(super) async fn compatibility_warning(
     .await;
     match check {
         Ok(()) => Ok(None),
-        Err(reason) if *allow_embedded_fallback && restart_features.is_none() => Ok(Some(format!(
-            "Running without the shared background server: {reason}."
-        ))),
+        Err(reason) if *allow_embedded_fallback && restart_features.is_none() => Ok(Some(
+            crate::i18n::tr!("daemon-startup-running-without-server", reason = reason),
+        )),
         Err(reason) => Err(CompatibilityError {
             reason,
             restart_features,

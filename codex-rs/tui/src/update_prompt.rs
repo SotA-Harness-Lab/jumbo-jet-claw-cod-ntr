@@ -211,7 +211,7 @@ impl WidgetRef for &UpdatePromptScreen {
         column.push(
             /*flex*/ 0,
             Paragraph::new(Line::from(vec![
-                "Update available".bold(),
+                crate::i18n::tr!("update-prompt-update-available").bold(),
                 " · ".dim(),
                 format!(
                     "{current} → {latest}",
@@ -226,7 +226,7 @@ impl WidgetRef for &UpdatePromptScreen {
         column.push(
             /*flex*/ 1,
             Paragraph::new(Line::from(vec![
-                "Release notes: ".dim(),
+                crate::i18n::tr!("update-prompt-release-notes").dim(),
                 RELEASE_NOTES_URL.dim().underlined(),
             ]))
             .wrap(Wrap { trim: false })
@@ -241,9 +241,12 @@ impl WidgetRef for &UpdatePromptScreen {
             /*flex*/ 1,
             picker_option_list(
                 vec![
-                    format!("Update now (runs `{update_command}`)"),
-                    "Skip".to_string(),
-                    "Skip until next version".to_string(),
+                    crate::i18n::tr!(
+                        "update-prompt-update-now",
+                        update_command = update_command.as_str()
+                    ),
+                    crate::i18n::tr!("update-prompt-skip").to_string(),
+                    crate::i18n::tr!("update-prompt-skip-until-next").to_string(),
                 ],
                 selected_index,
             ),
@@ -252,9 +255,9 @@ impl WidgetRef for &UpdatePromptScreen {
             /*flex*/ 0,
             Paragraph::new(Line::from(vec![
                 key_hint::plain(KeyCode::Enter).into(),
-                " continue · ".dim(),
+                crate::i18n::tr!("update-prompt-continue").dim(),
                 key_hint::plain(KeyCode::Esc).into(),
-                " skip".dim(),
+                crate::i18n::tr!("update-prompt-skip-hint").dim(),
             ]))
             .wrap(Wrap { trim: false })
             .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),

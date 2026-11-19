@@ -120,7 +120,10 @@ pub(crate) fn thread_to_transcript_cells(
         .collect::<TranscriptCells>();
     if cells.is_empty() {
         cells.push(Arc::new(PlainHistoryCell::new(vec![
-            "No transcript content available".italic().dim().into(),
+            crate::i18n::tr!("thread-transcript-empty")
+                .italic()
+                .dim()
+                .into(),
         ])));
     }
     cells

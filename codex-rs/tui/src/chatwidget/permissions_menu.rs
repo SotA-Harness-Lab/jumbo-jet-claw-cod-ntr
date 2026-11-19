@@ -113,9 +113,9 @@ impl ChatWidget {
         }
         let display_label = preset.as_ref().map_or(profile.id.as_str(), |preset| {
             match (preset.id, approvals_reviewer) {
-                ("auto", Some(ApprovalsReviewer::AutoReview)) => APPROVE_FOR_ME_LABEL,
-                ("auto", _) => ASK_FOR_APPROVAL_LABEL,
-                _ => preset.label,
+                ("auto", Some(ApprovalsReviewer::AutoReview)) => approve_for_me_label(),
+                ("auto", _) => ask_for_approval_label(),
+                _ => preset_label(preset),
             }
         });
         let selection = PermissionProfileSelection {
@@ -155,19 +155,19 @@ impl ChatWidget {
         let presets = builtin_approval_presets();
         let Some(read_only) = presets.iter().find(|preset| preset.id == "read-only") else {
             self.add_error_message(
-                "Internal error: missing the 'read-only' approval preset.".to_string(),
+                crate::i18n::tr!("permissions-menu-missing-preset-read-only").to_string(),
             );
             return;
         };
         let Some(default) = presets.iter().find(|preset| preset.id == "auto") else {
             self.add_error_message(
-                "Internal error: missing the 'auto' approval preset.".to_string(),
+                crate::i18n::tr!("permissions-menu-missing-preset-auto").to_string(),
             );
             return;
         };
         let Some(full_access) = presets.iter().find(|preset| preset.id == "full-access") else {
             self.add_error_message(
-                "Internal error: missing the 'full-access' approval preset.".to_string(),
+                crate::i18n::tr!("permissions-menu-missing-preset-full-access").to_string(),
             );
             return;
         };
@@ -184,7 +184,7 @@ impl ChatWidget {
                 &discovery,
                 default,
                 ":workspace",
-                AUTO_REVIEW_DESCRIPTION.to_string(),
+                auto_review_description().to_string(),
                 AskForApproval::OnRequest,
                 ApprovalsReviewer::AutoReview,
             ));
@@ -265,9 +265,9 @@ impl ChatWidget {
         approvals_reviewer: ApprovalsReviewer,
     ) -> SelectionItem {
         let label = match (preset.id, approvals_reviewer) {
-            ("auto", ApprovalsReviewer::AutoReview) => APPROVE_FOR_ME_LABEL,
-            ("auto", ApprovalsReviewer::User) => ASK_FOR_APPROVAL_LABEL,
-            _ => preset.label,
+            ("auto", ApprovalsReviewer::AutoReview) => approve_for_me_label(),
+            ("auto", ApprovalsReviewer::User) => ask_for_approval_label(),
+            _ => preset_label(preset),
         };
         let active_profile_id = self
             .config

@@ -22,9 +22,8 @@ impl App {
             && (!self.chat_widget.daybreak_account_eligible()
                 || !crate::daybreak::available(&self.chat_widget.model_catalog().models))
         {
-            self.chat_widget.add_error_message(
-                "Daybreak availability could not be confirmed for this account.".into(),
-            );
+            self.chat_widget
+                .add_error_message(crate::i18n::tr!("daybreak-unavailable-for-account").into());
             return false;
         }
         match app_server
@@ -47,16 +46,18 @@ impl App {
                         })
                         .await;
                 if let Err(error) = response {
-                    self.chat_widget.add_error_message(format!(
-                        "Failed to save Daybreak for this thread: {error}"
+                    self.chat_widget.add_error_message(crate::i18n::tr!(
+                        "daybreak-save-thread-failed",
+                        error = error.to_string()
                     ));
                     return false;
                 }
             }
             Ok(_) => {}
             Err(error) => {
-                self.chat_widget.add_error_message(format!(
-                    "Failed to read the thread to save Daybreak: {error}"
+                self.chat_widget.add_error_message(crate::i18n::tr!(
+                    "daybreak-read-thread-failed",
+                    error = error.to_string()
                 ));
                 return false;
             }
@@ -82,7 +83,7 @@ impl App {
             .persist_model_defaults(
                 app_server.request_handle(),
                 edits,
-                "default Daybreak preference",
+                crate::i18n::tr!("daybreak-default-preference-setting"),
             )
             .await
         {
@@ -104,19 +105,22 @@ impl App {
                         .and_then(serde_json::Value::as_bool)
                         .unwrap_or(false)
                 }
-                Err(error) => self.chat_widget.add_error_message(format!(
-                    "Failed to read the default Daybreak preference: {error}"
+                Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
+                    "daybreak-read-default-failed",
+                    error = error.to_string()
                 )),
             },
-            Err(error) => self.chat_widget.add_error_message(format!(
-                "Failed to save the default Daybreak preference: {error}"
+            Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
+                "daybreak-save-default-failed",
+                error = error.to_string()
             )),
         }
         self.chat_widget.add_info_message(
-            format!(
-                "Daybreak {}. Applies to new turns.",
-                if enabled { "on" } else { "off" }
-            ),
+            if enabled {
+                crate::i18n::tr!("daybreak-on-applies-to-new-turns").to_string()
+            } else {
+                crate::i18n::tr!("daybreak-off-applies-to-new-turns").to_string()
+            },
             /*hint*/ None,
         );
         true

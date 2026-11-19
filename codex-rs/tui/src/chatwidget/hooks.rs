@@ -22,10 +22,7 @@ impl ChatWidget {
 
         match result {
             Ok(entry) => self.open_hooks_browser(entry),
-            Err(err) => self.add_error_message(crate::i18n::tr!(
-                "hooks-failed-to-load",
-                err = err
-            )),
+            Err(err) => self.add_error_message(crate::i18n::tr!("hooks-failed-to-load", err = err)),
         }
     }
 

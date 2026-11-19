@@ -3,8 +3,12 @@
 
 use super::*;
 
-pub(super) const COMPACTION_HEADER: &str = "Compacting context";
-pub(super) const COMPACTION_DETAILS: &str = "Making room to continue.";
+pub(super) fn compaction_header() -> &'static str {
+    crate::i18n::tr!("const-compaction-header")
+}
+pub(super) fn compaction_details() -> &'static str {
+    crate::i18n::tr!("const-compaction-details")
+}
 
 #[derive(Debug)]
 pub(super) struct ActiveCompaction {
@@ -28,14 +32,14 @@ impl ChatWidget {
         self.status_state.compaction = Some(ActiveCompaction { id, started_at });
         self.bottom_pane.set_status_timer_origin(Some(started_at));
         self.bottom_pane.ensure_status_indicator();
-        self.set_status_header(COMPACTION_HEADER.to_string());
+        self.set_status_header(compaction_header().to_string());
     }
 
     pub(super) fn clear_context_compaction(&mut self) {
         if self.status_state.compaction.take().is_some() {
             self.bottom_pane
                 .set_status_timer_origin(/*started_at*/ None);
-            self.set_status_header(crate::i18n::tr!("compaction-working").to_string());
+            self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
         }
     }
 

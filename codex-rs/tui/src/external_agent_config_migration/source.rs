@@ -166,10 +166,13 @@ impl WidgetRef for &ExternalAgentConfigSourceScreen {
         Clear.render(area, buf);
         let mut column = ColumnRenderable::new();
         column.push("");
-        column.push(Paragraph::new("Choose an import source".bold()).wrap(Wrap { trim: false }));
+        column.push(
+            Paragraph::new(crate::i18n::tr!("external-agent-source-title").bold())
+                .wrap(Wrap { trim: false }),
+        );
         column.push("");
         column.push(
-            Paragraph::new("Select the app whose setup you want to import.".dim())
+            Paragraph::new(crate::i18n::tr!("external-agent-source-subtitle").dim())
                 .wrap(Wrap { trim: false })
                 .inset(Insets::tlbr(
                     /*top*/ 0, /*left*/ 2, /*bottom*/ 0, /*right*/ 0,
@@ -193,9 +196,9 @@ impl WidgetRef for &ExternalAgentConfigSourceScreen {
         column.push(
             Line::from(vec![
                 key_hint::plain(KeyCode::Enter).into(),
-                " continue · ".dim(),
+                crate::i18n::tr!("external-agent-source-hint-continue").dim(),
                 key_hint::plain(KeyCode::Esc).into(),
-                " cancel".dim(),
+                crate::i18n::tr!("external-agent-source-hint-cancel").dim(),
             ])
             .inset(Insets::tlbr(
                 /*top*/ 0, /*left*/ 2, /*bottom*/ 0, /*right*/ 0,

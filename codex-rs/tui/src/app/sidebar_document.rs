@@ -137,7 +137,8 @@ impl Document {
 
     pub(super) fn connection_replaced(&mut self) {
         if matches!(self.state, State::Loading(_)) {
-            self.state = State::Failed("Connection changed. Reopen this file to try again.".into());
+            self.state =
+                State::Failed(crate::i18n::tr!("sidebar-document-connection-changed").into());
         }
     }
 
@@ -150,7 +151,8 @@ impl Document {
                     self.location.is_some() || !crate::markdown_render::is_markdown_file(&title);
                 const MAX_SOURCE_BYTES: usize = 1024 * 1024;
                 if code && source.len() > MAX_SOURCE_BYTES {
-                    self.state = State::Failed("Source preview limit is 1 MiB".into());
+                    self.state =
+                        State::Failed(crate::i18n::tr!("sidebar-document-limit-bytes").into());
                     return;
                 }
                 // Like the transcript layout, count one LF per logical line, including CRLF input.
@@ -169,8 +171,10 @@ impl Document {
                 };
                 const MAX_SOURCE_LINES: usize = 10_000;
                 if line_starts.len() > MAX_SOURCE_LINES {
-                    self.state =
-                        State::Failed(format!("Source preview limit is {MAX_SOURCE_LINES} lines"));
+                    self.state = State::Failed(crate::i18n::tr!(
+                        "sidebar-document-limit-lines",
+                        max = MAX_SOURCE_LINES as i64
+                    ));
                     return;
                 }
                 let language = code.then(|| {
@@ -258,14 +262,17 @@ impl Document {
                 Line::from(vec![
                     ratatui::text::Span::styled(glyph, crate::style::accent_style()),
                     " ".into(),
-                    "Opening…".dim(),
+                    crate::i18n::tr!("sidebar-document-opening").dim(),
                 ])
                 .render(body, buf);
             }
             State::Failed(error) => {
-                Paragraph::new(format!("Could not open file: {error}"))
-                    .wrap(ratatui::widgets::Wrap { trim: false })
-                    .render(body, buf);
+                Paragraph::new(crate::i18n::tr!(
+                    "sidebar-document-open-failed",
+                    error = error.as_str()
+                ))
+                .wrap(ratatui::widgets::Wrap { trim: false })
+                .render(body, buf);
             }
             State::Ready {
                 view,
@@ -280,30 +287,43 @@ impl Document {
                 if view.advance_search(cells) {
                     frames.schedule_frame();
                 }
-                let footer = view.footer_with_navigation(body.width, motion, "Esc close");
+                let footer = view.footer_with_navigation(
+                    body.width,
+                    motion,
+                    crate::i18n::tr!("sidebar-document-esc-close"),
+                );
                 let hints = crate::footer_hint::HintLine::new(
                     [
-                        Some(crate::footer_hint::shortcut("↑/↓", "read")),
+                        Some(crate::footer_hint::shortcut(
+                            "↑/↓",
+                            crate::i18n::tr!("sidebar-document-hint-read"),
+                        )),
                         Some(crate::footer_hint::shortcut(
                             &keymap
                                 .pager
                                 .find
                                 .first()
                                 .map_or_else(|| "F3".to_owned(), KeyBinding::display_label),
-                            "find",
+                            crate::i18n::tr!("sidebar-document-hint-find"),
                         )),
-                        Some(crate::footer_hint::shortcut("Tab", "link")),
+                        Some(crate::footer_hint::shortcut(
+                            "Tab",
+                            crate::i18n::tr!("sidebar-document-hint-link"),
+                        )),
                         keymap
                             .primary_hint(KeymapContext::Global, "select_transcript")
                             .map(|hint| {
-                                crate::footer_hint::shortcut(&hint.display_label(), "select")
+                                crate::footer_hint::shortcut(
+                                    &hint.display_label(),
+                                    crate::i18n::tr!("sidebar-document-hint-select"),
+                                )
                             }),
                         Some(crate::footer_hint::shortcut(
                             "Esc",
                             if target.is_some() {
-                                "clear highlight"
+                                crate::i18n::tr!("sidebar-document-hint-clear-highlight")
                             } else {
-                                "close"
+                                crate::i18n::tr!("sidebar-document-hint-close")
                             },
                         )),
                     ]

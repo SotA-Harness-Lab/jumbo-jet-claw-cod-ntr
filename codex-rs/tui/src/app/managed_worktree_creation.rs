@@ -24,11 +24,9 @@ pub(super) fn background_terminals_blocker(
                         && (source.message.contains("unknown variant")
                             || source.message.contains("unknown method"))) =>
         {
-            Some(
-                "The local Codex service cannot check background terminals. Run `codex app-server daemon update`, then restart Codex.",
-            )
+            Some(crate::i18n::tr!("managed-worktree-daemon-cannot-check"))
         }
-        _ => Some("Active background terminals block /cd."),
+        _ => Some(crate::i18n::tr!("managed-worktree-background-blocks-cd")),
     }
 }
 
@@ -66,26 +64,24 @@ impl App {
     ) {
         if self.config.active_project.is_untrusted() {
             self.chat_widget.add_error_message(
-                "Cannot create a worktree from an explicitly untrusted source.".to_string(),
+                crate::i18n::tr!("managed-worktree-untrusted-source").to_string(),
             );
         } else if crate::uses_remote_workspace_or_environment(
             &self.app_server_target,
             self.environment_manager.as_ref(),
         ) {
-            self.chat_widget.add_error_message(
-                "Managed worktrees are only supported for local sessions.".to_string(),
-            );
+            self.chat_widget
+                .add_error_message(crate::i18n::tr!("managed-worktree-local-only").to_string());
         } else if self
             .primary_thread_id
             .is_none_or(|thread_id| !self.chat_widget.can_change_working_directory(thread_id))
         {
-            self.chat_widget.add_error_message(
-                "Creating a worktree requires an idle primary session without queued input."
-                    .to_string(),
-            );
-        } else if self.pending_managed_worktree_creation {
             self.chat_widget
-                .add_error_message("A worktree is already being created.".to_string());
+                .add_error_message(crate::i18n::tr!("managed-worktree-needs-idle").to_string());
+        } else if self.pending_managed_worktree_creation {
+            self.chat_widget.add_error_message(
+                crate::i18n::tr!("managed-worktree-already-creating").to_string(),
+            );
         } else {
             // These source-only checks must precede allocation. The transition repeats them
             // after the background task, since the session can change while Git is running.
@@ -94,12 +90,12 @@ impl App {
                 .iter()
                 .any(|cell| cell.as_any().is::<LoadingCell>())
             {
-                return self.working_directory_error("MCP inventory is still loading.");
+                return self
+                    .working_directory_error(crate::i18n::tr!("managed-worktree-mcp-loading"));
             }
             let Some(thread_id) = self.primary_thread_id else {
-                return self.working_directory_error(
-                    "Creating a worktree requires an idle primary session without queued input.",
-                );
+                return self
+                    .working_directory_error(crate::i18n::tr!("managed-worktree-needs-idle"));
             };
             let agents = self.agent_navigation.ordered_threads();
             let closed_agents: HashSet<_> = agents
@@ -119,7 +115,8 @@ impl App {
                     .iter()
                     .any(|(id, agent)| *id != thread_id && agent.is_running)
             {
-                return self.working_directory_error("Cannot change: another agent is running.");
+                return self
+                    .working_directory_error(crate::i18n::tr!("managed-worktree-agent-running"));
             }
             let rollout = self.chat_widget.rollout_path();
             let has_rollout = rollout.as_deref().is_some_and(rollout_path_is_resumable);
@@ -140,7 +137,9 @@ impl App {
                             })
                         }))
             {
-                return self.working_directory_error("Conversation history is not saved.");
+                return self.working_directory_error(crate::i18n::tr!(
+                    "managed-worktree-history-not-saved"
+                ));
             }
             let mut ids: HashSet<_> = self
                 .thread_event_channels
@@ -165,7 +164,7 @@ impl App {
                     .map_err(|error| anyhow::anyhow!(error.to_string()))?;
                 anyhow::ensure!(
                     !source.active_project.is_untrusted(),
-                    "Cannot create a worktree from an explicitly untrusted source."
+                    crate::i18n::tr!("managed-worktree-untrusted-source")
                 );
                 let host = crate::legacy_core::config::load_config_toml_with_layer_stack(
                     &self.config.codex_home,
@@ -200,7 +199,10 @@ impl App {
                         })
                         .await
                         .unwrap_or_else(|error| {
-                            Err(format!("Worktree creation task failed: {error}"))
+                            Err(crate::i18n::tr!(
+                                "managed-worktree-task-failed",
+                                error = error.to_string()
+                            ))
                         });
                         sender.send(AppEvent::ManagedWorktreeCreated(Box::new(
                             ManagedWorktreeCreated {
@@ -241,7 +243,7 @@ impl App {
         if !can_continue {
             return self.retained_worktree_error(
                 &checkout,
-                "Cannot continue into the new worktree while the source session changed or is unavailable.",
+                crate::i18n::tr!("managed-worktree-source-changed"),
             );
         }
         match self
@@ -252,7 +254,7 @@ impl App {
             Ok(_) | Err(_) => {
                 return self.retained_worktree_error(
                     &checkout,
-                    "Cannot continue into the new worktree because source configuration changed.",
+                    crate::i18n::tr!("managed-worktree-source-config-changed"),
                 );
             }
         }
@@ -261,13 +263,16 @@ impl App {
             Ok(_) => {
                 return self.retained_worktree_error(
                     &checkout,
-                    "The new worktree is not trusted; run Codex there.",
+                    crate::i18n::tr!("managed-worktree-not-trusted"),
                 );
             }
             Err(error) => {
                 return self.retained_worktree_error(
                     &checkout,
-                    format!("Cannot load the new worktree configuration: {error}"),
+                    crate::i18n::tr!(
+                        "managed-worktree-load-config-failed",
+                        error = error.to_string()
+                    ),
                 );
             }
         };
@@ -287,9 +292,10 @@ impl App {
         checkout: &codex_worktree::ManagedWorktree,
         reason: impl std::fmt::Display,
     ) {
-        self.working_directory_error(format!(
-            "{reason} A checkout was retained at {}; remove it with `git worktree remove <checkout-path>` from the source repository if it is no longer needed.",
-            checkout.root.display()
+        self.working_directory_error(crate::i18n::tr!(
+            "managed-worktree-retained-checkout",
+            reason = reason.to_string(),
+            path = checkout.root.display().to_string()
         ));
     }
 }

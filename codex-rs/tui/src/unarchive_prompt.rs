@@ -169,7 +169,7 @@ impl UnarchivePrompt {
         column.push(/*flex*/ 1, RenderableItem::Borrowed(&""));
         column.push(
             /*flex*/ 0,
-            Paragraph::new("This conversation is archived".bold())
+            Paragraph::new(crate::i18n::tr!("unarchive-prompt-title").bold())
                 .wrap(Wrap { trim: false })
                 .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),
         );
@@ -187,8 +187,15 @@ impl UnarchivePrompt {
             /*flex*/ 1,
             picker_option_list(
                 vec![
-                    format!("Unarchive and {}", self.action.verb()),
-                    "Cancel".to_string(),
+                    match self.action {
+                        SessionStartAction::Resume(..) => {
+                            crate::i18n::tr!("unarchive-prompt-unarchive-and-resume").to_string()
+                        }
+                        SessionStartAction::Fork(_) => {
+                            crate::i18n::tr!("unarchive-prompt-unarchive-and-fork").to_string()
+                        }
+                    },
+                    crate::i18n::tr!("unarchive-prompt-cancel").to_string(),
                 ],
                 selected_index,
             ),
@@ -197,9 +204,9 @@ impl UnarchivePrompt {
             /*flex*/ 0,
             Paragraph::new(Line::from(vec![
                 key_hint::plain(KeyCode::Enter).into(),
-                " continue · ".dim(),
+                crate::i18n::tr!("unarchive-prompt-hint-continue").dim(),
                 key_hint::plain(KeyCode::Esc).into(),
-                " cancel".dim(),
+                crate::i18n::tr!("unarchive-prompt-hint-cancel").dim(),
             ]))
             .wrap(Wrap { trim: false })
             .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),

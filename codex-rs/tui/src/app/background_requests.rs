@@ -737,10 +737,7 @@ impl App {
             Ok(FeedbackReceipt::Saved { path }) => {
                 self.chat_widget
                     .add_to_history(history_cell::new_info_event(
-                        crate::i18n::tr!(
-                            "background-requests-feedback-zip-saved",
-                            path = path
-                        ),
+                        crate::i18n::tr!("background-requests-feedback-zip-saved", path = path),
                         /*hint*/ None,
                     ))
             }
@@ -1054,19 +1051,19 @@ pub(super) async fn fetch_additional_plugin_remote_sections(
     if !remote_plugin_enabled {
         sections.push((
             "vertical",
-            "OpenAI Curated",
+            crate::i18n::tr!("background-requests-section-openai-curated"),
             vec![PluginListMarketplaceKind::Vertical],
         ));
     }
     sections.push((
         "workspace",
-        "Workspace",
+        crate::i18n::tr!("background-requests-section-workspace"),
         vec![PluginListMarketplaceKind::WorkspaceDirectory],
     ));
     if plugin_sharing_enabled {
         sections.push((
             "shared-with-me",
-            "Shared with me",
+            crate::i18n::tr!("background-requests-section-shared-with-me"),
             vec![PluginListMarketplaceKind::SharedWithMe],
         ));
     } else {
@@ -1135,7 +1132,10 @@ fn plugin_remote_section_error_next_step(label: &str, err: &str) -> &'static str
         crate::i18n::tr!("background-requests-next-step-try-again-later")
     } else if err.contains("disabled by admin") || err.contains("admin disabled") {
         crate::i18n::tr!("background-requests-next-step-admin-confirm-access")
-    } else if label == "Shared with me" && err.contains("plugin") && err.contains("disabled") {
+    } else if label == crate::i18n::tr!("background-requests-section-shared-with-me")
+        && err.contains("plugin")
+        && err.contains("disabled")
+    {
         crate::i18n::tr!("background-requests-next-step-sharer-confirm-access")
     } else {
         ""
@@ -1145,7 +1145,7 @@ fn plugin_remote_section_error_next_step(label: &str, err: &str) -> &'static str
 fn plugin_sharing_disabled_remote_section_error() -> PluginRemoteSectionError {
     PluginRemoteSectionError {
         section_id: "shared-with-me".to_string(),
-        label: "Shared with me".to_string(),
+        label: crate::i18n::tr!("background-requests-section-shared-with-me").to_string(),
         message: crate::i18n::tr!("background-requests-enable-plugin-sharing").to_string(),
     }
 }

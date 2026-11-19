@@ -80,12 +80,12 @@ impl ChatWidget {
             let base_name = if preset.id == "auto" && windows_degraded_sandbox_enabled {
                 crate::i18n::tr!(
                     "permission-popups-non-admin-sandbox",
-                    label = ASK_FOR_APPROVAL_LABEL
+                    label = ask_for_approval_label()
                 )
             } else if preset.id == "auto" {
-                ASK_FOR_APPROVAL_LABEL.to_string()
+                ask_for_approval_label().to_string()
             } else {
-                preset.label.to_string()
+                preset_label(&preset).to_string()
             };
             let base_description = Some(permission_preset_description(&preset).to_string());
             let approval_disabled_reason = match self
@@ -126,8 +126,8 @@ impl ChatWidget {
 
                 if guardian_approval_enabled {
                     items.push(SelectionItem {
-                        name: APPROVE_FOR_ME_LABEL.to_string(),
-                        description: Some(AUTO_REVIEW_DESCRIPTION.to_string()),
+                        name: approve_for_me_label().to_string(),
+                        description: Some(auto_review_description().to_string()),
                         is_current: current_review_policy == ApprovalsReviewer::AutoReview
                             && (Self::preset_matches_current(
                                 current_approval,
@@ -142,7 +142,7 @@ impl ChatWidget {
                                     .auto_review_required_for_model(self.current_model()))),
                         actions: self.permission_mode_actions(
                             &preset,
-                            APPROVE_FOR_ME_LABEL.to_string(),
+                            approve_for_me_label().to_string(),
                             ApprovalsReviewer::AutoReview,
                             /*profile_selection*/ None,
                             /*return_to_permissions*/ !include_read_only,
@@ -441,7 +441,7 @@ impl ChatWidget {
         return_to_permissions: bool,
         profile_selection: Option<PermissionProfileSelection>,
     ) {
-        let selected_name = preset.label.to_string();
+        let selected_name = preset_label(&preset).to_string();
         let approval = AskForApproval::from(preset.approval);
         let is_cyber_model = self.model_catalog.try_list_models().is_ok_and(|models| {
             models.iter().any(|model| {

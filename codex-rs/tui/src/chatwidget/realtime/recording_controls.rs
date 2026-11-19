@@ -10,10 +10,7 @@ impl ChatWidget {
             if let Err(error) = handle.set_microphone_muted(muted) {
                 let (message, cause) = match handle.take_error() {
                     Some((cause, error)) => (
-                        crate::i18n::tr!(
-                            "recording-controls-voice-failed",
-                            error = error
-                        ),
+                        crate::i18n::tr!("recording-controls-voice-failed", error = error),
                         cause.into(),
                     ),
                     None => (

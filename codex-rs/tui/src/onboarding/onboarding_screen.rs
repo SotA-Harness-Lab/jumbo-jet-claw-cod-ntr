@@ -853,7 +853,7 @@ async fn run_onboarding_screen_inner(
                 }
             }, if app_server.is_some() => {
                 let Some(event) = event else {
-                    return Err(color_eyre::eyre::eyre!(super::SETUP_CONNECTION_LOST));
+                    return Err(color_eyre::eyre::eyre!(super::setup_connection_lost()));
                 };
                 if let (Some(server), [Step::GatewayDevice(prompt)]) = (app_server.as_deref(), onboarding_screen.steps.as_slice()) {
                     onboarding_screen.is_done = crate::device_login::handle_event_during_device_login(

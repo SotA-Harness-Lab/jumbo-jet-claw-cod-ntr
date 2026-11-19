@@ -63,7 +63,7 @@ impl ChatWidget {
             || self.status_state.current_status.is_guardian_review()
         {
             self.status_state.terminal_title_status_kind = TerminalTitleStatusKind::Working;
-            self.set_status_header(String::from("Working"));
+            self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
         }
     }
 

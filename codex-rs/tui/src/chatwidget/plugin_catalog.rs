@@ -1069,7 +1069,7 @@ impl ChatWidget {
                 crate::i18n::tr!("plugin-catalog-enter-a-source-to-make-its").to_string(),
             ),
             items: vec![SelectionItem {
-                name: "Add marketplace".to_string(),
+                name: crate::i18n::tr!("plugin-catalog-add-marketplace").to_string(),
                 description: Some(
                     crate::i18n::tr!("plugin-catalog-enter-owner-repo-a-git-url").to_string(),
                 ),

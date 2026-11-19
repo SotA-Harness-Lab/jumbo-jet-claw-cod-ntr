@@ -673,9 +673,10 @@ impl ChatWidget {
             return None;
         }
         let active_mode = self.active_mode_kind();
-        active_mode
-            .is_tui_visible()
-            .then_some(active_mode.display_name())
+        active_mode.is_tui_visible().then(|| match active_mode {
+            ModeKind::Plan => crate::i18n::tr!("collaboration-mode-plan"),
+            ModeKind::Default => crate::i18n::tr!("collaboration-mode-default"),
+        })
     }
 
     fn collaboration_mode_indicator(&self) -> Option<CollaborationModeIndicator> {

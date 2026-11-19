@@ -85,11 +85,7 @@ impl McpToolResult {
                         let summary = match resource.resource {
                             ResourceContents::TextResourceContents { uri, .. }
                             | ResourceContents::BlobResourceContents { uri, .. } => {
-                                crate::i18n::tr!(
-                                    "mcp-result-embedded-resource",
-                                    uri = uri
-                                )
-                                .into()
+                                crate::i18n::tr!("mcp-result-embedded-resource", uri = uri).into()
                             }
                             _ => crate::i18n::tr!("mcp-result-unknown-embedded-resource").into(),
                         };

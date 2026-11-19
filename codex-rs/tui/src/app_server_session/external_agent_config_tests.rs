@@ -99,7 +99,7 @@ async fn external_agent_config_migration_over_shared_transport() -> Result<()> {
             .unwrap_err();
         assert_eq!(
             err.to_string(),
-            EXTERNAL_AGENT_CONFIG_IMPORT_IN_PROGRESS_MESSAGE
+            external_agent_config_import_in_progress_message()
         );
         for (import_id, consumed) in [("other-client", false), ("this-client", true)] {
             let event =

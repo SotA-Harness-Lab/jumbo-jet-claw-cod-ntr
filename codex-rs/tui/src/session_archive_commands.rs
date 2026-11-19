@@ -63,14 +63,38 @@ fn success_message(
     session_id: ThreadId,
     session_name: Option<&str>,
 ) -> String {
-    let action = match action {
-        SessionArchiveAction::Archive => "Archived",
-        SessionArchiveAction::Delete(_) => "Deleted",
-        SessionArchiveAction::Unarchive => "Unarchived",
-    };
-    match session_name {
-        Some(name) => format!("{action} session {name} ({session_id})."),
-        None => format!("{action} session {session_id}."),
+    let session_id = session_id.to_string();
+    match (action, session_name) {
+        (SessionArchiveAction::Archive, Some(name)) => {
+            crate::i18n::tr!(
+                "session-archive-archived-named",
+                name = name,
+                id = session_id
+            )
+        }
+        (SessionArchiveAction::Archive, None) => {
+            crate::i18n::tr!("session-archive-archived", id = session_id)
+        }
+        (SessionArchiveAction::Delete(_), Some(name)) => {
+            crate::i18n::tr!(
+                "session-archive-deleted-named",
+                name = name,
+                id = session_id
+            )
+        }
+        (SessionArchiveAction::Delete(_), None) => {
+            crate::i18n::tr!("session-archive-deleted", id = session_id)
+        }
+        (SessionArchiveAction::Unarchive, Some(name)) => {
+            crate::i18n::tr!(
+                "session-archive-unarchived-named",
+                name = name,
+                id = session_id
+            )
+        }
+        (SessionArchiveAction::Unarchive, None) => {
+            crate::i18n::tr!("session-archive-unarchived", id = session_id)
+        }
     }
 }
 
@@ -112,7 +136,7 @@ async fn run_session_archive_action_with_app_server(
             if matches!(confirmation, DeleteConfirmation::Prompt)
                 && !confirm_session_delete(&resolved)?
             {
-                return Ok("Delete cancelled.".to_string());
+                return Ok(crate::i18n::tr!("session-archive-delete-cancelled").to_string());
             }
             app_server.thread_delete(resolved.session_id).await?;
             resolved.session_name
@@ -144,7 +168,10 @@ async fn resolve_session_target(
                 .thread_read(session_id, /*include_turns*/ false)
                 .await
                 .with_context(|| {
-                    format!("No active or archived session found matching '{target}'.")
+                    crate::i18n::tr!(
+                        "session-archive-not-found-active-or-archived",
+                        target = target
+                    )
                 })?;
             return Ok(ResolvedSessionTarget {
                 session_id,
@@ -157,13 +184,19 @@ async fn resolve_session_target(
         });
     }
 
-    let (search_scope, collections): (&str, &[SessionCollection]) = match action {
-        SessionArchiveAction::Archive => ("active", &[SessionCollection::Active]),
+    let (not_found_id, collections): (&str, &[SessionCollection]) = match action {
+        SessionArchiveAction::Archive => (
+            "session-archive-not-found-active",
+            &[SessionCollection::Active],
+        ),
         SessionArchiveAction::Delete(_) => (
-            "active or archived",
+            "session-archive-not-found-active-or-archived",
             &[SessionCollection::Active, SessionCollection::Archived],
         ),
-        SessionArchiveAction::Unarchive => ("archived", &[SessionCollection::Archived]),
+        SessionArchiveAction::Unarchive => (
+            "session-archive-not-found-archived",
+            &[SessionCollection::Archived],
+        ),
     };
     if let Some(thread) = lookup(
         app_server,
@@ -180,7 +213,19 @@ async fn resolve_session_target(
         return session_target_from_app_server_thread(thread);
     }
     Err(eyre!(
-        "No {search_scope} session found matching '{target}'."
+        "{}",
+        match not_found_id {
+            "session-archive-not-found-active" => {
+                crate::i18n::tr!("session-archive-not-found-active", target = target)
+            }
+            "session-archive-not-found-archived" => {
+                crate::i18n::tr!("session-archive-not-found-archived", target = target)
+            }
+            _ => crate::i18n::tr!(
+                "session-archive-not-found-active-or-archived",
+                target = target
+            ),
+        }
     ))
 }
 
@@ -195,25 +240,41 @@ fn session_target_from_app_server_thread(thread: AppServerThread) -> Result<Reso
 
 fn confirm_session_delete(target: &ResolvedSessionTarget) -> Result<bool> {
     if !(std::io::stdin().is_terminal() && std::io::stderr().is_terminal()) {
-        return Err(eyre!(
-            "cannot confirm session deletion without an interactive terminal; rerun with --force and a session UUID"
-        ));
+        return Err(eyre!(crate::i18n::tr!(
+            "session-archive-confirm-needs-terminal"
+        )));
     }
 
     let mut stderr = std::io::stderr().lock();
     match target.session_name.as_deref() {
         Some(name) => writeln!(
             stderr,
-            "Permanently delete session '{name}' ({})?",
-            target.session_id
+            "{}",
+            crate::i18n::tr!(
+                "session-archive-confirm-delete-named",
+                name = name,
+                id = target.session_id.to_string()
+            )
         ),
-        None => writeln!(stderr, "Permanently delete session {}?", target.session_id),
+        None => writeln!(
+            stderr,
+            "{}",
+            crate::i18n::tr!(
+                "session-archive-confirm-delete",
+                id = target.session_id.to_string()
+            )
+        ),
     }?;
     writeln!(
         stderr,
-        "This cannot be undone. Subagent threads will also be deleted."
+        "{}",
+        crate::i18n::tr!("session-archive-cannot-undo")
     )?;
-    write!(stderr, "Continue? [y/N]: ")?;
+    write!(
+        stderr,
+        "{}",
+        crate::i18n::tr!("session-archive-continue-prompt")
+    )?;
     stderr.flush()?;
 
     let mut input = String::new();

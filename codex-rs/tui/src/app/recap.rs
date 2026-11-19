@@ -37,11 +37,6 @@ pub(super) const RECAP_DELAY: Duration = Duration::from_secs(/*secs*/ 30 * 60);
 const RECAP_MAX_CHARS: usize = 700;
 const RECAP_NEXT_MAX_CHARS: usize = 200;
 const RECAP_RETRY_DELAY: Duration = Duration::from_secs(/*secs*/ 30);
-const MANUAL_RECAP_FAILURE_MESSAGE: &str = "Could not generate a recap. Please try again.";
-const MANUAL_RECAP_IN_PROGRESS_MESSAGE: &str = "A recap is already being generated.";
-const MANUAL_RECAP_EMPTY_HISTORY_MESSAGE: &str = "There is no conversation history to recap.";
-const CLOUD_RECAP_UNAVAILABLE_MESSAGE: &str =
-    "Conversation recaps are not available for cloud conversations.";
 #[cfg(test)]
 pub(super) const RECAP_PROMPT_MAX_BYTES: usize = RecapPrompt::MAX_BYTES;
 
@@ -177,7 +172,7 @@ impl App {
             ),
             RecapTrigger::Manual => self
                 .chat_widget
-                .add_error_message(MANUAL_RECAP_FAILURE_MESSAGE.to_string()),
+                .add_error_message(crate::i18n::tr!("recap-failure").to_string()),
         }
     }
 
@@ -190,7 +185,7 @@ impl App {
         if app_server.thread_params_mode().settings_owner() == ThreadSettingsOwner::Server {
             if matches!(trigger, RecapTrigger::Manual) {
                 self.chat_widget
-                    .add_error_message(CLOUD_RECAP_UNAVAILABLE_MESSAGE.to_string());
+                    .add_error_message(crate::i18n::tr!("recap-cloud-unavailable").to_string());
             }
             return;
         }
@@ -200,7 +195,7 @@ impl App {
         if self.recap.in_flight_request.is_some() {
             if matches!(trigger, RecapTrigger::Manual) {
                 self.chat_widget
-                    .add_error_message(MANUAL_RECAP_IN_PROGRESS_MESSAGE.to_string());
+                    .add_error_message(crate::i18n::tr!("recap-in-progress").to_string());
             }
             return;
         }
@@ -209,7 +204,7 @@ impl App {
         if history.is_empty() {
             if matches!(trigger, RecapTrigger::Manual) {
                 self.chat_widget
-                    .add_error_message(MANUAL_RECAP_EMPTY_HISTORY_MESSAGE.to_string());
+                    .add_error_message(crate::i18n::tr!("recap-empty-history").to_string());
             }
             return;
         }

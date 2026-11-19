@@ -136,11 +136,10 @@ impl ToolGroup {
         let calls = &self.calls;
         let (explored, ran) = (self.explored, self.ran);
         if calls.len() > 1 && explored + ran == calls.len() {
-            let noun = if ran == 1 { "command" } else { "commands" };
             return match (explored, ran) {
-                (0, _) => format!("Ran {ran} {noun}"),
-                (_, 0) => "Explored files".into(),
-                _ => format!("Explored files · ran {ran} {noun}"),
+                (0, _) => crate::i18n::tr!("turn-details-ran", ran = ran as i64),
+                (_, 0) => crate::i18n::tr!("turn-details-explored").into(),
+                _ => crate::i18n::tr!("turn-details-explored-ran", ran = ran as i64),
             };
         }
         let mut lines = calls.last().into_iter().flat_map(|last| last.lines());
@@ -152,7 +151,11 @@ impl ToolGroup {
             label.push_str(" …");
         }
         if calls.len() > 1 {
-            return format!("{} tool calls · {label}", calls.len());
+            return crate::i18n::tr!(
+                "turn-details-tool-calls",
+                count = calls.len() as i64,
+                label = label
+            );
         }
         label
     }
@@ -278,9 +281,11 @@ impl TurnDetails {
         if hidden_count > 0 {
             let label = completion
                 .and_then(FinalMessageSeparator::display_label)
-                .unwrap_or_else(|| match hidden_count {
-                    1 => "1 previous message".into(),
-                    count => format!("{count} previous messages"),
+                .unwrap_or_else(|| {
+                    crate::i18n::tr!(
+                        "turn-details-previous-messages",
+                        count = hidden_count as i64
+                    )
                 });
             rows[0].row = Some(TurnRow::Prompt {
                 id: format!("turn:{:?}", rows[0].key),

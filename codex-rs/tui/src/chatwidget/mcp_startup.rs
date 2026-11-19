@@ -253,10 +253,7 @@ impl ChatWidget {
                             )
                         }
                         Some(error) => error,
-                        None => crate::i18n::tr!(
-                            "mcp-startup-client-failed",
-                            server = server
-                        ),
+                        None => crate::i18n::tr!("mcp-startup-client-failed", server = server),
                     },
                 }
             }

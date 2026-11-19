@@ -651,14 +651,12 @@ thread-usage-tokens-output = { $tokens } output
 thread-usage-group-share = { $name } { $percentage }%
 
 ## codex-rs/tui/src/status_indicator_widget.rs
-status-indicator-working = Working
 status-indicator-elapsed-open = ({ $elapsed } •{" "}
 status-indicator-to-interrupt = {" "}to interrupt)
 status-indicator-separator = {" "}·{" "}
 
 ## codex-rs/tui/src/terminal_program_status.rs
 terminal-program-status-idle = Idle
-terminal-program-status-working = Working
 terminal-program-status-waiting = Waiting
 
 ## codex-rs/tui/src/chatwidget/status_surfaces.rs
@@ -1239,7 +1237,6 @@ clipboard-copy-failed = Copy failed: { $error }
 command-lifecycle-waiting-bg-terminal = Waiting for background terminal
 
 ## codex-rs/tui/src/chatwidget/compaction.rs
-compaction-working = Working
 compaction-context-compacted = Context compacted
 compaction-context-compacted-elapsed = Context compacted · { $elapsed }
 
@@ -1323,7 +1320,6 @@ image-submission-failed-image = Failed to prepare image: { $path }: { $error }
 input-flow-preparing-images = Preparing images: { $text }
 input-flow-cannot-switch-mode = Cannot switch collaboration mode while a turn is running.
 
-input-flow-working = Working
 ## codex-rs/tui/src/chatwidget/input_restore.rs
 input-restore-interrupted-for-steer = Model interrupted to submit steer instructions.
 input-restore-goal-budget-reached = Goal budget reached - the turn was stopped.
@@ -1935,7 +1931,6 @@ review-popups-type-instructions = Type instructions and press Enter
 safety-buffering-header = Giving this request a little extra thought
 safety-buffering-message-with-retry = If you'd rather not wait, retry with a faster model. It may be less capable of handling complex requests.
 safety-buffering-footer = No action is required. Codex will keep waiting, and this menu will close when the response is ready.
-safety-buffering-working = Working
 safety-buffering-retry-faster = Retry with a faster model
 safety-buffering-dismiss-keep-waiting = Dismiss and keep waiting
 safety-buffering-learn-more = Learn more
@@ -2060,7 +2055,6 @@ tool-requests-question-requested = Question requested
 tool-requests-questions-requested = { $count } questions requested
 
 ## codex-rs/tui/src/chatwidget/turn_runtime.rs
-turn-runtime-working = Working
 turn-runtime-websocket-timing = WebSocket timing: { $label }
 turn-runtime-percent-used = { $used_percent }% used
 turn-runtime-tokens-used = { $tokens } used
@@ -2233,7 +2227,6 @@ slash-dispatch-goal-change-before-start = The session must start before you can 
 slash-dispatch-goal-set-before-start = The session must start before you can set a goal.
 slash-dispatch-unrecognized = Unrecognized command '/{ $name }'. Type "/" for a list of supported commands.
 slash-dispatch-review-running = '/{ $command }' is unavailable while code review is running.
-slash-dispatch-working = Working
 
 ## codex-rs/tui/src/history_cell/async_replies.rs
 async-replies-re = Re:{" "}
@@ -2781,3 +2774,2142 @@ config-persistence-refresh-approve-failed = Failed to refresh overridden Approve
 config-persistence-refresh-approve-failed-prefix = Failed to refresh overridden Approve for me settings
 config-persistence-windows-sandbox-overridden = Windows sandbox setup completed, but its mode was overridden by the effective configuration.
 config-persistence-overridden-by-layer = the effective config is overridden by a higher-priority layer
+
+## app/provider/rpc.rs
+
+provider-rpc-override-reason = A higher-priority setting overrides this choice.
+provider-rpc-update-server = Update the connected app server to browse model providers.
+provider-rpc-load-failed = Could not load model providers: { $err }
+
+## app/resume_config.rs
+
+resume-config-cwd-needs-cd = `tui.resume_cwd = "current"` requires `--cd` when using a remote workspace
+resume-config-cwd-failed = Failed to determine working directory for resume: { $err }
+resume-config-rebuild-failed = Failed to rebuild configuration for resume: { $err }
+resume-config-check-folder-failed = Unable to check resumed folder: { $error }
+resume-config-check-trust-failed = Unable to check folder trust: { $error }
+resume-config-reload-trust-failed = Failed to reload trusted folder settings: { $error }
+resume-config-load-hooks-failed = Unable to load folder hooks: { $error }
+resume-config-review-hooks-failed = Unable to review folder hooks: { $error }
+
+## daybreak.rs
+
+daybreak-requires-openai = Daybreak requires the OpenAI provider with either ChatGPT sign-in or an API key with Daybreak support enabled. Turn it off to continue.
+daybreak-unconfirmed = Daybreak support for model { $model } could not be confirmed by the connected server. Use /daybreak to turn it off, or choose a compatible model and server.
+
+## device_login.rs
+
+device-login-gateway-failed = Gateway sign-in failed
+device-login-lost-result = Lost the gateway sign-in result. Restart Codex to check the connection.
+
+## external_agent_config_migration/flow.rs
+
+import-flow-source-error = { $source }: { $error }
+import-flow-check-failed = Could not check for importable setup: { $errors }
+import-flow-started = Import started.
+import-flow-keep-working = {" "}You can keep working while it finishes.
+import-flow-applies-new-chats = Imported setup will apply to new chats.
+import-flow-importing = Importing:
+import-flow-more = , +{ $count } more
+import-flow-failed-count = { $count } failed
+import-flow-finished = Import finished:{" "}
+import-flow-imported-count = { $count } imported
+import-flow-results-by-type = Results by type:
+import-flow-run-again = Run /import again to check for additional items.
+import-flow-remaining = 
+    { $count ->
+        [one] 1 additional item remains. After it finishes, run /import again to review it.
+       *[other] { $count } additional items remain. After it finishes, run /import again to review them.
+    }
+import-flow-source-gone = Selected import source is no longer available.
+import-flow-failed = Import failed: { $err }
+
+## goal_files.rs
+
+goal-files-empty = Goal objective must not be empty.
+goal-files-reference-too-long = Goal objective file reference is too long: { $actual_chars } characters. Limit: { $limit } characters.
+
+## lib.rs
+
+lib-workload-identity-remote-host = workload identity must be configured on the remote app-server host
+lib-config-selects-other-provider = The current configuration selects { $current } instead of { $selected_id }.
+lib-no-saved-session = No saved session found with ID { $id_str }. Run `codex { $action }` without an ID to choose from existing sessions.
+lib-cloud-connection-failed = Could not add the Cloud connection. { $error }
+lib-restore-terminal-failed = failed to restore terminal. Run `reset` or restart your terminal to recover: { $err }
+lib-config-load-error = Error loading configuration: { $err }
+lib-config-toml-error-detail = Error loading config.toml:{"\u000A"}{ $detail }
+lib-config-toml-error = Error loading config.toml: { $err }
+
+## startup_draft_input.rs
+
+startup-draft-waiting = Waiting for startup
+startup-draft-cancel = cancel
+
+## startup_recovery.rs
+
+startup-recovery-unsent-draft = {"\u000A"}Unsent draft:{"\u000A"}{ $text }{"\u000A"}
+
+## theme_picker.rs
+
+theme-picker-fallback-subtitle = Move up/down to live preview themes
+theme-picker-custom-subtitle = Custom .tmTheme files can be added to the { $path } directory.
+theme-picker-custom-name = { $name } (custom)
+theme-picker-title = Select Syntax Theme
+theme-picker-search = Type to filter themes...
+
+## pager_overlay/transcript.rs
+
+pager-transcript-latest = { $key } latest
+pager-transcript-select = { $key } select
+pager-transcript-selection = selection
+pager-transcript-open-link-failed = Could not open link: { $error }
+pager-transcript-close = close
+pager-transcript-find = find
+pager-transcript-browse-prompts = browse prompts
+pager-transcript-edit-next = to edit next
+pager-transcript-edit-message = to edit message
+
+## thread_transcript.rs
+
+thread-transcript-empty = No transcript content available
+
+## app/clipboard.rs
+
+clipboard-last-message = last message
+
+## app/resize_reflow.rs
+
+resize-reflow-earlier-messages = Earlier messages are available — press { $key } to view the full transcript
+
+## transcript_view/turn_details.rs
+
+turn-details-ran = 
+    { $ran ->
+        [one] Ran { $ran } command
+       *[other] Ran { $ran } commands
+    }
+turn-details-explored = Explored files
+turn-details-explored-ran = 
+    { $ran ->
+        [one] Explored files · ran { $ran } command
+       *[other] Explored files · ran { $ran } commands
+    }
+turn-details-tool-calls = { $count } tool calls · { $label }
+turn-details-previous-messages = 
+    { $count ->
+        [one] 1 previous message
+       *[other] { $count } previous messages
+    }
+
+## app/event_dispatch.rs
+
+event-dispatch-open-this-task-before-using = Open this task before using that action.
+event-dispatch-windows-sandbox-setup-requires-loca = Windows sandbox setup requires local connections and executors.
+event-dispatch-a-worktree-is-already-being = A worktree is already being created.
+event-dispatch-changing-directories-requires-an-id = Changing directories requires an idle primary session without queued input.
+event-dispatch-changing-directories-is-not-support = Changing directories is not supported for remote workspaces or remote execution environments.
+event-dispatch-export-failed = Export failed: { $error }
+event-dispatch-nothing-to-copy = Nothing to copy
+event-dispatch-no-saved-chat-found-matching = No saved chat found matching '{ $id_or_name }'.
+event-dispatch-failed-to-archive-thread = Failed to archive thread { $thread_id }: { $error }
+event-dispatch-wait-for-permissions-to-update = Wait for permissions to update before forking.
+event-dispatch-failed-to-name-the-forked = Failed to name the forked session: { $err }
+event-dispatch-fork-created-you-can-continue = Fork created. You can continue here.
+event-dispatch-failed-to-attach-to-forked = Failed to attach to forked app-server thread: { $err }
+event-dispatch-failed-to-fork-current-session = Failed to fork current session through the app server: { $err }
+event-dispatch-a-thread-must-contain-at = A thread must contain at least one turn before it can be forked.
+event-dispatch-this-remote-prompt-contains-local = This remote prompt contains local image paths or command syntax that cannot be restored safely. Write a new message and reattach any images.
+event-dispatch-wait-for-permissions-to-update-2 = Wait for permissions to update before editing this prompt.
+event-dispatch-quit-and-stop-running-sessions = Quit and stop running sessions?
+event-dispatch-quitting-this-tui-will-stop = Quitting this TUI will stop its running sessions.
+event-dispatch-stay-in-codex = Stay in Codex
+event-dispatch-stop-sessions-and-quit = Stop sessions and quit
+event-dispatch-failed-to-interrupt-task = Failed to interrupt task: { $error }
+event-dispatch-failed-to-pause-task-goal = Failed to pause task goal: { $error }
+event-dispatch-logout-failed = Logout failed: { $err }
+event-dispatch-failed-to-start-turn = Failed to start turn: { $err }
+event-dispatch-voice-conversation-failed = Voice conversation failed: { $err }
+event-dispatch-no-changes-detected = No changes detected.
+event-dispatch-mcp-sign-in-is-starting = MCP sign-in is starting. Wait for it to finish before trying again.
+event-dispatch-voice-conversation-failed-2 = Voice conversation failed: { $error }
+event-dispatch-cloud-model-catalog-account-changed = Cloud model catalog account changed.
+event-dispatch-failed-to-save-default-model = Failed to save default model: { $error }
+event-dispatch-model-changed-to-for-this = Model changed to { $model } { $effort } for this conversation
+event-dispatch-sandbox-ready = Sandbox ready
+event-dispatch-codex-can-now-safely-edit = Codex can now safely edit files and execute commands in your computer
+event-dispatch-daybreak-has-been-turned-off = Daybreak has been turned off for new turns because it is not available for { $model } with your current account and server. Prior cybersecurity context in this thread may cause a refusal. You can switch back to a model where you have Daybreak access and use /daybreak to re-enable it.
+event-dispatch-cyber-models-default-to-approve = Cyber models default to "Approve for me" for safety reasons.
+event-dispatch-the-selected-cloud-model-does = The selected Cloud model does not support that speed.
+event-dispatch-selected-speed-for-the-next = Selected { $label } speed for the next new turn in this conversation
+event-dispatch-the-cloud-account-changed-reopen = The Cloud account changed. Reopen the conversation before choosing a speed.
+event-dispatch-service-tier-set-to = Service tier set to { $service_tier }
+event-dispatch-service-tier-cleared = Service tier cleared
+event-dispatch-failed-to-set-permission-profile = Failed to set permission profile: { $err }
+event-dispatch-failed-to-save-rate-limit = Failed to save rate limit reminder preference: { $err }
+event-dispatch-failed-to-save-plan-mode = Failed to save Plan mode reasoning effort: { $err }
+event-dispatch-failed-to-save-model-migration = Failed to save model migration prompt preference: { $err }
+event-dispatch-close-the-side-conversation-before = Close the side conversation before forking another task.
+event-dispatch-failed-to-rename-task = Failed to rename task: { $error }
+event-dispatch-could-not-open-file = Could not open file: { $error }
+event-dispatch-failed-to-update-skill-config = Failed to update skill config for { $path_display }: { $err }
+event-dispatch-failed-to-update-app-config = Failed to update app config for { $id }: { $err }
+event-dispatch-environment = Environment:{" "}
+event-dispatch-reason = Reason:{" "}
+event-dispatch-permission-rule = Permission rule:{" "}
+event-dispatch-server = Server:{" "}
+event-dispatch-failed-to-save-status-line = Failed to save status line settings: { $error }
+event-dispatch-failed-to-save-terminal-title = Failed to save terminal title items: { $err }
+event-dispatch-failed-to-open-setting-because = Failed to open setting because terminal input could not be cleared: { $err }
+event-dispatch-failed-to-save-theme = Failed to save theme: { $err }
+event-dispatch-wait-for-the-current-task = Wait for the current task to finish before running /recap.
+event-dispatch-failed-to-save-shortcut = Failed to save shortcut: { $err }
+event-dispatch-failed-to-refresh-shortcuts = Failed to refresh shortcuts: { $err }
+event-dispatch-removed-custom-shortcut-for = Removed custom shortcut for `{ $context }.{ $action }`.
+event-dispatch-failed-to-remove-shortcut = Failed to remove shortcut: { $err }
+event-dispatch-a-thread-must-start-before = A thread must start before it can be archived.
+event-dispatch-archiving = Archiving…
+event-dispatch-failed-to-archive-current-thread = Failed to archive current thread: { $error }
+event-dispatch-a-thread-must-start-before-2 = A thread must start before it can be deleted.
+event-dispatch-failed-to-delete-current-thread = Failed to delete current thread: { $err }
+event-dispatch-worktree-removed = Removed worktree at { $path }. Thread history was kept.
+event-dispatch-worktree-remove-failed = Could not remove worktree at { $path }: { $error }
+event-dispatch-not-directory = Not a directory: { $path }
+event-dispatch-cannot-access-dir = Cannot access directory { $path }: { $error }
+event-dispatch-save-reviewer-failed = Failed to save approvals reviewer: { $error }
+
+## bottom_pane/request_user_input/mod.rs
+
+request-input-add-notes = Add notes
+request-input-answer-placeholder = Type your answer (optional)
+request-input-select-option = Select an option to add notes
+request-input-none-of-above = None of the above
+request-input-other-desc = Optionally, add details in notes (tab)
+request-input-go-back-desc = Return to the first unanswered question
+request-input-go-back = Go back
+request-input-proceed = Proceed
+request-input-submit-unanswered = 
+    { $count ->
+        [one] Submit with 1 unanswered question
+       *[other] Submit with { $count } unanswered questions
+    }
+request-input-auto-resolves = auto-resolves in { $time }
+request-input-question-progress = Question { $idx }/{ $total }
+request-input-question-progress-unanswered = Question { $idx }/{ $total } ({ $unanswered } unanswered)
+request-input-no-questions = No questions
+request-input-to-add-notes = to add notes
+request-input-or = {" "}or{" "}
+request-input-to-clear-notes = {" "}to clear notes
+request-input-to-submit-answer = to submit answer
+request-input-to-submit-all = to submit all
+request-input-to-navigate = to navigate questions
+request-input-change-question = change question
+request-input-to-interrupt = to interrupt
+
+## bottom_pane/mod.rs
+
+bottom-pane-answer-the-questions-to-continue = Answer the questions to continue.
+bottom-pane-install-this-app-in-your = Install this app in your browser, then return here.
+bottom-pane-enable-this-app-to-use = Enable this app to use it for the current request.
+bottom-pane-respond-to-the-tool-suggestion = Respond to the tool suggestion to continue.
+bottom-pane-respond-to-the-mcp-server = Respond to the MCP server request to continue.
+
+## tui/src/app/daybreak.rs
+daybreak-unavailable-for-account = Daybreak availability could not be confirmed for this account.
+daybreak-save-thread-failed = Failed to save Daybreak for this thread: { $error }
+daybreak-read-thread-failed = Failed to read the thread to save Daybreak: { $error }
+daybreak-default-preference-setting = default Daybreak preference
+daybreak-read-default-failed = Failed to read the default Daybreak preference: { $error }
+daybreak-save-default-failed = Failed to save the default Daybreak preference: { $error }
+daybreak-on-applies-to-new-turns = Daybreak on. Applies to new turns.
+daybreak-off-applies-to-new-turns = Daybreak off. Applies to new turns.
+
+## tui/src/app/quick_dials.rs
+quick-dials-defined-outside-config = Preset { $slot } is defined outside your user config. Edit its source configuration instead.
+quick-dials-update-failed = Failed to update preset { $slot }: { $error }
+quick-dials-saved = Saved preset { $slot }.
+quick-dials-deleted = Deleted preset { $slot }.
+
+## tui/src/app/transcript_export.rs
+transcript-export-no-active = No active conversation to export.
+transcript-export-saved = Saved conversation to { $path }
+transcript-export-load-failed = could not load conversation: { $error }
+transcript-export-load-history-failed = could not load conversation history: { $error }
+transcript-export-no-content = No conversation content to export.
+transcript-export-no-home-dir = could not determine the home directory
+transcript-export-create-failed = could not create { $path }: { $error }
+transcript-export-write-failed = could not write { $path }: { $error }
+
+## tui/src/app/history_ui.rs
+history-ui-open-browser-failed = Failed to open browser for { $url }: { $error }
+
+## tui/src/app/working_directory.rs
+working-directory-idle-required = Changing directories requires an idle primary session without queued input.
+working-directory-remote-unsupported = Changing directories is not supported for remote workspaces or remote execution environments.
+working-directory-task-not-replaceable = This task cannot be safely replaced.
+working-directory-wait-permissions = Wait for permissions to update before changing directories.
+working-directory-named-profile-unsupported = Changing directories with a named profile is not supported.
+working-directory-unconfirmed-profile-unsupported = Changing directories with an unconfirmed named profile is not supported.
+working-directory-mcp-loading = MCP inventory is still loading.
+working-directory-agent-running = Cannot change: another agent is running.
+working-directory-history-not-saved = Conversation history is not saved.
+working-directory-profile-differs = Permission profile has different settings.
+working-directory-profile-not-preserved = Permission profile cannot be preserved by /cd.
+working-directory-agent-status-failed = Cannot check agent status.
+working-directory-task-running = Cannot change: a task is running.
+working-directory-not-applied = Requested directory or permissions not applied.
+working-directory-offline-checkout = Cannot continue into the new worktree while the session is offline or blocked by a policy warning. An unused checkout was created at { $path }; remove it with `git worktree remove <checkout-path>` from the source repository.
+working-directory-source-changed-checkout = The source conversation changed while creating the worktree. An unused checkout was created at { $path }; remove it with `git worktree remove <checkout-path>` from the source repository.
+working-directory-fork-instructions-differ = Cannot fork into this worktree because developer instructions differ. Start a new conversation instead. An unused checkout was created at { $path }; remove it with `git worktree remove <checkout-path>` from the source repository.
+working-directory-retained-checkout = Could not start a session in the managed worktree. A checkout was retained at { $path }; remove it with `git worktree remove <checkout-path>` from the source repository if it is no longer needed.
+working-directory-load-failed = Cannot load { $cwd }: { $error }
+working-directory-read-defaults-failed = Cannot read defaults: { $error }
+working-directory-task-status-failed = Cannot check task status: { $error }
+working-directory-change-failed = Failed to change: { $error }
+working-directory-register-ownership-failed = Cannot register managed worktree ownership: { $error }
+working-directory-name-session-failed = Failed to name the worktree session: { $error }
+working-directory-change-dirs-failed = Cannot change directories: { $error }
+working-directory-restore-failed = Could not restore session: { $error }
+working-directory-changed = Working directory changed to: { $path }
+
+## tui/src/clipboard_copy/tmux.rs
+clipboard-tmux-unavailable = tmux is unavailable in the system PATH
+clipboard-tmux-resolve-path-failed = failed to resolve system PATH: { $error }
+clipboard-tmux-no-pane = tmux clipboard forwarding is unavailable: no current pane
+clipboard-tmux-spawn-failed = failed to spawn tmux: { $error }
+clipboard-tmux-open-stdin-failed = failed to open tmux stdin
+clipboard-tmux-write-failed = failed to write to tmux: { $error }
+clipboard-tmux-wait-failed = failed to wait for tmux: { $error }
+clipboard-tmux-exit-status = tmux exited with status { $status }
+clipboard-tmux-failed = tmux failed: { $stderr }
+clipboard-tmux-disabled = tmux clipboard forwarding is disabled
+clipboard-tmux-no-client = tmux clipboard forwarding is unavailable: no attached client
+clipboard-tmux-missing-ms = tmux clipboard forwarding is unavailable: missing Ms capability
+clipboard-tmux-output-not-utf8 = tmux output was not UTF-8: { $error }
+
+## tui/src/clipboard_paste.rs
+clipboard-paste-unavailable = clipboard unavailable: { $error }
+clipboard-paste-no-image = no image on clipboard: { $error }
+clipboard-paste-encode-failed = could not encode image: { $error }
+clipboard-paste-io-error = io error: { $error }
+clipboard-paste-android-unsupported = clipboard image paste is unsupported on Android
+
+## tui/src/model_migration.rs
+model-migration-try-new = Try new model
+model-migration-use-existing = Use existing model
+model-migration-upgrade-heading = Codex just got an upgrade. Introducing { $name }.
+model-migration-recommended = { $name } is recommended for better performance and reliability.
+model-migration-recommend-switch = We recommend switching from { $current } to { $target }.
+model-migration-learn-more = { $description } Learn more about { $name } at{" "}
+model-migration-keep-existing = You can continue using { $current } if you prefer.
+model-migration-hint-confirm = {" "}confirm ·{" "}
+model-migration-hint-continue = {" "}continue ·{" "}
+model-migration-hint-quit = {" "}quit
+
+## tui/src/oss_selection.rs
+oss-selection-lmstudio-desc = Local LM Studio server (default port 1234)
+oss-selection-ollama-desc = Local Ollama server (Responses API, default port 11434)
+oss-selection-title = Select an open-source provider
+oss-selection-subtitle = Choose a local AI server for this session.
+oss-selection-running = ● Running
+oss-selection-not-running = ○ Not running
+oss-selection-unknown = ? Unknown
+oss-selection-hint-choose = {" "}choose ·{" "}
+oss-selection-hint-select = {" "}select ·{" "}
+oss-selection-hint-lmstudio = {" "}LM Studio ·{" "}
+oss-selection-hint-exit = {" "}exit
+
+## tui/src/startup_draft_layout.rs
+startup-draft-resuming = {"  "}Resuming session…
+startup-draft-forking = {"  "}Forking session…
+
+## tui/src/token_usage.rs
+token-usage-summary = Token usage: total={ $total } input={ $input }{ $cached } output={ $output }{ $reasoning }
+token-usage-cached = {" "}(+ { $count } cached)
+token-usage-reasoning = {" "}(reasoning { $count })
+
+## tui/src/app_backtrack.rs
+app-backtrack-no-previous-message = No previous message to edit.
+app-backtrack-edit-failed = Failed to edit the selected prompt: { $error }
+
+## tui/src/app_backtrack.rs (continued)
+app-backtrack-steer = the selected prompt is a steer and cannot be edited independently
+app-backtrack-in-progress = the selected prompt belongs to a turn that is still in progress
+app-backtrack-mismatch = the selected transcript prompt no longer matches the persisted thread
+app-backtrack-not-found = the selected prompt was not found in the persisted thread
+app-backtrack-boundary-missing = the loaded history boundary no longer exists
+
+
+## tui/src/app/feedback_upload.rs
+feedback-upload-failed-to-upload = Failed to upload feedback
+feedback-upload-failed-to-save-zip = Failed to save feedback ZIP
+feedback-upload-no-codex-home = The app server did not report its Codex home directory
+feedback-upload-create-dir-failed = Could not create the feedback directory at { $directory }
+feedback-upload-update-server = Update the Codex server to save a feedback ZIP
+
+## tui/src/app/model_defaults.rs
+model-defaults-setting-default-model = default model and reasoning effort
+model-defaults-model-changed = Model changed to { $model }
+model-defaults-failed-to-save = Failed to save default model: { $error }
+model-defaults-open-cloud-first = Open the Cloud conversation before choosing a model.
+model-defaults-choose-supported-cloud = Choose a supported Cloud model and effort at the current speed.
+model-defaults-speed-fast = fast
+model-defaults-speed-standard = standard
+model-defaults-speed-unsupported = { $model } does not support { $tier } speed. Cleared the pending speed change.
+model-defaults-cloud-account-changed = The Cloud account changed. Reopen the conversation before choosing a model.
+model-defaults-cloud-no-model-change = This cloud conversation does not support changing its model from the TUI.
+model-defaults-needs-settings-update = Model selection requires an app server with thread/settings/update support.
+model-defaults-saved-but-overridden = Saved { $setting }, but a higher-priority configuration layer overrides the saved value.
+model-defaults-for-this-session-only = {" "}for this session only
+
+## tui/src/app/new_session.rs
+new-session-only-cloud-cancel = Only a Cloud switch can be canceled
+
+## tui/src/app/resume_preparation.rs
+resume-preparation-still-archiving = This task is still being archived.
+resume-preparation-failed-load-history = Failed to load chat history: { $read_err }
+resume-preparation-failed-resume = Failed to resume session from { $path_display }: { $err }
+
+## tui/src/app/recap.rs
+recap-failure = Could not generate a recap. Please try again.
+recap-cloud-unavailable = Conversation recaps are not available for cloud conversations.
+recap-in-progress = A recap is already being generated.
+recap-empty-history = There is no conversation history to recap.
+
+## tui/src/app_server_session/side_chat_history.rs
+side-chat-history-outside-attachment = The conversation has an attachment outside the TUI sidebar. Remove it before deleting the conversation.
+
+## tui/src/bottom_pane/hooks_browser_view.rs
+hooks-browser-view-hooks = Hooks
+hooks-browser-view-lifecycle-hooks = Lifecycle hooks from config and enabled plugins.
+hooks-browser-view-event-hooks = { $event } hooks
+hooks-browser-view-turn-hooks-on-off = Turn hooks on or off. Your changes are saved automatically.
+hooks-browser-view-event = Event
+hooks-browser-view-installed = Installed
+hooks-browser-view-active = Active
+hooks-browser-view-review = Review
+hooks-browser-view-description = Description
+hooks-browser-view-issues = Issues
+hooks-browser-view-unnamed-hook = Unnamed hook
+hooks-browser-view-modified-suffix = {" "}· modified
+hooks-browser-view-new-suffix = {" "}· new
+hooks-browser-view-no-hooks = No hooks installed for this event.
+hooks-browser-view-matcher = Matcher
+hooks-browser-view-source = Source
+hooks-browser-view-command = Command
+hooks-browser-view-mode = Mode
+hooks-browser-view-async = Async
+hooks-browser-view-sync = Sync
+hooks-browser-view-mcp-server = MCP Server
+hooks-browser-view-mcp-tool = MCP Tool
+hooks-browser-view-handler = Handler
+hooks-browser-view-prompt = Prompt
+hooks-browser-view-agent = Agent
+hooks-browser-view-timeout = Timeout
+hooks-browser-view-unlimited = unlimited
+hooks-browser-view-limit-tokens = limit: { $limit } approximate tokens
+hooks-browser-view-context = Context
+hooks-browser-view-trust = Trust
+hooks-browser-view-trust-all = {" "}trust all ·{" "}
+hooks-browser-view-review-hint = {" "}review ·{" "}
+hooks-browser-view-details = {" "}details ·{" "}
+hooks-browser-view-close = {" "}close
+hooks-browser-view-managed-always-on = Managed (always on) ·{" "}
+hooks-browser-view-trust-hint = {" "}trust ·{" "}
+hooks-browser-view-toggle = {" "}toggle ·{" "}
+hooks-browser-view-back = {" "}back
+hooks-browser-view-trust-managed = Managed
+hooks-browser-view-trust-trusted = Trusted
+hooks-browser-view-trust-untrusted = New hook - review required
+hooks-browser-view-trust-modified = Modified since last trusted - review required
+hooks-browser-view-desc-before-tool = Before a tool executes
+hooks-browser-view-desc-permission-requested = When permission is requested
+hooks-browser-view-desc-after-tool = After a tool executes
+hooks-browser-view-desc-before-compaction = Before context compaction
+hooks-browser-view-desc-after-compaction = After context compaction
+hooks-browser-view-desc-before-model-request = Before a model request
+hooks-browser-view-desc-after-model-request = After a model request, including failures
+hooks-browser-view-desc-session-start = When a new session starts
+hooks-browser-view-desc-session-end = Right before a session ends
+hooks-browser-view-desc-prompt-submit = When the user submits a prompt
+hooks-browser-view-desc-subagent-start = When a subagent is created
+hooks-browser-view-desc-subagent-stop = Right before a subagent ends its turn
+hooks-browser-view-desc-stop = Right before Codex ends its turn
+hooks-browser-view-desc-interrupt = Right before an interrupted turn is aborted
+hooks-browser-view-environment = Environment - { $id }
+hooks-browser-view-plugin-id = Plugin - { $plugin_id }
+hooks-browser-view-plugin = Plugin
+hooks-browser-view-src-admin-config = Admin config
+hooks-browser-view-src-user-config = User config
+hooks-browser-view-src-project-config = Project config
+hooks-browser-view-src-session-flags = Session flags
+hooks-browser-view-src-cloud-managed-config = Cloud-managed config
+hooks-browser-view-src-unknown-source = Unknown source
+hooks-browser-view-needs-review =
+    { $count ->
+        [one] 1 hook needs review before it can run.
+       *[other] { $count } hooks need review before they can run.
+    }
+
+## tui/src/bottom_pane/textarea.rs
+textarea-vim-normal = Vim: Normal
+textarea-vim-insert = Vim: Insert
+textarea-vim-replace = Vim: Replace
+
+## tui/src/clipboard_copy.rs
+clipboard-copy-copied-to-clipboard = Copied { $label } to clipboard
+clipboard-copy-unconfirmed = Copy unconfirmed; /export saves chat
+clipboard-copy-copying = Copying { $label }…
+clipboard-copy-already-in-progress = Copy already in progress
+clipboard-copy-nothing-to-copy = nothing to copy: the selected content is empty
+
+## tui/src/debug_config.rs
+debug-config-session-runtime = Session runtime:
+debug-config-layer-stack = Config layer stack (lowest precedence first):
+debug-config-none-indented = {"  "}<none>
+debug-config-disabled = disabled
+debug-config-enabled = enabled
+debug-config-reason = {"     "}reason: { $reason }
+debug-config-requirements = Requirements:
+debug-config-none-bullet = {"     "}- <none>
+debug-config-mdm-value = MDM value
+debug-config-enterprise-value = Enterprise-managed config value
+debug-config-layer-value = Layer value
+debug-config-requirement-line = {"  "}- { $name }: { $value } (source: { $source })
+debug-config-unspecified = <unspecified>
+debug-config-empty = <empty>
+debug-config-unset = <unset>
+
+## tui/src/diff_render.rs
+diff-render-added = Added
+diff-render-deleted = Deleted
+diff-render-edited = Edited
+diff-render-file-count =
+    { $count ->
+        [one] {" "}{ $count } file{" "}
+       *[other] {" "}{ $count } files{" "}
+    }
+
+## tui/src/external_agent_config_migration/render.rs
+external-agent-migration-bring-over = Bring over supported setup from another coding agent.
+external-agent-migration-may-add-files = Codex may add files to your current project folder.
+external-agent-migration-not-changed = Your existing setup will not be changed.
+external-agent-migration-choose-items = Choose items to import.
+external-agent-migration-import-setup = Import setup
+external-agent-migration-choose-what = Choose what to import
+external-agent-migration-selected-of =
+    { $total ->
+        [one] Selected { $selected } of { $total } item.
+       *[other] Selected { $selected } of { $total } items.
+    }
+external-agent-migration-use = Use{" "}
+external-agent-migration-to-move = {" "}to move,{" "}
+external-agent-migration-to-select = {" "}to select,{" "}
+external-agent-migration-to-customize = {" "}to customize
+external-agent-migration-press = Press{" "}
+external-agent-migration-to-continue = {" "}to continue,{" "}
+external-agent-migration-to-go-back = {" "}to go back
+external-agent-migration-to-toggle = {" "}to toggle,{" "}
+
+## tui/src/onboarding/gateway.rs
+gateway-use-custom-provider = Use a custom provider or gateway
+
+## tui/src/pager_overlay.rs
+pager-overlay-to-scroll = to scroll
+pager-overlay-to-page = to page
+pager-overlay-to-jump = to jump
+pager-overlay-close = close
+
+## tui/src/pets/ambient.rs
+ambient-running = Running
+ambient-needs-input = Needs input
+ambient-ready = Ready
+ambient-blocked = Blocked
+ambient-thinking = Thinking
+
+## tui/src/pets/image_protocol.rs
+image-protocol-tmux = Pets are unavailable in this tmux pane. Use fullscreen Codex with allow-passthrough all, or run Codex outside tmux.
+image-protocol-zellij = Pets are disabled in Zellij. Terminal images don’t stay reliably pane-local in Zellij. Run Codex outside Zellij to use pets.
+image-protocol-iterm2-too-old = Pets require iTerm2 3.6 or newer. Upgrade iTerm2 to use terminal pets.
+image-protocol-terminal = Pets aren’t available in this terminal. Terminal pets need image support, and this terminal environment doesn’t expose a supported image protocol. Try a terminal with Kitty graphics or Sixel support, or run Codex outside tmux.
+
+## tui/src/transcript_view/composer_gap.rs
+composer-gap-copied-chars-host = Copied { $characters } chars to host clipboard
+composer-gap-copied-chars = Copied { $characters } chars
+composer-gap-copied = Copied
+composer-gap-copying-chars = Copying { $characters } chars…
+composer-gap-copying = Copying…
+composer-gap-already-in-progress = Copy already in progress
+composer-gap-in-progress = Copy in progress
+composer-gap-busy = Copy busy
+composer-gap-sent-to-terminal = Copy sent to terminal · paste to verify
+composer-gap-sent-verify = Copy sent · verify paste
+composer-gap-unconfirmed = Copy unconfirmed
+composer-gap-failed-try-again = Copy failed · try again
+composer-gap-failed = Copy failed
+
+## tui/src/ui_consts.rs
+ui-consts-to-view-transcript = { $key } to view transcript
+
+
+## tui/src/additional_dirs.rs
+
+additional-dirs-ignored-warning = Ignoring --add-dir ({ $joined_paths }) because the effective permissions do not allow additional writable roots. Switch to workspace-write or danger-full-access to allow them.
+
+## tui/src/app/provider/editor.rs
+
+editor-edit-provider = Edit { $name }
+editor-example-team-gateway = Team gateway
+editor-save-focused = › Save
+editor-save = {" "}{" "}Save
+editor-hint-env-var-name = Enter the environment variable name on the app server.
+editor-hint-auth-managed = Authentication is managed on the app server.
+editor-required-note = {"*"} Required
+editor-complete-suggestion = {" "}complete { $suggestion }
+editor-key-move = {" "}move ·{" "}
+editor-key-next-save = {" "}next/save ·{" "}
+editor-key-normal-mode = {" "}normal mode
+editor-key-back = {" "}back
+
+## tui/src/app/session_picker.rs
+
+session-picker-open-failed = Failed to open session picker: { $err }
+session-picker-unable-to-resume = Unable to resume session
+session-picker-return-to-center = Return to command center
+
+## tui/src/app/side_focus.rs
+
+side-focus-chat-still-closing = Side chat is still closing. Try again in a moment.
+
+## tui/src/app/startup_prompts.rs
+
+startup-prompts-skills-skipped = Skipped loading { $error_count } skill(s) due to invalid SKILL.md files.
+startup-prompts-project-config-disabled = Project-local config, hooks, and exec policies are disabled in the following folders until the project is trusted, but skills still load.{"\u000A"}
+startup-prompts-no-longer-offered = no longer offered in Codex
+startup-prompts-no-longer-available = no longer available
+startup-prompts-model-migration = { $current_name } is { $availability }{"\u000A"}{"\u000A"}Codex now uses { $target_name } in place of { $current_name }. Switch to { $target_name } to continue.{"\u000A"}
+
+## tui/src/app/thread_attachment.rs
+
+thread-attachment-not-yet-available = Agent thread { $thread_id } is not yet available for replay or live attach.
+
+## tui/src/app/thread_routing.rs
+
+thread-routing-main-default = Main [default]
+thread-routing-agent = Agent
+thread-routing-already-viewing = Already viewing { $label }.
+thread-routing-no-active-thread = No active thread is available.
+thread-routing-read-only = This conversation is read-only or unavailable; no operation was sent.
+thread-routing-not-available-yet = Not available in TUI yet for thread { $thread_id }.
+thread-routing-interrupt-failed = Failed to interrupt turn: { $error }
+thread-routing-rename-failed = Failed to rename thread: { $error }
+thread-routing-shell-unavailable-cloud = Shell commands starting with ! are unavailable in Cloud conversations.
+thread-routing-resolve-request-failed = Failed to resolve app-server request for thread { $thread_id }: { $err }
+thread-routing-agent-closed-switched = Agent thread { $closed_thread_id } closed. Switched back to main thread.
+thread-routing-agent-closed-switch-failed = Agent thread { $closed_thread_id } closed. Failed to switch back to main thread { $primary_thread_id }.
+
+## tui/src/bottom_pane/voice_strip.rs
+
+voice-strip-voice-prefix = voice{" "}
+voice-strip-voice = voice
+voice-strip-unmute = unmute
+voice-strip-mute = mute{" "}{" "}
+voice-strip-mic = {" "}{" "}mic{" "}
+voice-strip-codex = {" "}{" "}codex{" "}
+
+## tui/src/local_settings.rs
+
+local-settings-invalid-audio = Invalid machine audio settings: { $error }
+
+## tui/src/markdown_render/mermaid.rs
+
+mermaid-unsupported = This Mermaid diagram uses features the terminal renderer doesn't support.
+mermaid-too-wide = This Mermaid diagram doesn't fit the current terminal width.
+mermaid-limit = This Mermaid diagram exceeds the terminal renderer's size limits.
+
+## tui/src/pets/picker.rs
+
+picker-select-pet = Select Pet
+picker-choose-pet = Choose a pet to wake in the terminal.
+picker-filter-pets-placeholder = Type to filter pets...
+picker-disable-pets = Disable terminal pets
+
+## tui/src/sidebar_chooser.rs
+
+sidebar-chooser-resize-hint-short = ←/→ resize · Enter/Esc done
+sidebar-chooser-hint-retry = retry
+sidebar-chooser-hint-back = back
+sidebar-chooser-hint-scroll = scroll
+sidebar-chooser-hint-open = open
+sidebar-chooser-hint-cancel-opening = cancel opening
+sidebar-chooser-hint-path = path
+sidebar-chooser-hint-move = move
+sidebar-chooser-hint-hide-pane = hide pane
+sidebar-chooser-side-n = Side { $number }
+sidebar-chooser-side-chat = Side chat
+
+## tui/src/startup_draft.rs
+
+startup-draft-did-not-open = New conversation did not open
+startup-draft-kept = draft kept
+startup-draft-loading = loading
+
+## tui/src/status/card.rs
+
+card-label-model = Model
+card-label-directory = Directory
+card-label-permissions = Permissions
+card-label-model-provider = Model provider
+card-label-account = Account
+card-label-chatgpt-workspace = ChatGPT workspace
+card-label-thread-name = Thread name
+card-label-session = Session
+card-label-forked-from = Forked from
+card-label-collaboration-mode = Collaboration mode
+card-label-token-usage = Token usage
+card-label-context-window = Context window
+card-label-limits = Limits
+card-label-warning = Warning
+card-label-server = Server
+card-limits-not-available = not available for this account
+card-limits-stale-run-status = limits may be stale - run /status again shortly.
+card-limits-stale-new-turn = limits may be stale - start new turn to refresh.
+card-limits-refresh-requested = refresh requested; run /status again shortly.
+card-limits-no-data-yet = data not available yet
+card-token-total = {" "}total{" "}
+card-token-input = {" "}input
+card-token-plus = {" "}+{" "}
+card-token-output = {" "}output
+card-context-used-of = {" "}used /{" "}
+card-context-percent-left = { $percent }% left
+card-resets-at = (resets { $resets_at })
+card-permissions-read-only-network = Read Only with network access
+card-permissions-read-only = Read Only
+card-permissions-workspace = Workspace{ $suffix } ({ $approval })
+card-permissions-workspace-network = Workspace with network access{ $suffix } ({ $approval })
+card-permissions-full-access = Full Access
+card-permissions-no-sandbox = No Sandbox ({ $approval })
+card-permissions-profile = Profile { $id } ({ $sandbox }, { $approval })
+card-permissions-read-only-approval = Read Only ({ $approval })
+card-permissions-custom = Custom ({ $sandbox }, { $approval })
+card-approval-approve-for-me = Approve for me
+card-approval-ask = Ask for approval
+card-account-api-key = API key configured (run codex login to use ChatGPT)
+card-local-background-server = Local background server
+card-visit = Visit{" "}
+card-for-up-to-date = {" "}for up-to-date
+card-rate-limits-info = information on rate limits and credits
+
+## tui/src/transcript_view/layout.rs
+
+layout-show-less = − Show less
+layout-hide-details = − Hide details
+layout-show-details = + Show details
+layout-more-lines = 
+    { $count ->
+        [one] + { $count } line
+       *[other] + { $count } lines
+    }
+layout-to-expand-hint = {" "}({ $key } to expand)
+
+## tui/src/thread_transcript/tools.rs
+
+tools-in-progress-at-last-update = In progress at last update
+tools-completed = Completed
+tools-failed = Failed
+tools-declined = Declined
+tools-terminal-interaction = Terminal interaction · { $status }
+tools-exit-code = {" "}· exit { $code }
+tools-completed-result-unavailable = Completed · result unavailable
+tools-failed-result-unavailable = Failed · result unavailable
+tools-mcp-tool = mcp tool: { $server }/{ $tool } · { $status }
+tools-interrupted = Interrupted
+tools-agent-tool = agent tool: { $tool } · { $status }
+tools-declined-command = Declined · { $command }
+
+## tui/src/update_prompt.rs
+
+update-prompt-update-available = Update available
+update-prompt-release-notes = Release notes:{" "}
+update-prompt-update-now = Update now (runs `{ $update_command }`)
+update-prompt-skip = Skip
+update-prompt-skip-until-next = Skip until next version
+update-prompt-continue = {" "}continue ·{" "}
+update-prompt-skip-hint = {" "}skip
+
+## app/experimental_features.rs
+app-experimental-features-label-subagents = Subagents
+app-experimental-features-label-memories = Memories
+app-experimental-features-saved-new-threads = { $label } setting saved on the server for new threads. This thread is unchanged. Project or task settings may override it.
+app-experimental-features-saved-overridden = { $label } setting was saved but is overridden: { $detail }
+app-experimental-features-save-failed = Failed to save { $label } setting: { $detail }
+app-experimental-features-save-in-progress = An experimental feature save is still in progress. Retry after it finishes.
+
+## app/managed_worktree_creation.rs
+managed-worktree-daemon-cannot-check = The local Codex service cannot check background terminals. Run `codex app-server daemon update`, then restart Codex.
+managed-worktree-background-blocks-cd = Active background terminals block /cd.
+managed-worktree-untrusted-source = Cannot create a worktree from an explicitly untrusted source.
+managed-worktree-local-only = Managed worktrees are only supported for local sessions.
+managed-worktree-needs-idle = Creating a worktree requires an idle primary session without queued input.
+managed-worktree-already-creating = A worktree is already being created.
+managed-worktree-mcp-loading = MCP inventory is still loading.
+managed-worktree-agent-running = Cannot change: another agent is running.
+managed-worktree-history-not-saved = Conversation history is not saved.
+managed-worktree-source-changed = Cannot continue into the new worktree while the source session changed or is unavailable.
+managed-worktree-source-config-changed = Cannot continue into the new worktree because source configuration changed.
+managed-worktree-not-trusted = The new worktree is not trusted; run Codex there.
+managed-worktree-task-failed = Worktree creation task failed: { $error }
+managed-worktree-load-config-failed = Cannot load the new worktree configuration: { $error }
+managed-worktree-retained-checkout = { $reason } A checkout was retained at { $path }; remove it with `git worktree remove <checkout-path>` from the source repository if it is no longer needed.
+
+## app/pets.rs
+app-pets-disable-failed = Failed to disable pets: { $err }
+app-pets-save-failed = Failed to save pet selection: { $err }
+app-pets-load-failed = Failed to load pet: { $err }
+
+## app/provider/write.rs
+provider-write-already-saving = A provider change is already saving.
+provider-write-saving = Saving model provider…
+provider-write-offline = Could not save provider: Reconnect to the app server and try again.
+provider-write-saved-config = Saved provider configuration.
+provider-write-update-server = Update the connected app server to change the default model provider.
+provider-write-save-failed = Could not save provider: { $error }
+provider-write-confirm-failed = Could not confirm whether { $name } was saved: { $error }
+provider-write-now-use = New chats now use { $name }.
+provider-write-saved-name = Saved { $name }. { $reason }
+
+## app/startup_warnings.rs
+startup-warnings-nfs-migration = Some Codex SQLite files on NFS have permissions other than 0600. Migration preserves these permissions and requires your confirmation. Before running `codex migrate-nfs-db`, stop Codex on every host that uses these databases.
+
+## app/user_turn_submission.rs
+user-turn-submission-label = Submission
+user-turn-submission-label-cloud = Cloud submission
+user-turn-submission-unconfirmed = { $label } could not be confirmed: { $error }
+
+## app/realtime_settings.rs
+realtime-settings-save-failed = Failed to save audio setting: { $error }
+realtime-settings-input-overridden = Input device saved, but the input channel is overridden by another configuration layer. Update that override before starting voice.
+realtime-settings-saved = Audio setting saved. Applies to your next voice conversation.
+realtime-settings-overridden = Audio setting was saved but is overridden by another configuration layer.
+realtime-settings-read-failed = Audio setting was saved, but effective settings could not be read: { $error }
+realtime-settings-list-devices-failed = Could not list audio devices. Check your audio device and voice package.
+realtime-settings-list-voices-failed = Failed to list voices: { $error }
+realtime-settings-read-voice-failed = Failed to read voice settings: { $error }
+realtime-settings-voice-overridden-no-read = the saved voice is overridden, but this server cannot read effective settings
+realtime-settings-voice-not-applied = Voice preference was saved but not applied: { $detail }
+realtime-settings-voice-read-failed = Voice preference was saved, but effective settings could not be read: { $error }
+realtime-settings-voice-save-failed = Failed to save voice: { $error }
+
+## bottom_pane/pending_thread_approvals.rs
+pending-thread-approvals-needed = Approval needed in { $thread }
+pending-thread-approvals-review = {" "}to review requests
+
+## chatwidget/permissions_menu.rs
+permissions-menu-missing-preset-read-only = Internal error: missing the 'read-only' approval preset.
+permissions-menu-missing-preset-auto = Internal error: missing the 'auto' approval preset.
+permissions-menu-missing-preset-full-access = Internal error: missing the 'full-access' approval preset.
+
+## experimental_features.rs
+experimental-features-err-request-failed = Experimental feature request failed
+experimental-features-err-page-exceeds = Experimental feature page exceeds requested limit
+experimental-features-err-cursor-repeated = Experimental feature pagination repeated a cursor
+experimental-features-err-exceeded-pages = Experimental feature discovery exceeded 10 pages
+experimental-features-err-discovery-timed-out = Experimental feature discovery timed out
+experimental-features-err-discovery-interrupted-short = Feature discovery was interrupted
+experimental-features-err-not-advertised = The server did not advertise experimental feature `{ $name }`
+experimental-features-err-save-timed-out = Saving experimental features timed out; the write may still finish. Reopen /experimental to check.
+experimental-features-err-save-failed = Failed to save experimental features. Reopen /experimental to check configured values before retrying.
+experimental-features-err-readback-interrupted = Features were saved, but readback was interrupted
+experimental-features-err-refresh-failed = Features were saved, but configured values could not be refreshed: { $error }
+experimental-features-err-values-differ = Changes were saved, but the configured values differ from your selections. A higher-priority setting may override them.
+
+## external_agent_config_migration/model.rs
+external-agent-migration-group-tools = Tools & setup
+external-agent-migration-group-tools-desc = Settings, instructions, integrations, agents, commands, and skills
+external-agent-migration-group-current-project = Current project
+external-agent-migration-group-projects = Projects ({ $project_count })
+external-agent-migration-group-projects-desc = Add Codex files alongside your existing project files
+external-agent-migration-group-sessions = Chat sessions ({ $session_count })
+external-agent-migration-group-sessions-desc = Last 30 days of chats
+external-agent-migration-type-instructions = Instructions
+external-agent-migration-type-settings = Settings
+external-agent-migration-type-skills = Skills
+external-agent-migration-type-plugins = Plugins
+external-agent-migration-type-mcp-servers = MCP servers
+external-agent-migration-type-agents = Agents
+external-agent-migration-type-hooks = Hooks
+external-agent-migration-type-commands = Slash commands
+external-agent-migration-type-memory = Memory
+external-agent-migration-item-sessions = Recent chat sessions
+external-agent-migration-type-sessions = Chat sessions
+external-agent-migration-summary-entry = { $label } { $count }
+external-agent-migration-count-skill =
+    { $count ->
+        [one] 1 skill
+       *[other] { $count } skills
+    }
+external-agent-migration-count-mcp-server =
+    { $count ->
+        [one] 1 MCP server
+       *[other] { $count } MCP servers
+    }
+external-agent-migration-count-agent =
+    { $count ->
+        [one] 1 agent
+       *[other] { $count } agents
+    }
+external-agent-migration-count-hook =
+    { $count ->
+        [one] 1 hook
+       *[other] { $count } hooks
+    }
+external-agent-migration-count-command =
+    { $count ->
+        [one] 1 slash command
+       *[other] { $count } slash commands
+    }
+external-agent-migration-count-session =
+    { $count ->
+        [one] 1 chat session
+       *[other] { $count } chat sessions
+    }
+external-agent-migration-count-memory =
+    { $count ->
+        [one] 1 memory
+       *[other] { $count } memories
+    }
+external-agent-migration-count-with-names = { $summary }: { $names }
+
+## goal_display.rs
+goal-display-status-active = active
+goal-display-status-paused = paused
+goal-display-status-stalled = stalled
+goal-display-status-usage-limited = usage limited
+goal-display-status-budget-limited = limited by budget
+goal-display-status-complete = complete
+goal-display-objective = Objective: { $objective }
+goal-display-time = Time: { $time }.
+goal-display-tokens = Tokens: { $used }/{ $budget }.
+
+## transcript_view/search_footer.rs
+search-footer-find-prefix = Find:{" "}
+search-footer-retry = { $previous } retry
+search-footer-history-unavailable = History unavailable · { $retry_hint }
+search-footer-next-hint = enter accept · { $previous } older · { $next } newer
+search-footer-exhausted-hint = No more matches · { $next_hint }
+search-footer-reading-nav = ctrl+p older · ctrl+n newer
+search-footer-ctrl-p-older = ctrl+p older
+search-footer-enter-accept = enter accept
+search-footer-type-to-find = Type to find
+search-footer-searching = Searching…
+search-footer-loading = Loading…
+search-footer-searching-earlier = Searching earlier history…
+search-footer-no-more-reading = No more matches · ctrl+p older · ctrl+n newer
+search-footer-no-matches = No matches
+search-footer-query-limited = {" "}· query limited to 4 KiB
+search-footer-reading-status = Find · { $status } · esc latest
+search-footer-reading-compact = Find · { $compact } · esc latest
+search-footer-esc-latest = esc latest
+search-footer-full-transcript = { $status } · full transcript · esc cancel{ $limit }
+search-footer-status-cancel = { $status } · esc cancel{ $limit }
+search-footer-compact-cancel = { $compact } · esc cancel
+search-footer-esc-cancel = esc cancel
+search-footer-compact-esc = { $compact } · esc
+
+## sidebar_image.rs
+sidebar-image-unsupported-format = Unsupported image format
+sidebar-image-tabs = tabs
+sidebar-image-close = close
+sidebar-image-preview-unavailable = Image preview unavailable in this terminal
+
+## pets/preview.rs
+pets-preview-loading = Loading preview...
+pets-preview-disabled = Terminal pets disabled
+pets-preview-no-pet = No pet will be shown.
+pets-preview-unavailable = Preview unavailable
+
+## resume_picker.rs
+resume-picker-different-backend = This session belongs to a different backend. Open the session picker again.
+resume-picker-thread = thread { $id }
+resume-picker-title-resume = Resume a previous session
+resume-picker-title-fork = Fork a previous session
+resume-picker-action-resume = resume
+resume-picker-action-fork = fork
+resume-picker-sort-created = Created
+resume-picker-sort-updated = Updated
+resume-picker-no-transcript = No transcript available for this session
+resume-picker-metadata-failed-path = Failed to read session metadata from { $path }
+resume-picker-metadata-failed = Failed to read session metadata from selected session
+resume-picker-backend-load-failed = Could not load one backend. Reopen the picker to retry.
+resume-picker-load-more-failed = Could not load more sessions
+resume-picker-preview-load-failed = Could not load transcript preview
+resume-picker-save-view-failed = Failed to save view mode: { $err }
+resume-picker-no-message-yet = (no message yet)
+resume-picker-type-to-search = Type to search
+resume-picker-search = Search: { $query }
+resume-picker-status-compact = Status:
+resume-picker-status = Status:{" "}
+resume-picker-active = Active
+resume-picker-archived = Archived
+resume-picker-sort-compact = Sort:
+resume-picker-sort = Sort:{" "}
+resume-picker-filter-compact = Filter:
+resume-picker-filter = Filter:{" "}
+resume-picker-filter-cwd = Cwd
+resume-picker-filter-repo = Repo
+resume-picker-filter-all = All
+resume-picker-hint-loading = loading
+resume-picker-hint-transcript = transcript
+resume-picker-hint-quit = quit
+resume-picker-hint-restore = restore
+resume-picker-hint-start-new = start new
+resume-picker-hint-new = new
+resume-picker-hint-exit = exit
+resume-picker-hint-clear-search = clear search
+resume-picker-hint-clear = clear
+resume-picker-hint-dense-view = dense view
+resume-picker-hint-comfortable-view = comfortable view
+resume-picker-hint-dense = dense
+resume-picker-hint-comfy = comfy
+resume-picker-hint-archive = archive
+resume-picker-hint-focus-sort-filter = focus sort/filter
+resume-picker-hint-focus = focus
+resume-picker-hint-change-option = change option
+resume-picker-hint-option = option
+resume-picker-hint-preview = preview
+resume-picker-hint-expand = expand
+resume-picker-hint-exp = exp
+resume-picker-hint-browse = browse
+resume-picker-loading-transcript = Loading transcript…
+resume-picker-more-above = ↑ more
+resume-picker-loading-more = ↓ loading more
+resume-picker-more-below = ↓ more
+resume-picker-loading-older = Loading older sessions…
+resume-picker-no-branch = no branch
+resume-picker-no-cwd = no cwd
+resume-picker-loading-recent-transcript = Loading recent transcript...
+resume-picker-label-session = Session:
+resume-picker-label-created = Created:
+resume-picker-label-updated = Updated:
+resume-picker-label-directory = Directory:
+resume-picker-label-branch = Branch:
+resume-picker-label-conversation = Conversation:
+resume-picker-no-preview = No transcript preview available
+resume-picker-now = now
+resume-picker-ago-seconds-short = { $seconds }s ago
+resume-picker-ago-minutes-short = { $minutes }m ago
+resume-picker-ago-hours-short = { $hours }h ago
+resume-picker-ago-days-short = { $days }d ago
+resume-picker-ago-second =
+    { $count ->
+        [one] 1 second ago
+       *[other] { $count } seconds ago
+    }
+resume-picker-ago-minute =
+    { $count ->
+        [one] 1 minute ago
+       *[other] { $count } minutes ago
+    }
+resume-picker-ago-hour =
+    { $count ->
+        [one] 1 hour ago
+       *[other] { $count } hours ago
+    }
+resume-picker-ago-day =
+    { $count ->
+        [one] 1 day ago
+       *[other] { $count } days ago
+    }
+resume-picker-searching = Searching…
+resume-picker-scan-capped = Search scanned first { $count } sessions; more may exist
+resume-picker-no-results = No results for your search
+resume-picker-loading-sessions = Loading sessions…
+resume-picker-no-sessions = No sessions yet
+resume-picker-time-separator = { $relative } · { $timestamp }
+
+## startup_hooks_review.rs
+startup-hooks-review-trust-failed = Failed to trust hooks: { $error }
+startup-hooks-review-one-changed = 1 hook is new or changed.
+startup-hooks-review-many-changed = { $count } hooks are new or changed.
+startup-hooks-review-title = Hooks need review
+startup-hooks-review-warning = Hooks can run outside the sandbox after you trust them.
+startup-hooks-review-trusting = Trusting hooks...
+startup-hooks-review-confirm = confirm
+startup-hooks-review-skip = skip
+startup-hooks-review-review = Review hooks
+startup-hooks-review-trust-all = Trust all and continue
+startup-hooks-review-continue-without = Continue without trusting (hooks won't run)
+
+## app/input.rs
+
+input-no-editor = Cannot open external editor: set $VISUAL or $EDITOR before starting Codex.
+input-open-editor-failed = Failed to open editor: { $err }
+input-redraw-failed = Failed to redraw transcript: { $err }
+input-unarchive-failed = Failed to unarchive thread: { $error }
+input-task-running-title = Task is still running
+input-task-running-subtitle = Choose what happens to the current task.
+input-cancel-task = Cancel task
+input-cancel-task-desc = Stop the current task and stay in Codex
+input-run-background = Run in background
+input-run-background-desc = Exit Codex and leave the task running
+input-exit = Exit
+input-exit-desc = Stop the current task and exit Codex
+input-switch-side-failed = Failed to switch side conversation: { $err }
+input-clear-ui-failed = Failed to clear terminal UI: { $err }
+
+## app/platform_actions.rs
+
+platform-sandbox-mixed = Windows sandbox setup is unavailable when local and remote executors are configured together.
+platform-sandbox-config-unreadable = Could not read Windows sandbox configuration and requirements from the app server.
+platform-sandbox-still-running = Windows sandbox setup is still running. Restart Codex to retry.
+platform-sandbox-option-disallowed = That Windows sandbox option is disallowed by requirements.
+platform-sandbox-timed-out = Windows sandbox setup request timed out. Waiting for completion; restart Codex if it does not finish.
+platform-sandbox-response-lost = Windows sandbox setup response was lost. Waiting for completion or reconnection.
+platform-sandbox-update-server = Update the local app server to set up the Windows sandbox.
+platform-sandbox-failed = Windows sandbox setup failed.
+platform-sandbox-not-started = Windows sandbox setup did not start.
+
+## app/reconnect.rs
+
+reconnect-reopen-cloud = Reopen Codex to reconnect the cloud backend.
+reconnect-in-process = in-process sessions have no connection to restore
+reconnect-initial-thread-unknown = The initial thread may have been created, but its ID was not received. Nothing was retried. Your prompt is editable; inspect your tasks before relaunching.
+reconnect-stage-connecting = connecting to the server
+reconnect-stage-loading-settings = loading session settings
+reconnect-stage-resuming = resuming the conversation
+reconnect-timed-out = Automatic reconnect timed out while { $stage }.
+reconnect-agent-list-stale = Reconnecting — agent list is stale
+reconnect-conversation-unavailable = This conversation is unavailable. Its cached transcript and draft remain here; input is paused. Open the agent picker or return to the parent to continue.
+reconnect-sandbox-interrupted = Windows sandbox setup was interrupted. Restart Codex before using Agent mode.
+
+## app/right_click_paste.rs
+
+right-click-paste-inline = Unavailable in inline mode; use your terminal's paste command
+right-click-paste-ssh = Unavailable over SSH; use your terminal's paste command
+right-click-paste-vscode = VS Code handles pasting; use its terminal paste command
+right-click-paste-wsl = Auto cannot identify this WSL terminal; use On or your terminal's paste command
+right-click-paste-android = Unavailable on Android
+
+## app/provider/editor/form.rs
+
+form-read-only = This provider configuration is read-only.
+form-enter-name = Enter a provider name.
+form-enter-base-url = Enter a base URL.
+form-enter-base-url-for-key = Enter a base URL to use this API key variable.
+form-enter-env-var = Enter an environment variable name such as TEAM_API_KEY.
+form-unrecognized-bedrock = Unrecognized Bedrock provider.
+
+## app/server_version_notice.rs
+
+server-version-notice-summary = Service v{ $server } { $comparison } Codex CLI v{ $client_version }{ $guidance }
+
+## app/safety_buffering.rs
+
+safety-buffering-wait-permissions = Wait for permissions to update before forking.
+safety-buffering-retry-unavailable = Failed to retry with a faster model: original turn is unavailable.
+safety-buffering-retry-failed = Failed to retry with a faster model: { $err }
+safety-buffering-input-too-long = Cannot safely retry a turn whose input exceeds the bounded history page.
+
+## app/safety_recourse.rs
+
+safety-recourse-new-chat-failed = Couldn’t start a new chat for this rewrite. { $text }
+
+## app/session_lifecycle.rs
+
+session-lifecycle-no-agents = No agents available yet.
+session-lifecycle-needs-approval = { $name } (needs approval)
+session-lifecycle-subagents = Subagents
+session-lifecycle-side-closing = Side chat is still closing. Try again in a moment.
+session-lifecycle-thread-unavailable = Agent thread { $thread_id } is no longer available.
+session-lifecycle-attach-failed = Failed to attach to agent thread { $thread_id }: { $err }
+session-lifecycle-finish-sandbox = Finish Windows sandbox setup before switching threads.
+session-lifecycle-already-active = Agent thread { $thread_id } is already active.
+session-lifecycle-resume-live-failed = Agent thread { $thread_id } could not be resumed live. Replaying saved transcript.
+session-lifecycle-thread-closed = Agent thread { $thread_id } is closed. Replaying saved transcript.
+
+## app/sidebar_close.rs
+
+sidebar-close-button-close = {" "}Close{" "}
+sidebar-close-button-archive = {" "}Archive{" "}
+sidebar-close-button-cancel = {" "}Cancel{" "}
+sidebar-close-resize = Resize to review · Esc to cancel
+sidebar-close-hint-choose = choose
+sidebar-close-hint-confirm = confirm
+sidebar-close-hint-cancel = cancel
+sidebar-close-loss-stop-turn = stop the running turn
+sidebar-close-loss-discard-input = discard unsent input
+sidebar-close-loss-temp-history = lose this temporary chat’s history
+sidebar-close-loss-remove-side = remove it from Side chats
+sidebar-close-side-chat-n = Side chat { $index }
+sidebar-close-verb-close = Close
+sidebar-close-verb-archive = Archive
+sidebar-close-and = {" "}and{" "}
+sidebar-close-confirm = This will { $losses }. { $verb } “{ $title }”?
+sidebar-close-archive-failed = Failed to archive side conversation { $target }: { $err }
+sidebar-close-interrupt-failed = Failed to interrupt side conversation { $target }: { $err }
+sidebar-close-close-failed = Failed to close side conversation { $target }: { $err }
+
+## resume_picker/archive.rs
+
+archive-no-thread-id = Selected session does not have a thread ID.
+archive-use-archive-cmd = Use /archive to archive the current session and exit.
+archive-session-failed = Failed to archive session: { $error }
+archive-restore-failed = Failed to restore archived session: { $error }
+
+## resume_picker/sources.rs
+
+sources-no-backends = No session backends are available.
+sources-backend-unavailable = The session's backend is unavailable.
+sources-backend-disconnected = The session backend disconnected.
+
+## worktree_browser.rs
+
+worktree-browser-untitled = Untitled conversation
+
+## session_queue_commands.rs
+
+queue-no-daemon = --no-daemon cannot be used with codex queue. Queuing must discover the shared server to avoid writing through a separate server.
+queue-embedded-conflict = cannot queue through an embedded app server while a local app-server daemon is running; remove configuration overrides or use --remote
+queue-resume-warning = Warning: message was queued, but could not resume thread { $thread_id }: { $err }
+queue-queued = Queued message { $id } for thread { $thread_id }.
+queue-no-active-session = No active session found matching '{ $target }'.
+queue-start-daemon = start a local daemon or specify a server with --remote
+
+## multi_agents.rs
+
+multi-agents-main-default = Main [default]
+multi-agents-agent-cap = Agent
+multi-agents-agent-lower = agent
+multi-agents-resume-failed = Agent resume failed
+multi-agents-resume-agent-failed = Failed to resume agent
+multi-agents-started = Started{" "}
+multi-agents-interacted = Interacted with{" "}
+multi-agents-interrupted-prefix = Interrupted{" "}
+multi-agents-completed-prefix = Completed{" "}
+multi-agents-spawned = Spawned
+multi-agents-spawn-failed = Agent spawn failed
+multi-agents-sent-input-to = Sent input to
+multi-agents-waiting-for = Waiting for
+multi-agents-waiting-for-agents = Waiting for agents
+multi-agents-waiting-for-n = 
+    { $count ->
+        [one] Waiting for { $count } agent
+       *[other] Waiting for { $count } agents
+    }
+multi-agents-finished-waiting = Finished waiting
+multi-agents-closed = Closed
+multi-agents-resuming = Resuming
+multi-agents-resumed = Resumed
+multi-agents-none-completed = No agents completed yet
+multi-agents-pending-init = Pending init
+multi-agents-running = Running
+multi-agents-interrupted = Interrupted
+multi-agents-completed = Completed
+multi-agents-agent-errored = Agent errored
+multi-agents-shutdown = Shutdown
+multi-agents-not-found = Not found
+multi-agents-error = Error
+
+## transcript_view/footer.rs
+
+transcript-footer-loading = Loading…
+transcript-footer-loading-sep = Loading… ·{" "}
+transcript-footer-retry = Retry:{" "}
+transcript-footer-new-activity = New activity
+transcript-footer-new-dot = New ·{" "}
+transcript-footer-loading-earlier = Loading earlier messages…
+transcript-footer-new-activity-after = {" "}· New activity
+transcript-footer-retry-after = {" "}· Retry:{" "}
+transcript-footer-retry-history = Retry history:{" "}
+transcript-footer-earlier-available = Earlier messages available. {" "}
+transcript-footer-new-activity-sep = New activity ·{" "}
+
+## app.rs
+
+app-external-editor-hint = Save and close external editor to continue.
+
+
+## src/app/side_pane.rs
+side-pane-save-width-failed = Could not save sidebar width: { $err }
+
+## src/app/sidebar_document.rs
+sidebar-document-connection-changed = Connection changed. Reopen this file to try again.
+sidebar-document-limit-bytes = Source preview limit is 1 MiB
+sidebar-document-limit-lines = Source preview limit is { $max } lines
+sidebar-document-opening = Opening…
+sidebar-document-open-failed = Could not open file: { $error }
+sidebar-document-esc-close = Esc close
+sidebar-document-hint-read = read
+sidebar-document-hint-find = find
+sidebar-document-hint-link = link
+sidebar-document-hint-select = select
+sidebar-document-hint-clear-highlight = clear highlight
+sidebar-document-hint-close = close
+
+## src/app_backtrack/prompt_navigation.rs
+prompt-navigation-hint-details = details
+prompt-navigation-hint-scroll = scroll
+prompt-navigation-hint-prompts = prompts
+prompt-navigation-hint-rewind = rewind
+prompt-navigation-hint-back = back
+prompt-navigation-browsing-transcript = Browsing transcript
+prompt-navigation-browsing = Browsing
+
+## src/app_server_session/fs.rs
+fs-preview-needs-workspace = File previews require a workspace on the app-server host
+fs-not-utf8-text = Not a UTF-8 text file
+fs-not-text = Not a text file
+fs-preview-windows-unavailable = File previews on Windows hosts are unavailable
+fs-workspace-changed = Workspace changed. Reopen the file to try again.
+fs-preview-needs-host-path = File previews require a path on the app-server host
+
+## src/app_server_session/rollout_history.rs
+rollout-history-limited-notice = Showing up to 100 recent prompts and final replies. Intermediate messages and tool activity are unavailable.
+
+## src/app_server_session/user_message_submission.rs
+user-message-cloud-account-changed = The Cloud account changed. Reopen the conversation before sending.
+user-message-failed-to-start-turn = Failed to start turn
+
+## src/app/background_requests.rs
+background-requests-section-openai-curated = OpenAI Curated
+background-requests-section-workspace = Workspace
+background-requests-section-shared-with-me = Shared with me
+
+## src/chatwidget/streaming.rs
+
+## src/daemon_recovery.rs
+daemon-recovery-running-without = Running without the shared background server: { $reason }.
+daemon-recovery-incompatible-settings = Background server has incompatible feature settings
+daemon-recovery-cannot-use = Cannot use the background server
+daemon-recovery-settings-persist = These settings persist and can disable functionality for other clients. Restart may interrupt active or queued work.
+daemon-recovery-restart-will-use = Restart will use these shared feature settings:
+daemon-recovery-and-more = {" "}{" "}and { $count } more
+daemon-recovery-run-without = Run without daemon this time
+daemon-recovery-restart-recommended = Restart with these settings (recommended)
+daemon-recovery-restart = Restart with these settings
+daemon-recovery-not-managed = This server is not managed by Codex.
+daemon-recovery-cannot-resolve = Restart cannot resolve this compatibility check.
+daemon-recovery-cancel = Cancel
+
+## src/history_cell/patches.rs
+patches-edited-file = Edited { $name }
+patches-edited-files = Edited files
+patches-failed-to-apply = Failed to apply patch
+patches-error-details-unavailable = (error details unavailable)
+patches-viewed-image = Viewed image{" "}
+patches-image-generation-failed = Image generation failed
+patches-generated-image-heading = Generated Image:
+patches-saved-to = Saved to:{" "}
+patches-generated-image = Generated image
+
+## src/permission_discovery.rs
+permission-discovery-not-available = Not available on this server
+permission-discovery-disabled-by-requirements = Disabled by requirements
+permission-discovery-cloud-server-selected = Cloud conversations use server-selected permissions.
+permission-discovery-duplicate-profiles = The server returned duplicate permission profiles.
+permission-discovery-pagination-limit = Permission discovery exceeded its pagination limit. Try /permissions again.
+permission-discovery-timed-out = Permission discovery timed out. Try /permissions again.
+permission-discovery-unsupported = This server does not support permission discovery. Upgrade the Codex server to use this menu.
+permission-discovery-load-failed = Failed to load permissions: { $error }
+
+## src/bottom_pane/selection_popup_common.rs
+selection-popup-disabled-suffix = {" "}(disabled)
+
+## src/public_widgets/composer_input.rs
+composer-input-placeholder = Compose new task
+
+## src/unarchive_prompt.rs
+unarchive-prompt-title = This conversation is archived
+unarchive-prompt-unarchive-and-resume = Unarchive and resume
+unarchive-prompt-unarchive-and-fork = Unarchive and fork
+unarchive-prompt-cancel = Cancel
+unarchive-prompt-hint-continue = {" "}continue ·{" "}
+unarchive-prompt-hint-cancel = {" "}cancel
+
+## src/session_archive_commands.rs
+session-archive-archived-named = Archived session { $name } ({ $id }).
+session-archive-archived = Archived session { $id }.
+session-archive-deleted-named = Deleted session { $name } ({ $id }).
+session-archive-deleted = Deleted session { $id }.
+session-archive-unarchived-named = Unarchived session { $name } ({ $id }).
+session-archive-unarchived = Unarchived session { $id }.
+session-archive-delete-cancelled = Delete cancelled.
+session-archive-not-found-active-or-archived = No active or archived session found matching '{ $target }'.
+session-archive-not-found-active = No active session found matching '{ $target }'.
+session-archive-not-found-archived = No archived session found matching '{ $target }'.
+session-archive-confirm-needs-terminal = cannot confirm session deletion without an interactive terminal; rerun with --force and a session UUID
+session-archive-confirm-delete-named = Permanently delete session '{ $name }' ({ $id })?
+session-archive-confirm-delete = Permanently delete session { $id }?
+session-archive-cannot-undo = This cannot be undone. Subagent threads will also be deleted.
+session-archive-continue-prompt = Continue? [y/N]:{" "}
+
+## src/app_server_session.rs
+app-server-session-no-models = No models are available. Set `model` explicitly or check your model catalog configuration.
+app-server-session-cloud-permissions = Cloud conversations currently use server-selected permissions.
+app-server-session-side-context-not-saved = Side conversation context was not saved
+app-server-session-side-prepare-failed = Failed to prepare side conversation { $child }: { $message }
+app-server-session-cloud-fork-unsupported = Cloud conversations cannot be forked in the TUI yet.
+app-server-session-title-saving = An automatic title is still being saved. Try renaming the thread again.
+
+## src/app/provider/fields.rs
+provider-field-name = Name
+provider-field-base-url = Base URL
+provider-field-api-key-variable = API key variable
+provider-field-external-auth = External authentication
+provider-field-aws-profile = AWS profile
+provider-field-aws-region = AWS region
+provider-field-project-id = Project ID
+provider-field-location = Location
+provider-field-credential-file = Credential file (server)
+
+
+## tui/src/app/exit_summary.rs
+
+exit-summary-failed-archive-thread = Failed to archive thread { $thread_id }: { $error }
+exit-summary-archive-not-confirmed = Archive of thread { $thread_id } was not confirmed.
+exit-summary-use-stop-shortcut = use the configured stop shortcut
+exit-summary-press-key = press { $key }
+exit-summary-disconnected-running-continues = Disconnected from this task. Any running work continues.
+exit-summary-disconnected-may-be-running = Disconnected from this task. Work may still be running.
+exit-summary-disconnected-turn-stopped = Disconnected from this task. The current turn was stopped.
+exit-summary-to-reconnect = To reconnect, run:
+exit-summary-stop-current-turn = Stop the current turn: run { $command }, select this task, and { $hint }.
+exit-summary-to-continue = To continue this session, run:
+exit-summary-or-run-select = Or run { $command } and select { $name }.
+exit-summary-session-id = Session ID: { $thread_id }
+
+## tui/src/app/exit_summary.rs
+
+
+## tui/src/app/side.rs
+
+side-cannot-be-renamed = Side conversations cannot be renamed.
+side-main-thread-unavailable = '/side' is unavailable until the main thread is ready.
+side-no-started-conversation = '/side' is unavailable until the current conversation has started. Send a message first, then try /side again.
+side-already-open = A side conversation is already open. Press ctrl + c to return before starting another.
+side-main-needs-input = main needs input
+side-parent-needs-input = parent needs input
+side-main-needs-approval = main needs approval
+side-parent-needs-approval = parent needs approval
+side-main-failed = main failed
+side-parent-failed = parent failed
+side-main-interrupted = main interrupted
+side-parent-interrupted = parent interrupted
+side-main-closed = main closed
+side-parent-closed = parent closed
+side-main-finished = main finished
+side-parent-finished = parent finished
+side-from-main-thread = from main thread
+side-from-parent-thread = from parent thread ({ $parent_label })
+side-wait-permissions = Wait for permissions to update before forking.
+side-failed-close-still-open = Failed to close side conversation { $thread_id }; it is still open: { $err }
+side-failed-prepare = Failed to prepare side conversation { $child_thread_id }: { $err }
+side-failed-switch-into-err = Failed to switch into side conversation { $child_thread_id }: { $err }
+side-failed-switch-into = Failed to switch into side conversation { $child_thread_id }.
+side-failed-start = Failed to start side conversation: { $err }
+
+## tui/src/app/sidebar_files.rs
+
+sidebar-files-requires-server-workspace = Requires workspace on server host
+sidebar-files-preview-unavailable-windows = Preview unavailable on Windows
+
+## tui/src/app/startup.rs
+
+startup-no-startup-model = The initial app-server connection did not provide a startup model.
+startup-permission-overrides-resuming = Permission overrides are not supported when resuming a remote task.
+startup-permission-overrides-forking = Permission overrides are not supported when forking a remote task.
+startup-invalid-keymap = Invalid `tui.keymap` configuration: { $err }{"\u000A"}Fix the config and retry.{"\u000A"}See the Codex keymap documentation for supported actions and examples.
+startup-default-environment = Default
+startup-could-not-restart-server = Could not restart the background server: { $err }
+startup-reconnect-failed-stale = Reconnect failed — agent list is stale; relaunch to retry
+startup-reconnect-timed-out = Automatic reconnect timed out waiting for the server to finish shutting down.
+
+## tui/src/app/thread_settings.rs
+
+thread-settings-failed-update = Failed to update thread settings: { $err }
+
+## tui/src/app/user_verification_errors.rs
+
+user-verification-could-not-complete-local = Could not complete user verification with the local Codex binary.
+user-verification-could-not-verify-request = The local Codex binary could not verify this request.
+user-verification-no-credential = No user-verification credential is available in the local Codex binary.
+user-verification-biometric-unavailable = Biometric verification is currently unavailable on this device.
+user-verification-unavailable-for-request = User verification is unavailable for this request.
+user-verification-cancelled = User verification was cancelled.
+user-verification-interrupted = User verification was interrupted.
+user-verification-biometric-failed = Biometric verification did not succeed. The request was cancelled.
+user-verification-timed-out = User verification timed out. The request was cancelled.
+user-verification-could-not-complete = The local Codex binary could not complete user verification.
+side-suffix-for-side = {" "}for side
+side-suffix-to-switch = {" "}to switch
+side-suffix-to-archive = {" "}to archive
+side-suffix-to-close = {" "}to close
+side-label-prefix = Side{" "}
+
+## tui/src/bottom_pane/footer.rs
+
+footer-plan-mode = Plan mode
+footer-cycle-suffix = {" "}({ $key } to cycle)
+footer-cycle-open = {" "}(
+footer-cycle-close = {" "}to cycle)
+footer-for-agents = {" "}for agents
+footer-for-shortcuts = {" "}for shortcuts
+footer-to-queue-message = {" "}to queue message
+footer-to-queue = {" "}to queue
+footer-goal-pursuing-usage = Pursuing goal ({ $usage })
+footer-goal-pursuing = Pursuing goal
+footer-goal-paused = Goal paused (/goal resume)
+footer-goal-stalled = Goal stalled (/goal resume)
+footer-goal-usage-limited = Goal hit usage limits (/goal resume)
+footer-goal-unmet-usage = Goal unmet ({ $usage })
+footer-goal-abandoned = Goal abandoned
+footer-goal-achieved-usage = Goal achieved ({ $usage })
+footer-goal-achieved = Goal achieved
+footer-ide-context = IDE context
+footer-reverse-i-search = reverse-i-search:{" "}
+footer-again-to-quit = {" "}again to quit
+footer-again-to-edit-previous = {" "}again to edit previous message
+footer-to-edit-previous = {" "}to edit previous message
+footer-percent-context-left = { $percent }% context left
+footer-tokens-used = { $used_fmt } used
+footer-full-context-left = 100% context left
+
+## tui/src/auto_review_denials.rs
+
+auto-review-send-input = send input to terminal { $process_id }: { $stdin }
+auto-review-apply-patch-one = apply_patch touching { $file }
+auto-review-apply-patch-many = apply_patch touching { $count } files
+auto-review-network-access = network access to { $target }
+auto-review-mcp-on = MCP { $tool_name } on { $label }
+auto-review-permission-request-reason = permission request: { $reason }
+auto-review-permission-request = permission request
+
+## tui/src/chatwidget/realtime.rs
+
+realtime-still-stopping = Voice conversation is still stopping.
+realtime-unavailable-side = Voice mode is unavailable in side conversations. Return to the main thread first.
+realtime-unsupported-platform = Voice requires macOS, an MSVC-based Windows build, or a glibc-based Linux build.
+realtime-start-conversation-first = Start a conversation before using voice mode.
+realtime-failed-start = Failed to start voice mode: { $message }
+realtime-conversation-failed = Voice conversation failed: { $message }
+realtime-failed-restore-mute = Failed to restore microphone mute: { $error }
+realtime-connection-timed-out = Voice connection timed out. Retrying once after cleanup.
+realtime-failed-connect = Failed to connect voice mode: { $error }
+realtime-conversation-started = Voice conversation started.
+realtime-started-hint = Use /voice mute to mute or /voice to stop.
+realtime-failed-deliver = Failed to deliver the voice response.
+realtime-closed-during-startup = Voice connection closed during startup. Retrying once.
+realtime-conversation-ended = Voice conversation ended: { $reason }
+
+## tui/src/history_cell/search.rs
+
+history-search-in-url = '{ $pattern }' in { $url }
+history-search-opened-page = Opened page
+history-search-opened = Opened
+history-search-opening-page = Opening page
+history-search-opening = Opening
+history-search-searched-for = Searched for
+history-search-searched-page = Searched page
+history-search-searching-for = Searching for
+history-search-searching-page = Searching page
+history-search-browsing = Browsing the web
+history-search-searched-web = Searched the web
+history-search-searching-web = Searching the web
+history-search-for = {" "}for{" "}
+
+## tui/src/session_start.rs
+
+session-start-failed-unarchive = Failed to unarchive session { $thread_id }
+session-start-failed-resume = Failed to resume session from { $target_label }: { $err }
+session-start-failed-fork = Failed to fork session from { $target_label }: { $err }
+
+## tui/src/tool_output.rs
+
+tool-output-omitted-lines =
+    { $count ->
+        [one] +{ $omitted } line ({ $hint })
+       *[other] +{ $omitted } lines ({ $hint })
+    }
+
+## tui/src/external_agent_config_migration/mod.rs
+
+external-migration-import-selected = Import selected
+external-migration-customize-selection = Customize selection
+external-migration-cancel = Cancel
+external-migration-review-selection = Review selection
+external-migration-current-project = Current project:{" "}
+external-migration-home = Home
+external-migration-importing-none = Importing: none
+external-migration-importing-summary = Importing: { $count_summary }
+external-migration-plus-more = +{ $hidden_plugin_count } more
+external-migration-plus-more-marketplaces = +{ $hidden_marketplace_count } more marketplaces
+external-migration-plugin-counts = 
+    ({ $marketplaces ->
+        [one] { $marketplaces } marketplace
+       *[other] { $marketplaces } marketplaces
+    }, { $plugins ->
+        [one] { $plugins } plugin
+       *[other] { $plugins } plugins
+    })
+
+## tui/src/keymap_setup.rs
+
+keymap-setup-configure-this-shortcut = Configure this shortcut.
+keymap-setup-no-custom-override = No custom root override to remove
+keymap-setup-custom-root-override = Custom root override
+keymap-setup-default-keymap = Default keymap
+keymap-setup-edit-shortcut = Edit Shortcut
+keymap-setup-current = Current{" "}
+keymap-setup-config = Config{" "}
+keymap-setup-set-key = Set key
+keymap-setup-capture-for-unbound = Capture a key for this unbound action
+keymap-setup-replace-binding = Replace binding
+keymap-setup-capture-replacement = Capture a replacement key for `{ $current_binding }`
+keymap-setup-add-alternate-binding = Add alternate binding
+keymap-setup-keep-and-add-key = Keep `{ $current_binding }` and add another key
+keymap-setup-replace-one-binding = Replace one binding...
+keymap-setup-choose-existing-to-replace = Choose which existing binding to replace
+keymap-setup-replace-all-bindings = Replace all bindings
+keymap-setup-replace-with-one-key = Replace `{ $current_binding }` with one key
+keymap-setup-use-leader = Use leader...
+keymap-setup-capture-after-leader = Capture the key that follows the configured leader
+keymap-setup-leader-unbound = The leader is unbound
+keymap-setup-configure-leader = Configure leader...
+keymap-setup-set-leader-first = Set a leader before assigning this shortcut
+keymap-setup-set-key-chord = Set key chord
+keymap-setup-capture-two-keys = Capture two consecutive keys for this action
+keymap-setup-replace-with-chord = Replace with key chord
+keymap-setup-replace-with-two-stroke = Replace `{ $current_binding }` with a two-stroke key chord
+keymap-setup-add-alternate-chord = Add alternate key chord
+keymap-setup-keep-and-add-chord = Keep `{ $current_binding }` and add a two-stroke key chord
+keymap-setup-remove-custom-binding = Remove custom binding
+keymap-setup-restore-default-binding = Restore the default keymap binding
+keymap-setup-back-to-shortcuts = Back to shortcuts
+keymap-setup-return-to-list = Return to the shortcut list
+keymap-setup-changes-write-root = Changes write the root{" "}
+keymap-setup-override-suffix = {" "}override.
+keymap-setup-replace-binding-title = Replace Binding
+keymap-setup-choose-binding-to-replace = Choose the binding to replace.
+keymap-setup-replace-with-another-key = Replace `{ $binding }` with another key
+keymap-setup-binding-key-chord = { $binding } (key chord)
+keymap-setup-binding-replace-two-stroke = Replace `{ $binding }` with a two-stroke key chord
+keymap-setup-shortcut-conflict = Shortcut Conflict
+keymap-setup-cannot-use = { $context }.{ $action } cannot use `{ $key }`.
+keymap-setup-pick-another-key = Pick another key
+keymap-setup-return-to-capture = Return to key capture for this action
+keymap-setup-cancel = Cancel
+keymap-setup-leave-unchanged = Leave keymap unchanged
+keymap-setup-no-change = No change: `{ $context }.{ $action }` already uses `{ $key }`.
+keymap-setup-no-longer-uses = `{ $context }.{ $action }` no longer uses `{ $old_key }`. Reopen /keymap and choose a binding again.
+keymap-setup-remapped = Remapped `{ $context }.{ $action }` to `{ $key }`.
+keymap-setup-added = Added `{ $key }` to `{ $context }.{ $action }`.
+keymap-setup-replaced = Replaced `{ $old_key }` with `{ $key }` for `{ $context }.{ $action }`.
+keymap-setup-unknown-action = Unknown keymap action `{ $context }.{ $action }`. Reopen /keymap and choose an action.
+keymap-setup-only-modifiers = Only ctrl, alt, shift, and super modifiers can be stored in `tui.keymap`.
+keymap-setup-only-function-keys = Only function keys F1 through F{ $max } can be stored in `tui.keymap`.
+keymap-setup-only-ascii = Only printable ASCII keys can be stored in `tui.keymap`.
+keymap-setup-key-unsupported = That key is not supported by `tui.keymap`.
+
+## tui/src/worktree_startup.rs
+
+worktree-startup-untrusted-source = `--worktree` cannot create a checkout from an explicitly untrusted source
+worktree-startup-local-only = `--worktree` is only supported for local sessions
+worktree-startup-session-not-found = Session not found: { $id_or_name }
+worktree-startup-recovery = Startup did not finish binding a thread to this worktree: { $root }{"\u000A"}The checkout was kept. Inspect it and confirm no session is using it.{"\u000A"}To remove it, run `git worktree remove <checkout-path>` from the source repository,{"\u000A"}replacing <checkout-path> with the path above. Do not use --force.
+
+
+## app/history_pagination.rs
+
+history-pagination-no-previous-message = No previous message to edit.
+
+## app/misalignment_policy.rs
+
+misalignment-policy-continuation-request = Continuation request (quoted)
+misalignment-policy-what-we-detected = What we detected
+misalignment-policy-cannot-continue = Couldn’t continue this chat. Review its latest status before trying again.
+
+## app/user_verification.rs
+
+user-verification-unavailable-remote = User verification is unavailable for remote workspaces.
+
+## app_server_connection.rs
+
+app-server-connection-reopen-cloud = Reopen Codex to reconnect the cloud backend.
+
+## app/thread_goal_actions.rs
+
+thread-goal-actions-ephemeral = Goals need a saved session. This session is temporary.{"\u000A"}Run `codex` to start a saved session, or `codex resume` / `/resume` to reopen one.
+thread-goal-actions-no-goal-set = No goal is currently set.
+thread-goal-actions-goal-status = Goal { $status }
+thread-goal-actions-cleared = Goal cleared
+thread-goal-actions-no-goal-to-clear = No goal to clear
+thread-goal-actions-no-goal-this-thread = This thread does not currently have a goal.
+thread-goal-actions-replace-current = Replace current goal
+thread-goal-actions-replace-desc = Set the new objective and start it now
+thread-goal-actions-cancel = Cancel
+thread-goal-actions-keep-current = Keep the current goal
+thread-goal-actions-replace-title = Replace goal?
+thread-goal-actions-new-objective = New objective: { $objective }
+thread-goal-actions-create-first = Create a goal before editing it.
+thread-goal-actions-failed-read = Failed to read thread goal: { $err }
+thread-goal-actions-failed-replace = Failed to replace thread goal: { $err }
+thread-goal-actions-failed-set = Failed to set thread goal: { $err }
+thread-goal-actions-failed-update = Failed to update thread goal: { $err }
+thread-goal-actions-failed-clear = Failed to clear thread goal: { $err }
+
+## app/workspace_hud.rs
+
+workspace-hud-panes = Panes
+workspace-hud-move = Move
+workspace-hud-this-pane = This pane
+workspace-hud-command-center = Command Center
+workspace-hud-main-composer = Main composer
+workspace-hud-open-in-sidebar = Open in sidebar
+workspace-hud-hide-sidebar = Hide sidebar
+workspace-hud-sidebar-content = Sidebar content
+workspace-hud-resize-panes = Resize panes
+workspace-hud-minimum-width = Minimum width
+workspace-hud-maximum-width = Maximum width
+workspace-hud-equal-widths = Equal widths
+workspace-hud-divider-left = Divider left
+workspace-hud-divider-right = Divider right
+workspace-hud-restore-layout = Restore layout
+workspace-hud-zoom-pane = Zoom pane
+workspace-hud-close-tab = Close tab
+workspace-hud-previous-tab = Previous tab
+workspace-hud-next-tab = Next tab
+workspace-hud-hide-pane = Hide pane
+workspace-hud-pane-left = Pane left
+workspace-hud-pane-right = Pane right
+workspace-hud-choose-environment = Choose environment
+workspace-hud-presets = Presets ›
+workspace-hud-find-text = Find text
+workspace-hud-select-transcript = Select transcript
+workspace-hud-mark-table-cell = Mark table cell
+workspace-hud-composer = Composer
+workspace-hud-sidebar = Sidebar
+workspace-hud-conversation = Conversation
+workspace-hud-leader-title = { $prefix } · { $origin }
+
+
+## bottom_pane/mentions_v2/popup.rs
+
+mentions-v2-popup-loading = loading...
+mentions-v2-popup-no-matches = no matches
+
+
+## chatwidget/interaction.rs
+
+interaction-review-steer-unavailable = Steer messages aren't supported during /review. Press Ctrl+C now to cancel the review.
+interaction-ctrl-l-disabled = Ctrl+L is disabled while a task is in progress.
+interaction-no-agent-response = No agent response to copy
+interaction-copy-failed = Copy failed: { $error }
+interaction-rename-thread = Rename thread
+interaction-name-thread = Name thread
+interaction-type-a-name = Type a name and press Enter
+interaction-thread-name-empty = Thread name cannot be empty.
+interaction-generating-title = Generating a title suggestion…
+interaction-suggested-from-conversation = Suggested from this conversation
+
+## clipboard_copy/worker.rs
+
+clipboard-worker-selection-ended = selection ended before clipboard delivery
+clipboard-worker-nothing-to-copy = nothing to copy: the selected content is empty
+clipboard-worker-stopped = clipboard worker stopped
+clipboard-worker-no-read-pending = no clipboard read pending
+clipboard-worker-read-timed-out = clipboard read timed out
+clipboard-worker-start-failed = could not start clipboard worker: { $error }
+
+## clipboard_paste/text.rs
+
+clipboard-text-windows-reader-unavailable = Windows clipboard reader is unavailable
+clipboard-text-reader-start-failed = could not start clipboard reader
+clipboard-text-unavailable-over-ssh = clipboard text is unavailable over SSH
+clipboard-text-windows-reader-busy = Windows clipboard reader is busy or unavailable
+clipboard-text-read-timed-out = clipboard read timed out
+clipboard-text-unavailable = clipboard text is unavailable
+clipboard-text-too-large = clipboard text exceeds the message size limit
+clipboard-text-windows-reader-start-failed = could not start Windows clipboard reader
+clipboard-text-reader-no-input = clipboard reader has no input
+clipboard-text-read-start-failed = could not start clipboard read
+clipboard-text-reader-no-output = clipboard reader has no output
+clipboard-text-read-failed = could not read clipboard text
+clipboard-text-not-utf8 = clipboard text is not UTF-8
+
+## config_panel/render.rs
+
+config-render-animations = Animations
+config-render-animations-desc = Animate the welcome screen, working indicator, and transitions
+config-render-composer-stars = Composer stars
+config-render-composer-stars-desc = Show stars briefly for new Astra tasks
+config-render-effects = Effects
+config-render-effects-subtitle = Configure visual effects
+config-render-stars-need-animations = Turn on Animations to show Astra task stars
+config-render-mouse-scroll-speed = Mouse scroll speed
+config-render-mouse-scroll-speed-desc = Choose a mouse-wheel speed for the fullscreen transcript
+config-render-speed-default = 1× (default)
+config-render-unfocused = Unfocused
+config-render-always = Always
+config-render-notify-when = Notify when
+config-render-notify-when-desc = Notify only while you are away or while this terminal is focused too
+config-render-auto-default = Auto (default)
+config-render-off = Off
+config-render-on = On
+config-render-copy-on-select = Copy on select
+config-render-copy-on-select-desc = Copy transcript, footer, and composer selections on release; Auto follows terminal defaults
+config-render-right-click-paste = Right-click paste
+config-render-dense = Dense
+config-render-comfortable = Comfortable
+config-render-session-picker-layout = Session picker layout
+config-render-session-picker-layout-desc = Choose tighter rows or a roomier list when resuming and forking conversations
+config-render-ask = Ask
+config-render-current-directory = Current directory
+config-render-session-directory = Session directory
+config-render-resume-directory = Resume directory
+config-render-resume-directory-desc = Choose the working directory when resuming, with --cd taking precedence for this session
+config-render-requires-cd-remote = Requires --cd for remote sessions
+config-render-changes-save-automatically = Changes save automatically
+config-render-configuration = Configuration
+config-render-hint-toggle = toggle
+config-render-hint-back = back
+config-render-hint-group = group
+config-render-hint-search = search
+config-render-hint-open = open
+config-render-hint-test = test
+config-render-hint-clear-search-close = clear search/close
+config-render-hint-clear-search = clear search
+config-render-search-placeholder = Type to search settings
+
+## history_cell/mcp.rs
+
+history-mcp-auth-unknown = Unknown
+history-mcp-auth-unsupported = Unsupported
+history-mcp-auth-not-logged-in = Not logged in
+history-mcp-auth-bearer-token = Bearer token
+history-mcp-called = Called
+history-mcp-calling = Calling
+history-mcp-failed-verb = Failed
+history-mcp-returned-image = Returned image
+history-mcp-see-the = {" "}   See the{" "}
+history-mcp-mcp-docs = MCP docs
+history-mcp-to-configure-them = {" "}to configure them.
+history-mcp-mcp-tools = MCP Tools
+history-mcp-no-servers = {" "} • No MCP servers configured.
+history-mcp-no-tools = {" "} • No MCP tools available.
+history-mcp-status-connected = connected
+history-mcp-status-starting = starting
+history-mcp-status-auth-required = authentication required
+history-mcp-status-failed = failed
+history-mcp-status-not-started = not started
+history-mcp-status-disabled = disabled
+history-mcp-status-cancelled = cancelled
+history-mcp-status-unknown = unknown
+history-mcp-label-auth = {" "}   • Auth:{" "}
+history-mcp-tools-none = {" "}   • Tools: (none)
+history-mcp-label-tools = {" "}   • Tools:{" "}
+history-mcp-resources-none = {" "}   • Resources: (none)
+history-mcp-label-resources = {" "}   • Resources:{" "}
+history-mcp-templates-none = {" "}   • Resource templates: (none)
+history-mcp-label-templates = {" "}   • Resource templates:{" "}
+history-mcp-use-verbose = {" "} Use /mcp verbose for tools and resources.
+history-mcp-loading-inventory = Loading MCP inventory
+history-mcp-loading-inventory-raw = Loading MCP inventory...
+history-mcp-error = Error: { $error }
+history-mcp-verb-name = { $verb } { $name }
+history-mcp-name-with-environment = { $name } (environment { $environment_id })
+history-mcp-environment-suffix = {" "}(environment { $environment_id })
+history-mcp-tool-count =
+    { $count ->
+        [one] {" "}(1 tool)
+       *[other] {" "}({ $count } tools)
+    }
+
+## thread_transcript/other_items.rs
+
+other-items-patch-declined = Patch application declined
+other-items-patch-in-progress = Patch application in progress
+other-items-status-unavailable = status unavailable
+other-items-context-compacted = Context compacted
+other-items-hook-prompt = hook prompt:{" "}
+other-items-image-generation = Image generation · { $status }
+other-items-review-started = >> Code review started: { $review } <<
+other-items-review-finished = << Code review finished: { $review } >>
+
+## text_formatting.rs
+
+text-formatting-and-two = { $first } and { $second }
+text-formatting-and-last = { $list } and { $last }
+
+## tooltips.rs
+
+tooltips-tip-prefix = **Tip:** { $tip }
+
+## session_resume.rs
+
+session-resume-parent-hint = {"\u000A"}Resume its parent session instead: codex resume { $parent_id }
+session-resume-guardian = Cannot resume a Guardian review thread.{ $parent_hint }
+session-resume-cwd-unknown = failed to determine the working directory recorded for the selected session
+
+## tui/src/app/provider.rs
+provider-back = Back
+provider-loading-title = Loading model providers…
+provider-reconnect-to-browse = Reconnect to the app server to browse model providers.
+provider-list-title = Model providers
+provider-details-title = Model provider details
+provider-edit-configuration = Edit configuration
+provider-no-active-chat = No active chat
+provider-server-default = Server default
+provider-default-for-new-chats = Default for new chats
+provider-client-launch-selects = This client's launch settings select { $id } for new chats.
+provider-server-fixes-default = The server configuration fixes the default provider.
+provider-use-new-to-start = Use /new to start a chat with the selected provider.
+provider-list-subtitle = Current chat: { $current_label } · { $default_label }: { $default_id }
+provider-hint-details = {" "}details
+provider-hint-set-default = {" "}set default
+provider-hint-back = {" "}back
+provider-field-id = Provider ID
+provider-field-type = Type
+provider-type-builtin-openai = Built-in OpenAI provider
+provider-absent-not-reported = Not reported
+provider-absent-managed-externally = Managed externally
+provider-absent-none = None
+provider-absent-not-set = Not set
+
+## tui/src/app/tui_mode_picker.rs
+tui-mode-picker-saved = Saved TUI mode: { $mode }. Restart Codex to apply; launch overrides still apply.
+tui-mode-picker-save-failed = Failed to save TUI mode: { $error }
+
+
+
+## tui/src/bottom_pane/approval_overlay.rs
+approval-overlay-send-input-existing = Would you like to send input to the existing terminal?
+approval-overlay-send-input-terminal = Would you like to send input to terminal { $process_id }?
+approval-overlay-run-command = Would you like to run the following command?
+approval-overlay-network-access = Do you want to approve network access to "{ $host }"?
+approval-overlay-grant-permissions = Would you like to grant these permissions?
+approval-overlay-make-edits = Would you like to make the following edits?
+approval-overlay-needs-approval = { $server } needs your approval.
+approval-overlay-granted-none = You did not grant additional permissions
+approval-overlay-granted-strict = You granted additional permissions with strict auto review
+approval-overlay-granted-session = You granted additional permissions for this session
+approval-overlay-granted = You granted additional permissions
+approval-overlay-hint-confirm = to confirm
+approval-overlay-hint-cancel = to cancel
+approval-overlay-hint-or = {" "}or{" "}
+approval-overlay-hint-press = Press{" "}
+approval-overlay-hint-open-thread = {" "}to open thread
+approval-overlay-label-thread = Thread:{" "}
+approval-overlay-label-environment = Environment:{" "}
+approval-overlay-label-permission-rule = Permission rule:{" "}
+approval-overlay-label-reason = Reason:{" "}
+approval-overlay-label-input = Input:{" "}
+approval-overlay-label-server = Server:{" "}
+approval-overlay-yes-once = Yes, just this once
+approval-overlay-yes-proceed = Yes, proceed
+approval-overlay-yes-prefix = Yes, and don't ask again for commands that start with `{ $rendered_prefix }`
+approval-overlay-yes-host-conversation = Yes, and allow this host for this conversation
+approval-overlay-yes-permissions-session = Yes, and allow these permissions for this session
+approval-overlay-yes-command-session = Yes, and don't ask again for this command in this session
+approval-overlay-yes-host-future = Yes, and allow this host in the future
+approval-overlay-no-host-future = No, and block this host in the future
+approval-overlay-no-continue-without-running = No, continue without running it
+approval-overlay-no-tell-codex = No, and tell Codex what to do differently
+approval-overlay-yes-files-session = Yes, and don't ask again for these files
+approval-overlay-yes-grant-turn = Yes, grant these permissions for this turn
+approval-overlay-yes-grant-strict = Yes, grant for this turn with strict auto review
+approval-overlay-yes-grant-session = Yes, grant these permissions for this session
+approval-overlay-no-without-permissions = No, continue without permissions
+approval-overlay-yes-provide-info = Yes, provide the requested info
+approval-overlay-no-continue-without-it = No, but continue without it
+approval-overlay-cancel-request = Cancel this request
+approval-overlay-rule-network = network
+approval-overlay-rule-read = read { $reads }
+approval-overlay-rule-write = write { $writes }
+approval-overlay-rule-deny-read = deny read { $denied_reads }
+approval-overlay-rule-glob = glob `{ $pattern }`
+
+## tui/src/bottom_pane/chat_composer.rs
+chat-composer-message-too-large = Message exceeds the maximum length of { $max } characters ({ $actual_chars } provided).
+chat-composer-viewing-subagent = Viewing sub-agent — direct input is disabled
+chat-composer-unrecognized-command = Unrecognized command '/{ $name }'. Type "/" for a list of supported commands.
+chat-composer-message-too-long-limit = Message too long; limit { $max } characters
+chat-composer-command-disabled-during-task = '/{ $command }' is disabled while a task is in progress.
+chat-composer-shell-mode = Shell mode
+chat-composer-capability-skills = skills
+chat-composer-plugin-description = Plugin
+chat-composer-plugin-description-capabilities = Plugin · { $capabilities }
+chat-composer-shutting-down = Shutting down...
+chat-composer-input-disabled = Input disabled.
+chat-composer-capability-mcp-servers =
+    { $count ->
+        [one] 1 MCP server
+       *[other] { $count } MCP servers
+    }
+chat-composer-capability-apps =
+    { $count ->
+        [one] 1 app
+       *[other] { $count } apps
+    }
+
+## tui/src/bottom_pane/mcp_server_elicitation.rs
+mcp-elicitation-answer-placeholder = Type your answer
+mcp-elicitation-answer-placeholder-optional = Type your answer (optional)
+mcp-elicitation-run-tool-continue = Run the tool and continue
+mcp-elicitation-allow-request-continue = Allow this request and continue
+mcp-elicitation-allow = Allow
+mcp-elicitation-run-tool-session = Run the tool and remember this choice for this session
+mcp-elicitation-allow-request-session = Allow this request and remember this choice for this session
+mcp-elicitation-allow-session = Allow for this session
+mcp-elicitation-run-tool-always = Run the tool and remember this choice for future tool calls
+mcp-elicitation-allow-request-always = Allow this request and remember this choice for future requests
+mcp-elicitation-always-allow = Always allow
+mcp-elicitation-cancel = Cancel
+mcp-elicitation-cancel-tool-call = Cancel this tool call
+mcp-elicitation-deny = Deny
+mcp-elicitation-decline-continue = Decline this request and continue
+mcp-elicitation-cancel-request = Cancel this request
+mcp-elicitation-true = True
+mcp-elicitation-false = False
+mcp-elicitation-server-message = Server: { $server }{"\u000A"}{"\u000A"}{ $message }
+mcp-elicitation-tip-submit = to submit
+mcp-elicitation-tip-submit-all = to submit all
+mcp-elicitation-tip-submit-answer = to submit answer
+mcp-elicitation-tip-navigate-fields = to navigate fields
+mcp-elicitation-tip-change-field = change field
+mcp-elicitation-tip-cancel = to cancel
+mcp-elicitation-answer-required = Answer required fields before submitting.
+mcp-elicitation-no-options = No options
+mcp-elicitation-option-position = option { $selected }/{ $total }
+mcp-elicitation-field-position = Field { $idx }/{ $total }
+mcp-elicitation-field-position-unanswered = { $base } ({ $unanswered } required unanswered)
+mcp-elicitation-no-fields = No fields
+
+
+## tui/src/bottom_pane/app_link_view.rs
+app-link-sign-in-instructions = Sign in to this app in your browser, then return here.
+app-link-action-required = Action required
+app-link-server = Server: { $server }
+app-link-complete-action-instructions = Complete the requested action in your browser, then return here.
+app-link-open-sign-in-url = Open sign-in URL
+app-link-back = Back
+app-link-already-signed-in = I already signed in
+app-link-open-link = Open link
+app-link-finished = I finished
+app-link-manage-on-chatgpt = Manage on ChatGPT
+app-link-disable-app = Disable app
+app-link-enable-app = Enable app
+app-link-install-on-chatgpt = Install on ChatGPT
+app-link-already-installed = I already Installed it
+app-link-use-dollar-insert = Use $ to insert this app into the prompt.
+app-link-new-apps-delay = Newly installed apps can take a few minutes to appear in /apps.
+app-link-after-installed-insert = After installed, use $ to insert this app into the prompt.
+app-link-finish-app-sign-in = Finish App Sign In
+app-link-finish-authentication = Finish Authentication
+app-link-finish-in-browser = Finish in Browser
+app-link-finish-app-setup = Finish App Setup
+app-link-chatgpt-sign-in-browser = Sign in to the app on ChatGPT in the browser window that just opened.
+app-link-complete-auth-browser = Complete authentication in the browser window that just opened.
+app-link-return-select-signed-in = Then return here and select "I already signed in".
+app-link-complete-action-browser = Complete the requested action in the browser window that just opened.
+app-link-return-select-finished = Then return here and select "I finished".
+app-link-complete-setup-browser = Complete app setup on ChatGPT in the browser window that just opened.
+app-link-return-select-installed = Sign in there if needed, then return here and select "I already Installed it".
+app-link-sign-in-url-label = Sign-in URL:
+app-link-link-label = Link:
+app-link-setup-url-label = Setup URL:
+app-link-hint-move = {" "}move
+app-link-hint-select = {" "}select
+app-link-hint-close = {" "}close
+app-link-no-actions = No actions
+
+## tui/src/cwd_prompt.rs
+cwd-prompt-verb-resume = resume
+cwd-prompt-verb-fork = fork
+cwd-prompt-past-resumed = resumed
+cwd-prompt-past-forked = forked
+cwd-prompt-save-failed = Failed to save working directory preference.
+cwd-prompt-title = Working directory · { $action_verb }
+cwd-prompt-explanation = Session = latest cwd recorded in the { $action_past } session{"\u000A"}Current = your current working directory
+cwd-prompt-use-session-dir = Use session directory ({ $session_cwd })
+cwd-prompt-use-current-dir = Use current directory ({ $current_cwd })
+cwd-prompt-always-session-dir = Always use session directory
+cwd-prompt-always-current-dir = Always use current directory
+cwd-prompt-always-current-dir-path = Always use current directory ({ $path })
+cwd-prompt-hint-continue = {" "}continue ·{" "}
+cwd-prompt-hint-use-session = {" "}use session ·{" "}
+cwd-prompt-hint-quit = {" "}quit
+
+## tui/src/external_agent_config_migration/source.rs
+external-agent-source-title = Choose an import source
+external-agent-source-subtitle = Select the app whose setup you want to import.
+external-agent-source-hint-continue = {" "}continue ·{" "}
+external-agent-source-hint-cancel = {" "}cancel
+
+## tui/src/daemon_startup.rs
+daemon-startup-state-enabled = enabled
+daemon-startup-state-disabled = disabled
+daemon-startup-requires-feature = This session requires { $name } to be { $state }
+daemon-startup-running-without-server = Running without the shared background server: { $reason }.
+
+## tui/src/status/rate_limits.rs
+rate-limits-bucket-limit = { $bucket } limit
+rate-limits-bucket-window-limit = { $bucket } { $window } limit
+rate-limits-window-limit = { $window } limit
+rate-limits-monthly-credit-limit = Monthly credit limit
+rate-limits-credits-used = { $used } of { $limit } credits used
+rate-limits-percent-left = { $percent }% left
+rate-limits-credits = Credits
+rate-limits-unlimited = Unlimited
+rate-limits-available = Available
+rate-limits-credits-balance = { $balance } credits
+
+## tui/src/transcript_view/follow_control.rs
+follow-control-new-back-esc = {" "}New activity · ↓ Back to bottom · esc{" "}
+follow-control-new-bottom = {" "}New activity · ↓ Bottom{" "}
+follow-control-new-short = {" "}New · ↓ Bottom{" "}
+follow-control-bottom = {" "}↓ Bottom{" "}
+follow-control-arrow = {" "}↓{" "}
+follow-control-back-esc = {" "}↓ Back to bottom · esc{" "}
+follow-control-back = {" "}↓ Back to bottom{" "}
+follow-control-bottom-esc = {" "}↓ Bottom · esc{" "}
+
+## tui/src/transcript_view/disclosure.rs
+disclosure-collapse = collapse
+disclosure-expand = expand
+disclosure-previous = previous
+disclosure-next = next
+disclosure-back = back
+
+
+## tui/src/app/owned_transcript.rs
+owned-transcript-starting-side-chat = Starting side chat…
+owned-transcript-nav-enter-esc-latest = enter/esc latest
+owned-transcript-nav-esc-latest = esc latest
+owned-transcript-selecting-text = Selecting text · esc cancel
+
+## Display constants shared between files
+const-resize-hint = Resize · ←/h →/l · Shift+←/→ 10 cols · Enter/Esc done
+const-external-agent-config-import-in-progress-message = A previous external agent import is still running. Wait for it to finish before importing again.
+const-side-edit-previous-unavailable-message = Editing previous prompts is unavailable in side conversations.
+const-trusted-access-for-cyber-verification-warning = Your conversations have multiple flags for possible cybersecurity risk. Responses may take longer because extra safety checks are on. To get authorized for security work, join the Trusted Access for Cyber program: https://chatgpt.com/cyber
+const-tui-stub-message = Not available in TUI yet.
+const-parent-owned-input-message = This sub-agent is controlled by its parent. Direct input is disabled.
+const-ask-for-approval-label = Ask for approval
+const-approve-for-me-label = Approve for me
+const-auto-review-description = Only ask for actions detected as potentially unsafe
+const-create-custom-provider = Create a custom provider or gateway
+const-unconfirmed-create = Could not confirm the save. Check the provider list before adding it again.
+const-setup-connection-lost = Codex lost its connection during setup. Restart Codex to continue.
+const-goal-usage = Usage: /goal [<objective>|clear|edit|pause|resume]
+const-compaction-header = Compacting context
+const-compaction-details = Making room to continue.
+const-unanswered-confirm-title = Submit with unanswered questions?
+const-plan-implementation-title = Implement this plan?
+
+## Permissions presets (codex-utils-approval-presets)
+permissions-preset-read-only = Read Only
+permissions-preset-default = Default
+permissions-preset-full-access = Full Access
+
+## Collaboration modes (codex-protocol's ModeKind)
+collaboration-mode-default = Default
+collaboration-mode-plan = Plan

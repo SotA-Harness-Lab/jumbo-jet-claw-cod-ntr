@@ -34,7 +34,9 @@ use fields::provider_fields;
 
 const LOADING_VIEW: &str = "model_provider_loading";
 pub(super) const LIST_VIEW: &str = "model_provider_list";
-pub(crate) const CREATE_CUSTOM_PROVIDER: &str = "Create a custom provider or gateway";
+pub(crate) fn create_custom_provider() -> &'static str {
+    crate::i18n::tr!("const-create-custom-provider")
+}
 
 #[derive(Debug)]
 pub(crate) enum Event {
@@ -74,7 +76,7 @@ pub(crate) struct Catalog {
 
 fn back() -> SelectionItem {
     SelectionItem {
-        name: "Back".into(),
+        name: crate::i18n::tr!("provider-back").into(),
         dismiss_on_select: true,
         ..Default::default()
     }
@@ -95,7 +97,7 @@ pub(crate) fn loading() -> (SelectionViewParams, Event) {
 }
 
 fn loading_with_notice(notice: Option<String>) -> (SelectionViewParams, Event) {
-    let (view, dismissed) = progress(LOADING_VIEW, "Loading model providers…");
+    let (view, dismissed) = progress(LOADING_VIEW, crate::i18n::tr!("provider-loading-title"));
     (view, Event::Load { dismissed, notice })
 }
 
@@ -127,7 +129,7 @@ pub(super) fn handle(app: &mut App, tui: &mut Tui, server: &AppServerSession, ev
             let offline = app.reconnect.offline;
             tokio::spawn(async move {
                 let result = if offline {
-                    Err("Reconnect to the app server to browse model providers.".into())
+                    Err(crate::i18n::tr!("provider-reconnect-to-browse").into())
                 } else {
                     tokio::select! {
                         _ = dismissed.changed() => return,
@@ -161,7 +163,7 @@ pub(super) fn handle(app: &mut App, tui: &mut Tui, server: &AppServerSession, ev
                     &app.keymap.list,
                     notice,
                 ),
-                Err(error) => load_error("Model providers", error),
+                Err(error) => load_error(crate::i18n::tr!("provider-list-title"), error),
             };
             chat.replace_selection_view_if_present(LOADING_VIEW, view);
         }
@@ -178,14 +180,14 @@ pub(super) fn handle(app: &mut App, tui: &mut Tui, server: &AppServerSession, ev
                 let provider = &catalog.page.data[index];
                 let mut pager = StaticOverlay::with_title(
                     details(provider),
-                    "Model provider details".into(),
+                    crate::i18n::tr!("provider-details-title").into(),
                     app.keymap.pager.clone(),
                 );
                 if provider.can_edit && !matches!(provider.settings, ProviderSettings::OpenAi) {
                     let tx = app.app_event_tx.clone();
                     pager.action = Some(PagerAction {
                         key: key_hint::plain(KeyCode::Enter),
-                        label: "Edit configuration",
+                        label: crate::i18n::tr!("provider-edit-configuration"),
                         run: Box::new(move || {
                             tx.send(AppEvent::Provider(Event::Edit {
                                 catalog,
@@ -262,20 +264,20 @@ fn list(
     keymap: &ListKeymap,
     notice: Option<String>,
 ) -> SelectionViewParams {
-    let current_label = current.unwrap_or("No active chat");
+    let current_label = current.unwrap_or(crate::i18n::tr!("provider-no-active-chat"));
     let page = &catalog.page;
     let can_select = page.can_change_default && client_override.is_none();
     let default_label = if client_override.is_some() {
-        "Server default"
+        crate::i18n::tr!("provider-server-default")
     } else {
-        "Default for new chats"
+        crate::i18n::tr!("provider-default-for-new-chats")
     };
     let note = match client_override {
-        Some(id) => format!("This client's launch settings select {id} for new chats."),
+        Some(id) => crate::i18n::tr!("provider-client-launch-selects", id = id),
         None if !page.can_change_default => {
-            "The server configuration fixes the default provider.".into()
+            crate::i18n::tr!("provider-server-fixes-default").into()
         }
-        None => "Use /new to start a chat with the selected provider.".into(),
+        None => crate::i18n::tr!("provider-use-new-to-start").into(),
     };
     let (dismiss, dismissed) = watch::channel(());
     let mut items: Vec<_> = page
@@ -321,7 +323,7 @@ fn list(
         })
         .collect();
     items.push(SelectionItem {
-        name: CREATE_CUSTOM_PROVIDER.into(),
+        name: create_custom_provider().into(),
         footer_hint: Some(crate::bottom_pane::popup_consts::picker_hint_line_for_keymap(keymap)),
         actions: vec![Box::new({
             let catalog = Arc::clone(&catalog);
@@ -337,10 +339,12 @@ fn list(
     });
     SelectionViewParams {
         view_id: Some(LIST_VIEW),
-        title: Some("Model providers".into()),
-        subtitle: Some(format!(
-            "Current chat: {current_label} · {default_label}: {}",
-            page.default_provider_id
+        title: Some(crate::i18n::tr!("provider-list-title").into()),
+        subtitle: Some(crate::i18n::tr!(
+            "provider-list-subtitle",
+            current_label = current_label,
+            default_label = default_label,
+            default_id = page.default_provider_id.as_str()
         )),
         footer_note: Some(notice.unwrap_or(note).into()),
         footer_hint: Some(provider_hint(keymap, /*select*/ false)),
@@ -372,12 +376,18 @@ fn edit_view(
 
 fn provider_hint(keymap: &ListKeymap, select: bool) -> Line<'static> {
     let keys = [
-        (keymap.primary_hint(ListAction::Accept), " details"),
+        (
+            keymap.primary_hint(ListAction::Accept),
+            crate::i18n::tr!("provider-hint-details"),
+        ),
         (
             select.then(|| key_hint::plain(KeyCode::Char(' ')).into()),
-            " set default",
+            crate::i18n::tr!("provider-hint-set-default"),
         ),
-        (keymap.primary_hint(ListAction::Cancel), " back"),
+        (
+            keymap.primary_hint(ListAction::Cancel),
+            crate::i18n::tr!("provider-hint-back"),
+        ),
     ];
     let mut hints = Vec::new();
     for (key, label) in keys {
@@ -400,16 +410,19 @@ fn details(provider: &ModelProviderSummary) -> Vec<Line<'static>> {
             value.to_owned().into(),
         ]));
     };
-    field("Provider ID", &provider.id);
+    field(crate::i18n::tr!("provider-field-id"), &provider.id);
     if matches!(provider.settings, ProviderSettings::OpenAi) {
-        field("Type", "Built-in OpenAI provider");
+        field(
+            crate::i18n::tr!("provider-field-type"),
+            crate::i18n::tr!("provider-type-builtin-openai"),
+        );
     }
     for (kind, value) in provider_fields(provider) {
         let absent = match kind {
-            Field::Url | Field::ManagedUrl => "Not reported",
-            Field::ExternalAuth => "Managed externally",
-            Field::Variable => "None",
-            _ => "Not set",
+            Field::Url | Field::ManagedUrl => crate::i18n::tr!("provider-absent-not-reported"),
+            Field::ExternalAuth => crate::i18n::tr!("provider-absent-managed-externally"),
+            Field::Variable => crate::i18n::tr!("provider-absent-none"),
+            _ => crate::i18n::tr!("provider-absent-not-set"),
         };
         field(kind.label(), value.unwrap_or(absent));
     }

@@ -81,8 +81,8 @@ impl Renderable for OwnedStartupLayout<'_> {
                     ));
                 None
             }
-            StartupDraftSessionAction::Resume => Some("  Resuming session…"),
-            StartupDraftSessionAction::Fork => Some("  Forking session…"),
+            StartupDraftSessionAction::Resume => Some(crate::i18n::tr!("startup-draft-resuming")),
+            StartupDraftSessionAction::Fork => Some(crate::i18n::tr!("startup-draft-forking")),
         };
         if let Some(message) = message
             && header.bottom() < bottom.y

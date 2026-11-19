@@ -329,7 +329,7 @@ impl ChatWidget {
     pub(super) fn iterm_session_detail(&self, status: ProgramStatus) -> Option<&str> {
         (status == ProgramStatus::Working && self.bottom_pane.is_task_running())
             .then_some(self.status_state.current_status.header.as_str())
-            .filter(|detail| *detail != crate::i18n::tr!("status-indicator-working"))
+            .filter(|detail| *detail != crate::i18n::tr!("status-state-working"))
     }
 
     pub(super) fn terminal_title_shows_action_required(&self) -> bool {

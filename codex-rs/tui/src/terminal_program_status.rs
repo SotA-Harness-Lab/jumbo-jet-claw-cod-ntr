@@ -111,7 +111,7 @@ impl ProgramStatus {
             Self::Idle | Self::Done | Self::Error => {
                 crate::i18n::tr!("terminal-program-status-idle")
             }
-            Self::Working => crate::i18n::tr!("terminal-program-status-working"),
+            Self::Working => crate::i18n::tr!("status-state-working"),
             Self::Blocked(_) => crate::i18n::tr!("terminal-program-status-waiting"),
         }
     }

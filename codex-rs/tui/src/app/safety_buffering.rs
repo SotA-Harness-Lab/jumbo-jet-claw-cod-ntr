@@ -52,7 +52,7 @@ impl App {
             self.fail_safety_buffered_branch(
                 input_state,
                 prompt,
-                color_eyre::eyre::eyre!("Wait for permissions to update before forking."),
+                color_eyre::eyre::eyre!(crate::i18n::tr!("safety-buffering-wait-permissions")),
             );
             return;
         }
@@ -70,7 +70,7 @@ impl App {
         } = &mut turn
         else {
             self.chat_widget.add_error_message(
-                "Failed to retry with a faster model: original turn is unavailable.".to_string(),
+                crate::i18n::tr!("safety-buffering-retry-unavailable").to_string(),
             );
             return;
         };
@@ -83,8 +83,10 @@ impl App {
                 .and_then(RuntimePermissionProfileOverride::turn_permission_profile),
         );
         if let Err(err) = turn_permissions_overrides(permissions_override, cwd.as_path()) {
-            self.chat_widget
-                .add_error_message(format!("Failed to retry with a faster model: {err}"));
+            self.chat_widget.add_error_message(crate::i18n::tr!(
+                "safety-buffering-retry-failed",
+                err = err.to_string()
+            ));
             return;
         }
         let daybreak_enabled = self.chat_widget.daybreak_enabled
@@ -111,8 +113,10 @@ impl App {
         });
 
         if let Err(err) = app_server.turn_interrupt(thread_id, turn_id.clone()).await {
-            self.chat_widget
-                .add_error_message(format!("Failed to retry with a faster model: {err}"));
+            self.chat_widget.add_error_message(crate::i18n::tr!(
+                "safety-buffering-retry-failed",
+                err = err.to_string()
+            ));
             return;
         }
 
@@ -146,9 +150,9 @@ impl App {
                         )
                         .await?;
                     if page.next_cursor.is_some() {
-                        color_eyre::eyre::bail!(
-                            "Cannot safely retry a turn whose input exceeds the bounded history page."
-                        );
+                        color_eyre::eyre::bail!(crate::i18n::tr!(
+                            "safety-buffering-input-too-long"
+                        ));
                     }
                     let turn = &mut thread.turns[turn_index];
                     turn.items = page
@@ -272,8 +276,10 @@ impl App {
         );
         self.chat_widget.cancel_safety_buffered_retry_submission();
         self.chat_widget.restore_user_message_to_composer(prompt);
-        self.chat_widget
-            .add_error_message(format!("Failed to retry with a faster model: {err}"));
+        self.chat_widget.add_error_message(crate::i18n::tr!(
+            "safety-buffering-retry-failed",
+            err = err.to_string()
+        ));
     }
 }
 

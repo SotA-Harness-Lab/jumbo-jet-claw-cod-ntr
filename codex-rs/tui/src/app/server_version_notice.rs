@@ -60,8 +60,12 @@ impl App {
                     ServerVersionNoticeKind::Older => "<",
                     ServerVersionNoticeKind::Different => "≠",
                 };
-            Some(format!(
-                "Service v{server} {comparison} Codex CLI v{client_version}{guidance}"
+            Some(crate::i18n::tr!(
+                "server-version-notice-summary",
+                server = server,
+                comparison = comparison,
+                client_version = client_version,
+                guidance = guidance
             ))
         });
     }

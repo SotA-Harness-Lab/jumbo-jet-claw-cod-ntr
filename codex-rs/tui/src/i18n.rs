@@ -52,6 +52,8 @@ pub(crate) fn init(configured: Option<&str>) {
     if let Err(err) = i18n_embed::select(&*LOADER, &Localizations, &requested) {
         tracing::warn!("failed to select the TUI's language: {err}");
     }
+    // Loading a language rebuilds the bundles, which isolate arguments again by default.
+    LOADER.set_use_isolating(false);
 }
 
 /// The message `id` in the selected language as a `&'static str`, for the many places that

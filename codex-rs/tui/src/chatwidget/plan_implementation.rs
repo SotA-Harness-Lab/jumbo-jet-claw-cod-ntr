@@ -6,7 +6,9 @@ use crate::bottom_pane::SelectionItem;
 use crate::bottom_pane::SelectionViewParams;
 use crate::bottom_pane::popup_consts::standard_popup_hint_line;
 
-pub(super) const PLAN_IMPLEMENTATION_TITLE: &str = "Implement this plan?";
+pub(super) fn plan_implementation_title() -> &'static str {
+    crate::i18n::tr!("const-plan-implementation-title")
+}
 pub(super) const PLAN_IMPLEMENTATION_CODING_MESSAGE: &str = "Implement the plan.";
 /// English text of the two disabled reasons, which the tests compare against.
 #[cfg(test)]

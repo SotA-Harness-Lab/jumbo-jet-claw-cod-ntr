@@ -170,10 +170,7 @@ fn activity_summary(item: &ThreadItemPayload) -> Option<String> {
                 .as_ref()
                 .map(|namespace| format!("{namespace}/{tool}"))
                 .unwrap_or_else(|| tool.clone());
-            return bounded_summary(&crate::i18n::tr!(
-                "agent-status-feed-tool",
-                tool = tool
-            ));
+            return bounded_summary(&crate::i18n::tr!("agent-status-feed-tool", tool = tool));
         }
         ThreadItemPayload::CollabAgentToolCall { tool, .. } => {
             let action = match tool {
@@ -214,10 +211,7 @@ fn activity_summary(item: &ThreadItemPayload) -> Option<String> {
         }
         ThreadItemPayload::ImageView { path, .. } => {
             let path = path.render_for_ui();
-            return bounded_summary(&crate::i18n::tr!(
-                "agent-status-feed-viewed",
-                path = path
-            ));
+            return bounded_summary(&crate::i18n::tr!("agent-status-feed-viewed", path = path));
         }
         ThreadItemPayload::ImageGeneration(_) => {
             return Some(crate::i18n::tr!("agent-status-feed-generated-image").to_string());

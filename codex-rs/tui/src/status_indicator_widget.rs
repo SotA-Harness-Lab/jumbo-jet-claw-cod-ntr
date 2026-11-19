@@ -99,7 +99,7 @@ impl StatusIndicatorWidget {
         effects: codex_config::types::TuiEffects,
     ) -> Self {
         Self {
-            header: crate::i18n::tr!("status-indicator-working").to_string(),
+            header: crate::i18n::tr!("status-state-working").to_string(),
             header_started_at: Instant::now(),
             details: None,
             details_max_lines: STATUS_DETAILS_DEFAULT_MAX_LINES,
@@ -256,11 +256,7 @@ impl StatusIndicator<'_> {
             && let Some(interrupt_binding) = row.interrupt_binding
         {
             spans.push(
-                crate::i18n::tr!(
-                    "status-indicator-elapsed-open",
-                    elapsed = pretty_elapsed
-                )
-                .dim(),
+                crate::i18n::tr!("status-indicator-elapsed-open", elapsed = pretty_elapsed).dim(),
             );
             spans.extend(interrupt_binding.spans());
             spans.push(crate::i18n::tr!("status-indicator-to-interrupt").dim());

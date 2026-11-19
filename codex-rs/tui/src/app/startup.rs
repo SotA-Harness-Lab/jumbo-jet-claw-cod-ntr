@@ -116,7 +116,7 @@ pub(super) fn startup_model(
                 bootstrap.default_model.clone()
             }
         })
-        .wrap_err("The initial app-server connection did not provide a startup model.")
+        .wrap_err(crate::i18n::tr!("startup-no-startup-model"))
 }
 
 impl App {
@@ -671,7 +671,8 @@ impl App {
                         app_server,
                         &mut other_backends,
                         color_eyre::eyre::eyre!(
-                            "Permission overrides are not supported when resuming a remote task."
+                            "{}",
+                            crate::i18n::tr!("startup-permission-overrides-resuming")
                         ),
                     )
                     .await;
@@ -823,7 +824,8 @@ impl App {
                         app_server,
                         &mut other_backends,
                         color_eyre::eyre::eyre!(
-                            "Permission overrides are not supported when forking a remote task."
+                            "{}",
+                            crate::i18n::tr!("startup-permission-overrides-forking")
                         ),
                     )
                     .await;
@@ -975,11 +977,7 @@ impl App {
             local_settings.workspace_enabled(&config),
         )
         .map_err(|err| {
-            color_eyre::eyre::eyre!(
-                "Invalid `tui.keymap` configuration: {err}\n\
-Fix the config and retry.\n\
-See the Codex keymap documentation for supported actions and examples."
-            )
+            color_eyre::eyre::eyre!("{}", crate::i18n::tr!("startup-invalid-keymap", err = err))
         });
         let runtime_keymap = startup_try!(runtime_keymap);
         #[cfg(not(debug_assertions))]
@@ -1390,7 +1388,7 @@ See the Codex keymap documentation for supported actions and examples."
                                 crate::terminal_title::TitleEncoding::Unicode,
                             )
                         })
-                        .unwrap_or_else(|| "Default".into())
+                        .unwrap_or_else(|| crate::i18n::tr!("startup-default-environment").into())
                 });
                 app.chat_widget
                     .set_new_backend_control(current_label, environment_name);
@@ -1491,7 +1489,8 @@ See the Codex keymap documentation for supported actions and examples."
                         {
                             tokio::time::sleep_until(deadline).await;
                             color_eyre::eyre::bail!(
-                                "Automatic reconnect timed out waiting for the server to finish shutting down."
+                                "{}",
+                                crate::i18n::tr!("startup-reconnect-timed-out")
                             );
                         }
                         attempt.await
@@ -1544,7 +1543,7 @@ See the Codex keymap documentation for supported actions and examples."
                     }, if app.daemon_restart.is_some() => {
                         app.daemon_restart = None;
                         if let Err(err) = result.unwrap_or_else(|err| Err(err.into())) {
-                            app.chat_widget.add_error_message(format!("Could not restart the background server: {err:#}"));
+                            app.chat_widget.add_error_message(crate::i18n::tr!("startup-could-not-restart-server", err = format!("{err:#}")));
                         }
                         AppRunControl::Continue
                     }
@@ -1771,7 +1770,7 @@ See the Codex keymap documentation for supported actions and examples."
                                 app.chat_widget.reconnect_failed();
                                 app.chat_widget.add_error_message(error.to_string());
                                 if let Ok(mut state) = app.agents_overview.view_state.lock() {
-                                    state.connection_notice = Some("Reconnect failed — agent list is stale; relaunch to retry");
+                                    state.connection_notice = Some(crate::i18n::tr!("startup-reconnect-failed-stale"));
                                 }
                             }
                         }

@@ -236,10 +236,7 @@ impl ChatWidget {
         let current = audio.microphone_channel;
         let count = microphone.channels;
         let picker = MultiSelectPicker::builder(
-            crate::i18n::tr!(
-                "realtime-settings-microphone",
-                name = microphone.name
-            ),
+            crate::i18n::tr!("realtime-settings-microphone", name = microphone.name),
             Some(crate::i18n::tr!("realtime-settings-select-channels").into()),
             self.app_event_tx.clone(),
         )

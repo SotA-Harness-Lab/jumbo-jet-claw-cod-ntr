@@ -120,7 +120,7 @@ impl RequestUserInputOverlay {
         let unanswered = self.unanswered_question_count();
         let subtitle = crate::i18n::tr!("request-input-unanswered", count = unanswered);
         UnansweredConfirmationData {
-            title_line: Line::from(super::UNANSWERED_CONFIRM_TITLE.bold()),
+            title_line: Line::from(super::unanswered_confirm_title().bold()),
             subtitle_line: Line::from(subtitle.dim()),
             hint_line: standard_popup_hint_line(),
             rows: self.unanswered_confirmation_rows(),

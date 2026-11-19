@@ -331,7 +331,9 @@ use self::side_companion::SideCompanion;
 use self::startup_prompts::*;
 use self::thread_events::*;
 
-const EXTERNAL_EDITOR_HINT: &str = "Save and close external editor to continue.";
+fn external_editor_hint() -> &'static str {
+    crate::i18n::tr!("app-external-editor-hint")
+}
 const THREAD_EVENT_CHANNEL_CAPACITY: usize = 32768;
 
 enum ThreadInteractiveRequest {

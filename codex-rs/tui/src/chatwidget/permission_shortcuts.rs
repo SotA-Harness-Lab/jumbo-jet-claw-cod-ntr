@@ -22,7 +22,7 @@ impl ChatWidget {
             return true;
         }
         if self.blocks_direct_input {
-            self.add_error_message(PARENT_OWNED_INPUT_MESSAGE.to_string());
+            self.add_error_message(parent_owned_input_message().to_string());
             return true;
         }
         let Some(thread_id) = self.thread_id else {
@@ -103,9 +103,9 @@ impl ChatWidget {
                         |active| active.id == preset.active_permission_profile.id,
                     );
                 let label = match (preset.id, reviewer) {
-                    ("auto", ApprovalsReviewer::User) => ASK_FOR_APPROVAL_LABEL,
-                    ("auto", ApprovalsReviewer::AutoReview) => APPROVE_FOR_ME_LABEL,
-                    _ => preset.label,
+                    ("auto", ApprovalsReviewer::User) => ask_for_approval_label(),
+                    ("auto", ApprovalsReviewer::AutoReview) => approve_for_me_label(),
+                    _ => preset_label(&preset),
                 };
                 choices.push((
                     is_current,

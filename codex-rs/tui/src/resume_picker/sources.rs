@@ -95,7 +95,7 @@ pub(super) fn spawn(
                                 awaiting_completion = Some(request);
                             } else {
                                 let page = if workers.is_empty() {
-                                    Err(std::io::Error::other("No session backends are available."))
+                                    Err(std::io::Error::other(crate::i18n::tr!("sources-no-backends")))
                                 } else {
                                     Ok(completion_page(&catalog, &failed))
                                 };
@@ -119,7 +119,7 @@ pub(super) fn spawn(
                             if let Some(worker) = workers.get(&backend) {
                                 worker(request);
                             } else {
-                                let error = std::io::Error::other("The session's backend is unavailable.");
+                                let error = std::io::Error::other(crate::i18n::tr!("sources-backend-unavailable"));
                                 let event = match request {
                                     PickerLoadRequest::Preview { thread_id, .. } => BackgroundEvent::Preview { backend_id: backend, thread_id, preview: Err(error) },
                                     PickerLoadRequest::Acknowledge { .. } => continue,
@@ -144,7 +144,7 @@ pub(super) fn spawn(
                                 request_token: pending_page.request.request_token,
                                 search_token: pending_page.request.search_token,
                                 mode: pending_page.request.mode,
-                                page: Err(std::io::Error::other("The session backend disconnected.")),
+                                page: Err(std::io::Error::other(crate::i18n::tr!("sources-backend-disconnected"))),
                             }
                         }
                     };

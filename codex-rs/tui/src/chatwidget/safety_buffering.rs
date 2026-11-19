@@ -188,7 +188,7 @@ impl ChatWidget {
         };
         self.bottom_pane.ensure_status_indicator();
         self.set_status(
-            crate::i18n::tr!("safety-buffering-working").to_string(),
+            crate::i18n::tr!("status-state-working").to_string(),
             Some(status_details),
             StatusDetailsCapitalization::Preserve,
             /*details_max_lines*/ 6,

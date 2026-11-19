@@ -14,7 +14,7 @@ use crate::bottom_pane::slash_commands::BuiltinCommandFlags;
 use crate::bottom_pane::slash_commands::ServiceTierCommand;
 use crate::bottom_pane::slash_commands::SlashCommandItem;
 use crate::bottom_pane::slash_commands::find_slash_command;
-use crate::goal_display::GOAL_USAGE;
+use crate::goal_display::goal_usage;
 use crate::goal_files::GoalDraft;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -329,7 +329,7 @@ impl ChatWidget {
             }
             SlashCommand::Compact => {
                 if self.blocks_direct_input {
-                    self.add_error_message(PARENT_OWNED_INPUT_MESSAGE.to_string());
+                    self.add_error_message(parent_owned_input_message().to_string());
                     return;
                 }
                 self.clear_token_usage();
@@ -338,8 +338,8 @@ impl ChatWidget {
                 }
                 self.bottom_pane.ensure_status_indicator();
                 self.set_status(
-                    compaction::COMPACTION_HEADER.to_string(),
-                    Some(compaction::COMPACTION_DETAILS.to_string()),
+                    compaction::compaction_header().to_string(),
+                    Some(compaction::compaction_details().to_string()),
                     StatusDetailsCapitalization::Preserve,
                     STATUS_DETAILS_DEFAULT_MAX_LINES,
                 );
@@ -387,7 +387,7 @@ impl ChatWidget {
                     self.append_message_history_entry("/goal".to_string());
                 } else {
                     self.add_info_message(
-                        GOAL_USAGE.to_string(),
+                        goal_usage().to_string(),
                         Some(crate::i18n::tr!("slash-dispatch-goal-example").to_string()),
                     );
                 }
@@ -513,10 +513,7 @@ impl ChatWidget {
                                     crate::i18n::tr!("slash-dispatch-diff-not-git").to_string()
                                 }
                             }
-                            Err(e) => crate::i18n::tr!(
-                                "slash-dispatch-diff-failed",
-                                error = e
-                            ),
+                            Err(e) => crate::i18n::tr!("slash-dispatch-diff-failed", error = e),
                         },
                         None => crate::i18n::tr!("slash-dispatch-diff-no-runner").to_string(),
                     };
@@ -1019,7 +1016,7 @@ impl ChatWidget {
                     self.reasoning_buffer.clear();
                     self.reasoning_header = None;
                     self.reasoning_summary_parts.clear();
-                    self.set_status_header(crate::i18n::tr!("slash-dispatch-working").to_string());
+                    self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
                     self.submit_user_message_with_shell_escape_policy(
                         user_message,
                         ShellEscapePolicy::Disallow,
@@ -1061,7 +1058,7 @@ impl ChatWidget {
                 if let Some(command) = control_command {
                     let Some(thread_id) = self.thread_id else {
                         self.add_info_message(
-                            GOAL_USAGE.to_string(),
+                            goal_usage().to_string(),
                             Some(
                                 crate::i18n::tr!("slash-dispatch-goal-change-before-start")
                                     .to_string(),
@@ -1122,7 +1119,7 @@ impl ChatWidget {
                         self.clear_live_goal_submission();
                     } else {
                         self.add_info_message(
-                            GOAL_USAGE.to_string(),
+                            goal_usage().to_string(),
                             Some(
                                 crate::i18n::tr!("slash-dispatch-goal-set-before-start")
                                     .to_string(),

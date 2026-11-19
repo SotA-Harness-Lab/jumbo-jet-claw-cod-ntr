@@ -187,7 +187,9 @@ use uuid::Uuid;
 pub(crate) const JSONRPC_INVALID_REQUEST: i64 = -32600;
 const JSONRPC_METHOD_NOT_FOUND: i64 = -32601;
 const JSONRPC_INVALID_PARAMS: i64 = -32602;
-pub(crate) const EXTERNAL_AGENT_CONFIG_IMPORT_IN_PROGRESS_MESSAGE: &str = "A previous external agent import is still running. Wait for it to finish before importing again.";
+pub(crate) fn external_agent_config_import_in_progress_message() -> &'static str {
+    crate::i18n::tr!("const-external-agent-config-import-in-progress-message")
+}
 const THREAD_SETTINGS_UPDATE_METHOD: &str = "thread/settings/update";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1066,9 +1068,7 @@ impl AppServerSession {
                     .and_then(|defaults| defaults.model.clone()),
             });
         if default_model.is_none() && self.thread_params_mode != ThreadParamsMode::Cloud {
-            color_eyre::eyre::bail!(
-                "No models are available. Set `model` explicitly or check your model catalog configuration."
-            );
+            color_eyre::eyre::bail!(crate::i18n::tr!("app-server-session-no-models"));
         }
         self.default_model.clone_from(&default_model);
         self.available_models = available_models.clone();
@@ -1175,9 +1175,7 @@ impl AppServerSession {
         if self.thread_params_mode.settings_owner() == ThreadSettingsOwner::Server
             && selected_profile.is_some()
         {
-            color_eyre::eyre::bail!(
-                "Cloud conversations currently use server-selected permissions."
-            );
+            color_eyre::eyre::bail!(crate::i18n::tr!("app-server-session-cloud-permissions"));
         }
         let request_id = self.next_request_id();
         let session_config = self.session_config_with_effective_service_tier(config);
@@ -1405,7 +1403,10 @@ impl AppServerSession {
                 Ok(_) if storage == SideChatStorage::Attached => {
                     match side_context_checkpoint(thread.session.rollout_path.as_deref()).await {
                         Ok(Some(_)) => Ok(()),
-                        Ok(None) => Err("Side conversation context was not saved".to_string()),
+                        Ok(None) => Err(crate::i18n::tr!(
+                            "app-server-session-side-context-not-saved"
+                        )
+                        .to_string()),
                         Err(err) => Err(err.to_string()),
                     }
                 }
@@ -1417,9 +1418,11 @@ impl AppServerSession {
                 if let Err(error) = view.thread_delete(child).await {
                     tracing::warn!(%child, %error, "failed to roll back attached side chat");
                 } else {
-                    color_eyre::eyre::bail!(
-                        "Failed to prepare side conversation {child}: {message}"
-                    );
+                    color_eyre::eyre::bail!(crate::i18n::tr!(
+                        "app-server-session-side-prepare-failed",
+                        child = child.to_string(),
+                        message = message.as_str()
+                    ));
                 }
             }
             Ok(SidebarFork {
@@ -1488,7 +1491,9 @@ impl AppServerSession {
         config_source: ForkConfigSource,
     ) -> Result<AppServerStartedThread> {
         if self.thread_params_mode == ThreadParamsMode::Cloud {
-            color_eyre::eyre::bail!("Cloud conversations cannot be forked in the TUI yet.");
+            color_eyre::eyre::bail!(crate::i18n::tr!(
+                "app-server-session-cloud-fork-unsupported"
+            ));
         }
         self.thread_tool_transport()
             .check_namespace(&self.request_handle, &config.cwd)
@@ -2044,11 +2049,10 @@ impl AppServerSession {
         let gate = self.automatic_name_writes.get(&thread_id).cloned();
         let _permit = match &gate {
             // The UI awaits manual renames. Never hold it up behind a native Cloud RPC.
-            Some(gate) if matches!(&self.request_handle, AppServerRequestHandle::Cloud(_)) => {
-                Some(gate.try_acquire().wrap_err(
-                    "An automatic title is still being saved. Try renaming the thread again.",
-                )?)
-            }
+            Some(gate) if matches!(&self.request_handle, AppServerRequestHandle::Cloud(_)) => Some(
+                gate.try_acquire()
+                    .wrap_err(crate::i18n::tr!("app-server-session-title-saving"))?,
+            ),
             Some(gate) => Some(gate.acquire().await?),
             None => None,
         };

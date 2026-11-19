@@ -164,9 +164,9 @@ impl FileSearch {
 
     fn empty_message(&self) -> &'static str {
         if self.waiting {
-            "loading..."
+            crate::i18n::tr!("mentions-v2-popup-loading")
         } else {
-            "no matches"
+            crate::i18n::tr!("mentions-v2-popup-no-matches")
         }
     }
 }

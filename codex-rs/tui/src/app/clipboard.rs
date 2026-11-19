@@ -18,7 +18,8 @@ impl App {
                 let result = tui
                     .clipboard
                     .copy(text, CopyFormat::Markdown, tui.frame_requester());
-                self.chat_widget.show_copy_result("last message", result);
+                self.chat_widget
+                    .show_copy_result(crate::i18n::tr!("clipboard-last-message"), result);
             }
             KeyEventAction::PasteImage {
                 text_fallback,

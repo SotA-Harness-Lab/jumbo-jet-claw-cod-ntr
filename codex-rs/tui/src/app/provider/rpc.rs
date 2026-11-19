@@ -14,8 +14,9 @@ use codex_app_server_protocol::ProviderSettingsPatch;
 use codex_app_server_protocol::RequestId;
 use uuid::Uuid;
 
-pub(crate) const UNCONFIRMED_CREATE: &str =
-    "Could not confirm the save. Check the provider list before adding it again.";
+pub(crate) fn unconfirmed_create() -> &'static str {
+    crate::i18n::tr!("const-unconfirmed-create")
+}
 
 pub(crate) enum ProviderWrite {
     Saved(ModelProviderSummary),
@@ -84,14 +85,14 @@ pub(crate) fn override_reason(response: ConfigWriteResponse) -> String {
     response
         .overridden_metadata
         .map(|metadata| metadata.message)
-        .unwrap_or_else(|| "A higher-priority setting overrides this choice.".into())
+        .unwrap_or_else(|| crate::i18n::tr!("provider-rpc-override-reason").into())
 }
 
 pub(super) fn request_error(err: TypedRequestError) -> String {
     if unsupported_method(&err) {
-        return "Update the connected app server to browse model providers.".into();
+        return crate::i18n::tr!("provider-rpc-update-server").into();
     }
-    format!("Could not load model providers: {err}")
+    crate::i18n::tr!("provider-rpc-load-failed", err = err.to_string())
 }
 
 pub(super) fn unsupported_method(err: &TypedRequestError) -> bool {

@@ -55,9 +55,11 @@ use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
 
+#[cfg(test)]
 const NO_PREVIOUS_MESSAGE_TO_EDIT: &str = "No previous message to edit.";
-pub(crate) const SIDE_EDIT_PREVIOUS_UNAVAILABLE_MESSAGE: &str =
-    "Editing previous prompts is unavailable in side conversations.";
+pub(crate) fn side_edit_previous_unavailable_message() -> &'static str {
+    crate::i18n::tr!("const-side-edit-previous-unavailable-message")
+}
 
 /// Aggregates all backtrack-related state used by the App.
 #[derive(Default)]
@@ -159,7 +161,7 @@ impl App {
         if self.chat_widget.side_conversation_active() {
             self.reset_backtrack_state();
             self.chat_widget
-                .add_error_message(SIDE_EDIT_PREVIOUS_UNAVAILABLE_MESSAGE.to_string());
+                .add_error_message(side_edit_previous_unavailable_message().to_string());
             return;
         }
 
@@ -185,8 +187,10 @@ impl App {
         err: impl std::fmt::Display,
     ) {
         self.chat_widget.restore_user_message_to_composer(prompt);
-        self.chat_widget
-            .add_error_message(format!("Failed to edit the selected prompt: {err:#}"));
+        self.chat_widget.add_error_message(crate::i18n::tr!(
+            "app-backtrack-edit-failed",
+            error = format!("{err:#}")
+        ));
     }
 
     /// Show detailed history in the owned viewport or the inline session's transcript overlay.
@@ -280,8 +284,10 @@ impl App {
     fn open_backtrack_preview(&mut self, tui: &mut tui::Tui) {
         if !has_backtrack_target(&self.transcript_cells) && !self.scrollback_has_older_history {
             self.reset_backtrack_state();
-            self.chat_widget
-                .add_info_message(NO_PREVIOUS_MESSAGE_TO_EDIT.to_string(), /*hint*/ None);
+            self.chat_widget.add_info_message(
+                crate::i18n::tr!("app-backtrack-no-previous-message").to_string(),
+                /*hint*/ None,
+            );
             tui.frame_requester().schedule_frame();
             return;
         }
@@ -298,8 +304,10 @@ impl App {
     fn begin_overlay_backtrack_preview(&mut self, tui: &mut tui::Tui) {
         if !has_backtrack_target(&self.transcript_cells) && !self.scrollback_has_older_history {
             self.close_transcript_overlay(tui);
-            self.chat_widget
-                .add_info_message(NO_PREVIOUS_MESSAGE_TO_EDIT.to_string(), /*hint*/ None);
+            self.chat_widget.add_info_message(
+                crate::i18n::tr!("app-backtrack-no-previous-message").to_string(),
+                /*hint*/ None,
+            );
             tui.frame_requester().schedule_frame();
             return;
         }
@@ -587,7 +595,7 @@ pub(crate) fn backtrack_revert_before_turn_id(
                     .map(|item| (index, item))
             })
             .ok_or_else(|| {
-                color_eyre::eyre::eyre!("the loaded history boundary no longer exists")
+                color_eyre::eyre::eyre!(crate::i18n::tr!("app-backtrack-boundary-missing"))
             })?,
         None => (0, 0),
     };
@@ -660,10 +668,10 @@ pub(crate) fn backtrack_revert_before_turn_id(
             }
 
             if is_steer {
-                bail!("the selected prompt is a steer and cannot be edited independently");
+                bail!("{}", crate::i18n::tr!("app-backtrack-steer"));
             }
             if matches!(turn.status, TurnStatus::InProgress) {
-                bail!("the selected prompt belongs to a turn that is still in progress");
+                bail!("{}", crate::i18n::tr!("app-backtrack-in-progress"));
             }
 
             let selected_local_images = prompt.local_images.iter().map(|image| &image.path);
@@ -672,7 +680,7 @@ pub(crate) fn backtrack_revert_before_turn_id(
                 || prompt.remote_image_urls != display.remote_image_urls
                 || !selected_local_images.eq(display.local_images.iter())
             {
-                bail!("the selected transcript prompt no longer matches the persisted thread");
+                bail!("{}", crate::i18n::tr!("app-backtrack-mismatch"));
             }
             prompt.mention_bindings = mention_bindings_from_user_inputs(content, &display.message);
 
@@ -680,7 +688,7 @@ pub(crate) fn backtrack_revert_before_turn_id(
         }
     }
 
-    bail!("the selected prompt was not found in the persisted thread");
+    bail!("{}", crate::i18n::tr!("app-backtrack-not-found"));
 }
 
 /// Returns whether a turn is the reconstructed inline-review child with duplicated prompt inputs.

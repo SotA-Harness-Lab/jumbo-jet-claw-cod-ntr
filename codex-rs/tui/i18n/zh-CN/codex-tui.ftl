@@ -633,14 +633,12 @@ thread-usage-tokens-output = 输出 { $tokens }
 thread-usage-group-share = { $name } { $percentage }%
 
 ## codex-rs/tui/src/status_indicator_widget.rs
-status-indicator-working = 运行中
 status-indicator-elapsed-open = ({ $elapsed } •{" "}
 status-indicator-to-interrupt = {" "}中断)
 status-indicator-separator = {" "}·{" "}
 
 ## codex-rs/tui/src/terminal_program_status.rs
 terminal-program-status-idle = 空闲
-terminal-program-status-working = 运行中
 terminal-program-status-waiting = 等待中
 
 ## codex-rs/tui/src/chatwidget/status_surfaces.rs
@@ -1215,7 +1213,6 @@ clipboard-copy-failed = 复制失败: { $error }
 command-lifecycle-waiting-bg-terminal = 正在等待后台终端
 
 ## codex-rs/tui/src/chatwidget/compaction.rs
-compaction-working = 运行中
 compaction-context-compacted = 上下文已压缩
 compaction-context-compacted-elapsed = 上下文已压缩 · { $elapsed }
 
@@ -1299,7 +1296,6 @@ image-submission-failed-image = 准备图片失败: { $path }: { $error }
 input-flow-preparing-images = 正在准备图片: { $text }
 input-flow-cannot-switch-mode = 轮次运行期间无法切换协作模式。
 
-input-flow-working = 运行中
 ## codex-rs/tui/src/chatwidget/input_restore.rs
 input-restore-interrupted-for-steer = 模型已中断，以提交引导指令。
 input-restore-goal-budget-reached = 已达到目标预算，本轮已停止。
@@ -1379,7 +1375,7 @@ model-popups-plus-rate-limit-warning = ⚠ { $effort_label } 推理强度会很�
 model-popups-default-suffix = {" "}（默认）
 model-popups-and = 和
 model-popups-more-reasoning = 更多推理…
-model-popups-advanced-consumes = { $label } 会更快消耗用量限额
+model-popups-advanced-consumes = { $label }会更快消耗用量限额
 model-popups-select-reasoning-level = 为 { $model_label } 选择推理级别
 model-popups-max-description = 适用于质量比速度更重要的困难问题 · 用量较高
 model-popups-ultra-description = 适用于使用多个代理的高要求工作 · 用量最高
@@ -1898,7 +1894,6 @@ review-popups-type-instructions = 输入说明后按 Enter
 safety-buffering-header = 正在为此请求多花一点思考
 safety-buffering-message-with-retry = 如果不想等待，可以换用更快的模型重试。它处理复杂请求的能力可能较弱。
 safety-buffering-footer = 无需操作。Codex 会继续等待，回复就绪后此菜单会关闭。
-safety-buffering-working = 运行中
 safety-buffering-retry-faster = 换用更快的模型重试
 safety-buffering-dismiss-keep-waiting = 关闭并继续等待
 safety-buffering-learn-more = 了解更多
@@ -2011,7 +2006,6 @@ tool-requests-question-requested = 已请求提问
 tool-requests-questions-requested = 已请求 { $count } 个问题
 
 ## codex-rs/tui/src/chatwidget/turn_runtime.rs
-turn-runtime-working = 运行中
 turn-runtime-websocket-timing = WebSocket 耗时：{ $label }
 turn-runtime-percent-used = 已使用 { $used_percent }%
 turn-runtime-tokens-used = 已用 { $tokens }
@@ -2175,7 +2169,6 @@ slash-dispatch-goal-change-before-start = 会话启动后才能更改目标。
 slash-dispatch-goal-set-before-start = 会话启动后才能设置目标。
 slash-dispatch-unrecognized = 无法识别的命令 '/{ $name }'。输入 "/" 查看支持的命令列表。
 slash-dispatch-review-running = 代码审查进行中时，'/{ $command }' 不可用。
-slash-dispatch-working = 运行中
 
 ## codex-rs/tui/src/history_cell/async_replies.rs
 async-replies-re = 回复：
@@ -2696,3 +2689,2035 @@ config-persistence-refresh-approve-failed = 无法刷新被覆盖的“替我批
 config-persistence-refresh-approve-failed-prefix = 无法刷新被覆盖的“替我批准”设置
 config-persistence-windows-sandbox-overridden = Windows 沙箱设置已完成，但其模式被生效的配置覆盖。
 config-persistence-overridden-by-layer = 生效的配置被更高优先级的层覆盖
+
+## app/provider/rpc.rs
+
+provider-rpc-override-reason = 更高优先级的设置会覆盖此选择。
+provider-rpc-update-server = 请更新已连接的 app-server 以浏览模型提供方。
+provider-rpc-load-failed = 无法加载模型提供方：{ $err }
+
+## app/resume_config.rs
+
+resume-config-cwd-needs-cd = `tui.resume_cwd = "current"` 在使用远程工作区时需要 `--cd`
+resume-config-cwd-failed = 为恢复确定工作目录失败：{ $err }
+resume-config-rebuild-failed = 为恢复重新构建配置失败：{ $err }
+resume-config-check-folder-failed = 无法检查恢复的文件夹：{ $error }
+resume-config-check-trust-failed = 无法检查文件夹信任：{ $error }
+resume-config-reload-trust-failed = 重新加载受信任文件夹设置失败：{ $error }
+resume-config-load-hooks-failed = 无法加载文件夹 hooks：{ $error }
+resume-config-review-hooks-failed = 无法审查文件夹 hooks：{ $error }
+
+## daybreak.rs
+
+daybreak-requires-openai = Daybreak 需要 OpenAI 提供方，并且使用 ChatGPT 登录或启用了 Daybreak 支持的 API 密钥。请先将其关闭再继续。
+daybreak-unconfirmed = 已连接的服务器无法确认模型 { $model } 支持 Daybreak。请使用 /daybreak 将其关闭，或选择兼容的模型和服务器。
+
+## device_login.rs
+
+device-login-gateway-failed = 网关登录失败
+device-login-lost-result = 丢失了网关登录结果。请重启 Codex 以检查连接。
+
+## external_agent_config_migration/flow.rs
+
+import-flow-source-error = { $source }：{ $error }
+import-flow-check-failed = 无法检查可导入的设置：{ $errors }
+import-flow-started = 导入已开始。
+import-flow-keep-working = {" "}完成前你可以继续工作。
+import-flow-applies-new-chats = 导入的设置将应用于新对话。
+import-flow-importing = 正在导入：
+import-flow-more = ，另有 { $count } 项
+import-flow-failed-count = { $count } 项失败
+import-flow-finished = 导入完成：
+import-flow-imported-count = 已导入 { $count } 项
+import-flow-results-by-type = 按类型统计：
+import-flow-run-again = 请再次运行 /import 检查其他项目。
+import-flow-remaining = 还剩 { $count } 个项目。完成后请再次运行 /import 进行查看。
+import-flow-source-gone = 所选导入来源已不可用。
+import-flow-failed = 导入失败：{ $err }
+
+## goal_files.rs
+
+goal-files-empty = 目标不能为空。
+goal-files-reference-too-long = 目标文件引用过长：{ $actual_chars } 个字符。上限：{ $limit } 个字符。
+
+## lib.rs
+
+lib-workload-identity-remote-host = workload identity 必须在远程 app-server 主机上配置
+lib-config-selects-other-provider = 当前配置选用的是 { $current }，而不是 { $selected_id }。
+lib-no-saved-session = 未找到 ID 为 { $id_str } 的已保存会话。请运行不带 ID 的 `codex { $action }`，从现有会话中选择。
+lib-cloud-connection-failed = 无法添加云端连接。{ $error }
+lib-restore-terminal-failed = 无法还原终端。请运行 `reset` 或重启终端以恢复：{ $err }
+lib-config-load-error = 加载配置出错：{ $err }
+lib-config-toml-error-detail = 加载 config.toml 出错：{"\u000A"}{ $detail }
+lib-config-toml-error = 加载 config.toml 出错：{ $err }
+
+## startup_draft_input.rs
+
+startup-draft-waiting = 等待启动
+startup-draft-cancel = 取消
+
+## startup_recovery.rs
+
+startup-recovery-unsent-draft = {"\u000A"}未发送的草稿：{"\u000A"}{ $text }{"\u000A"}
+
+## theme_picker.rs
+
+theme-picker-fallback-subtitle = 上下移动以实时预览主题
+theme-picker-custom-subtitle = 可以把自定义的 .tmTheme 文件添加到 { $path } 目录中。
+theme-picker-custom-name = { $name }（自定义）
+theme-picker-title = 选择语法主题
+theme-picker-search = 输入以筛选主题…
+
+## pager_overlay/transcript.rs
+
+pager-transcript-latest = { $key } 最新
+pager-transcript-select = { $key } 选择
+pager-transcript-selection = 所选内容
+pager-transcript-open-link-failed = 无法打开链接：{ $error }
+pager-transcript-close = 关闭
+pager-transcript-find = 查找
+pager-transcript-browse-prompts = 浏览提示词
+pager-transcript-edit-next = 编辑下一条
+pager-transcript-edit-message = 编辑消息
+
+## thread_transcript.rs
+
+thread-transcript-empty = 没有可用的对话内容
+
+## app/clipboard.rs
+
+clipboard-last-message = 最后一条消息
+
+## app/resize_reflow.rs
+
+resize-reflow-earlier-messages = 更早的消息可用，按 { $key } 查看完整对话记录
+
+## transcript_view/turn_details.rs
+
+turn-details-ran = 已运行 { $ran } 个命令
+turn-details-explored = 探索文件
+turn-details-explored-ran = 探索文件 · 已运行 { $ran } 个命令
+turn-details-tool-calls = { $count } 个工具调用 · { $label }
+turn-details-previous-messages = { $count } 条之前的消息
+
+## app/event_dispatch.rs
+
+event-dispatch-open-this-task-before-using = 使用该操作前请先打开此任务。
+event-dispatch-windows-sandbox-setup-requires-loca = Windows 沙箱设置需要本地连接和执行器。
+event-dispatch-a-worktree-is-already-being = 正在创建 worktree。
+event-dispatch-changing-directories-requires-an-id = 切换目录要求主会话空闲且没有排队的输入。
+event-dispatch-changing-directories-is-not-support = 远程工作区或远程执行环境不支持切换目录。
+event-dispatch-export-failed = 导出失败：{ $error }
+event-dispatch-nothing-to-copy = 没有可复制的内容
+event-dispatch-no-saved-chat-found-matching = 未找到与 '{ $id_or_name }' 匹配的已保存对话。
+event-dispatch-failed-to-archive-thread = 归档会话 { $thread_id } 失败：{ $error }
+event-dispatch-wait-for-permissions-to-update = 分叉前请等待权限更新完成。
+event-dispatch-failed-to-name-the-forked = 为分叉出的会话命名失败：{ $err }
+event-dispatch-fork-created-you-can-continue = 已创建分叉。你可以在此继续。
+event-dispatch-failed-to-attach-to-forked = 连接到分叉出的 app-server 会话失败：{ $err }
+event-dispatch-failed-to-fork-current-session = 通过 app-server 分叉当前会话失败：{ $err }
+event-dispatch-a-thread-must-contain-at = 会话至少包含一个轮次才能分叉。
+event-dispatch-this-remote-prompt-contains-local = 这条远程提示包含无法安全还原的本地图片路径或命令语法。请重新输入消息并重新附加图片。
+event-dispatch-wait-for-permissions-to-update-2 = 编辑此提示前请等待权限更新完成。
+event-dispatch-quit-and-stop-running-sessions = 退出并停止正在运行的会话？
+event-dispatch-quitting-this-tui-will-stop = 退出此 TUI 将停止其正在运行的会话。
+event-dispatch-stay-in-codex = 留在 Codex
+event-dispatch-stop-sessions-and-quit = 停止会话并退出
+event-dispatch-failed-to-interrupt-task = 无法中断任务: { $error }
+event-dispatch-failed-to-pause-task-goal = 无法暂停任务目标: { $error }
+event-dispatch-logout-failed = 退出登录失败: { $err }
+event-dispatch-failed-to-start-turn = 无法开始轮次: { $err }
+event-dispatch-voice-conversation-failed = 语音对话失败: { $err }
+event-dispatch-no-changes-detected = 未检测到更改。
+event-dispatch-mcp-sign-in-is-starting = MCP 登录正在开始。请等待其完成后再试。
+event-dispatch-voice-conversation-failed-2 = 语音对话失败: { $error }
+event-dispatch-cloud-model-catalog-account-changed = 云端模型目录的账号已更改。
+event-dispatch-failed-to-save-default-model = 无法保存默认模型: { $error }
+event-dispatch-model-changed-to-for-this = 此对话的模型已切换为 { $model } { $effort }
+event-dispatch-sandbox-ready = 沙箱已就绪
+event-dispatch-codex-can-now-safely-edit = Codex 现在可以在你的电脑上安全地编辑文件和执行命令
+event-dispatch-daybreak-has-been-turned-off = 由于你当前的账号和服务器无法使用 { $model } 的 Daybreak，新轮次已关闭 Daybreak。此会话中先前的网络安全上下文可能导致拒绝。你可以切换回拥有 Daybreak 权限的模型，并使用 /daybreak 重新开启。
+event-dispatch-cyber-models-default-to-approve = 出于安全考虑，网络安全模型默认使用 "为我批准"。
+event-dispatch-the-selected-cloud-model-does = 所选云端模型不支持该速度。
+event-dispatch-selected-speed-for-the-next = 已为此对话的下一个新轮次选择 { $label } 速度
+event-dispatch-the-cloud-account-changed-reopen = 云端账号已更改。选择速度前请重新打开对话。
+event-dispatch-service-tier-set-to = 服务层级已设为 { $service_tier }
+event-dispatch-service-tier-cleared = 服务层级已清除
+event-dispatch-failed-to-set-permission-profile = 无法设置权限配置文件: { $err }
+event-dispatch-failed-to-save-rate-limit = 无法保存速率限制提醒偏好: { $err }
+event-dispatch-failed-to-save-plan-mode = 无法保存计划模式推理强度: { $err }
+event-dispatch-failed-to-save-model-migration = 无法保存模型迁移提示偏好: { $err }
+event-dispatch-close-the-side-conversation-before = 分叉另一个任务前，请先关闭侧边对话。
+event-dispatch-failed-to-rename-task = 无法重命名任务: { $error }
+event-dispatch-could-not-open-file = 无法打开文件: { $error }
+event-dispatch-failed-to-update-skill-config = 无法更新 { $path_display } 的 skill 配置: { $err }
+event-dispatch-failed-to-update-app-config = 无法更新 { $id } 的应用配置: { $err }
+event-dispatch-environment = 环境：
+event-dispatch-reason = 原因：
+event-dispatch-permission-rule = 权限规则：
+event-dispatch-server = 服务器：
+event-dispatch-failed-to-save-status-line = 保存状态栏设置失败：{ $error }
+event-dispatch-failed-to-save-terminal-title = 保存终端标题项失败：{ $err }
+event-dispatch-failed-to-open-setting-because = 无法打开设置，因为清除终端输入失败：{ $err }
+event-dispatch-failed-to-save-theme = 保存主题失败：{ $err }
+event-dispatch-wait-for-the-current-task = 运行 /recap 前请等待当前任务完成。
+event-dispatch-failed-to-save-shortcut = 保存快捷键失败：{ $err }
+event-dispatch-failed-to-refresh-shortcuts = 刷新快捷键失败：{ $err }
+event-dispatch-removed-custom-shortcut-for = 已移除 `{ $context }.{ $action }` 的自定义快捷键。
+event-dispatch-failed-to-remove-shortcut = 移除快捷键失败：{ $err }
+event-dispatch-a-thread-must-start-before = 会话必须先启动才能归档。
+event-dispatch-archiving = 正在归档…
+event-dispatch-failed-to-archive-current-thread = 归档当前会话失败：{ $error }
+event-dispatch-a-thread-must-start-before-2 = 会话必须先启动才能删除。
+event-dispatch-failed-to-delete-current-thread = 删除当前会话失败：{ $err }
+event-dispatch-worktree-removed = 已移除 { $path } 处的 worktree。会话历史已保留。
+event-dispatch-worktree-remove-failed = 无法移除 { $path } 处的 worktree：{ $error }
+event-dispatch-not-directory = 不是目录：{ $path }
+event-dispatch-cannot-access-dir = 无法访问目录 { $path }：{ $error }
+event-dispatch-save-reviewer-failed = 无法保存审批审核者：{ $error }
+
+## bottom_pane/request_user_input/mod.rs
+
+request-input-add-notes = 添加备注
+request-input-answer-placeholder = 输入你的回答（可选）
+request-input-select-option = 选择一个选项以添加备注
+request-input-none-of-above = 以上都不是
+request-input-other-desc = 可在备注中补充详情（tab）
+request-input-go-back-desc = 返回第一个未回答的问题
+request-input-go-back = 返回
+request-input-proceed = 继续提交
+request-input-submit-unanswered = 有 { $count } 个问题未回答，仍要提交
+request-input-auto-resolves = { $time } 后自动处理
+request-input-question-progress = 问题 { $idx }/{ $total }
+request-input-question-progress-unanswered = 问题 { $idx }/{ $total }（{ $unanswered } 个未回答）
+request-input-no-questions = 没有问题
+request-input-to-add-notes = 添加备注
+request-input-or = {" "}或{" "}
+request-input-to-clear-notes = {" "}清除备注
+request-input-to-submit-answer = 提交回答
+request-input-to-submit-all = 全部提交
+request-input-to-navigate = 切换问题
+request-input-change-question = 切换问题
+request-input-to-interrupt = 中断
+
+## bottom_pane/mod.rs
+
+bottom-pane-answer-the-questions-to-continue = 请回答问题以继续。
+bottom-pane-install-this-app-in-your = 请在浏览器中安装此应用，然后返回这里。
+bottom-pane-enable-this-app-to-use = 请启用此应用，以便用于当前请求。
+bottom-pane-respond-to-the-tool-suggestion = 请回复工具建议以继续。
+bottom-pane-respond-to-the-mcp-server = 请回复 MCP 服务器的请求以继续。
+
+## tui/src/app/daybreak.rs
+daybreak-unavailable-for-account = 无法确认此账号是否可使用 Daybreak。
+daybreak-save-thread-failed = 无法为此会话保存 Daybreak：{ $error }
+daybreak-read-thread-failed = 无法读取会话以保存 Daybreak：{ $error }
+daybreak-default-preference-setting = 默认 Daybreak 偏好
+daybreak-read-default-failed = 无法读取默认 Daybreak 偏好：{ $error }
+daybreak-save-default-failed = 无法保存默认 Daybreak 偏好：{ $error }
+daybreak-on-applies-to-new-turns = Daybreak 已开启。对新轮次生效。
+daybreak-off-applies-to-new-turns = Daybreak 已关闭。对新轮次生效。
+
+## tui/src/app/quick_dials.rs
+quick-dials-defined-outside-config = 预设 { $slot } 在用户配置之外定义。请改为编辑其源配置。
+quick-dials-update-failed = 更新预设 { $slot } 失败：{ $error }
+quick-dials-saved = 已保存预设 { $slot }。
+quick-dials-deleted = 已删除预设 { $slot }。
+
+## tui/src/app/transcript_export.rs
+transcript-export-no-active = 没有可导出的活动对话。
+transcript-export-saved = 对话已保存到 { $path }
+transcript-export-load-failed = 无法加载对话：{ $error }
+transcript-export-load-history-failed = 无法加载对话记录：{ $error }
+transcript-export-no-content = 没有可导出的对话内容。
+transcript-export-no-home-dir = 无法确定主目录
+transcript-export-create-failed = 无法创建 { $path }：{ $error }
+transcript-export-write-failed = 无法写入 { $path }：{ $error }
+
+## tui/src/app/history_ui.rs
+history-ui-open-browser-failed = 无法为 { $url } 打开浏览器：{ $error }
+
+## tui/src/app/working_directory.rs
+working-directory-idle-required = 切换目录要求主会话空闲且没有排队的输入。
+working-directory-remote-unsupported = 远程工作区或远程执行环境不支持切换目录。
+working-directory-task-not-replaceable = 此任务无法安全替换。
+working-directory-wait-permissions = 请等待权限更新完成后再切换目录。
+working-directory-named-profile-unsupported = 使用命名配置文件时不支持切换目录。
+working-directory-unconfirmed-profile-unsupported = 使用未确认的命名配置文件时不支持切换目录。
+working-directory-mcp-loading = MCP 清单仍在加载。
+working-directory-agent-running = 无法更改：另一个代理正在运行。
+working-directory-history-not-saved = 对话历史不会被保存。
+working-directory-profile-differs = 权限配置文件的设置不同。
+working-directory-profile-not-preserved = /cd 无法保留权限配置文件。
+working-directory-agent-status-failed = 无法检查代理状态。
+working-directory-task-running = 无法切换：任务正在运行。
+working-directory-not-applied = 未应用所请求的目录或权限。
+working-directory-offline-checkout = 会话离线或被策略警告阻止时，无法继续进入新的 worktree。已在 { $path } 创建一个未使用的检出副本；请在源仓库中运行 `git worktree remove <checkout-path>` 将其删除。
+working-directory-source-changed-checkout = 创建 worktree 期间源对话发生了变化。已在 { $path } 创建一个未使用的检出副本；请在源仓库中运行 `git worktree remove <checkout-path>` 将其删除。
+working-directory-fork-instructions-differ = 开发者指令不同，无法分叉到此 worktree。请改为开始新对话。已在 { $path } 创建一个未使用的检出副本；请在源仓库中运行 `git worktree remove <checkout-path>` 将其删除。
+working-directory-retained-checkout = 无法在托管的 worktree 中启动会话。检出副本保留在 { $path }；如果不再需要，请在源仓库中运行 `git worktree remove <checkout-path>` 将其删除。
+working-directory-load-failed = 无法加载 { $cwd }：{ $error }
+working-directory-read-defaults-failed = 无法读取默认设置：{ $error }
+working-directory-task-status-failed = 无法检查任务状态：{ $error }
+working-directory-change-failed = 切换失败：{ $error }
+working-directory-register-ownership-failed = 无法登记托管 worktree 的归属：{ $error }
+working-directory-name-session-failed = 无法为 worktree 会话命名：{ $error }
+working-directory-change-dirs-failed = 无法切换目录：{ $error }
+working-directory-restore-failed = 无法恢复会话：{ $error }
+working-directory-changed = 工作目录已切换为：{ $path }
+
+## tui/src/clipboard_copy/tmux.rs
+clipboard-tmux-unavailable = 系统 PATH 中找不到 tmux
+clipboard-tmux-resolve-path-failed = 无法解析系统 PATH：{ $error }
+clipboard-tmux-no-pane = tmux 剪贴板转发不可用：没有当前面板
+clipboard-tmux-spawn-failed = 启动 tmux 失败：{ $error }
+clipboard-tmux-open-stdin-failed = 打开 tmux 的 stdin 失败
+clipboard-tmux-write-failed = 写入 tmux 失败：{ $error }
+clipboard-tmux-wait-failed = 等待 tmux 失败：{ $error }
+clipboard-tmux-exit-status = tmux 退出，状态码 { $status }
+clipboard-tmux-failed = tmux 失败：{ $stderr }
+clipboard-tmux-disabled = tmux 剪贴板转发已禁用
+clipboard-tmux-no-client = tmux 剪贴板转发不可用：没有已附加的客户端
+clipboard-tmux-missing-ms = tmux 剪贴板转发不可用：缺少 Ms 能力
+clipboard-tmux-output-not-utf8 = tmux 输出不是 UTF-8：{ $error }
+
+## tui/src/clipboard_paste.rs
+clipboard-paste-unavailable = 剪贴板不可用：{ $error }
+clipboard-paste-no-image = 剪贴板中没有图片：{ $error }
+clipboard-paste-encode-failed = 无法编码图片：{ $error }
+clipboard-paste-io-error = I/O 错误：{ $error }
+clipboard-paste-android-unsupported = Android 上不支持粘贴剪贴板图片
+
+## tui/src/model_migration.rs
+model-migration-try-new = 尝试新模型
+model-migration-use-existing = 继续使用现有模型
+model-migration-upgrade-heading = Codex 刚刚升级。现推出 { $name }。
+model-migration-recommended = 推荐使用 { $name }，性能与可靠性更好。
+model-migration-recommend-switch = 建议从 { $current } 切换到 { $target }。
+model-migration-learn-more = { $description } 了解 { $name } 的更多信息，请访问{" "}
+model-migration-keep-existing = 如果你更喜欢，可以继续使用 { $current }。
+model-migration-hint-confirm = {" "}确认 ·{" "}
+model-migration-hint-continue = {" "}继续 ·{" "}
+model-migration-hint-quit = {" "}退出
+
+## tui/src/oss_selection.rs
+oss-selection-lmstudio-desc = 本地 LM Studio 服务器（默认端口 1234）
+oss-selection-ollama-desc = 本地 Ollama 服务器（Responses API，默认端口 11434）
+oss-selection-title = 选择开源提供方
+oss-selection-subtitle = 为本次会话选择本地 AI 服务器。
+oss-selection-running = ● 运行中
+oss-selection-not-running = ○ 未运行
+oss-selection-unknown = ? 未知
+oss-selection-hint-choose = {" "}选择 ·{" "}
+oss-selection-hint-select = {" "}选择 ·{" "}
+oss-selection-hint-lmstudio = {" "}LM Studio ·{" "}
+oss-selection-hint-exit = {" "}退出
+
+## tui/src/startup_draft_layout.rs
+startup-draft-resuming = {"  "}正在恢复会话…
+startup-draft-forking = {"  "}正在分叉会话…
+
+## tui/src/token_usage.rs
+token-usage-summary = token 用量：总计={ $total } 输入={ $input }{ $cached } 输出={ $output }{ $reasoning }
+token-usage-cached = {" "}（+ { $count } 个已缓存）
+token-usage-reasoning = {" "}（推理 { $count }）
+
+## tui/src/app_backtrack.rs
+app-backtrack-no-previous-message = 没有可编辑的上一条消息。
+app-backtrack-edit-failed = 无法编辑所选提示词：{ $error }
+
+## tui/src/app_backtrack.rs (continued)
+app-backtrack-steer = 所选提示词是一条引导消息，无法单独编辑
+app-backtrack-in-progress = 所选提示词所属的轮次仍在进行中
+app-backtrack-mismatch = 所选对话记录中的提示词与已保存的会话不再一致
+app-backtrack-not-found = 在已保存的会话中找不到所选提示词
+app-backtrack-boundary-missing = 已加载历史的边界已不存在
+
+
+## tui/src/app/feedback_upload.rs
+feedback-upload-failed-to-upload = 上传反馈失败
+feedback-upload-failed-to-save-zip = 保存反馈 ZIP 失败
+feedback-upload-no-codex-home = app-server 未报告其 Codex 主目录
+feedback-upload-create-dir-failed = 无法在 { $directory } 创建反馈目录
+feedback-upload-update-server = 请更新 Codex 服务器以保存反馈 ZIP
+
+## tui/src/app/model_defaults.rs
+model-defaults-setting-default-model = 默认模型和推理强度
+model-defaults-model-changed = 模型已更改为 { $model }
+model-defaults-failed-to-save = 无法保存默认模型: { $error }
+model-defaults-open-cloud-first = 选择模型前请先打开 Cloud 对话。
+model-defaults-choose-supported-cloud = 请以当前速度选择受支持的 Cloud 模型和强度。
+model-defaults-speed-fast = 快速
+model-defaults-speed-standard = 标准
+model-defaults-speed-unsupported = { $model } 不支持 { $tier } 速度。已清除待生效的速度更改。
+model-defaults-cloud-account-changed = Cloud 账号已变化。选择模型前请重新打开对话。
+model-defaults-cloud-no-model-change = 此云端对话不支持在 TUI 中更改模型。
+model-defaults-needs-settings-update = 选择模型需要支持 thread/settings/update 的 app-server。
+model-defaults-saved-but-overridden = 已保存 { $setting }，但更高优先级的配置层覆盖了已保存的值。
+model-defaults-for-this-session-only = {" "}（仅限本次会话）
+
+## tui/src/app/new_session.rs
+new-session-only-cloud-cancel = 只能取消 Cloud 切换
+
+## tui/src/app/resume_preparation.rs
+resume-preparation-still-archiving = 此任务仍在归档中。
+resume-preparation-failed-load-history = 加载对话历史失败：{ $read_err }
+resume-preparation-failed-resume = 从 { $path_display } 恢复会话失败：{ $err }
+
+## tui/src/app/recap.rs
+recap-failure = 无法生成回顾。请再试一次。
+recap-cloud-unavailable = Cloud 对话不支持对话回顾。
+recap-in-progress = 正在生成回顾。
+recap-empty-history = 没有可回顾的对话历史。
+
+## tui/src/app_server_session/side_chat_history.rs
+side-chat-history-outside-attachment = 该会话有一个位于 TUI 侧边栏之外的附件。删除会话前请先移除它。
+
+## tui/src/bottom_pane/hooks_browser_view.rs
+hooks-browser-view-hooks = Hooks
+hooks-browser-view-lifecycle-hooks = 来自配置和已启用插件的生命周期 hook。
+hooks-browser-view-event-hooks = { $event } hook
+hooks-browser-view-turn-hooks-on-off = 开启或关闭 hook。你的更改会自动保存。
+hooks-browser-view-event = 事件
+hooks-browser-view-installed = 已安装
+hooks-browser-view-active = 已启用
+hooks-browser-view-review = 待审查
+hooks-browser-view-description = 说明
+hooks-browser-view-issues = 问题
+hooks-browser-view-unnamed-hook = 未命名 hook
+hooks-browser-view-modified-suffix = {" "}· 已修改
+hooks-browser-view-new-suffix = {" "}· 新增
+hooks-browser-view-no-hooks = 此事件未安装 hook。
+hooks-browser-view-matcher = 匹配器
+hooks-browser-view-source = 来源
+hooks-browser-view-command = 命令
+hooks-browser-view-mode = 模式
+hooks-browser-view-async = 异步
+hooks-browser-view-sync = 同步
+hooks-browser-view-mcp-server = MCP 服务器
+hooks-browser-view-mcp-tool = MCP 工具
+hooks-browser-view-handler = 处理器
+hooks-browser-view-prompt = 提示词
+hooks-browser-view-agent = 代理
+hooks-browser-view-timeout = 超时
+hooks-browser-view-unlimited = 不限
+hooks-browser-view-limit-tokens = 上限：约 { $limit } 个 token
+hooks-browser-view-context = 上下文
+hooks-browser-view-trust = 信任
+hooks-browser-view-trust-all = {" "}全部信任 ·{" "}
+hooks-browser-view-review-hint = {" "}审查 ·{" "}
+hooks-browser-view-details = {" "}详情 ·{" "}
+hooks-browser-view-close = {" "}关闭
+hooks-browser-view-managed-always-on = 受管（始终开启） ·{" "}
+hooks-browser-view-trust-hint = {" "}信任 ·{" "}
+hooks-browser-view-toggle = {" "}切换 ·{" "}
+hooks-browser-view-back = {" "}返回
+hooks-browser-view-trust-managed = 受管
+hooks-browser-view-trust-trusted = 已信任
+hooks-browser-view-trust-untrusted = 新 hook - 需要审查
+hooks-browser-view-trust-modified = 自上次信任后已修改 - 需要审查
+hooks-browser-view-desc-before-tool = 工具执行之前
+hooks-browser-view-desc-permission-requested = 请求权限时
+hooks-browser-view-desc-after-tool = 工具执行之后
+hooks-browser-view-desc-before-compaction = 上下文压缩之前
+hooks-browser-view-desc-after-compaction = 上下文压缩之后
+hooks-browser-view-desc-before-model-request = 模型请求之前
+hooks-browser-view-desc-after-model-request = 模型请求之后（包括失败）
+hooks-browser-view-desc-session-start = 新会话开始时
+hooks-browser-view-desc-session-end = 会话结束之前
+hooks-browser-view-desc-prompt-submit = 用户提交提示词时
+hooks-browser-view-desc-subagent-start = 创建子代理时
+hooks-browser-view-desc-subagent-stop = 子代理结束其轮次之前
+hooks-browser-view-desc-stop = Codex 结束其轮次之前
+hooks-browser-view-desc-interrupt = 被中断的轮次终止之前
+hooks-browser-view-environment = 环境 - { $id }
+hooks-browser-view-plugin-id = 插件 - { $plugin_id }
+hooks-browser-view-plugin = 插件
+hooks-browser-view-src-admin-config = 管理员配置
+hooks-browser-view-src-user-config = 用户配置
+hooks-browser-view-src-project-config = 项目配置
+hooks-browser-view-src-session-flags = 会话参数
+hooks-browser-view-src-cloud-managed-config = 云端托管配置
+hooks-browser-view-src-unknown-source = 未知来源
+hooks-browser-view-needs-review = 有 { $count } 个 hook 需要审查后才能运行。
+
+## tui/src/bottom_pane/textarea.rs
+textarea-vim-normal = Vim：普通
+textarea-vim-insert = Vim：插入
+textarea-vim-replace = Vim：替换
+
+## tui/src/clipboard_copy.rs
+clipboard-copy-copied-to-clipboard = 已将{ $label }复制到剪贴板
+clipboard-copy-unconfirmed = 复制未确认；/export 可保存对话
+clipboard-copy-copying = 正在复制{ $label }…
+clipboard-copy-already-in-progress = 复制已在进行中
+clipboard-copy-nothing-to-copy = 没有可复制的内容：所选内容为空
+
+## tui/src/debug_config.rs
+debug-config-session-runtime = 会话运行时：
+debug-config-layer-stack = 配置层堆栈（优先级从低到高）：
+debug-config-none-indented = {"  "}<无>
+debug-config-disabled = 已禁用
+debug-config-enabled = 已启用
+debug-config-reason = {"     "}原因：{ $reason }
+debug-config-requirements = 要求：
+debug-config-none-bullet = {"     "}- <无>
+debug-config-mdm-value = MDM 值
+debug-config-enterprise-value = 企业托管配置值
+debug-config-layer-value = 配置层的值
+debug-config-requirement-line = {"  "}- { $name }：{ $value }（来源：{ $source }）
+debug-config-unspecified = <未指定>
+debug-config-empty = <空>
+debug-config-unset = <未设置>
+
+## tui/src/diff_render.rs
+diff-render-added = 已添加
+diff-render-deleted = 已删除
+diff-render-edited = 已编辑
+diff-render-file-count = {" "}{ $count } 个文件{" "}
+
+## tui/src/external_agent_config_migration/render.rs
+external-agent-migration-bring-over = 从其他编码代理导入受支持的配置。
+external-agent-migration-may-add-files = Codex 可能会向当前项目文件夹添加文件。
+external-agent-migration-not-changed = 你现有的配置不会被更改。
+external-agent-migration-choose-items = 选择要导入的项目。
+external-agent-migration-import-setup = 导入配置
+external-agent-migration-choose-what = 选择要导入的内容
+external-agent-migration-selected-of = 已选择 { $selected } / { $total } 项。
+external-agent-migration-use = 使用{" "}
+external-agent-migration-to-move = {" "}移动，
+external-agent-migration-to-select = {" "}选择，
+external-agent-migration-to-customize = {" "}自定义
+external-agent-migration-press = 按{" "}
+external-agent-migration-to-continue = {" "}继续，
+external-agent-migration-to-go-back = {" "}返回
+external-agent-migration-to-toggle = {" "}切换，
+
+## tui/src/onboarding/gateway.rs
+gateway-use-custom-provider = 使用自定义提供方或网关
+
+## tui/src/pager_overlay.rs
+pager-overlay-to-scroll = 滚动
+pager-overlay-to-page = 翻页
+pager-overlay-to-jump = 跳转
+pager-overlay-close = 关闭
+
+## tui/src/pets/ambient.rs
+ambient-running = 运行中
+ambient-needs-input = 需要输入
+ambient-ready = 就绪
+ambient-blocked = 已阻塞
+ambient-thinking = 思考中
+
+## tui/src/pets/image_protocol.rs
+image-protocol-tmux = 此 tmux 面板中无法使用宠物。请全屏运行 Codex 并设置 allow-passthrough all，或在 tmux 之外运行 Codex。
+image-protocol-zellij = Zellij 中已禁用宠物。Zellij 中的终端图像无法可靠地保持在各自的面板内。请在 Zellij 之外运行 Codex 以使用宠物。
+image-protocol-iterm2-too-old = 宠物需要 iTerm2 3.6 或更高版本。请升级 iTerm2 以使用终端宠物。
+image-protocol-terminal = 此终端无法使用宠物。终端宠物需要图像支持，而当前终端环境未提供受支持的图像协议。请尝试使用支持 Kitty graphics 或 Sixel 的终端，或在 tmux 之外运行 Codex。
+
+## tui/src/transcript_view/composer_gap.rs
+composer-gap-copied-chars-host = 已将 { $characters } 个字符复制到主机剪贴板
+composer-gap-copied-chars = 已复制 { $characters } 个字符
+composer-gap-copied = 已复制
+composer-gap-copying-chars = 正在复制 { $characters } 个字符…
+composer-gap-copying = 正在复制…
+composer-gap-already-in-progress = 复制已在进行中
+composer-gap-in-progress = 复制进行中
+composer-gap-busy = 复制繁忙
+composer-gap-sent-to-terminal = 已发送到终端 · 粘贴以验证
+composer-gap-sent-verify = 已发送 · 请粘贴验证
+composer-gap-unconfirmed = 复制未确认
+composer-gap-failed-try-again = 复制失败 · 请重试
+composer-gap-failed = 复制失败
+
+## tui/src/ui_consts.rs
+ui-consts-to-view-transcript = { $key } 查看对话记录
+
+
+## tui/src/additional_dirs.rs
+
+additional-dirs-ignored-warning = 已忽略 --add-dir（{ $joined_paths }），因为当前生效的权限不允许额外的可写根目录。请切换到 workspace-write 或 danger-full-access 以允许它们。
+
+## tui/src/app/provider/editor.rs
+
+editor-edit-provider = 编辑 { $name }
+editor-example-team-gateway = 团队网关
+editor-save-focused = › 保存
+editor-save = {" "}{" "}保存
+editor-hint-env-var-name = 请在 app-server 上输入环境变量名。
+editor-hint-auth-managed = 身份验证由 app-server 管理。
+editor-required-note = {"*"} 必填
+editor-complete-suggestion = {" "}补全 { $suggestion }
+editor-key-move = {" "}移动 ·{" "}
+editor-key-next-save = {" "}下一项/保存 ·{" "}
+editor-key-normal-mode = {" "}普通模式
+editor-key-back = {" "}返回
+
+## tui/src/app/session_picker.rs
+
+session-picker-open-failed = 打开会话选择器失败：{ $err }
+session-picker-unable-to-resume = 无法恢复会话
+session-picker-return-to-center = 返回指挥中心
+
+## tui/src/app/side_focus.rs
+
+side-focus-chat-still-closing = 侧边会话仍在关闭。请稍后再试。
+
+## tui/src/app/startup_prompts.rs
+
+startup-prompts-skills-skipped = 已跳过加载 { $error_count } 个 skill，因为其 SKILL.md 文件无效。
+startup-prompts-project-config-disabled = 在项目被信任之前，以下文件夹中的项目本地配置、hook 和 exec 策略均被禁用，但 skill 仍会加载。{"\u000A"}
+startup-prompts-no-longer-offered = 在 Codex 中已不再提供
+startup-prompts-no-longer-available = 已不再可用
+startup-prompts-model-migration = { $current_name } { $availability }{"\u000A"}{"\u000A"}Codex 现在改用 { $target_name } 代替 { $current_name }。请切换到 { $target_name } 以继续。{"\u000A"}
+
+## tui/src/app/thread_attachment.rs
+
+thread-attachment-not-yet-available = 代理会话 { $thread_id } 尚不能用于回放或实时挂接。
+
+## tui/src/app/thread_routing.rs
+
+thread-routing-main-default = 主会话 [默认]
+thread-routing-agent = 代理
+thread-routing-already-viewing = 正在查看 { $label }。
+thread-routing-no-active-thread = 没有可用的活动会话。
+thread-routing-read-only = 此对话为只读或不可用，未发送任何操作。
+thread-routing-not-available-yet = 会话 { $thread_id } 在 TUI 中暂不可用。
+thread-routing-interrupt-failed = 无法中断轮次：{ $error }
+thread-routing-rename-failed = 无法重命名会话：{ $error }
+thread-routing-shell-unavailable-cloud = 云端对话中不可使用以 ! 开头的 shell 命令。
+thread-routing-resolve-request-failed = 无法解析会话 { $thread_id } 的 app-server 请求：{ $err }
+thread-routing-agent-closed-switched = 代理会话 { $closed_thread_id } 已关闭，已切回主会话。
+thread-routing-agent-closed-switch-failed = 代理会话 { $closed_thread_id } 已关闭，切回主会话 { $primary_thread_id } 失败。
+
+## tui/src/bottom_pane/voice_strip.rs
+
+voice-strip-voice-prefix = 语音{" "}
+voice-strip-voice = 语音
+voice-strip-unmute = 取消静音
+voice-strip-mute = 静音{" "}{" "}
+voice-strip-mic = {" "}{" "}麦克风{" "}
+voice-strip-codex = {" "}{" "}Codex{" "}
+
+## tui/src/local_settings.rs
+
+local-settings-invalid-audio = 机器音频设置无效：{ $error }
+
+## tui/src/markdown_render/mermaid.rs
+
+mermaid-unsupported = 此 Mermaid 图表使用了终端渲染器不支持的功能。
+mermaid-too-wide = 此 Mermaid 图表放不进当前终端宽度。
+mermaid-limit = 此 Mermaid 图表超出了终端渲染器的尺寸限制。
+
+## tui/src/pets/picker.rs
+
+picker-select-pet = 选择宠物
+picker-choose-pet = 选择要在终端中唤醒的宠物。
+picker-filter-pets-placeholder = 输入以筛选宠物...
+picker-disable-pets = 禁用终端宠物
+
+## tui/src/sidebar_chooser.rs
+
+sidebar-chooser-resize-hint-short = ←/→ 调整大小 · Enter/Esc 完成
+sidebar-chooser-hint-retry = 重试
+sidebar-chooser-hint-back = 返回
+sidebar-chooser-hint-scroll = 滚动
+sidebar-chooser-hint-open = 打开
+sidebar-chooser-hint-cancel-opening = 取消打开
+sidebar-chooser-hint-path = 路径
+sidebar-chooser-hint-move = 移动
+sidebar-chooser-hint-hide-pane = 隐藏面板
+sidebar-chooser-side-n = 侧边 { $number }
+sidebar-chooser-side-chat = 侧边聊天
+
+## tui/src/startup_draft.rs
+
+startup-draft-did-not-open = 新对话未能打开
+startup-draft-kept = 已保留草稿
+startup-draft-loading = 加载中
+
+## tui/src/status/card.rs
+
+card-label-model = 模型
+card-label-directory = 目录
+card-label-permissions = 权限
+card-label-model-provider = 模型提供方
+card-label-account = 账户
+card-label-chatgpt-workspace = ChatGPT 工作区
+card-label-thread-name = 会话名称
+card-label-session = 会话
+card-label-forked-from = 分叉自
+card-label-collaboration-mode = 协作模式
+card-label-token-usage = Token 用量
+card-label-context-window = 上下文窗口
+card-label-limits = 限额
+card-label-warning = 警告
+card-label-server = 服务器
+card-limits-not-available = 此账户不可用
+card-limits-stale-run-status = 限额可能已过期，请稍后再次运行 /status。
+card-limits-stale-new-turn = 限额可能已过期，开始新一轮对话即可刷新。
+card-limits-refresh-requested = 已请求刷新；请稍后再次运行 /status。
+card-limits-no-data-yet = 暂无数据
+card-token-total = {" "}合计{" "}
+card-token-input = {" "}输入
+card-token-plus = {" "}+{" "}
+card-token-output = {" "}输出
+card-context-used-of = {" "}已用 /{" "}
+card-context-percent-left = 剩余 { $percent }%
+card-resets-at = （重置于 { $resets_at }）
+card-permissions-read-only-network = 只读（允许联网）
+card-permissions-read-only = 只读
+card-permissions-workspace = 工作区{ $suffix }（{ $approval }）
+card-permissions-workspace-network = 工作区（允许联网）{ $suffix }（{ $approval }）
+card-permissions-full-access = 完全访问
+card-permissions-no-sandbox = 无沙箱（{ $approval }）
+card-permissions-profile = 配置 { $id }（{ $sandbox }，{ $approval }）
+card-permissions-read-only-approval = 只读（{ $approval }）
+card-permissions-custom = 自定义（{ $sandbox }，{ $approval }）
+card-approval-approve-for-me = 自动审批
+card-approval-ask = 请求审批
+card-account-api-key = 已配置 API key（运行 codex login 以使用 ChatGPT）
+card-local-background-server = 本地后台服务
+card-visit = 访问{" "}
+card-for-up-to-date = {" "}获取最新的
+card-rate-limits-info = 速率限制和额度信息
+
+## tui/src/transcript_view/layout.rs
+
+layout-show-less = − 收起
+layout-hide-details = − 隐藏详情
+layout-show-details = + 显示详情
+layout-more-lines = + { $count } 行
+layout-to-expand-hint = {" "}（{ $key } 展开）
+
+## tui/src/thread_transcript/tools.rs
+
+tools-in-progress-at-last-update = 上次更新时仍在进行
+tools-completed = 已完成
+tools-failed = 失败
+tools-declined = 已拒绝
+tools-terminal-interaction = 终端交互 · { $status }
+tools-exit-code = {" "}· 退出码 { $code }
+tools-completed-result-unavailable = 已完成 · 结果不可用
+tools-failed-result-unavailable = 失败 · 结果不可用
+tools-mcp-tool = MCP 工具：{ $server }/{ $tool } · { $status }
+tools-interrupted = 已中断
+tools-agent-tool = 代理工具：{ $tool } · { $status }
+tools-declined-command = 已拒绝 · { $command }
+
+## tui/src/update_prompt.rs
+
+update-prompt-update-available = 有可用更新
+update-prompt-release-notes = 发布说明：{" "}
+update-prompt-update-now = 立即更新（运行 `{ $update_command }`）
+update-prompt-skip = 跳过
+update-prompt-skip-until-next = 跳过直到下一个版本
+update-prompt-continue = {" "}继续 ·{" "}
+update-prompt-skip-hint = {" "}跳过
+
+## app/experimental_features.rs
+app-experimental-features-label-subagents = 子代理
+app-experimental-features-label-memories = 记忆
+app-experimental-features-saved-new-threads = { $label } 设置已保存到服务器，供新会话使用。此会话未变。项目或任务设置可能会覆盖它。
+app-experimental-features-saved-overridden = { $label } 设置已保存，但被覆盖：{ $detail }
+app-experimental-features-save-failed = 保存 { $label } 设置失败：{ $detail }
+app-experimental-features-save-in-progress = 实验性功能的保存仍在进行中。请等它完成后重试。
+
+## app/managed_worktree_creation.rs
+managed-worktree-daemon-cannot-check = 本地 Codex 服务无法检查后台终端。请运行 `codex app-server daemon update`，然后重启 Codex。
+managed-worktree-background-blocks-cd = 活动的后台终端会阻止 /cd。
+managed-worktree-untrusted-source = 无法从明确不受信任的源创建 worktree。
+managed-worktree-local-only = 托管 worktree 仅支持本地会话。
+managed-worktree-needs-idle = 创建 worktree 要求主会话空闲且没有排队的输入。
+managed-worktree-already-creating = 正在创建 worktree。
+managed-worktree-mcp-loading = MCP 清单仍在加载。
+managed-worktree-agent-running = 无法更改：另一个代理正在运行。
+managed-worktree-history-not-saved = 对话历史不会被保存。
+managed-worktree-source-changed = 源会话已变化或不可用，无法继续到新的 worktree。
+managed-worktree-source-config-changed = 源配置已变化，无法继续到新的 worktree。
+managed-worktree-not-trusted = 新的 worktree 不受信任；请在其中运行 Codex。
+managed-worktree-task-failed = worktree 创建任务失败: { $error }
+managed-worktree-load-config-failed = 无法加载新 worktree 的配置：{ $error }
+managed-worktree-retained-checkout = { $reason } 检出目录保留在 { $path }；如果不再需要，请在源仓库中用 `git worktree remove <checkout-path>` 将其删除。
+
+## app/pets.rs
+app-pets-disable-failed = 禁用宠物失败：{ $err }
+app-pets-save-failed = 保存宠物选择失败：{ $err }
+app-pets-load-failed = 加载宠物失败：{ $err }
+
+## app/provider/write.rs
+provider-write-already-saving = 提供方更改正在保存。
+provider-write-saving = 正在保存模型提供方…
+provider-write-offline = 保存提供方失败：请重新连接 app-server 后重试。
+provider-write-saved-config = 已保存提供方配置。
+provider-write-update-server = 请更新已连接的 app-server 以更改默认模型提供方。
+provider-write-save-failed = 保存提供方失败：{ $error }
+provider-write-confirm-failed = 无法确认 { $name } 是否已保存：{ $error }
+provider-write-now-use = 新对话现在使用 { $name }。
+provider-write-saved-name = 已保存 { $name }。{ $reason }
+
+## app/startup_warnings.rs
+startup-warnings-nfs-migration = NFS 上的部分 Codex SQLite 文件权限不是 0600。迁移会保留这些权限，并需要你确认。运行 `codex migrate-nfs-db` 之前，请在所有使用这些数据库的主机上停止 Codex。
+
+## app/user_turn_submission.rs
+user-turn-submission-label = 提交
+user-turn-submission-label-cloud = 云端提交
+user-turn-submission-unconfirmed = 无法确认{ $label }：{ $error }
+
+## app/realtime_settings.rs
+realtime-settings-save-failed = 保存音频设置失败：{ $error }
+realtime-settings-input-overridden = 输入设备已保存，但输入通道被另一配置层覆盖。请先更新该覆盖设置，再开始语音。
+realtime-settings-saved = 音频设置已保存，将应用于你的下一次语音对话。
+realtime-settings-overridden = 音频设置已保存，但被另一配置层覆盖。
+realtime-settings-read-failed = 音频设置已保存，但无法读取生效的设置：{ $error }
+realtime-settings-list-devices-failed = 无法列出音频设备。请检查音频设备和语音包。
+realtime-settings-list-voices-failed = 列出语音失败：{ $error }
+realtime-settings-read-voice-failed = 读取语音设置失败：{ $error }
+realtime-settings-voice-overridden-no-read = 已保存的语音被覆盖，但此服务器无法读取生效的设置
+realtime-settings-voice-not-applied = 语音偏好已保存但未生效：{ $detail }
+realtime-settings-voice-read-failed = 语音偏好已保存，但无法读取生效的设置：{ $error }
+realtime-settings-voice-save-failed = 保存语音失败：{ $error }
+
+## bottom_pane/pending_thread_approvals.rs
+pending-thread-approvals-needed = { $thread } 中需要审批
+pending-thread-approvals-review = {" "}查看请求
+
+## chatwidget/permissions_menu.rs
+permissions-menu-missing-preset-read-only = 内部错误：缺少 'read-only' 审批预设。
+permissions-menu-missing-preset-auto = 内部错误：缺少 'auto' 审批预设。
+permissions-menu-missing-preset-full-access = 内部错误：缺少 'full-access' 审批预设。
+
+## experimental_features.rs
+experimental-features-err-request-failed = 实验性功能请求失败
+experimental-features-err-page-exceeds = 实验性功能页面超出请求的上限
+experimental-features-err-cursor-repeated = 实验性功能分页重复了 cursor
+experimental-features-err-exceeded-pages = 实验性功能发现超过 10 页
+experimental-features-err-discovery-timed-out = 实验性功能发现超时
+experimental-features-err-discovery-interrupted-short = 功能发现被中断
+experimental-features-err-not-advertised = 服务器未声明实验性功能 `{ $name }`
+experimental-features-err-save-timed-out = 保存实验性功能超时；写入可能仍会完成。请重新打开 /experimental 进行检查。
+experimental-features-err-save-failed = 无法保存实验性功能。请重新打开 /experimental，检查已配置的值后再重试。
+experimental-features-err-readback-interrupted = 功能已保存，但回读被中断
+experimental-features-err-refresh-failed = 功能已保存，但无法刷新已配置的值：{ $error }
+experimental-features-err-values-differ = 更改已保存，但已配置的值与你的选择不同。优先级更高的设置可能会覆盖它们。
+
+## external_agent_config_migration/model.rs
+external-agent-migration-group-tools = 工具与设置
+external-agent-migration-group-tools-desc = 设置、指令、集成、代理、命令和 skill
+external-agent-migration-group-current-project = 当前项目
+external-agent-migration-group-projects = 项目（{ $project_count }）
+external-agent-migration-group-projects-desc = 将 Codex 文件添加到现有项目文件旁
+external-agent-migration-group-sessions = 聊天会话（{ $session_count }）
+external-agent-migration-group-sessions-desc = 最近 30 天的聊天
+external-agent-migration-type-instructions = 指令
+external-agent-migration-type-settings = 设置
+external-agent-migration-type-skills = skill
+external-agent-migration-type-plugins = 插件
+external-agent-migration-type-mcp-servers = MCP 服务器
+external-agent-migration-type-agents = 代理
+external-agent-migration-type-hooks = hook
+external-agent-migration-type-commands = 斜杠命令
+external-agent-migration-type-memory = 记忆
+external-agent-migration-item-sessions = 最近的聊天会话
+external-agent-migration-type-sessions = 聊天会话
+external-agent-migration-summary-entry = { $label } { $count }
+external-agent-migration-count-skill = { $count } 个 skill
+external-agent-migration-count-mcp-server = { $count } 个 MCP 服务器
+external-agent-migration-count-agent = { $count } 个代理
+external-agent-migration-count-hook = { $count } 个 hook
+external-agent-migration-count-command = { $count } 个斜杠命令
+external-agent-migration-count-session = { $count } 个对话会话
+external-agent-migration-count-memory = { $count } 条记忆
+external-agent-migration-count-with-names = { $summary }：{ $names }
+
+## goal_display.rs
+goal-display-status-active = 进行中
+goal-display-status-paused = 已暂停
+goal-display-status-stalled = 已停滞
+goal-display-status-usage-limited = 用量受限
+goal-display-status-budget-limited = 受预算限制
+goal-display-status-complete = 已完成
+goal-display-objective = 目标：{ $objective }
+goal-display-time = 时间：{ $time }。
+goal-display-tokens = Token：{ $used }/{ $budget }。
+
+## transcript_view/search_footer.rs
+search-footer-find-prefix = 查找：
+search-footer-retry = { $previous } 重试
+search-footer-history-unavailable = 历史记录不可用 · { $retry_hint }
+search-footer-next-hint = enter 接受 · { $previous } 更早 · { $next } 更新
+search-footer-exhausted-hint = 没有更多匹配 · { $next_hint }
+search-footer-reading-nav = ctrl+p 更早 · ctrl+n 更新
+search-footer-ctrl-p-older = ctrl+p 更早
+search-footer-enter-accept = enter 接受
+search-footer-type-to-find = 输入以查找
+search-footer-searching = 正在搜索…
+search-footer-loading = 加载中…
+search-footer-searching-earlier = 正在搜索更早的历史记录…
+search-footer-no-more-reading = 没有更多匹配 · ctrl+p 更早 · ctrl+n 更新
+search-footer-no-matches = 没有匹配项
+search-footer-query-limited = {" "}· 查询限制为 4 KiB
+search-footer-reading-status = 查找 · { $status } · esc 返回最新
+search-footer-reading-compact = 查找 · { $compact } · esc 返回最新
+search-footer-esc-latest = esc 返回最新
+search-footer-full-transcript = { $status } · 完整对话记录 · esc 取消{ $limit }
+search-footer-status-cancel = { $status } · esc 取消{ $limit }
+search-footer-compact-cancel = { $compact } · esc 取消
+search-footer-esc-cancel = esc 取消
+search-footer-compact-esc = { $compact } · esc
+
+## sidebar_image.rs
+sidebar-image-unsupported-format = 不支持的图像格式
+sidebar-image-tabs = 标签页
+sidebar-image-close = 关闭
+sidebar-image-preview-unavailable = 此终端中无法预览图像
+
+## pets/preview.rs
+pets-preview-loading = 正在加载预览...
+pets-preview-disabled = 终端宠物已禁用
+pets-preview-no-pet = 不会显示宠物。
+pets-preview-unavailable = 预览不可用
+
+## resume_picker.rs
+resume-picker-different-backend = 此会话属于另一个后端。请重新打开会话选择器。
+resume-picker-thread = 会话 { $id }
+resume-picker-title-resume = 恢复之前的会话
+resume-picker-title-fork = 分叉之前的会话
+resume-picker-action-resume = 恢复
+resume-picker-action-fork = 分叉
+resume-picker-sort-created = 创建时间
+resume-picker-sort-updated = 更新时间
+resume-picker-no-transcript = 此会话没有可用的对话记录
+resume-picker-metadata-failed-path = 无法从 { $path } 读取会话元数据
+resume-picker-metadata-failed = 无法从所选会话读取会话元数据
+resume-picker-backend-load-failed = 无法加载一个后端。请重新打开选择器重试。
+resume-picker-load-more-failed = 无法加载更多会话
+resume-picker-preview-load-failed = 无法加载对话记录预览
+resume-picker-save-view-failed = 保存视图模式失败：{ $err }
+resume-picker-no-message-yet = （暂无消息）
+resume-picker-type-to-search = 输入以搜索
+resume-picker-search = 搜索：{ $query }
+resume-picker-status-compact = 状态：
+resume-picker-status = 状态：
+resume-picker-active = 进行中
+resume-picker-archived = 已归档
+resume-picker-sort-compact = 排序：
+resume-picker-sort = 排序：
+resume-picker-filter-compact = 筛选：
+resume-picker-filter = 筛选：
+resume-picker-filter-cwd = 目录
+resume-picker-filter-repo = 仓库
+resume-picker-filter-all = 全部
+resume-picker-hint-loading = 加载中
+resume-picker-hint-transcript = 对话记录
+resume-picker-hint-quit = 退出
+resume-picker-hint-restore = 还原
+resume-picker-hint-start-new = 新建
+resume-picker-hint-new = 新建
+resume-picker-hint-exit = 退出
+resume-picker-hint-clear-search = 清除搜索
+resume-picker-hint-clear = 清除
+resume-picker-hint-dense-view = 紧凑视图
+resume-picker-hint-comfortable-view = 舒适视图
+resume-picker-hint-dense = 紧凑
+resume-picker-hint-comfy = 舒适
+resume-picker-hint-archive = 归档
+resume-picker-hint-focus-sort-filter = 聚焦排序/筛选
+resume-picker-hint-focus = 聚焦
+resume-picker-hint-change-option = 切换选项
+resume-picker-hint-option = 选项
+resume-picker-hint-preview = 预览
+resume-picker-hint-expand = 展开
+resume-picker-hint-exp = 展开
+resume-picker-hint-browse = 浏览
+resume-picker-loading-transcript = 正在加载对话记录…
+resume-picker-more-above = ↑ 更多
+resume-picker-loading-more = ↓ 正在加载更多
+resume-picker-more-below = ↓ 更多
+resume-picker-loading-older = 正在加载更早的会话…
+resume-picker-no-branch = 无分支
+resume-picker-no-cwd = 无目录
+resume-picker-loading-recent-transcript = 正在加载最近的对话记录...
+resume-picker-label-session = 会话：
+resume-picker-label-created = 创建：
+resume-picker-label-updated = 更新：
+resume-picker-label-directory = 目录：
+resume-picker-label-branch = 分支：
+resume-picker-label-conversation = 对话：
+resume-picker-no-preview = 没有可用的对话记录预览
+resume-picker-now = 刚刚
+resume-picker-ago-seconds-short = { $seconds } 秒前
+resume-picker-ago-minutes-short = { $minutes } 分钟前
+resume-picker-ago-hours-short = { $hours } 小时前
+resume-picker-ago-days-short = { $days } 天前
+resume-picker-ago-second = { $count } 秒前
+resume-picker-ago-minute = { $count } 分钟前
+resume-picker-ago-hour = { $count } 小时前
+resume-picker-ago-day = { $count } 天前
+resume-picker-searching = 正在搜索…
+resume-picker-scan-capped = 搜索仅扫描了前 { $count } 个会话；可能还有更多
+resume-picker-no-results = 没有符合搜索条件的结果
+resume-picker-loading-sessions = 正在加载会话…
+resume-picker-no-sessions = 还没有会话
+resume-picker-time-separator = { $relative } · { $timestamp }
+
+## startup_hooks_review.rs
+startup-hooks-review-trust-failed = 信任 hook 失败：{ $error }
+startup-hooks-review-one-changed = 有 1 个 hook 是新增或已更改的。
+startup-hooks-review-many-changed = 有 { $count } 个 hook 是新增或已更改的。
+startup-hooks-review-title = hook 需要审查
+startup-hooks-review-warning = 信任 hook 后，它们可以在沙箱之外运行。
+startup-hooks-review-trusting = 正在信任 hook...
+startup-hooks-review-confirm = 确认
+startup-hooks-review-skip = 跳过
+startup-hooks-review-review = 审查 hook
+startup-hooks-review-trust-all = 全部信任并继续
+startup-hooks-review-continue-without = 不信任并继续（hook 不会运行）
+
+## app/input.rs
+
+input-no-editor = 无法打开外部编辑器：请在启动 Codex 前设置 $VISUAL 或 $EDITOR。
+input-open-editor-failed = 打开编辑器失败：{ $err }
+input-redraw-failed = 重绘对话记录失败：{ $err }
+input-unarchive-failed = 取消归档会话失败：{ $error }
+input-task-running-title = 任务仍在运行
+input-task-running-subtitle = 选择如何处理当前任务。
+input-cancel-task = 取消任务
+input-cancel-task-desc = 停止当前任务并留在 Codex
+input-run-background = 在后台运行
+input-run-background-desc = 退出 Codex，任务继续运行
+input-exit = 退出
+input-exit-desc = 停止当前任务并退出 Codex
+input-switch-side-failed = 切换侧边对话失败：{ $err }
+input-clear-ui-failed = 清除终端界面失败：{ $err }
+
+## app/platform_actions.rs
+
+platform-sandbox-mixed = 本地和远程执行器同时配置时，无法设置 Windows 沙箱。
+platform-sandbox-config-unreadable = 无法从 app-server 读取 Windows 沙箱的配置和要求。
+platform-sandbox-still-running = Windows 沙箱设置仍在进行。请重启 Codex 后重试。
+platform-sandbox-option-disallowed = 该 Windows 沙箱选项被要求禁止。
+platform-sandbox-timed-out = Windows 沙箱设置请求超时。正在等待完成；如果长时间未完成，请重启 Codex。
+platform-sandbox-response-lost = Windows 沙箱设置的响应丢失。正在等待完成或重新连接。
+platform-sandbox-update-server = 请更新本地 app-server 以设置 Windows 沙箱。
+platform-sandbox-failed = Windows 沙箱设置失败。
+platform-sandbox-not-started = Windows 沙箱设置未能启动。
+
+## app/reconnect.rs
+
+reconnect-reopen-cloud = 请重新打开 Codex 以重新连接 Cloud 后端。
+reconnect-in-process = 进程内会话没有可恢复的连接
+reconnect-initial-thread-unknown = 初始会话可能已创建，但未收到其 ID。未进行重试。你的提示可以编辑；重新启动前请检查你的任务。
+reconnect-stage-connecting = 正在连接服务器
+reconnect-stage-loading-settings = 正在加载会话设置
+reconnect-stage-resuming = 正在恢复对话
+reconnect-timed-out = 自动重连在{ $stage }时超时。
+reconnect-agent-list-stale = 正在重新连接，代理列表已过期
+reconnect-conversation-unavailable = 此对话不可用。其缓存的对话记录和草稿仍保留在此；输入已暂停。请打开代理选择器或返回父会话以继续。
+reconnect-sandbox-interrupted = Windows 沙箱设置被中断。使用代理模式前请重启 Codex。
+
+## app/right_click_paste.rs
+
+right-click-paste-inline = 内联模式下不可用；请使用终端的粘贴命令
+right-click-paste-ssh = 通过 SSH 不可用；请使用终端的粘贴命令
+right-click-paste-vscode = VS Code 负责粘贴；请使用其终端的粘贴命令
+right-click-paste-wsl = Auto 无法识别此 WSL 终端；请选择 On 或使用终端的粘贴命令
+right-click-paste-android = Android 上不可用
+
+## app/provider/editor/form.rs
+
+form-read-only = 此提供方配置为只读。
+form-enter-name = 请输入提供方名称。
+form-enter-base-url = 请输入基础 URL。
+form-enter-base-url-for-key = 请输入基础 URL 以使用此 API key 变量。
+form-enter-env-var = 请输入环境变量名，例如 TEAM_API_KEY。
+form-unrecognized-bedrock = 无法识别的 Bedrock 提供方。
+
+## app/server_version_notice.rs
+
+server-version-notice-summary = 服务 v{ $server } { $comparison } Codex CLI v{ $client_version }{ $guidance }
+
+## app/safety_buffering.rs
+
+safety-buffering-wait-permissions = 分叉前请等待权限更新完成。
+safety-buffering-retry-unavailable = 无法用更快的模型重试：原始轮次不可用。
+safety-buffering-retry-failed = 无法用更快的模型重试：{ $err }
+safety-buffering-input-too-long = 无法安全重试输入超出有界历史页的轮次。
+
+## app/safety_recourse.rs
+
+safety-recourse-new-chat-failed = 无法为此重写开始新对话。{ $text }
+
+## app/session_lifecycle.rs
+
+session-lifecycle-no-agents = 暂无可用代理。
+session-lifecycle-needs-approval = { $name }（需要审批）
+session-lifecycle-subagents = 子代理
+session-lifecycle-side-closing = 侧边会话仍在关闭。请稍后再试。
+session-lifecycle-thread-unavailable = 代理会话 { $thread_id } 已不可用。
+session-lifecycle-attach-failed = 连接代理会话 { $thread_id } 失败：{ $err }
+session-lifecycle-finish-sandbox = 切换会话前请先完成 Windows 沙箱设置。
+session-lifecycle-already-active = 代理会话 { $thread_id } 已处于活动状态。
+session-lifecycle-resume-live-failed = 代理会话 { $thread_id } 无法实时恢复。正在回放已保存的对话记录。
+session-lifecycle-thread-closed = 代理会话 { $thread_id } 已关闭。正在回放已保存的对话记录。
+
+## app/sidebar_close.rs
+
+sidebar-close-button-close = {" "}关闭{" "}
+sidebar-close-button-archive = {" "}归档{" "}
+sidebar-close-button-cancel = {" "}取消{" "}
+sidebar-close-resize = 调整大小以查看 · Esc 取消
+sidebar-close-hint-choose = 选择
+sidebar-close-hint-confirm = 确认
+sidebar-close-hint-cancel = 取消
+sidebar-close-loss-stop-turn = 停止正在运行的轮次
+sidebar-close-loss-discard-input = 丢弃未发送的输入
+sidebar-close-loss-temp-history = 丢失这个临时聊天的记录
+sidebar-close-loss-remove-side = 从侧边聊天中移除
+sidebar-close-side-chat-n = 侧边聊天 { $index }
+sidebar-close-verb-close = 关闭
+sidebar-close-verb-archive = 归档
+sidebar-close-and = 、
+sidebar-close-confirm = 这将{ $losses }。{ $verb }“{ $title }”？
+sidebar-close-archive-failed = 无法归档侧边对话 { $target }：{ $err }
+sidebar-close-interrupt-failed = 无法中断侧边对话 { $target }：{ $err }
+sidebar-close-close-failed = 无法关闭侧边对话 { $target }：{ $err }
+
+## resume_picker/archive.rs
+
+archive-no-thread-id = 所选会话没有会话 ID。
+archive-use-archive-cmd = 使用 /archive 归档当前会话并退出。
+archive-session-failed = 无法归档会话：{ $error }
+archive-restore-failed = 无法恢复已归档的会话：{ $error }
+
+## resume_picker/sources.rs
+
+sources-no-backends = 没有可用的会话后端。
+sources-backend-unavailable = 会话的后端不可用。
+sources-backend-disconnected = 会话后端已断开连接。
+
+## worktree_browser.rs
+
+worktree-browser-untitled = 未命名对话
+
+## session_queue_commands.rs
+
+queue-no-daemon = --no-daemon 不能与 codex queue 一起使用。排队必须找到共享服务器，以免通过单独的服务器写入。
+queue-embedded-conflict = 无法通过嵌入式 app 服务器排队，因为本地 app-server 后台服务正在运行；请移除配置覆盖项，或使用 --remote
+queue-resume-warning = 警告：消息已排队，但无法恢复会话 { $thread_id }：{ $err }
+queue-queued = 已将消息 { $id } 排队到会话 { $thread_id }。
+queue-no-active-session = 没有找到匹配 '{ $target }' 的活动会话。
+queue-start-daemon = 启动本地后台服务，或用 --remote 指定服务器
+
+## multi_agents.rs
+
+multi-agents-main-default = 主会话 [默认]
+multi-agents-agent-cap = 代理
+multi-agents-agent-lower = 代理
+multi-agents-resume-failed = 代理恢复失败
+multi-agents-resume-agent-failed = 恢复代理失败
+multi-agents-started = 已启动{" "}
+multi-agents-interacted = 已交互{" "}
+multi-agents-interrupted-prefix = 已中断{" "}
+multi-agents-completed-prefix = 已完成{" "}
+multi-agents-spawned = 已创建
+multi-agents-spawn-failed = 代理创建失败
+multi-agents-sent-input-to = 已发送输入至
+multi-agents-waiting-for = 等待
+multi-agents-waiting-for-agents = 等待代理
+multi-agents-waiting-for-n = 等待 { $count } 个代理
+multi-agents-finished-waiting = 等待结束
+multi-agents-closed = 已关闭
+multi-agents-resuming = 正在恢复
+multi-agents-resumed = 已恢复
+multi-agents-none-completed = 尚无代理完成
+multi-agents-pending-init = 等待初始化
+multi-agents-running = 运行中
+multi-agents-interrupted = 已中断
+multi-agents-completed = 已完成
+multi-agents-agent-errored = 代理出错
+multi-agents-shutdown = 已停止
+multi-agents-not-found = 未找到
+multi-agents-error = 错误
+
+## transcript_view/footer.rs
+
+transcript-footer-loading = 加载中…
+transcript-footer-loading-sep = 正在加载… ·{" "}
+transcript-footer-retry = 重试：
+transcript-footer-new-activity = 有新活动
+transcript-footer-new-dot = 新内容 ·{" "}
+transcript-footer-loading-earlier = 正在加载更早的消息…
+transcript-footer-new-activity-after = {" "}· 有新活动
+transcript-footer-retry-after = {" "}· 重试：
+transcript-footer-retry-history = 重试历史：
+transcript-footer-earlier-available = 还有更早的消息。 {" "}
+transcript-footer-new-activity-sep = 有新活动 ·{" "}
+
+## app.rs
+
+app-external-editor-hint = 保存并关闭外部编辑器以继续。
+
+
+## src/app/side_pane.rs
+side-pane-save-width-failed = 无法保存侧边栏宽度：{ $err }
+
+## src/app/sidebar_document.rs
+sidebar-document-connection-changed = 连接已变化，请重新打开此文件再试。
+sidebar-document-limit-bytes = 源码预览上限为 1 MiB
+sidebar-document-limit-lines = 源码预览上限为 { $max } 行
+sidebar-document-opening = 正在打开…
+sidebar-document-open-failed = 无法打开文件：{ $error }
+sidebar-document-esc-close = Esc 关闭
+sidebar-document-hint-read = 阅读
+sidebar-document-hint-find = 查找
+sidebar-document-hint-link = 链接
+sidebar-document-hint-select = 选择
+sidebar-document-hint-clear-highlight = 清除高亮
+sidebar-document-hint-close = 关闭
+
+## src/app_backtrack/prompt_navigation.rs
+prompt-navigation-hint-details = 详情
+prompt-navigation-hint-scroll = 滚动
+prompt-navigation-hint-prompts = 提示词
+prompt-navigation-hint-rewind = 回退
+prompt-navigation-hint-back = 返回
+prompt-navigation-browsing-transcript = 正在浏览对话记录
+prompt-navigation-browsing = 浏览中
+
+## src/app_server_session/fs.rs
+fs-preview-needs-workspace = 文件预览需要 app-server 主机上的工作区
+fs-not-utf8-text = 不是 UTF-8 文本文件
+fs-not-text = 不是文本文件
+fs-preview-windows-unavailable = Windows 主机上无法预览文件
+fs-workspace-changed = 工作区已变更。请重新打开文件再试。
+fs-preview-needs-host-path = 文件预览需要 app-server 主机上的路径
+
+## src/app_server_session/rollout_history.rs
+rollout-history-limited-notice = 最多显示最近 100 条提示词和最终回复。中间消息和工具活动不可用。
+
+## src/app_server_session/user_message_submission.rs
+user-message-cloud-account-changed = Cloud 账户已变更。发送前请重新打开会话。
+user-message-failed-to-start-turn = 启动轮次失败
+
+## src/app/background_requests.rs
+background-requests-section-openai-curated = OpenAI 精选
+background-requests-section-workspace = 工作区
+background-requests-section-shared-with-me = 与我共享
+
+## src/chatwidget/streaming.rs
+
+## src/daemon_recovery.rs
+daemon-recovery-running-without = 未使用共享后台服务运行：{ $reason }。
+daemon-recovery-incompatible-settings = 后台服务的功能设置不兼容
+daemon-recovery-cannot-use = 无法使用后台服务
+daemon-recovery-settings-persist = 这些设置会保留下来，并可能停用其他客户端的功能。重启可能会中断正在进行或排队中的工作。
+daemon-recovery-restart-will-use = 重启后将使用以下共享功能设置：
+daemon-recovery-and-more = {" "}{" "}以及另外 { $count } 项
+daemon-recovery-run-without = 本次不使用后台服务运行
+daemon-recovery-restart-recommended = 使用这些设置重启（推荐）
+daemon-recovery-restart = 使用这些设置重启
+daemon-recovery-not-managed = 此服务器不由 Codex 管理。
+daemon-recovery-cannot-resolve = 重启无法解决此兼容性检查。
+daemon-recovery-cancel = 取消
+
+## src/history_cell/patches.rs
+patches-edited-file = 已编辑 { $name }
+patches-edited-files = 已编辑多个文件
+patches-failed-to-apply = 应用补丁失败
+patches-error-details-unavailable = （无法获取错误详情）
+patches-viewed-image = 已查看图片 
+patches-image-generation-failed = 图片生成失败
+patches-generated-image-heading = 已生成图片：
+patches-saved-to = 保存到：
+patches-generated-image = 已生成图片
+
+## src/permission_discovery.rs
+permission-discovery-not-available = 此服务器不可用
+permission-discovery-disabled-by-requirements = 被要求配置禁用
+permission-discovery-cloud-server-selected = Cloud 会话使用由服务器选定的权限。
+permission-discovery-duplicate-profiles = 服务器返回了重复的权限配置。
+permission-discovery-pagination-limit = 权限发现超出了分页上限。请再次尝试 /permissions。
+permission-discovery-timed-out = 权限发现超时。请再次尝试 /permissions。
+permission-discovery-unsupported = 此服务器不支持权限发现。请升级 Codex 服务器以使用此菜单。
+permission-discovery-load-failed = 加载权限失败：{ $error }
+
+## src/bottom_pane/selection_popup_common.rs
+selection-popup-disabled-suffix = {" "}(已禁用)
+
+## src/public_widgets/composer_input.rs
+composer-input-placeholder = 撰写新任务
+
+## src/unarchive_prompt.rs
+unarchive-prompt-title = 此对话已归档
+unarchive-prompt-unarchive-and-resume = 取消归档并恢复
+unarchive-prompt-unarchive-and-fork = 取消归档并分叉
+unarchive-prompt-cancel = 取消
+unarchive-prompt-hint-continue =  继续 · 
+unarchive-prompt-hint-cancel =  取消
+
+## src/session_archive_commands.rs
+session-archive-archived-named = 已归档会话 { $name }（{ $id }）。
+session-archive-archived = 已归档会话 { $id }。
+session-archive-deleted-named = 已删除会话 { $name }（{ $id }）。
+session-archive-deleted = 已删除会话 { $id }。
+session-archive-unarchived-named = 已取消归档会话 { $name }（{ $id }）。
+session-archive-unarchived = 已取消归档会话 { $id }。
+session-archive-delete-cancelled = 已取消删除。
+session-archive-not-found-active-or-archived = 未找到与 '{ $target }' 匹配的活动或已归档会话。
+session-archive-not-found-active = 未找到与 '{ $target }' 匹配的活动会话。
+session-archive-not-found-archived = 未找到与 '{ $target }' 匹配的已归档会话。
+session-archive-confirm-needs-terminal = 没有交互式终端，无法确认删除会话；请使用 --force 和会话 UUID 重新运行
+session-archive-confirm-delete-named = 永久删除会话 '{ $name }'（{ $id }）？
+session-archive-confirm-delete = 永久删除会话 { $id }？
+session-archive-cannot-undo = 此操作无法撤销。子代理会话也将被删除。
+session-archive-continue-prompt = 继续？[y/N]: 
+
+## src/app_server_session.rs
+app-server-session-no-models = 没有可用的模型。请显式设置 `model`，或检查模型目录配置。
+app-server-session-cloud-permissions = Cloud 会话目前使用由服务器选定的权限。
+app-server-session-side-context-not-saved = 侧边会话的上下文未保存
+app-server-session-side-prepare-failed = 准备侧边会话 { $child } 失败：{ $message }
+app-server-session-cloud-fork-unsupported = TUI 暂不支持分叉 Cloud 会话。
+app-server-session-title-saving = 正在保存自动标题。请稍后再重命名会话。
+
+## src/app/provider/fields.rs
+provider-field-name = 名称
+provider-field-base-url = 基础 URL
+provider-field-api-key-variable = API key 变量
+provider-field-external-auth = 外部身份验证
+provider-field-aws-profile = AWS 配置文件
+provider-field-aws-region = AWS 区域
+provider-field-project-id = 项目 ID
+provider-field-location = 位置
+provider-field-credential-file = 凭据文件（服务器）
+
+
+## tui/src/app/exit_summary.rs
+
+exit-summary-failed-archive-thread = 归档会话 { $thread_id } 失败：{ $error }
+exit-summary-archive-not-confirmed = 未能确认线程 { $thread_id } 已归档。
+exit-summary-use-stop-shortcut = 使用已配置的停止快捷键
+exit-summary-press-key = 按 { $key }
+exit-summary-disconnected-running-continues = 已与此任务断开连接。正在运行的工作将继续。
+exit-summary-disconnected-may-be-running = 已与此任务断开连接。工作可能仍在运行。
+exit-summary-disconnected-turn-stopped = 已与此任务断开连接。当前轮次已停止。
+exit-summary-to-reconnect = 要重新连接，请运行：
+exit-summary-stop-current-turn = 停止当前轮次：运行 { $command }，选择此任务，然后{ $hint }。
+exit-summary-to-continue = 要继续此会话，请运行：
+exit-summary-or-run-select = 或运行 { $command } 并选择 { $name }。
+exit-summary-session-id = 会话 ID：{ $thread_id }
+
+## tui/src/app/exit_summary.rs
+
+
+## tui/src/app/side.rs
+
+side-cannot-be-renamed = 侧边对话不能重命名。
+side-main-thread-unavailable = 主会话准备就绪前无法使用 '/side'。
+side-no-started-conversation = 当前对话开始前无法使用 '/side'。请先发送一条消息，然后再试 /side。
+side-already-open = 侧边对话已打开。按 ctrl + c 返回后再开始另一个。
+side-main-needs-input = 主会话需要输入
+side-parent-needs-input = 父会话需要输入
+side-main-needs-approval = 主会话需要审批
+side-parent-needs-approval = 父会话需要审批
+side-main-failed = 主会话失败
+side-parent-failed = 父会话失败
+side-main-interrupted = 主会话已中断
+side-parent-interrupted = 父会话已中断
+side-main-closed = 主会话已关闭
+side-parent-closed = 父会话已关闭
+side-main-finished = 主会话已完成
+side-parent-finished = 父会话已完成
+side-from-main-thread = 来自主会话
+side-from-parent-thread = 来自父会话（{ $parent_label }）
+side-wait-permissions = 分叉前请等待权限更新完成。
+side-failed-close-still-open = 无法关闭侧边对话 { $thread_id }；它仍处于打开状态：{ $err }
+side-failed-prepare = 无法准备侧边对话 { $child_thread_id }：{ $err }
+side-failed-switch-into-err = 无法切换到侧边对话 { $child_thread_id }：{ $err }
+side-failed-switch-into = 无法切换到侧边对话 { $child_thread_id }。
+side-failed-start = 无法启动侧边对话：{ $err }
+
+## tui/src/app/sidebar_files.rs
+
+sidebar-files-requires-server-workspace = 需要位于服务器主机上的工作区
+sidebar-files-preview-unavailable-windows = Windows 上无法预览
+
+## tui/src/app/startup.rs
+
+startup-no-startup-model = 初始 app-server 连接未提供启动模型。
+startup-permission-overrides-resuming = 恢复远程任务时不支持权限覆盖。
+startup-permission-overrides-forking = 分叉远程任务时不支持权限覆盖。
+startup-invalid-keymap = `tui.keymap` 配置无效：{ $err }{"\u000A"}请修复配置后重试。{"\u000A"}支持的操作和示例请参阅 Codex 键位文档。
+startup-default-environment = 默认
+startup-could-not-restart-server = 无法重启后台服务：{ $err }
+startup-reconnect-failed-stale = 重新连接失败，代理列表已过期；请重新启动以重试
+startup-reconnect-timed-out = 自动重连超时：等待服务器完成关闭。
+
+## tui/src/app/thread_settings.rs
+
+thread-settings-failed-update = 无法更新会话设置：{ $err }
+
+## tui/src/app/user_verification_errors.rs
+
+user-verification-could-not-complete-local = 无法通过本地 Codex 程序完成用户验证。
+user-verification-could-not-verify-request = 本地 Codex 程序无法验证此请求。
+user-verification-no-credential = 本地 Codex 程序中没有可用的用户验证凭据。
+user-verification-biometric-unavailable = 此设备当前不支持生物识别验证。
+user-verification-unavailable-for-request = 此请求不支持用户验证。
+user-verification-cancelled = 用户验证已取消。
+user-verification-interrupted = 用户验证已中断。
+user-verification-biometric-failed = 生物识别验证未成功，请求已取消。
+user-verification-timed-out = 用户验证超时，请求已取消。
+user-verification-could-not-complete = 本地 Codex 程序无法完成用户验证。
+side-suffix-for-side = {" "}进入侧边对话
+side-suffix-to-switch = {" "}切换
+side-suffix-to-archive = {" "}归档
+side-suffix-to-close = {" "}关闭
+side-label-prefix = 侧边{" "}
+
+## tui/src/bottom_pane/footer.rs
+
+footer-plan-mode = 计划模式
+footer-cycle-suffix = {" "}({ $key } 切换)
+footer-cycle-open = {" "}(
+footer-cycle-close = {" "}切换)
+footer-for-agents = {" "}查看代理
+footer-for-shortcuts = {" "}查看快捷键
+footer-to-queue-message = {" "}加入排队消息
+footer-to-queue = {" "}加入队列
+footer-goal-pursuing-usage = 正在推进目标（{ $usage }）
+footer-goal-pursuing = 正在推进目标
+footer-goal-paused = 目标已暂停（/goal resume）
+footer-goal-stalled = 目标已停滞（/goal resume）
+footer-goal-usage-limited = 目标触及用量限制（/goal resume）
+footer-goal-unmet-usage = 目标未达成（{ $usage }）
+footer-goal-abandoned = 目标已放弃
+footer-goal-achieved-usage = 目标已达成（{ $usage }）
+footer-goal-achieved = 目标已达成
+footer-ide-context = IDE 上下文
+footer-reverse-i-search = 反向搜索:{" "}
+footer-again-to-quit = {" "}再按一次退出
+footer-again-to-edit-previous = {" "}再按一次编辑上一条消息
+footer-to-edit-previous = {" "}编辑上一条消息
+footer-percent-context-left = 剩余上下文 { $percent }%
+footer-tokens-used = 已用 { $used_fmt }
+footer-full-context-left = 剩余上下文 100%
+
+## tui/src/auto_review_denials.rs
+
+auto-review-send-input = 向终端 { $process_id } 发送输入：{ $stdin }
+auto-review-apply-patch-one = apply_patch 修改 { $file }
+auto-review-apply-patch-many = apply_patch 修改 { $count } 个文件
+auto-review-network-access = 访问网络：{ $target }
+auto-review-mcp-on = { $label } 上的 MCP { $tool_name }
+auto-review-permission-request-reason = 权限请求：{ $reason }
+auto-review-permission-request = 权限请求
+
+## tui/src/chatwidget/realtime.rs
+
+realtime-still-stopping = 语音对话仍在停止中。
+realtime-unavailable-side = 侧边对话中无法使用语音模式。请先返回主会话。
+realtime-unsupported-platform = 语音功能需要 macOS、基于 MSVC 的 Windows 构建或基于 glibc 的 Linux 构建。
+realtime-start-conversation-first = 请先开始对话，再使用语音模式。
+realtime-failed-start = 无法启动语音模式：{ $message }
+realtime-conversation-failed = 语音对话失败：{ $message }
+realtime-failed-restore-mute = 无法恢复麦克风静音：{ $error }
+realtime-connection-timed-out = 语音连接超时。清理后将重试一次。
+realtime-failed-connect = 无法连接语音模式：{ $error }
+realtime-conversation-started = 语音对话已开始。
+realtime-started-hint = 使用 /voice mute 静音，或使用 /voice 停止。
+realtime-failed-deliver = 无法送达语音回复。
+realtime-closed-during-startup = 语音连接在启动期间关闭。将重试一次。
+realtime-conversation-ended = 语音对话已结束：{ $reason }
+
+## tui/src/history_cell/search.rs
+
+history-search-in-url = { $url } 中的 '{ $pattern }'
+history-search-opened-page = 已打开页面
+history-search-opened = 已打开
+history-search-opening-page = 正在打开页面
+history-search-opening = 正在打开
+history-search-searched-for = 已搜索
+history-search-searched-page = 已搜索页面
+history-search-searching-for = 正在搜索
+history-search-searching-page = 正在搜索页面
+history-search-browsing = 正在浏览网页
+history-search-searched-web = 已搜索网页
+history-search-searching-web = 正在搜索网页
+history-search-for = ：
+
+## tui/src/session_start.rs
+
+session-start-failed-unarchive = 无法取消归档会话 { $thread_id }
+session-start-failed-resume = 无法从 { $target_label } 恢复会话：{ $err }
+session-start-failed-fork = 无法从 { $target_label } 分叉会话：{ $err }
+
+## tui/src/tool_output.rs
+
+tool-output-omitted-lines = +{ $omitted } 行（{ $hint }）
+
+## tui/src/external_agent_config_migration/mod.rs
+
+external-migration-import-selected = 导入所选项
+external-migration-customize-selection = 自定义选择
+external-migration-cancel = 取消
+external-migration-review-selection = 检查所选项
+external-migration-current-project = 当前项目：
+external-migration-home = 主目录
+external-migration-importing-none = 正在导入：无
+external-migration-importing-summary = 正在导入：{ $count_summary }
+external-migration-plus-more = 另有 { $hidden_plugin_count } 个
+external-migration-plus-more-marketplaces = 另有 { $hidden_marketplace_count } 个插件市场
+external-migration-plugin-counts = （{ $marketplaces } 个插件市场，{ $plugins } 个插件）
+
+## tui/src/keymap_setup.rs
+
+keymap-setup-configure-this-shortcut = 配置此快捷键。
+keymap-setup-no-custom-override = 没有可移除的自定义根覆盖
+keymap-setup-custom-root-override = 自定义根覆盖
+keymap-setup-default-keymap = 默认键位
+keymap-setup-edit-shortcut = 编辑快捷键
+keymap-setup-current = 当前{" "}
+keymap-setup-config = 配置{" "}
+keymap-setup-set-key = 设置按键
+keymap-setup-capture-for-unbound = 为此未绑定的操作捕获一个按键
+keymap-setup-replace-binding = 替换绑定
+keymap-setup-capture-replacement = 为 `{ $current_binding }` 捕获替换按键
+keymap-setup-add-alternate-binding = 添加备用绑定
+keymap-setup-keep-and-add-key = 保留 `{ $current_binding }` 并添加另一个按键
+keymap-setup-replace-one-binding = 替换其中一个绑定...
+keymap-setup-choose-existing-to-replace = 选择要替换的现有绑定
+keymap-setup-replace-all-bindings = 替换所有绑定
+keymap-setup-replace-with-one-key = 将 `{ $current_binding }` 替换为一个按键
+keymap-setup-use-leader = 使用前导键...
+keymap-setup-capture-after-leader = 捕获紧随已配置前导键之后的按键
+keymap-setup-leader-unbound = 前导键未绑定
+keymap-setup-configure-leader = 配置前导键...
+keymap-setup-set-leader-first = 请先设置前导键，再分配此快捷键
+keymap-setup-set-key-chord = 设置组合键序列
+keymap-setup-capture-two-keys = 为此操作捕获两个连续按键
+keymap-setup-replace-with-chord = 替换为组合键序列
+keymap-setup-replace-with-two-stroke = 将 `{ $current_binding }` 替换为两键组合序列
+keymap-setup-add-alternate-chord = 添加备用组合键序列
+keymap-setup-keep-and-add-chord = 保留 `{ $current_binding }` 并添加两键组合序列
+keymap-setup-remove-custom-binding = 移除自定义绑定
+keymap-setup-restore-default-binding = 恢复默认键位绑定
+keymap-setup-back-to-shortcuts = 返回快捷键列表
+keymap-setup-return-to-list = 返回快捷键列表
+keymap-setup-changes-write-root = 更改会写入根级{" "}
+keymap-setup-override-suffix = {" "}覆盖。
+keymap-setup-replace-binding-title = 替换绑定
+keymap-setup-choose-binding-to-replace = 选择要替换的绑定。
+keymap-setup-replace-with-another-key = 将 `{ $binding }` 替换为另一个按键
+keymap-setup-binding-key-chord = { $binding }（组合键序列）
+keymap-setup-binding-replace-two-stroke = 将 `{ $binding }` 替换为两键组合序列
+keymap-setup-shortcut-conflict = 快捷键冲突
+keymap-setup-cannot-use = { $context }.{ $action } 不能使用 `{ $key }`。
+keymap-setup-pick-another-key = 换一个按键
+keymap-setup-return-to-capture = 返回此操作的按键捕获
+keymap-setup-cancel = 取消
+keymap-setup-leave-unchanged = 保持键位不变
+keymap-setup-no-change = 无更改：`{ $context }.{ $action }` 已在使用 `{ $key }`。
+keymap-setup-no-longer-uses = `{ $context }.{ $action }` 不再使用 `{ $old_key }`。请重新打开 /keymap 并再次选择绑定。
+keymap-setup-remapped = 已将 `{ $context }.{ $action }` 重新映射为 `{ $key }`。
+keymap-setup-added = 已将 `{ $key }` 添加到 `{ $context }.{ $action }`。
+keymap-setup-replaced = 已将 `{ $context }.{ $action }` 的 `{ $old_key }` 替换为 `{ $key }`。
+keymap-setup-unknown-action = 未知的键位操作 `{ $context }.{ $action }`。请重新打开 /keymap 并选择操作。
+keymap-setup-only-modifiers = `tui.keymap` 中只能存储 ctrl、alt、shift 和 super 修饰键。
+keymap-setup-only-function-keys = `tui.keymap` 中只能存储 F1 到 F{ $max } 的功能键。
+keymap-setup-only-ascii = `tui.keymap` 中只能存储可打印的 ASCII 按键。
+keymap-setup-key-unsupported = `tui.keymap` 不支持该按键。
+
+## tui/src/worktree_startup.rs
+
+worktree-startup-untrusted-source = `--worktree` 无法从明确不受信任的来源创建检出
+worktree-startup-local-only = `--worktree` 仅支持本地会话
+worktree-startup-session-not-found = 未找到会话：{ $id_or_name }
+worktree-startup-recovery = 启动未能完成将会话绑定到此 worktree：{ $root }{"\u000A"}检出已保留。请检查它，并确认没有会话正在使用它。{"\u000A"}要删除它，请在源仓库中运行 `git worktree remove <checkout-path>`，{"\u000A"}并将 <checkout-path> 替换为上面的路径。请勿使用 --force。
+
+
+## app/history_pagination.rs
+
+history-pagination-no-previous-message = 没有可编辑的上一条消息。
+
+## app/misalignment_policy.rs
+
+misalignment-policy-continuation-request = 继续请求（引用）
+misalignment-policy-what-we-detected = 我们检测到的内容
+misalignment-policy-cannot-continue = 无法继续此对话。请在再试前查看其最新状态。
+
+## app/user_verification.rs
+
+user-verification-unavailable-remote = 远程工作区不支持用户验证。
+
+## app_server_connection.rs
+
+app-server-connection-reopen-cloud = 请重新打开 Codex 以重新连接 Cloud 后端。
+
+## app/thread_goal_actions.rs
+
+thread-goal-actions-ephemeral = 目标需要已保存的会话，而当前会话是临时的。{"\u000A"}运行 `codex` 开始一个可保存的会话，或用 `codex resume` / `/resume` 重新打开一个。
+thread-goal-actions-no-goal-set = 当前未设置目标。
+thread-goal-actions-goal-status = 目标 { $status }
+thread-goal-actions-cleared = 目标已清除
+thread-goal-actions-no-goal-to-clear = 没有可清除的目标
+thread-goal-actions-no-goal-this-thread = 此会话当前没有目标。
+thread-goal-actions-replace-current = 替换当前目标
+thread-goal-actions-replace-desc = 设置新目标并立即开始
+thread-goal-actions-cancel = 取消
+thread-goal-actions-keep-current = 保留当前目标
+thread-goal-actions-replace-title = 替换目标？
+thread-goal-actions-new-objective = 新目标：{ $objective }
+thread-goal-actions-create-first = 编辑目标前请先创建目标。
+thread-goal-actions-failed-read = 读取会话目标失败：{ $err }
+thread-goal-actions-failed-replace = 替换会话目标失败：{ $err }
+thread-goal-actions-failed-set = 设置会话目标失败：{ $err }
+thread-goal-actions-failed-update = 更新会话目标失败：{ $err }
+thread-goal-actions-failed-clear = 清除会话目标失败：{ $err }
+
+## app/workspace_hud.rs
+
+workspace-hud-panes = 面板
+workspace-hud-move = 移动
+workspace-hud-this-pane = 当前面板
+workspace-hud-command-center = 命令中心
+workspace-hud-main-composer = 主输入框
+workspace-hud-open-in-sidebar = 在侧边栏中打开
+workspace-hud-hide-sidebar = 隐藏侧边栏
+workspace-hud-sidebar-content = 侧边栏内容
+workspace-hud-resize-panes = 调整面板大小
+workspace-hud-minimum-width = 最小宽度
+workspace-hud-maximum-width = 最大宽度
+workspace-hud-equal-widths = 等宽
+workspace-hud-divider-left = 左移分隔条
+workspace-hud-divider-right = 右移分隔条
+workspace-hud-restore-layout = 恢复布局
+workspace-hud-zoom-pane = 放大面板
+workspace-hud-close-tab = 关闭标签页
+workspace-hud-previous-tab = 上一个标签页
+workspace-hud-next-tab = 下一个标签页
+workspace-hud-hide-pane = 隐藏面板
+workspace-hud-pane-left = 向左移动面板
+workspace-hud-pane-right = 向右移动面板
+workspace-hud-choose-environment = 选择环境
+workspace-hud-presets = 预设 ›
+workspace-hud-find-text = 查找文本
+workspace-hud-select-transcript = 选择对话记录
+workspace-hud-mark-table-cell = 标记表格单元格
+workspace-hud-composer = 输入框
+workspace-hud-sidebar = 侧边栏
+workspace-hud-conversation = 对话
+workspace-hud-leader-title = { $prefix } · { $origin }
+
+
+## bottom_pane/mentions_v2/popup.rs
+
+mentions-v2-popup-loading = 加载中...
+mentions-v2-popup-no-matches = 没有匹配项
+
+
+## chatwidget/interaction.rs
+
+interaction-review-steer-unavailable = /review 期间不支持引导消息。现在按 Ctrl+C 可取消审查。
+interaction-ctrl-l-disabled = 任务进行期间 Ctrl+L 不可用。
+interaction-no-agent-response = 没有可复制的代理回复
+interaction-copy-failed = 复制失败: { $error }
+interaction-rename-thread = 重命名会话
+interaction-name-thread = 命名会话
+interaction-type-a-name = 输入名称并按 Enter
+interaction-thread-name-empty = 会话名称不能为空。
+interaction-generating-title = 正在生成标题建议…
+interaction-suggested-from-conversation = 根据此对话生成的建议
+
+## clipboard_copy/worker.rs
+
+clipboard-worker-selection-ended = 选择在送达剪贴板前已结束
+clipboard-worker-nothing-to-copy = 没有可复制的内容：所选内容为空
+clipboard-worker-stopped = 剪贴板工作进程已停止
+clipboard-worker-no-read-pending = 没有待处理的剪贴板读取
+clipboard-worker-read-timed-out = 读取剪贴板超时
+clipboard-worker-start-failed = 无法启动剪贴板工作进程：{ $error }
+
+## clipboard_paste/text.rs
+
+clipboard-text-windows-reader-unavailable = Windows 剪贴板读取器不可用
+clipboard-text-reader-start-failed = 无法启动剪贴板读取器
+clipboard-text-unavailable-over-ssh = 通过 SSH 无法使用剪贴板文本
+clipboard-text-windows-reader-busy = Windows 剪贴板读取器忙碌或不可用
+clipboard-text-read-timed-out = 读取剪贴板超时
+clipboard-text-unavailable = 剪贴板文本不可用
+clipboard-text-too-large = 剪贴板文本超出消息大小限制
+clipboard-text-windows-reader-start-failed = 无法启动 Windows 剪贴板读取器
+clipboard-text-reader-no-input = 剪贴板读取器没有输入
+clipboard-text-read-start-failed = 无法开始读取剪贴板
+clipboard-text-reader-no-output = 剪贴板读取器没有输出
+clipboard-text-read-failed = 无法读取剪贴板文本
+clipboard-text-not-utf8 = 剪贴板文本不是 UTF-8 编码
+
+## config_panel/render.rs
+
+config-render-animations = 动画
+config-render-animations-desc = 为欢迎界面、工作指示器和过渡效果添加动画
+config-render-composer-stars = 输入框星标
+config-render-composer-stars-desc = 为新的 Astra 任务短暂显示星标
+config-render-effects = 视觉效果
+config-render-effects-subtitle = 配置视觉效果
+config-render-stars-need-animations = 开启动画以显示 Astra 任务星标
+config-render-mouse-scroll-speed = 鼠标滚动速度
+config-render-mouse-scroll-speed-desc = 为全屏对话记录选择鼠标滚轮速度
+config-render-speed-default = 1×（默认）
+config-render-unfocused = 未聚焦时
+config-render-always = 始终
+config-render-notify-when = 通知时机
+config-render-notify-when-desc = 仅在你离开或终端也处于聚焦状态时通知
+config-render-auto-default = 自动（默认）
+config-render-off = 关闭
+config-render-on = 开
+config-render-copy-on-select = 选中即复制
+config-render-copy-on-select-desc = 松开鼠标时复制对话记录、页脚和输入框中的选中内容；自动则沿用终端的默认设置
+config-render-right-click-paste = 右键粘贴
+config-render-dense = 紧凑
+config-render-comfortable = 宽松
+config-render-session-picker-layout = 会话选择器布局
+config-render-session-picker-layout-desc = 恢复和分叉会话时，选择更紧凑的行或更宽松的列表
+config-render-ask = 询问
+config-render-current-directory = 当前目录
+config-render-session-directory = 会话目录
+config-render-resume-directory = 恢复时的目录
+config-render-resume-directory-desc = 恢复会话时选择工作目录；本次会话中 --cd 优先
+config-render-requires-cd-remote = 远程会话需要 --cd
+config-render-changes-save-automatically = 更改会自动保存
+config-render-configuration = 配置
+config-render-hint-toggle = 切换
+config-render-hint-back = 返回
+config-render-hint-group = 分组
+config-render-hint-search = 搜索
+config-render-hint-open = 打开
+config-render-hint-test = 测试
+config-render-hint-clear-search-close = 清除搜索/关闭
+config-render-hint-clear-search = 清除搜索
+config-render-search-placeholder = 输入以搜索设置
+
+## history_cell/mcp.rs
+
+history-mcp-auth-unknown = 未知
+history-mcp-auth-unsupported = 不支持
+history-mcp-auth-not-logged-in = 未登录
+history-mcp-auth-bearer-token = Bearer token
+history-mcp-called = 已调用
+history-mcp-calling = 调用中
+history-mcp-failed-verb = 失败
+history-mcp-returned-image = 返回的图片
+history-mcp-see-the = {" "}   请参阅{" "}
+history-mcp-mcp-docs = MCP 文档
+history-mcp-to-configure-them = {" "}了解如何配置。
+history-mcp-mcp-tools = MCP 工具
+history-mcp-no-servers = {" "} • 未配置 MCP 服务器。
+history-mcp-no-tools = {" "} • 没有可用的 MCP 工具。
+history-mcp-status-connected = 已连接
+history-mcp-status-starting = 启动中
+history-mcp-status-auth-required = 需要认证
+history-mcp-status-failed = 失败
+history-mcp-status-not-started = 未启动
+history-mcp-status-disabled = 已禁用
+history-mcp-status-cancelled = 已取消
+history-mcp-status-unknown = 未知
+history-mcp-label-auth = {" "}   • 认证：
+history-mcp-tools-none = {" "}   • 工具：（无）
+history-mcp-label-tools = {" "}   • 工具：
+history-mcp-resources-none = {" "}   • 资源：（无）
+history-mcp-label-resources = {" "}   • 资源：
+history-mcp-templates-none = {" "}   • 资源模板：（无）
+history-mcp-label-templates = {" "}   • 资源模板：
+history-mcp-use-verbose = {" "} 使用 /mcp verbose 查看工具和资源。
+history-mcp-loading-inventory = 正在加载 MCP 清单
+history-mcp-loading-inventory-raw = 正在加载 MCP 清单...
+history-mcp-error = 错误：{ $error }
+history-mcp-verb-name = { $verb } { $name }
+history-mcp-name-with-environment = { $name }（环境 { $environment_id }）
+history-mcp-environment-suffix = {" "}（环境 { $environment_id }）
+history-mcp-tool-count = （{ $count } 个工具）
+
+## thread_transcript/other_items.rs
+
+other-items-patch-declined = 补丁应用已被拒绝
+other-items-patch-in-progress = 补丁应用进行中
+other-items-status-unavailable = 状态不可用
+other-items-context-compacted = 上下文已压缩
+other-items-hook-prompt = hook 提示：{" "}
+other-items-image-generation = 图像生成 · { $status }
+other-items-review-started = >> 代码审查已开始：{ $review } <<
+other-items-review-finished = << 代码审查已结束：{ $review } >>
+
+## text_formatting.rs
+
+text-formatting-and-two = { $first }和{ $second }
+text-formatting-and-last = { $list }和{ $last }
+
+## tooltips.rs
+
+tooltips-tip-prefix = **提示：** { $tip }
+
+## session_resume.rs
+
+session-resume-parent-hint = {"\u000A"}请改为恢复其父会话：codex resume { $parent_id }
+session-resume-guardian = 无法恢复 Guardian 审查会话。{ $parent_hint }
+session-resume-cwd-unknown = 无法确定所选会话记录的工作目录
+
+## tui/src/app/provider.rs
+provider-back = 返回
+provider-loading-title = 正在加载模型提供方…
+provider-reconnect-to-browse = 请重新连接 app-server 以浏览模型提供方。
+provider-list-title = 模型提供方
+provider-details-title = 模型提供方详情
+provider-edit-configuration = 编辑配置
+provider-no-active-chat = 没有活动对话
+provider-server-default = 服务器默认
+provider-default-for-new-chats = 新对话的默认值
+provider-client-launch-selects = 此客户端的启动设置为新对话选择 { $id }。
+provider-server-fixes-default = 服务器配置固定了默认提供方。
+provider-use-new-to-start = 使用 /new 以所选提供方开始对话。
+provider-list-subtitle = 当前对话：{ $current_label } · { $default_label }：{ $default_id }
+provider-hint-details = {" "}详情
+provider-hint-set-default = {" "}设为默认
+provider-hint-back = {" "}返回
+provider-field-id = 提供方 ID
+provider-field-type = 类型
+provider-type-builtin-openai = 内置 OpenAI 提供方
+provider-absent-not-reported = 未报告
+provider-absent-managed-externally = 由外部管理
+provider-absent-none = 无
+provider-absent-not-set = 未设置
+
+## tui/src/app/tui_mode_picker.rs
+tui-mode-picker-saved = 已保存 TUI 模式：{ $mode }。重启 Codex 后生效；启动参数的覆盖设置仍然有效。
+tui-mode-picker-save-failed = 无法保存 TUI 模式：{ $error }
+
+
+
+## tui/src/bottom_pane/approval_overlay.rs
+approval-overlay-send-input-existing = 是否向现有终端发送输入？
+approval-overlay-send-input-terminal = 是否向终端 { $process_id } 发送输入？
+approval-overlay-run-command = 是否运行以下命令？
+approval-overlay-network-access = 是否批准访问网络地址 "{ $host }"？
+approval-overlay-grant-permissions = 是否授予这些权限？
+approval-overlay-make-edits = 是否进行以下修改？
+approval-overlay-needs-approval = { $server } 需要你的批准。
+approval-overlay-granted-none = 你没有授予额外权限
+approval-overlay-granted-strict = 你已授予额外权限（严格自动审查）
+approval-overlay-granted-session = 你已为本次会话授予额外权限
+approval-overlay-granted = 你已授予额外权限
+approval-overlay-hint-confirm = 确认
+approval-overlay-hint-cancel = 取消
+approval-overlay-hint-or = {" "}或{" "}
+approval-overlay-hint-press = 按{" "}
+approval-overlay-hint-open-thread = {" "}打开会话
+approval-overlay-label-thread = 会话:{" "}
+approval-overlay-label-environment = 环境：
+approval-overlay-label-permission-rule = 权限规则：
+approval-overlay-label-reason = 原因：
+approval-overlay-label-input = 输入：
+approval-overlay-label-server = 服务器：
+approval-overlay-yes-once = 是，仅此一次
+approval-overlay-yes-proceed = 是，继续
+approval-overlay-yes-prefix = 是，且不再询问以 `{ $rendered_prefix }` 开头的命令
+approval-overlay-yes-host-conversation = 是，且在本次对话中允许此主机
+approval-overlay-yes-permissions-session = 是，且在本次会话中允许这些权限
+approval-overlay-yes-command-session = 是，且在本次会话中不再询问此命令
+approval-overlay-yes-host-future = 是，且以后允许此主机
+approval-overlay-no-host-future = 否，且以后阻止此主机
+approval-overlay-no-continue-without-running = 否，不运行并继续
+approval-overlay-no-tell-codex = 否，并告诉 Codex 该如何调整
+approval-overlay-yes-files-session = 是，且不再询问这些文件
+approval-overlay-yes-grant-turn = 是，在本轮授予这些权限
+approval-overlay-yes-grant-strict = 是，在本轮授予并启用严格自动审查
+approval-overlay-yes-grant-session = 是，在本次会话中授予这些权限
+approval-overlay-no-without-permissions = 否，不授予权限并继续
+approval-overlay-yes-provide-info = 是，提供所请求的信息
+approval-overlay-no-continue-without-it = 否，不提供并继续
+approval-overlay-cancel-request = 取消此请求
+approval-overlay-rule-network = 网络
+approval-overlay-rule-read = 读取 { $reads }
+approval-overlay-rule-write = 写入 { $writes }
+approval-overlay-rule-deny-read = 禁止读取 { $denied_reads }
+approval-overlay-rule-glob = glob `{ $pattern }`
+
+## tui/src/bottom_pane/chat_composer.rs
+chat-composer-message-too-large = 消息超过最大长度 { $max } 个字符（已提供 { $actual_chars } 个）。
+chat-composer-viewing-subagent = 正在查看子代理：已禁用直接输入
+chat-composer-unrecognized-command = 无法识别的命令 '/{ $name }'。输入 "/" 查看支持的命令列表。
+chat-composer-message-too-long-limit = 消息过长；上限为 { $max } 个字符
+chat-composer-command-disabled-during-task = 任务进行中已禁用 '/{ $command }'。
+chat-composer-shell-mode = Shell 模式
+chat-composer-capability-skills = skills
+chat-composer-plugin-description = 插件
+chat-composer-plugin-description-capabilities = 插件 · { $capabilities }
+chat-composer-shutting-down = 正在关闭…
+chat-composer-input-disabled = 输入已禁用。
+chat-composer-capability-mcp-servers = { $count } 个 MCP 服务器
+chat-composer-capability-apps = { $count } 个应用
+
+## tui/src/bottom_pane/mcp_server_elicitation.rs
+mcp-elicitation-answer-placeholder = 输入你的答案
+mcp-elicitation-answer-placeholder-optional = 输入你的答案（可选）
+mcp-elicitation-run-tool-continue = 运行该工具并继续
+mcp-elicitation-allow-request-continue = 允许此请求并继续
+mcp-elicitation-allow = 允许
+mcp-elicitation-run-tool-session = 运行该工具，并在本次会话中记住此选择
+mcp-elicitation-allow-request-session = 允许此请求，并在本次会话中记住此选择
+mcp-elicitation-allow-session = 本次会话中允许
+mcp-elicitation-run-tool-always = 运行该工具，并在今后的工具调用中记住此选择
+mcp-elicitation-allow-request-always = 允许此请求，并在今后的请求中记住此选择
+mcp-elicitation-always-allow = 始终允许
+mcp-elicitation-cancel = 取消
+mcp-elicitation-cancel-tool-call = 取消此次工具调用
+mcp-elicitation-deny = 拒绝
+mcp-elicitation-decline-continue = 拒绝此请求并继续
+mcp-elicitation-cancel-request = 取消此请求
+mcp-elicitation-true = 是
+mcp-elicitation-false = 否
+mcp-elicitation-server-message = 服务器：{ $server }{"\u000A"}{"\u000A"}{ $message }
+mcp-elicitation-tip-submit = 提交
+mcp-elicitation-tip-submit-all = 提交全部
+mcp-elicitation-tip-submit-answer = 提交答案
+mcp-elicitation-tip-navigate-fields = 切换字段
+mcp-elicitation-tip-change-field = 切换字段
+mcp-elicitation-tip-cancel = 取消
+mcp-elicitation-answer-required = 提交前请先回答必填字段。
+mcp-elicitation-no-options = 没有选项
+mcp-elicitation-option-position = 选项 { $selected }/{ $total }
+mcp-elicitation-field-position = 字段 { $idx }/{ $total }
+mcp-elicitation-field-position-unanswered = { $base }（{ $unanswered } 个必填项未回答）
+mcp-elicitation-no-fields = 没有字段
+
+
+## tui/src/bottom_pane/app_link_view.rs
+app-link-sign-in-instructions = 在浏览器中登录此应用，然后返回此处。
+app-link-action-required = 需要操作
+app-link-server = 服务器：{ $server }
+app-link-complete-action-instructions = 在浏览器中完成所要求的操作，然后返回此处。
+app-link-open-sign-in-url = 打开登录链接
+app-link-back = 返回
+app-link-already-signed-in = 我已登录
+app-link-open-link = 打开链接
+app-link-finished = 我已完成
+app-link-manage-on-chatgpt = 在 ChatGPT 中管理
+app-link-disable-app = 停用应用
+app-link-enable-app = 启用应用
+app-link-install-on-chatgpt = 在 ChatGPT 中安装
+app-link-already-installed = 我已安装
+app-link-use-dollar-insert = 使用 $ 将此应用插入提示词。
+app-link-new-apps-delay = 新安装的应用可能需要几分钟才会出现在 /apps 中。
+app-link-after-installed-insert = 安装后，使用 $ 将此应用插入提示词。
+app-link-finish-app-sign-in = 完成应用登录
+app-link-finish-authentication = 完成认证
+app-link-finish-in-browser = 在浏览器中完成
+app-link-finish-app-setup = 完成应用设置
+app-link-chatgpt-sign-in-browser = 请在刚打开的浏览器窗口中登录 ChatGPT 上的应用。
+app-link-complete-auth-browser = 请在刚打开的浏览器窗口中完成认证。
+app-link-return-select-signed-in = 然后返回此处并选择 "我已登录"。
+app-link-complete-action-browser = 请在刚打开的浏览器窗口中完成所要求的操作。
+app-link-return-select-finished = 然后返回此处并选择 "我已完成"。
+app-link-complete-setup-browser = 请在刚打开的浏览器窗口中完成 ChatGPT 上的应用设置。
+app-link-return-select-installed = 如有需要请先在那里登录，然后返回此处并选择 "我已安装"。
+app-link-sign-in-url-label = 登录链接：
+app-link-link-label = 链接：
+app-link-setup-url-label = 设置链接：
+app-link-hint-move = {" "}移动
+app-link-hint-select = {" "}选择
+app-link-hint-close = {" "}关闭
+app-link-no-actions = 没有可用操作
+
+## tui/src/cwd_prompt.rs
+cwd-prompt-verb-resume = 恢复
+cwd-prompt-verb-fork = 派生
+cwd-prompt-past-resumed = 已恢复
+cwd-prompt-past-forked = 已派生
+cwd-prompt-save-failed = 保存工作目录偏好失败。
+cwd-prompt-title = 工作目录 · { $action_verb }
+cwd-prompt-explanation = 会话 = { $action_past }会话中记录的最新工作目录{"\u000A"}当前 = 你当前的工作目录
+cwd-prompt-use-session-dir = 使用会话目录（{ $session_cwd }）
+cwd-prompt-use-current-dir = 使用当前目录（{ $current_cwd }）
+cwd-prompt-always-session-dir = 始终使用会话目录
+cwd-prompt-always-current-dir = 始终使用当前目录
+cwd-prompt-always-current-dir-path = 始终使用当前目录（{ $path }）
+cwd-prompt-hint-continue = {" "}继续 ·{" "}
+cwd-prompt-hint-use-session = {" "}使用会话目录 ·{" "}
+cwd-prompt-hint-quit = {" "}退出
+
+## tui/src/external_agent_config_migration/source.rs
+external-agent-source-title = 选择导入来源
+external-agent-source-subtitle = 选择要导入其配置的应用。
+external-agent-source-hint-continue = {" "}继续 ·{" "}
+external-agent-source-hint-cancel = {" "}取消
+
+## tui/src/daemon_startup.rs
+daemon-startup-state-enabled = 启用
+daemon-startup-state-disabled = 禁用
+daemon-startup-requires-feature = 此会话要求 { $name } 处于{ $state }状态
+daemon-startup-running-without-server = 未使用共享后台服务运行：{ $reason }。
+
+## tui/src/status/rate_limits.rs
+rate-limits-bucket-limit = { $bucket } 限额
+rate-limits-bucket-window-limit = { $bucket } { $window }限额
+rate-limits-window-limit = { $window }限额
+rate-limits-monthly-credit-limit = 每月额度上限
+rate-limits-credits-used = 已使用 { $used } / { $limit } 额度
+rate-limits-percent-left = 剩余 { $percent }%
+rate-limits-credits = 额度
+rate-limits-unlimited = 无限制
+rate-limits-available = 可用
+rate-limits-credits-balance = { $balance } 额度
+
+## tui/src/transcript_view/follow_control.rs
+follow-control-new-back-esc = {" "}有新活动 · ↓ 回到底部 · esc{" "}
+follow-control-new-bottom = {" "}有新活动 · ↓ 底部{" "}
+follow-control-new-short = {" "}新 · ↓ 底部{" "}
+follow-control-bottom = {" "}↓ 底部{" "}
+follow-control-arrow = {" "}↓{" "}
+follow-control-back-esc = {" "}↓ 回到底部 · esc{" "}
+follow-control-back = {" "}↓ 回到底部{" "}
+follow-control-bottom-esc = {" "}↓ 底部 · esc{" "}
+
+## tui/src/transcript_view/disclosure.rs
+disclosure-collapse = 折叠
+disclosure-expand = 展开
+disclosure-previous = 上一个
+disclosure-next = 下一个
+disclosure-back = 返回
+
+
+## tui/src/app/owned_transcript.rs
+owned-transcript-starting-side-chat = 正在启动旁路对话…
+owned-transcript-nav-enter-esc-latest = enter/esc 回到最新
+owned-transcript-nav-esc-latest = esc 回到最新
+owned-transcript-selecting-text = 正在选择文本 · esc 取消
+
+## Display constants shared between files
+const-resize-hint = 调整大小 · ←/h →/l · Shift+←/→ 10 列 · Enter/Esc 完成
+const-external-agent-config-import-in-progress-message = 上一次外部代理导入仍在进行，请等它完成后再导入。
+const-side-edit-previous-unavailable-message = 侧边对话中无法编辑之前的提示词。
+const-trusted-access-for-cyber-verification-warning = 你的对话被标记了多项潜在网络安全风险。由于额外的安全检查已开启，响应可能会更慢。如需获得安全相关工作的授权，请加入 Trusted Access for Cyber 计划：https://chatgpt.com/cyber
+const-tui-stub-message = TUI 中暂不可用。
+const-parent-owned-input-message = 此子代理由其父级控制，已禁用直接输入。
+const-ask-for-approval-label = 请求审批
+const-approve-for-me-label = 自动审批
+const-auto-review-description = 仅在检测到可能不安全的操作时请求审批
+const-create-custom-provider = 创建自定义提供方或网关
+const-unconfirmed-create = 无法确认保存结果。再次添加前请检查提供方列表。
+const-setup-connection-lost = Codex 在设置过程中断开了连接。请重启 Codex 后继续。
+const-goal-usage = 用法：/goal [<objective>|clear|edit|pause|resume]
+const-compaction-header = 正在压缩上下文
+const-compaction-details = 正在腾出空间以继续。
+const-unanswered-confirm-title = 仍有未回答的问题，确定提交吗？
+const-plan-implementation-title = 实施此计划？
+
+## Permissions presets (codex-utils-approval-presets)
+permissions-preset-read-only = 只读
+permissions-preset-default = 默认
+permissions-preset-full-access = 完全访问
+
+## Collaboration modes (codex-protocol's ModeKind)
+collaboration-mode-default = 默认
+collaboration-mode-plan = 计划

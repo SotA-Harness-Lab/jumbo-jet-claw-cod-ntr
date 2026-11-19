@@ -382,7 +382,7 @@ impl App {
                     if focused {
                         frame.cursor_position = None;
                     }
-                    let resize_hint = self.pane_resize.map(|_| side_pane::RESIZE_HINT);
+                    let resize_hint = self.pane_resize.map(|_| side_pane::resize_hint_text());
                     if let Some(doc) = self
                         .sidebars
                         .get_mut(&sidebar_parent)
@@ -429,7 +429,7 @@ impl App {
                                 ratatui::text::Text::from(Line::from(vec![
                                     glyph.set_style(crate::style::accent_style()),
                                     " ".into(),
-                                    "Starting side chat…".dim(),
+                                    crate::i18n::tr!("owned-transcript-starting-side-chat").dim(),
                                 ]))
                             }
                             CreationState::Failed { message, .. } => {
@@ -636,9 +636,9 @@ impl App {
         );
         let composer = self.first_screen_composer();
         let latest_navigation = if self.enter_returns_to_latest() {
-            "enter/esc latest"
+            crate::i18n::tr!("owned-transcript-nav-enter-esc-latest")
         } else {
-            "esc latest"
+            crate::i18n::tr!("owned-transcript-nav-esc-latest")
         };
         self.sync_owned_transcript(area.width);
         let transcript_width = self
@@ -653,7 +653,7 @@ impl App {
             .has_active_interaction()
         {
             Some(
-                ratatui::text::Line::from("Selecting text · esc cancel")
+                ratatui::text::Line::from(crate::i18n::tr!("owned-transcript-selecting-text"))
                     .dim()
                     .into(),
             )
@@ -705,7 +705,7 @@ impl App {
         .then(crate::bottom_pane::ComposerGap::default);
         let prompt_footer = if self.pane_resize.is_some() {
             Some(crate::bottom_pane::TranscriptFooter {
-                text: side_pane::RESIZE_HINT.into(),
+                text: side_pane::resize_hint_text().into(),
                 cursor_column: None,
                 is_interactive: true,
             })

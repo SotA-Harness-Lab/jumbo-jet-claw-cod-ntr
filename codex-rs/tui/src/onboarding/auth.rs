@@ -54,7 +54,7 @@ use crate::motion::MotionMode;
 use crate::motion::shimmer_text;
 use crate::onboarding::bedrock::BedrockState;
 use crate::onboarding::gateway::GatewayStep;
-use crate::onboarding::gateway::USE_CUSTOM_PROVIDER;
+use crate::onboarding::gateway::use_custom_provider;
 use crate::onboarding::gcp::GcpState;
 use crate::onboarding::keys;
 use crate::onboarding::onboarding_screen::KeyboardHandler;
@@ -673,7 +673,7 @@ impl AuthModeWidget {
                     lines.extend(create_mode_item(
                         idx,
                         option,
-                        USE_CUSTOM_PROVIDER,
+                        use_custom_provider(),
                         crate::i18n::tr!("auth-gateway-description"),
                     ));
                 }

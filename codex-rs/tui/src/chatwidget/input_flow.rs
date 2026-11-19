@@ -79,7 +79,7 @@ impl ChatWidget {
                     self.reasoning_buffer.clear();
                     self.reasoning_header = None;
                     self.reasoning_summary_parts.clear();
-                    self.set_status_header(crate::i18n::tr!("input-flow-working").to_string());
+                    self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
                     self.submit_user_message_with_history_and_shell_escape_policy(
                         user_message,
                         UserMessageHistoryRecord::UserMessageText,
@@ -115,7 +115,7 @@ impl ChatWidget {
                 self.handle_slash_command_with_args_dispatch(cmd, args, text_elements);
             }
             InputResult::ParentOwnedInputBlocked => {
-                self.add_error_message(PARENT_OWNED_INPUT_MESSAGE.to_string());
+                self.add_error_message(parent_owned_input_message().to_string());
             }
             InputResult::None => {}
         }
@@ -409,7 +409,7 @@ impl ChatWidget {
             self.add_error_message(if let Some(reason) = self.read_only_thread {
                 reason.message().to_string()
             } else {
-                PARENT_OWNED_INPUT_MESSAGE.to_string()
+                parent_owned_input_message().to_string()
             });
             return;
         }

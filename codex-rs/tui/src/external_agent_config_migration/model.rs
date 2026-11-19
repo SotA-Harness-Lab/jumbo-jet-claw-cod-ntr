@@ -39,8 +39,8 @@ pub(crate) fn external_agent_config_migration_groups(
     let mut groups = Vec::new();
     if !tools_and_setup.is_empty() {
         groups.push(ExternalAgentConfigMigrationGroupModel {
-            label: "Tools & setup".to_string(),
-            description: "Settings, instructions, integrations, agents, commands, and skills",
+            label: crate::i18n::tr!("external-agent-migration-group-tools").to_string(),
+            description: crate::i18n::tr!("external-agent-migration-group-tools-desc"),
             item_indices: tools_and_setup,
         });
     }
@@ -52,11 +52,14 @@ pub(crate) fn external_agent_config_migration_groups(
             .len();
         groups.push(ExternalAgentConfigMigrationGroupModel {
             label: if project_count == 1 {
-                "Current project".to_string()
+                crate::i18n::tr!("external-agent-migration-group-current-project").to_string()
             } else {
-                format!("Projects ({project_count})")
+                crate::i18n::tr!(
+                    "external-agent-migration-group-projects",
+                    project_count = project_count as i64
+                )
             },
-            description: "Add Codex files alongside your existing project files",
+            description: crate::i18n::tr!("external-agent-migration-group-projects-desc"),
             item_indices: projects,
         });
     }
@@ -67,8 +70,11 @@ pub(crate) fn external_agent_config_migration_groups(
             .map(|details| details.sessions.len())
             .sum::<usize>();
         groups.push(ExternalAgentConfigMigrationGroupModel {
-            label: format!("Chat sessions ({session_count})"),
-            description: "Last 30 days of chats",
+            label: crate::i18n::tr!(
+                "external-agent-migration-group-sessions",
+                session_count = session_count as i64
+            ),
+            description: crate::i18n::tr!("external-agent-migration-group-sessions-desc"),
             item_indices: chat_sessions,
         });
     }
@@ -79,16 +85,36 @@ pub(crate) fn external_agent_config_migration_item_label(
     item: &ExternalAgentConfigMigrationItem,
 ) -> &'static str {
     match item.item_type {
-        ExternalAgentConfigMigrationItemType::AgentsMd => "Instructions",
-        ExternalAgentConfigMigrationItemType::Config => "Settings",
-        ExternalAgentConfigMigrationItemType::Skills => "Skills",
-        ExternalAgentConfigMigrationItemType::Plugins => "Plugins",
-        ExternalAgentConfigMigrationItemType::McpServerConfig => "MCP servers",
-        ExternalAgentConfigMigrationItemType::Subagents => "Agents",
-        ExternalAgentConfigMigrationItemType::Hooks => "Hooks",
-        ExternalAgentConfigMigrationItemType::Commands => "Slash commands",
-        ExternalAgentConfigMigrationItemType::Memory => "Memory",
-        ExternalAgentConfigMigrationItemType::Sessions => "Recent chat sessions",
+        ExternalAgentConfigMigrationItemType::AgentsMd => {
+            crate::i18n::tr!("external-agent-migration-type-instructions")
+        }
+        ExternalAgentConfigMigrationItemType::Config => {
+            crate::i18n::tr!("external-agent-migration-type-settings")
+        }
+        ExternalAgentConfigMigrationItemType::Skills => {
+            crate::i18n::tr!("external-agent-migration-type-skills")
+        }
+        ExternalAgentConfigMigrationItemType::Plugins => {
+            crate::i18n::tr!("external-agent-migration-type-plugins")
+        }
+        ExternalAgentConfigMigrationItemType::McpServerConfig => {
+            crate::i18n::tr!("external-agent-migration-type-mcp-servers")
+        }
+        ExternalAgentConfigMigrationItemType::Subagents => {
+            crate::i18n::tr!("external-agent-migration-type-agents")
+        }
+        ExternalAgentConfigMigrationItemType::Hooks => {
+            crate::i18n::tr!("external-agent-migration-type-hooks")
+        }
+        ExternalAgentConfigMigrationItemType::Commands => {
+            crate::i18n::tr!("external-agent-migration-type-commands")
+        }
+        ExternalAgentConfigMigrationItemType::Memory => {
+            crate::i18n::tr!("external-agent-migration-type-memory")
+        }
+        ExternalAgentConfigMigrationItemType::Sessions => {
+            crate::i18n::tr!("external-agent-migration-item-sessions")
+        }
     }
 }
 
@@ -96,16 +122,36 @@ pub(crate) fn external_agent_config_migration_type_label(
     item_type: ExternalAgentConfigMigrationItemType,
 ) -> &'static str {
     match item_type {
-        ExternalAgentConfigMigrationItemType::AgentsMd => "Instructions",
-        ExternalAgentConfigMigrationItemType::Config => "Settings",
-        ExternalAgentConfigMigrationItemType::Skills => "Skills",
-        ExternalAgentConfigMigrationItemType::Plugins => "Plugins",
-        ExternalAgentConfigMigrationItemType::McpServerConfig => "MCP servers",
-        ExternalAgentConfigMigrationItemType::Subagents => "Agents",
-        ExternalAgentConfigMigrationItemType::Hooks => "Hooks",
-        ExternalAgentConfigMigrationItemType::Commands => "Slash commands",
-        ExternalAgentConfigMigrationItemType::Memory => "Memory",
-        ExternalAgentConfigMigrationItemType::Sessions => "Chat sessions",
+        ExternalAgentConfigMigrationItemType::AgentsMd => {
+            crate::i18n::tr!("external-agent-migration-type-instructions")
+        }
+        ExternalAgentConfigMigrationItemType::Config => {
+            crate::i18n::tr!("external-agent-migration-type-settings")
+        }
+        ExternalAgentConfigMigrationItemType::Skills => {
+            crate::i18n::tr!("external-agent-migration-type-skills")
+        }
+        ExternalAgentConfigMigrationItemType::Plugins => {
+            crate::i18n::tr!("external-agent-migration-type-plugins")
+        }
+        ExternalAgentConfigMigrationItemType::McpServerConfig => {
+            crate::i18n::tr!("external-agent-migration-type-mcp-servers")
+        }
+        ExternalAgentConfigMigrationItemType::Subagents => {
+            crate::i18n::tr!("external-agent-migration-type-agents")
+        }
+        ExternalAgentConfigMigrationItemType::Hooks => {
+            crate::i18n::tr!("external-agent-migration-type-hooks")
+        }
+        ExternalAgentConfigMigrationItemType::Commands => {
+            crate::i18n::tr!("external-agent-migration-type-commands")
+        }
+        ExternalAgentConfigMigrationItemType::Memory => {
+            crate::i18n::tr!("external-agent-migration-type-memory")
+        }
+        ExternalAgentConfigMigrationItemType::Sessions => {
+            crate::i18n::tr!("external-agent-migration-type-sessions")
+        }
     }
 }
 
@@ -132,9 +178,10 @@ pub(crate) fn external_agent_config_migration_count_summary<'a>(
     counts
         .into_iter()
         .map(|(item_type, count)| {
-            format!(
-                "{} {count}",
-                external_agent_config_migration_type_label(item_type)
+            crate::i18n::tr!(
+                "external-agent-migration-summary-entry",
+                label = external_agent_config_migration_type_label(item_type),
+                count = count as i64
             )
         })
         .collect::<Vec<_>>()
@@ -194,51 +241,70 @@ pub(crate) fn external_agent_config_migration_item_detail(
     match item.item_type {
         ExternalAgentConfigMigrationItemType::Plugins => None,
         ExternalAgentConfigMigrationItemType::Skills => Some(format_counted_details(
-            "skill",
-            details.skills.len(),
+            crate::i18n::tr!(
+                "external-agent-migration-count-skill",
+                count = details.skills.len() as i64
+            ),
             details.skills.iter().map(|skill| skill.name.as_str()),
         )),
         ExternalAgentConfigMigrationItemType::McpServerConfig => Some(format_counted_details(
-            "MCP server",
-            details.mcp_servers.len(),
+            crate::i18n::tr!(
+                "external-agent-migration-count-mcp-server",
+                count = details.mcp_servers.len() as i64
+            ),
             details
                 .mcp_servers
                 .iter()
                 .map(|server| server.name.as_str()),
         )),
         ExternalAgentConfigMigrationItemType::Subagents => Some(format_counted_details(
-            "agent",
-            details.subagents.len(),
+            crate::i18n::tr!(
+                "external-agent-migration-count-agent",
+                count = details.subagents.len() as i64
+            ),
             details.subagents.iter().map(|agent| agent.name.as_str()),
         )),
         ExternalAgentConfigMigrationItemType::Hooks => Some(format_counted_details(
-            "hook",
-            details.hooks.len(),
+            crate::i18n::tr!(
+                "external-agent-migration-count-hook",
+                count = details.hooks.len() as i64
+            ),
             details.hooks.iter().map(|hook| hook.name.as_str()),
         )),
         ExternalAgentConfigMigrationItemType::Commands => Some(format_counted_details(
-            "slash command",
-            details.commands.len(),
+            crate::i18n::tr!(
+                "external-agent-migration-count-command",
+                count = details.commands.len() as i64
+            ),
             details.commands.iter().map(|command| command.name.as_str()),
         )),
         ExternalAgentConfigMigrationItemType::Memory => {
             let memory = &details.memory;
             let count = memory.len();
-            let noun = if count == 1 { "memory" } else { "memories" };
+            let summary = crate::i18n::tr!(
+                "external-agent-migration-count-memory",
+                count = count as i64
+            );
             let names = memory
                 .iter()
                 .map(String::as_str)
                 .take(4)
                 .collect::<Vec<_>>();
             Some(if names.is_empty() {
-                format!("{count} {noun}")
+                summary
             } else {
-                format!("{count} {noun}: {}", names.join(", "))
+                crate::i18n::tr!(
+                    "external-agent-migration-count-with-names",
+                    summary = summary,
+                    names = names.join(", ")
+                )
             })
         }
         ExternalAgentConfigMigrationItemType::Sessions => Some(format_counted_details(
-            "chat session",
-            details.sessions.len(),
+            crate::i18n::tr!(
+                "external-agent-migration-count-session",
+                count = details.sessions.len() as i64
+            ),
             details
                 .sessions
                 .iter()
@@ -249,14 +315,13 @@ pub(crate) fn external_agent_config_migration_item_detail(
     }
 }
 
-fn format_counted_details<'a>(
-    noun: &str,
-    count: usize,
-    names: impl Iterator<Item = &'a str>,
-) -> String {
-    let suffix = if count == 1 { "" } else { "s" };
+fn format_counted_details<'a>(summary: String, names: impl Iterator<Item = &'a str>) -> String {
     match names.take(4).collect::<Vec<_>>() {
-        names if names.is_empty() => format!("{count} {noun}{suffix}"),
-        names => format!("{count} {noun}{suffix}: {}", names.join(", ")),
+        names if names.is_empty() => summary,
+        names => crate::i18n::tr!(
+            "external-agent-migration-count-with-names",
+            summary = summary,
+            names = names.join(", ")
+        ),
     }
 }

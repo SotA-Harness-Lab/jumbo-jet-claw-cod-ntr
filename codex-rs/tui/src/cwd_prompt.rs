@@ -42,15 +42,15 @@ pub(crate) enum CwdPromptAction {
 impl CwdPromptAction {
     fn verb(self) -> &'static str {
         match self {
-            CwdPromptAction::Resume => "resume",
-            CwdPromptAction::Fork => "fork",
+            CwdPromptAction::Resume => crate::i18n::tr!("cwd-prompt-verb-resume"),
+            CwdPromptAction::Fork => crate::i18n::tr!("cwd-prompt-verb-fork"),
         }
     }
 
     fn past_participle(self) -> &'static str {
         match self {
-            CwdPromptAction::Resume => "resumed",
-            CwdPromptAction::Fork => "forked",
+            CwdPromptAction::Resume => crate::i18n::tr!("cwd-prompt-past-resumed"),
+            CwdPromptAction::Fork => crate::i18n::tr!("cwd-prompt-past-forked"),
         }
     }
 }
@@ -178,7 +178,7 @@ async fn persist_remembered_cwd_selection(
         Ok(()) => None,
         Err(err) => {
             tracing::error!(error = %err, "failed to persist working directory preference");
-            Some(Line::from("Failed to save working directory preference.").red())
+            Some(Line::from(crate::i18n::tr!("cwd-prompt-save-failed")).red())
         }
     }
 }
@@ -291,32 +291,32 @@ impl WidgetRef for &CwdPromptScreen {
         column.push(/*flex*/ 1, RenderableItem::Borrowed(&""));
         column.push(
             /*flex*/ 0,
-            Paragraph::new(format!("Working directory · {action_verb}").bold())
+            Paragraph::new(crate::i18n::tr!("cwd-prompt-title", action_verb = action_verb).bold())
                 .wrap(Wrap { trim: false })
                 .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),
         );
         column.push(
             /*flex*/ 0,
-            Paragraph::new(format!(
-                "Session = latest cwd recorded in the {action_past} session\n\
-                 Current = your current working directory"
+            Paragraph::new(crate::i18n::tr!(
+                "cwd-prompt-explanation",
+                action_past = action_past
             ))
             .dim()
             .wrap(Wrap { trim: false })
             .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),
         );
         let mut labels = vec![
-            format!("Use session directory ({session_cwd})"),
-            format!("Use current directory ({current_cwd})"),
-            "Always use session directory".to_string(),
+            crate::i18n::tr!("cwd-prompt-use-session-dir", session_cwd = session_cwd),
+            crate::i18n::tr!("cwd-prompt-use-current-dir", current_cwd = current_cwd),
+            crate::i18n::tr!("cwd-prompt-always-session-dir").to_string(),
         ];
         if self.allow_remember_current {
             let label = if self.remembered_current_cwd == self.current_cwd {
-                "Always use current directory".to_string()
+                crate::i18n::tr!("cwd-prompt-always-current-dir").to_string()
             } else {
-                format!(
-                    "Always use current directory ({})",
-                    self.remembered_current_cwd
+                crate::i18n::tr!(
+                    "cwd-prompt-always-current-dir-path",
+                    path = self.remembered_current_cwd.as_str()
                 )
             };
             labels.push(label);
@@ -332,11 +332,11 @@ impl WidgetRef for &CwdPromptScreen {
             /*flex*/ 0,
             Paragraph::new(Line::from(vec![
                 key_hint::plain(KeyCode::Enter).into(),
-                " continue · ".dim(),
+                crate::i18n::tr!("cwd-prompt-hint-continue").dim(),
                 key_hint::plain(KeyCode::Esc).into(),
-                " use session · ".dim(),
+                crate::i18n::tr!("cwd-prompt-hint-use-session").dim(),
                 key_hint::ctrl(KeyCode::Char('c')).into(),
-                " quit".dim(),
+                crate::i18n::tr!("cwd-prompt-hint-quit").dim(),
             ]))
             .wrap(Wrap { trim: false })
             .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),

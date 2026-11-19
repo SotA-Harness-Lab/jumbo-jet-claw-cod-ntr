@@ -123,8 +123,7 @@ impl App {
             } else if self.windows_sandbox_host() == WindowsSandboxHost::Mixed && show_nux {
                 self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
                     history_cell::StartupWarningsCell::new(vec![
-                        "Windows sandbox setup is unavailable when local and remote executors are configured together."
-                            .to_string(),
+                        crate::i18n::tr!("platform-sandbox-mixed").to_string(),
                     ]),
                 )));
             }
@@ -155,7 +154,9 @@ impl App {
                 self.chat_widget
                     .retain_input_after_failed_permission_selection();
                 self.chat_widget.set_windows_sandbox_mode(/*mode*/ None);
-                self.chat_widget.add_error_message("Could not read Windows sandbox configuration and requirements from the app server.".to_string());
+                self.chat_widget.add_error_message(
+                    crate::i18n::tr!("platform-sandbox-config-unreadable").to_string(),
+                );
                 false
             }
         }
@@ -177,7 +178,7 @@ impl App {
         if self.windows_sandbox.pending_setup.is_some() {
             if self.windows_sandbox.setup_started_at.is_none() {
                 self.chat_widget.add_info_message(
-                    "Windows sandbox setup is still running. Restart Codex to retry.".to_string(),
+                    crate::i18n::tr!("platform-sandbox-still-running").to_string(),
                     /*hint*/ None,
                 );
             }
@@ -190,7 +191,7 @@ impl App {
             self.chat_widget
                 .retain_input_after_failed_permission_selection();
             self.chat_widget.add_info_message(
-                "That Windows sandbox option is disallowed by requirements.".to_string(),
+                crate::i18n::tr!("platform-sandbox-option-disallowed").to_string(),
                 /*hint*/ None,
             );
             return;
@@ -233,17 +234,14 @@ impl App {
                 started: true,
             })) => {}
             Err(_) => {
-                self.chat_widget.add_error_message(
-                    "Windows sandbox setup request timed out. Waiting for completion; restart Codex if it does not finish."
-                        .to_string(),
-                );
+                self.chat_widget
+                    .add_error_message(crate::i18n::tr!("platform-sandbox-timed-out").to_string());
             }
             Ok(Err(
                 TypedRequestError::Transport { .. } | TypedRequestError::Deserialize { .. },
             )) => {
                 self.chat_widget.add_error_message(
-                    "Windows sandbox setup response was lost. Waiting for completion or reconnection."
-                        .to_string(),
+                    crate::i18n::tr!("platform-sandbox-response-lost").to_string(),
                 );
             }
             Ok(result) => {
@@ -254,10 +252,10 @@ impl App {
                 self.windows_sandbox.setup_started_at = None;
                 let message = match result {
                     Err(TypedRequestError::Server { source, .. }) if source.code == -32601 => {
-                        "Update the local app server to set up the Windows sandbox.".to_string()
+                        crate::i18n::tr!("platform-sandbox-update-server").to_string()
                     }
-                    Err(_) => "Windows sandbox setup failed.".to_string(),
-                    Ok(_) => "Windows sandbox setup did not start.".to_string(),
+                    Err(_) => crate::i18n::tr!("platform-sandbox-failed").to_string(),
+                    Ok(_) => crate::i18n::tr!("platform-sandbox-not-started").to_string(),
                 };
                 self.chat_widget.add_error_message(message);
             }

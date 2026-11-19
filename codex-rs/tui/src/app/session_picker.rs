@@ -71,7 +71,10 @@ impl App {
                 .await
             }
             Err(err) => {
-                self.add_session_picker_error(format!("Failed to open session picker: {err}"));
+                self.add_session_picker_error(crate::i18n::tr!(
+                    "session-picker-open-failed",
+                    err = err.to_string()
+                ));
                 self.chat_widget.maybe_send_next_queued_input();
                 Ok(AppRunControl::Continue)
             }
@@ -132,10 +135,10 @@ impl App {
             .is_some()
         {
             self.chat_widget.show_selection_view(SelectionViewParams {
-                title: Some("Unable to resume session".to_string()),
+                title: Some(crate::i18n::tr!("session-picker-unable-to-resume").to_string()),
                 subtitle: Some(message.clone()),
                 items: vec![SelectionItem {
-                    name: "Return to command center".to_string(),
+                    name: crate::i18n::tr!("session-picker-return-to-center").to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 }],

@@ -40,9 +40,9 @@ pub(super) fn cells(item: ThreadItemPayload, cwd: &AbsolutePathBuf) -> Transcrip
             }
             PatchApplyStatus::InProgress | PatchApplyStatus::Declined => {
                 let message = if status == PatchApplyStatus::Declined {
-                    "Patch application declined"
+                    crate::i18n::tr!("other-items-patch-declined")
                 } else {
-                    "Patch application in progress"
+                    crate::i18n::tr!("other-items-patch-in-progress")
                 };
                 cells.push(Arc::new(history_cell::new_info_event(
                     message.to_string(),
@@ -64,12 +64,12 @@ pub(super) fn cells(item: ThreadItemPayload, cwd: &AbsolutePathBuf) -> Transcrip
             if !matches!(item.status.as_str(), "completed" | "failed") =>
         {
             let status = if item.status.is_empty() {
-                "status unavailable"
+                crate::i18n::tr!("other-items-status-unavailable")
             } else {
                 &item.status
             };
             cells.push(Arc::new(history_cell::new_info_event(
-                format!("Image generation · {status}"),
+                crate::i18n::tr!("other-items-image-generation", status = status.to_string()),
                 /*hint*/ None,
             )));
         }
@@ -96,18 +96,18 @@ pub(super) fn cells(item: ThreadItemPayload, cwd: &AbsolutePathBuf) -> Transcrip
             }
         }
         ThreadItemPayload::EnteredReviewMode { review, .. } => {
-            cells.push(Arc::new(history_cell::new_review_status_line(format!(
-                ">> Code review started: {review} <<"
-            ))));
+            cells.push(Arc::new(history_cell::new_review_status_line(
+                crate::i18n::tr!("other-items-review-started", review = review),
+            )));
         }
         ThreadItemPayload::ExitedReviewMode { review, .. } => {
-            cells.push(Arc::new(history_cell::new_review_status_line(format!(
-                "<< Code review finished: {review} >>"
-            ))));
+            cells.push(Arc::new(history_cell::new_review_status_line(
+                crate::i18n::tr!("other-items-review-finished", review = review),
+            )));
         }
         ThreadItemPayload::ContextCompaction { .. } => {
             cells.push(Arc::new(history_cell::new_info_event(
-                "Context compacted".to_string(),
+                crate::i18n::tr!("other-items-context-compacted").to_string(),
                 /*hint*/ None,
             )));
         }
@@ -119,7 +119,7 @@ pub(super) fn cells(item: ThreadItemPayload, cwd: &AbsolutePathBuf) -> Transcrip
                         .into_iter()
                         .map(|fragment| {
                             vec![
-                                "hook prompt: ".dim(),
+                                crate::i18n::tr!("other-items-hook-prompt").dim(),
                                 fragment.text.trim().to_string().into(),
                             ]
                             .into()

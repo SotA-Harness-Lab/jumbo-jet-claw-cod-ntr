@@ -33,7 +33,7 @@ impl ChatWidget {
         if self.status_state.current_status.is_guardian_review() {
             let header = self
                 .mcp_startup_status_header()
-                .unwrap_or_else(|| crate::i18n::tr!("turn-runtime-working").to_string());
+                .unwrap_or_else(|| crate::i18n::tr!("status-state-working").to_string());
             self.set_status_header(header);
         }
     }
@@ -117,7 +117,7 @@ impl ChatWidget {
             .set_interrupt_hint_visible(/*visible*/ true);
         self.status_state.terminal_title_status_kind = TerminalTitleStatusKind::Working;
         if self.mcp_startup_status.is_none() || !self.status_header_is_mcp_startup_owned() {
-            self.set_status_header(crate::i18n::tr!("turn-runtime-working").to_string());
+            self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
         }
         self.reasoning_summary_parts.clear();
         self.reasoning_buffer.clear();
@@ -293,7 +293,7 @@ impl ChatWidget {
                 context_usage_label.as_deref(),
             ));
         self.notify(Notification::PlanModePrompt {
-            title: PLAN_IMPLEMENTATION_TITLE.to_string(),
+            title: plan_implementation_title().to_string(),
         });
     }
 
@@ -613,7 +613,7 @@ impl ChatWidget {
         verifications: &[AppServerModelVerification],
     ) {
         if verifications.contains(&AppServerModelVerification::TrustedAccessForCyber) {
-            self.on_warning(TRUSTED_ACCESS_FOR_CYBER_VERIFICATION_WARNING);
+            self.on_warning(trusted_access_for_cyber_verification_warning());
         }
     }
 

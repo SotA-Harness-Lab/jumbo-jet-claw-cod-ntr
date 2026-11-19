@@ -167,15 +167,9 @@ impl App {
             }
             Err(error) => {
                 self.add_agents_overview_error(if pinned {
-                    crate::i18n::tr!(
-                        "agents-overview-actions-pin-failed",
-                        error = error
-                    )
+                    crate::i18n::tr!("agents-overview-actions-pin-failed", error = error)
                 } else {
-                    crate::i18n::tr!(
-                        "agents-overview-actions-unpin-failed",
-                        error = error
-                    )
+                    crate::i18n::tr!("agents-overview-actions-unpin-failed", error = error)
                 });
             }
         }

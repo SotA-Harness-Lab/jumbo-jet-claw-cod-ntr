@@ -75,10 +75,12 @@ pub(crate) enum CopyStatus {
 impl CopyStatus {
     pub(crate) fn message(self, label: &str) -> String {
         match self {
-            Self::Confirmed => format!("Copied {label} to clipboard"),
-            Self::Unconfirmed => "Copy unconfirmed; /export saves chat".to_string(),
-            Self::Pending(_) => format!("Copying {label}…"),
-            Self::Busy => "Copy already in progress".to_string(),
+            Self::Confirmed => {
+                crate::i18n::tr!("clipboard-copy-copied-to-clipboard", label = label)
+            }
+            Self::Unconfirmed => crate::i18n::tr!("clipboard-copy-unconfirmed").to_string(),
+            Self::Pending(_) => crate::i18n::tr!("clipboard-copy-copying", label = label),
+            Self::Busy => crate::i18n::tr!("clipboard-copy-already-in-progress").to_string(),
         }
     }
 }
@@ -191,7 +193,7 @@ fn copy_to_clipboard_with(
     wsl_copy_fn: impl Fn(&str) -> Result<(), String>,
 ) -> Result<CopyOutcome, String> {
     if text.is_empty() {
-        return Err("nothing to copy: the selected content is empty".to_string());
+        return Err(crate::i18n::tr!("clipboard-copy-nothing-to-copy").to_string());
     }
 
     let terminal_copy = || {

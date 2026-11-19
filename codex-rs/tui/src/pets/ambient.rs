@@ -63,19 +63,19 @@ impl PetNotificationKind {
 
     fn label(self) -> &'static str {
         match self {
-            Self::Running => "Running",
-            Self::Waiting => "Needs input",
-            Self::Review => "Ready",
-            Self::Failed => "Blocked",
+            Self::Running => crate::i18n::tr!("ambient-running"),
+            Self::Waiting => crate::i18n::tr!("ambient-needs-input"),
+            Self::Review => crate::i18n::tr!("ambient-ready"),
+            Self::Failed => crate::i18n::tr!("ambient-blocked"),
         }
     }
 
     fn fallback_body(self) -> &'static str {
         match self {
-            Self::Running => "Thinking",
-            Self::Waiting => "Needs input",
-            Self::Review => "Ready",
-            Self::Failed => "Blocked",
+            Self::Running => crate::i18n::tr!("ambient-thinking"),
+            Self::Waiting => crate::i18n::tr!("ambient-needs-input"),
+            Self::Review => crate::i18n::tr!("ambient-ready"),
+            Self::Failed => crate::i18n::tr!("ambient-blocked"),
         }
     }
 

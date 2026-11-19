@@ -171,16 +171,21 @@ use tracing::debug;
 use tracing::warn;
 
 const DEFAULT_MODEL_DISPLAY_NAME: &str = "loading";
-const TRUSTED_ACCESS_FOR_CYBER_VERIFICATION_WARNING: &str = "Your conversations have multiple flags for possible cybersecurity risk. Responses may take longer because extra safety checks are on. To get authorized for security work, join the Trusted Access for Cyber program: https://chatgpt.com/cyber";
+fn trusted_access_for_cyber_verification_warning() -> &'static str {
+    crate::i18n::tr!("const-trusted-access-for-cyber-verification-warning")
+}
 const MEMORIES_DOC_URL: &str = "https://developers.openai.com/codex/memories";
 #[cfg(test)]
 const PLAN_MODE_REASONING_SCOPE_TITLE: &str = "Apply reasoning change";
 const CONNECTORS_SELECTION_VIEW_ID: &str = "connectors-selection";
 const PET_SELECTION_LOADING_VIEW_ID: &str = "pet-selection-loading";
 const AMBIENT_PET_WRAP_GAP_COLUMNS: u16 = 2;
-const TUI_STUB_MESSAGE: &str = "Not available in TUI yet.";
-const PARENT_OWNED_INPUT_MESSAGE: &str =
-    "This sub-agent is controlled by its parent. Direct input is disabled.";
+fn tui_stub_message() -> &'static str {
+    crate::i18n::tr!("const-tui-stub-message")
+}
+fn parent_owned_input_message() -> &'static str {
+    crate::i18n::tr!("const-parent-owned-input-message")
+}
 
 fn normalize_thread_name(name: &str) -> Option<String> {
     let trimmed = name.trim();
@@ -324,7 +329,7 @@ use self::plugins::PluginInstallAuthFlowState;
 use self::plugins::PluginListFetchState;
 use self::plugins::PluginsCacheState;
 mod plan_implementation;
-use self::plan_implementation::PLAN_IMPLEMENTATION_TITLE;
+use self::plan_implementation::plan_implementation_title;
 mod model_command;
 mod model_popup_state;
 mod model_popups;
@@ -476,9 +481,24 @@ use unicode_segmentation::UnicodeSegmentation;
 
 #[cfg(test)]
 const USER_SHELL_COMMAND_HELP_TITLE: &str = "Prefix a command with ! to run it locally";
-const ASK_FOR_APPROVAL_LABEL: &str = "Ask for approval";
-const APPROVE_FOR_ME_LABEL: &str = "Approve for me";
-const AUTO_REVIEW_DESCRIPTION: &str = "Only ask for actions detected as potentially unsafe";
+/// The name of a permissions preset in the TUI's language.
+fn preset_label(preset: &codex_utils_approval_presets::ApprovalPreset) -> &'static str {
+    match preset.id {
+        "read-only" => crate::i18n::tr!("permissions-preset-read-only"),
+        "auto" => crate::i18n::tr!("permissions-preset-default"),
+        "full-access" => crate::i18n::tr!("permissions-preset-full-access"),
+        _ => preset.label,
+    }
+}
+fn ask_for_approval_label() -> &'static str {
+    crate::i18n::tr!("const-ask-for-approval-label")
+}
+fn approve_for_me_label() -> &'static str {
+    crate::i18n::tr!("const-approve-for-me-label")
+}
+fn auto_review_description() -> &'static str {
+    crate::i18n::tr!("const-auto-review-description")
+}
 const DEFAULT_OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
 const DEFAULT_STATUS_LINE_ITEMS: [&str; 3] = ["model-with-reasoning", "current-dir", "thread-name"];
 
@@ -1661,7 +1681,7 @@ impl ChatWidget {
 
     fn add_app_server_stub_message(&mut self, feature: &str) {
         warn!(feature, "stubbed unsupported TUI feature");
-        self.add_error_message(format!("{feature}: {TUI_STUB_MESSAGE}"));
+        self.add_error_message(format!("{feature}: {}", tui_stub_message()));
     }
 
     /// Begin the asynchronous MCP inventory flow: show a loading spinner and
@@ -1914,7 +1934,7 @@ impl ChatWidget {
             self.add_error_message(if let Some(reason) = self.read_only_thread {
                 reason.message().to_string()
             } else {
-                PARENT_OWNED_INPUT_MESSAGE.to_string()
+                parent_owned_input_message().to_string()
             });
             return false;
         }

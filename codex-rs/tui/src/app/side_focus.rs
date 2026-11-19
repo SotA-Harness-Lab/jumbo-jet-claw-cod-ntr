@@ -570,7 +570,7 @@ impl App {
                     .is_some_and(|task| !task.is_finished())
                 {
                     self.chat_widget.add_info_message(
-                        "Side chat is still closing. Try again in a moment.".to_string(),
+                        crate::i18n::tr!("side-focus-chat-still-closing").to_string(),
                         /*hint*/ None,
                     );
                     return true;

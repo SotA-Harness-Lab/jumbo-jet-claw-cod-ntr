@@ -5,9 +5,9 @@ use super::auth::AuthModeWidget;
 use super::auth::SignInState;
 use super::keys;
 use super::provider_setup::ProviderInput;
-use crate::app::provider::CREATE_CUSTOM_PROVIDER;
 use crate::app::provider::Draft;
 use crate::app::provider::ProviderForm;
+use crate::app::provider::create_custom_provider;
 use crate::app::provider::provider_item;
 use crate::app::provider::rpc;
 use crate::app_event_sender::AppEventSender;
@@ -35,7 +35,9 @@ use ratatui::text::Line;
 use ratatui::widgets::Widget;
 use tokio::sync::mpsc::unbounded_channel;
 
-pub(super) const USE_CUSTOM_PROVIDER: &str = "Use a custom provider or gateway";
+pub(super) fn use_custom_provider() -> &'static str {
+    crate::i18n::tr!("gateway-use-custom-provider")
+}
 
 // Requests stay on the onboarding thread so a redraw can stop polling without losing the reply.
 pub(super) enum GatewayStep {
@@ -70,7 +72,7 @@ impl GatewayStep {
     fn load_error(message: String) -> Self {
         let (tx, _) = unbounded_channel();
         Self::LoadError(Box::new(ListSelectionView::new(
-            crate::app::provider::load_error(USE_CUSTOM_PROVIDER, message),
+            crate::app::provider::load_error(use_custom_provider(), message),
             AppEventSender::new(tx),
             RuntimeKeymap::defaults().list,
         )))
@@ -95,7 +97,7 @@ impl GatewayStep {
                     )))
                 }
                 Ok(rpc::ProviderWrite::UnconfirmedCreate) => {
-                    GatewayStep::load(handle, Some(rpc::UNCONFIRMED_CREATE.into()))
+                    GatewayStep::load(handle, Some(rpc::unconfirmed_create().into()))
                 }
                 Err(message) => {
                     form.error = Some(message);
@@ -161,7 +163,7 @@ impl Picker {
             )
         };
         items.push(SelectionItem {
-            name: CREATE_CUSTOM_PROVIDER.into(),
+            name: create_custom_provider().into(),
             footer_hint: Some(hint(crate::i18n::tr!("gateway-hint-to-create"))),
             ..Default::default()
         });
@@ -169,7 +171,7 @@ impl Picker {
         let (tx, _) = unbounded_channel();
         let list = ListSelectionView::new(
             SelectionViewParams {
-                title: Some(USE_CUSTOM_PROVIDER.into()),
+                title: Some(use_custom_provider().into()),
                 footer_hint: Some(hint(crate::i18n::tr!("gateway-hint-to-use-as-default"))),
                 footer_note: notice.map(Into::into),
                 initial_selected_idx: selected,

@@ -37,9 +37,7 @@ pub async fn run_session_queue_command(
     options: SessionArchiveCommandOptions,
 ) -> Result<String> {
     if options.cli.no_daemon && options.explicit_remote_endpoint.is_none() {
-        return Err(eyre!(
-            "--no-daemon cannot be used with codex queue. Queuing must discover the shared server to avoid writing through a separate server."
-        ));
+        return Err(eyre!(crate::i18n::tr!("queue-no-daemon")));
     }
     let codex_home = find_codex_home().wrap_err("failed to find Codex home")?;
     let explicit_remote = options.explicit_remote_endpoint.is_some();
@@ -51,9 +49,7 @@ pub async fn run_session_queue_command(
             .await
             .is_some()
     {
-        return Err(eyre!(
-            "cannot queue through an embedded app server while a local app-server daemon is running; remove configuration overrides or use --remote"
-        ));
+        return Err(eyre!(crate::i18n::tr!("queue-embedded-conflict")));
     }
     let implicit_local_daemon = !explicit_remote && !app_server.uses_embedded_app_server();
     let client_message_id = Uuid::now_v7().to_string();
@@ -84,13 +80,19 @@ pub async fn run_session_queue_command(
     if resume && let Err(err) = resume_if_unloaded(&mut app_server, thread_id).await {
         let _ = writeln!(
             std::io::stderr().lock(),
-            "Warning: message was queued, but could not resume thread {thread_id}: {err:#}"
+            "{}",
+            crate::i18n::tr!(
+                "queue-resume-warning",
+                thread_id = thread_id.to_string(),
+                err = format!("{err:#}")
+            )
         );
     }
 
-    Ok(format!(
-        "Queued message {} for thread {}.",
-        response.queued_submission.id, thread_id
+    Ok(crate::i18n::tr!(
+        "queue-queued",
+        id = response.queued_submission.id.to_string(),
+        thread_id = thread_id.to_string()
     ))
 }
 
@@ -117,7 +119,7 @@ pub(super) async fn run_session_queue_action_with_app_server(
             /*model_providers*/ None,
         )
         .await?
-        .ok_or_else(|| eyre!("No active session found matching '{target}'."))?;
+        .ok_or_else(|| eyre!(crate::i18n::tr!("queue-no-active-session", target = target)))?;
         ThreadId::from_string(&thread.id)
             .wrap_err_with(|| format!("app server returned invalid session id `{}`", thread.id))?
     };
@@ -143,9 +145,7 @@ pub(super) async fn run_session_queue_action_with_app_server(
 
 async fn resume_if_unloaded(app_server: &mut AppServerSession, thread_id: ThreadId) -> Result<()> {
     if app_server.uses_embedded_app_server() {
-        return Err(eyre!(
-            "start a local daemon or specify a server with --remote"
-        ));
+        return Err(eyre!(crate::i18n::tr!("queue-start-daemon")));
     }
     // Only decode the status: remote thread metadata can contain paths from another OS.
     #[derive(Deserialize)]

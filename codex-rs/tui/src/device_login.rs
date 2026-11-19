@@ -184,7 +184,10 @@ pub(crate) async fn handle_event_during_device_login(
         return match change.status {
             GatewayOAuthStatus::Succeeded => Ok(true),
             GatewayOAuthStatus::Failed | GatewayOAuthStatus::NotReady => Err(io::Error::other(
-                change.error.as_deref().unwrap_or("Gateway sign-in failed"),
+                change
+                    .error
+                    .as_deref()
+                    .unwrap_or(crate::i18n::tr!("device-login-gateway-failed")),
             )),
             GatewayOAuthStatus::Started => Ok(false),
         };
@@ -192,11 +195,11 @@ pub(crate) async fn handle_event_during_device_login(
     match event {
         AppServerEvent::Disconnected { message } => Err(io::Error::new(
             io::ErrorKind::ConnectionAborted,
-            color_eyre::eyre::eyre!(message).wrap_err(crate::onboarding::SETUP_CONNECTION_LOST),
+            color_eyre::eyre::eyre!(message).wrap_err(crate::onboarding::setup_connection_lost()),
         )),
-        AppServerEvent::Lagged { .. } => Err(io::Error::other(
-            "Lost the gateway sign-in result. Restart Codex to check the connection.",
-        )),
+        AppServerEvent::Lagged { .. } => Err(io::Error::other(crate::i18n::tr!(
+            "device-login-lost-result"
+        ))),
         AppServerEvent::ServerRequest(request) => {
             origin
                 .server_request_reply_handle(request.id().clone())

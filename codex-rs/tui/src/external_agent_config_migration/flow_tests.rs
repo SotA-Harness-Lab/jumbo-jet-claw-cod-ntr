@@ -188,7 +188,7 @@ fn external_agent_config_migration_messages_snapshot() {
         ))
         .chain([
             Line::from(EXTERNAL_AGENT_CONFIG_MIGRATION_NO_ITEMS_MESSAGE),
-            Line::from(EXTERNAL_AGENT_CONFIG_IMPORT_IN_PROGRESS_MESSAGE),
+            Line::from(external_agent_config_import_in_progress_message()),
         ])
         .map(|line| {
             line.spans

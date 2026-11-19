@@ -42,7 +42,7 @@ impl App {
                 thread_id,
                 ServerNotification::Warning(WarningNotification {
                     thread_id: Some(thread_id.to_string()),
-                    message: "User verification is unavailable for remote workspaces.".to_string(),
+                    message: crate::i18n::tr!("user-verification-unavailable-remote").to_string(),
                 }),
             )
             .await?;

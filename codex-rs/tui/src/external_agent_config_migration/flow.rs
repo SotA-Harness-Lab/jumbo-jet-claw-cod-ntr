@@ -1,5 +1,5 @@
 use crate::app_server_session::AppServerSession;
-use crate::app_server_session::EXTERNAL_AGENT_CONFIG_IMPORT_IN_PROGRESS_MESSAGE;
+use crate::app_server_session::external_agent_config_import_in_progress_message;
 use crate::tui;
 use codex_app_server_protocol::ExternalAgentConfigDetectParams;
 use codex_app_server_protocol::ExternalAgentConfigImportCompletedNotification;
@@ -60,7 +60,11 @@ impl ExternalAgentConfigDetection {
         source: ExternalAgentConfigMigrationSource,
         error: impl std::fmt::Display,
     ) {
-        self.errors.push(format!("{}: {error}", source.label()));
+        self.errors.push(crate::i18n::tr!(
+            "import-flow-source-error",
+            source = source.label(),
+            error = error.to_string()
+        ));
     }
 
     fn finish(self) -> ExternalAgentConfigDetectionOutcome {
@@ -69,9 +73,9 @@ impl ExternalAgentConfigDetection {
         } else if self.errors.is_empty() {
             ExternalAgentConfigDetectionOutcome::NoItems
         } else {
-            ExternalAgentConfigDetectionOutcome::Failed(format!(
-                "Could not check for importable setup: {}",
-                self.errors.join("; ")
+            ExternalAgentConfigDetectionOutcome::Failed(crate::i18n::tr!(
+                "import-flow-check-failed",
+                errors = self.errors.join("; ")
             ))
         }
     }
@@ -145,12 +149,20 @@ fn external_agent_config_migration_started_lines(
     let mut lines = vec![
         vec![
             "• ".dim(),
-            "Import started.".cyan(),
-            " You can keep working while it finishes.".into(),
+            crate::i18n::tr!("import-flow-started").cyan(),
+            crate::i18n::tr!("import-flow-keep-working").into(),
         ]
         .into(),
-        vec!["  ".into(), "Imported setup will apply to new chats.".dim()].into(),
-        vec!["  ".into(), "Importing:".cyan().bold()].into(),
+        vec![
+            "  ".into(),
+            crate::i18n::tr!("import-flow-applies-new-chats").dim(),
+        ]
+        .into(),
+        vec![
+            "  ".into(),
+            crate::i18n::tr!("import-flow-importing").cyan().bold(),
+        ]
+        .into(),
     ];
     lines.extend(
         import_summaries
@@ -166,8 +178,10 @@ fn external_agent_config_migration_started_lines(
                     let shown_names = names.iter().take(3).copied().collect::<Vec<_>>();
                     let mut name_summary = shown_names.join(", ");
                     if names.len() > shown_names.len() {
-                        name_summary
-                            .push_str(&format!(", +{} more", names.len() - shown_names.len()));
+                        name_summary.push_str(&crate::i18n::tr!(
+                            "import-flow-more",
+                            count = (names.len() - shown_names.len()) as i64
+                        ));
                     }
                     line.extend([" — ".dim(), name_summary.into()]);
                 }
@@ -194,15 +208,15 @@ pub(crate) fn external_agent_config_migration_finished_lines(
         .map(|type_result| type_result.failures.len())
         .sum::<usize>();
     let failed_count = if failed_count == 0 {
-        format!("{failed_count} failed").green()
+        crate::i18n::tr!("import-flow-failed-count", count = failed_count as i64).green()
     } else {
-        format!("{failed_count} failed").red()
+        crate::i18n::tr!("import-flow-failed-count", count = failed_count as i64).red()
     };
     let mut lines = vec![
         vec![
             "• ".dim(),
-            "Import finished: ".into(),
-            format!("{imported_count} imported").green(),
+            crate::i18n::tr!("import-flow-finished").into(),
+            crate::i18n::tr!("import-flow-imported-count", count = imported_count as i64).green(),
             ", ".into(),
             failed_count,
             ".".into(),
@@ -210,9 +224,20 @@ pub(crate) fn external_agent_config_migration_finished_lines(
         .into(),
     ];
     if !notification.item_type_results.is_empty() {
-        lines.push(vec!["  ".into(), "Results by type:".cyan().bold()].into());
+        lines.push(
+            vec![
+                "  ".into(),
+                crate::i18n::tr!("import-flow-results-by-type")
+                    .cyan()
+                    .bold(),
+            ]
+            .into(),
+        );
         lines.extend(notification.item_type_results.iter().map(|type_result| {
-            let failed_count = format!("{} failed", type_result.failures.len());
+            let failed_count = crate::i18n::tr!(
+                "import-flow-failed-count",
+                count = type_result.failures.len() as i64
+            );
             let failed_count = if type_result.failures.is_empty() {
                 failed_count.green()
             } else {
@@ -222,32 +247,27 @@ pub(crate) fn external_agent_config_migration_finished_lines(
                 "    ".into(),
                 external_agent_config_migration_type_label(type_result.item_type).cyan(),
                 ": ".into(),
-                format!("{} imported", type_result.successes.len()).green(),
+                crate::i18n::tr!(
+                    "import-flow-imported-count",
+                    count = type_result.successes.len() as i64
+                )
+                .green(),
                 ", ".into(),
                 failed_count,
             ]
             .into()
         }));
     }
-    lines.push(
-        vec![
-            "  ".into(),
-            "Run /import again to check for additional items.".dim(),
-        ]
-        .into(),
-    );
+    lines.push(vec!["  ".into(), crate::i18n::tr!("import-flow-run-again").dim()].into());
     lines
 }
 
 fn remaining_items_handoff(remaining_item_count: usize) -> Option<String> {
     match remaining_item_count {
         0 => None,
-        1 => Some(
-            "1 additional item remains. After it finishes, run /import again to review it."
-                .to_string(),
-        ),
-        _ => Some(format!(
-            "{remaining_item_count} additional items remain. After it finishes, run /import again to review them."
+        _ => Some(crate::i18n::tr!(
+            "import-flow-remaining",
+            count = remaining_item_count as i64
         )),
     }
 }
@@ -258,7 +278,7 @@ pub(crate) async fn handle_external_agent_config_migration_prompt(
     cwd: Option<&Path>,
 ) -> Result<ExternalAgentConfigMigrationFlowOutcome, String> {
     if app_server.external_agent_config_import_in_progress() {
-        return Err(EXTERNAL_AGENT_CONFIG_IMPORT_IN_PROGRESS_MESSAGE.to_string());
+        return Err(external_agent_config_import_in_progress_message().to_string());
     }
 
     let mut detection = ExternalAgentConfigDetection::default();
@@ -314,7 +334,7 @@ pub(crate) async fn handle_external_agent_config_migration_prompt(
         .into_iter()
         .find(|detected| detected.source == selected_source)
     else {
-        return Err("Selected import source is no longer available.".to_string());
+        return Err(crate::i18n::tr!("import-flow-source-gone").to_string());
     };
     let detected_items = detected_source.items;
 
@@ -356,7 +376,10 @@ pub(crate) async fn handle_external_agent_config_migration_prompt(
                             cwd = ?cwd,
                             "failed to import external agent config migration items"
                         );
-                        error = Some(format!("Import failed: {err}"));
+                        error = Some(crate::i18n::tr!(
+                            "import-flow-failed",
+                            err = err.to_string()
+                        ));
                     }
                 }
             }

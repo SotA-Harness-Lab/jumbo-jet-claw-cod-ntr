@@ -19,7 +19,7 @@ use codex_protocol::openai_models::ReasoningEffort as ReasoningEffortConfig;
 use crossterm::event::KeyEvent;
 
 use super::ChatWidget;
-use super::PARENT_OWNED_INPUT_MESSAGE;
+use super::parent_owned_input_message;
 use crate::app_event::AppEvent;
 use crate::key_hint::KeyBindingListExt;
 
@@ -74,7 +74,7 @@ impl ChatWidget {
         }
 
         if self.blocks_direct_input {
-            self.add_error_message(PARENT_OWNED_INPUT_MESSAGE.to_string());
+            self.add_error_message(parent_owned_input_message().to_string());
             return true;
         }
 
@@ -89,10 +89,7 @@ impl ChatWidget {
         let current_model = self.current_model().to_string();
         let Some(preset) = self.current_model_preset() else {
             self.add_info_message(
-                crate::i18n::tr!(
-                    "reasoning-shortcuts-unavailable",
-                    model = current_model
-                ),
+                crate::i18n::tr!("reasoning-shortcuts-unavailable", model = current_model),
                 /*hint*/ None,
             );
             return true;
