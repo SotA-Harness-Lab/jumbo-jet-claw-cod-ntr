@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Connection-scoped file handles with bounded positional reads and writes.
 //! Semaphore permits bound open handles and in-flight opens; table locks never cross an await.
 

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Review presets, searchable Git choices, and instructions in the shared picker.
 //!
 //! Child cancellation restores the preset menu; accepting a target dismisses both.

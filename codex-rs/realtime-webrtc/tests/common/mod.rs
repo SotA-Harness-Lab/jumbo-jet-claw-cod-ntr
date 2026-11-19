@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Copies this test executable into a private package and dispatches its fake helper before libtest.
 //! The fixture validates protocol order; it never loads native libraries or opens audio devices.
 

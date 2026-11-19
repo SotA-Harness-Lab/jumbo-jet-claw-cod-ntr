@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Route composer input and distinguish admission, rejection, and uncertainty.
 //! A duplicate or an unconfirmed response must never trigger an automatic resend.
 

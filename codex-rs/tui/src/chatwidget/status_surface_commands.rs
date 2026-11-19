@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Session-only `/title` and `/statusline` command handling.
 //!
 //! The command handlers update the live widget without changing saved defaults. Explicit

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Bounded overview previews from existing reads and already-delivered events.
 //! Observing activity never attaches to a thread or fetches additional history.
 //! Message previews retain Markdown until the details panel's width is known.

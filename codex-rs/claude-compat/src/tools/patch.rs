@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Turning a file's new content into an `apply_patch` patch, so that Claude Code's file
 //! tools write through Codex's patch tool (its approval, sandbox, hooks and diff tracking).
 //!

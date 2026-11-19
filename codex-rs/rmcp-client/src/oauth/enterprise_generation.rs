@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Persistent, non-secret fences for login attempts and cached enterprise credentials.
 //! Separate generations preserve pending-login semantics when a stored grant changes.
 //! All reads and writes require the credential lock; missing state never admits old authority.

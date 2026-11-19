@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: renamed the program
+
 use super::*;
 use crate::chatwidget::tests::make_chatwidget_manual_with_sender;
 use pretty_assertions::assert_eq;

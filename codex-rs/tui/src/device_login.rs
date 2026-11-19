@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; made the interface translatable
+
 //! Handles gateway device login during TUI startup.
 use crate::app_server_session::AppServerSession;
 use crate::app_server_session::is_method_not_found;

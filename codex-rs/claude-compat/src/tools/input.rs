@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Reading a Claude tool's JSON input as Claude Code's schemas do: unknown parameters are
 //! refused, numbers and booleans may come as strings (`"5"`, `"true"`), and every problem
 //! is listed in Claude Code's `InputValidationError` text.

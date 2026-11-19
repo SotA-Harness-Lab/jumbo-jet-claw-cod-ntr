@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; added Claude Code's tool set
+
 //! Coordinates tool approval, sandbox selection, and retries after sandbox denial.
 //! Guardian approval applies to the reviewed authority; escalating a sandboxed
 //! attempt requires a fresh review of the retry.

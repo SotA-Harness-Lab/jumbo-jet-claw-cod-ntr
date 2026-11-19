@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `settings.json`: the parts Codex can apply, `env` and the Bash
 //! permission rules.
 

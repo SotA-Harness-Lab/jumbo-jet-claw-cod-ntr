@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Running ripgrep for Claude Code's `Glob` and `Grep`: the command line handed to Codex's
 //! command execution, and reading back what ripgrep printed, as Claude Code's `ripGrep`
 //! helper reads it.

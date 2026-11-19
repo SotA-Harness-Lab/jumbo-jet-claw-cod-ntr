@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Edit`: Claude Code's exact string replacement tool.
 //!
 //! Delegated: the write, as a patch applied by Codex's `apply_patch` runtime (approval,

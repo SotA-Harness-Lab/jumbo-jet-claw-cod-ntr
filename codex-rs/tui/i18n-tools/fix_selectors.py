@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+
 """Rewrites one-line Fluent selectors (`{ $n -> [one] a *[other] b }`) in the given .ftl files
 into the multiline form Fluent requires, each variant on its own line."""
 import re

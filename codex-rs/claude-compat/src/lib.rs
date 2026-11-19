@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Reading Claude Code's configuration files the way Claude Code does.
 //!
 //! Codex uses these files in place: nothing here writes, copies or converts a file on

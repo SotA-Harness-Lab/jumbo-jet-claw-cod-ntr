@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Account quota state and composer notice, independent of one-time warning history.
 //! Rolling updates retain metadata; fresh account reads replace windows and confirm recovery.
 //! Details target half the composer gap; the shortest notice may use its full width.

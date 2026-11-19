@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `Edit` tool: description, the exact string replacement and its messages.
 
 use super::BASH;

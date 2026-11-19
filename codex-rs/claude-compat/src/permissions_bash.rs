@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `Bash(...)` rules: how a rule's content is read (exact command, legacy
 //! `prefix:*`, `*` wildcards) and how a command is matched against it, after Claude Code's
 //! `bashPermissions.ts` and `shellRuleMatching.ts`.

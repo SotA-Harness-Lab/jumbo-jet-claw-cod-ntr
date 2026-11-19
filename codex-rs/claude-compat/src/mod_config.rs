@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! The fork's own settings, kept in `$CODEX_HOME/ccn-config.toml` so that Codex's `config.toml`
 //! holds only upstream Codex's settings.
 //!

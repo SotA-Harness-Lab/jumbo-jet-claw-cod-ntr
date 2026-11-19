@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 use super::effective_file_system_sandbox_policy;
 use super::intersect_permission_profiles_with_context;
 use super::materialize_additional_permissions_with_context;

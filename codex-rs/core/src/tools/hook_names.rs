@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks
+
 //! Hook-facing tool names and matcher compatibility aliases.
 //!
 //! Hook stdin exposes one canonical `tool_name`, but matcher selection may also

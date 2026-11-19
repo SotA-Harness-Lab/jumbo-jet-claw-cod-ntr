@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Rule files: the Markdown files under a `rules` directory, some of them limited to
 //! files matching the globs in their `paths:` frontmatter.
 

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: removed Windows support; marked the remaining Windows-only code
+
 //! Short, best-effort terminal response probes for TUI startup, resume, and exit.
 //!
 //! Crossterm's public helpers wait up to two seconds for terminal responses. That is too long for

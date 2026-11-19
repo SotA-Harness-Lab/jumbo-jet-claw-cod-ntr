@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: renamed the program
+
 //! Exercises stack-sensitive session transitions through the real TUI event loop.
 //!
 //! Uses the CLI binary when available (including Bazel CI) to cover its dispatch frames.

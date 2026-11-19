@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `AskUserQuestion`: Claude Code's multiple-choice question tool.
 //!
 //! Delegated: asking, to Codex's `request_user_input` runtime (the TUI's question panel, the

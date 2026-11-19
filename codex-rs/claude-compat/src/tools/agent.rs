@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `Agent` tool (called `Task` before): its description listing the agent
 //! types, its result texts, and the tool lists (`tools`, `disallowedTools`) of subagent
 //! definitions.

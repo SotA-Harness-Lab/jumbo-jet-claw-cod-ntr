@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: removed Windows support; marked the remaining Windows-only code
+
 //! Pair alternate-screen transitions with that screen's independent keyboard-mode stack.
 //!
 //! Push only on entry and pop before leaving or yielding input to an editor. The main screen

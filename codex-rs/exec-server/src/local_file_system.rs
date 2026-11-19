@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 use bytes::Bytes;
 use codex_file_system::FILE_WRITE_CHUNK_SIZE;
 use codex_file_system::MAX_WALK_DEPTH;

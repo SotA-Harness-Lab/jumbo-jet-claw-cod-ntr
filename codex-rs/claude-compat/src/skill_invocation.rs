@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! The text Claude Code gives the model when a skill is invoked: the `Base directory for
 //! this skill` line, `$ARGUMENTS` and the other argument placeholders, `${CLAUDE_SKILL_DIR}`
 //! and `${CLAUDE_SESSION_ID}`, substituted as Claude Code substitutes them.

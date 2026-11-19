@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared helpers for the scripts that move the TUI's English strings into Fluent files.
 
 `escape` turns a string into a Fluent pattern, `entry` formats one message, and `append` adds

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: removed Windows support; marked the remaining Windows-only code
+
 //! Installs complete CLI packages after confirmation. Initial starts preserve
 //! existing selections; explicit replacements migrate to dedicated packages and stay pinned.
 //! WinGet sources are verified in their original layout before staging a canonical daemon package.

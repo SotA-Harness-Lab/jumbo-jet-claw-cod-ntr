@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! This file handles all logic related to managing MCP OAuth credentials.
 //! All credentials are stored using the keyring crate which uses os-specific keyring services.
 //! https://crates.io/crates/keyring

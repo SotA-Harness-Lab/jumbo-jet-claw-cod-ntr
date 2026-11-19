@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Collects a feedback note with audience-specific disclosure and independent log consent.
 //! The editor and submission controls remain visible when the disclosure must scroll.
 //! Ctrl+S saves on local connections. Enter sends when uploads are enabled and the paste burst has ended.

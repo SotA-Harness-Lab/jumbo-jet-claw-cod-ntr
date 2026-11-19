@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! The result of a Claude tool: Claude Code's text for the model and Claude Code's
 //! `tool_response` for hooks.
 

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Shared title, description, and CTA content for banners in the TUI bottom pane.
 //!
 //! Workspace notices and backend banners share the existing selection list for CTA dispatch.

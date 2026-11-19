@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code hook events that Codex's own hook configuration does not have:
 //! `Notification`, `PostToolUseFailure` and `StopFailure`.
 //!

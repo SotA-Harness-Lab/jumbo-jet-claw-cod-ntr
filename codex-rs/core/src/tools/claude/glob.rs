@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Glob`: Claude Code's file search tool.
 //!
 //! Delegated: listing the files, a ripgrep command (`rg --files`, which matches the glob

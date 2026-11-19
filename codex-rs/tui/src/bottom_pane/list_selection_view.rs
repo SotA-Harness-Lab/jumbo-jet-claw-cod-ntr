@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Render selectable lists with shared picker controls and full-width focus rows.
 //! Selection and scrolling use filtered row indices; actions map back to source items.
 //! Controls and overflow indicators keep their own rows outside the result viewport.

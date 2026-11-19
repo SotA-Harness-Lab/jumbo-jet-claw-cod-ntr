@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Fans listing requests out to independent workers and routes actions to row sources.
 //! Closing the picker cancels reads while accepted mutations and source shutdown continue
 //! independently; stale listing replies cannot replace current pages.

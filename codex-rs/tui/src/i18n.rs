@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! The TUI's translations, with Mozilla's Fluent through i18n-embed.
 //!
 //! Messages live in `i18n/<language>/codex-tui.ftl`; `en-US` is the source and the fallback,

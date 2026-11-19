@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Hook events are append-only across requirements layers. The managed hook
 //! directory is different: only one directory is usable on a given platform, so
 //! conflicting values for the active platform fail closed. The inactive platform

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Persist numbered prompts and slash commands in the active user configuration.
 //! Replace slots owned by the active user config. Clearing must not reveal a
 //! shadowed slot from another configuration layer.

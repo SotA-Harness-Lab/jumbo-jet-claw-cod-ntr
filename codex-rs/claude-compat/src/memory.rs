@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's auto memory: `~/.claude/projects/<project>/memory/MEMORY.md`, an index the
 //! model keeps for a project, shown at the start of every session.
 

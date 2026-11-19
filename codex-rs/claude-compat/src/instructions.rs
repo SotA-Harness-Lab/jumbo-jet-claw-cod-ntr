@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Instruction files (`CLAUDE.md` and unconditional rules), loaded and rendered the way
 //! Claude Code shows them to the model.
 

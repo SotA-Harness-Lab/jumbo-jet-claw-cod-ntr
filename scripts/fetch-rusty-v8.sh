@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+
 # Fetch the prebuilt V8 static library and Rust binding that Cargo builds of this
 # workspace need, verify them, and print the two variables that point the v8 crate at
 # them:

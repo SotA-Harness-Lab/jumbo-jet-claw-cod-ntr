@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's tool set, offered to the model in place of Codex's own tools when
 //! `[claude] tools = true` in `$CODEX_HOME/ccn-config.toml` (see `docs/claude-compat.md`, "Claude tool
 //! set").

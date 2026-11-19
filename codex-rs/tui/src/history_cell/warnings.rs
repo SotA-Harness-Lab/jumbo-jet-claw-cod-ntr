@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Retain warning details for the transcript while exposing stable identities to the footer.
 //! Message identities deduplicate replay; MCP identities count affected servers, not summary rows.
 //! Quota warnings remain visible in both transcript modes.

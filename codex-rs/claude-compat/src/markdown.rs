@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! The parts of a Claude Code Markdown file that carry meaning for loading it:
 //! frontmatter, `@path` imports and block-level HTML comments.
 

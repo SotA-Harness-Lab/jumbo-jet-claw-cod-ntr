@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: removed Windows support; marked the remaining Windows-only code
+
 //! Conservative outbound proxy selection for resolver-aware HTTP clients.
 //!
 //! When enabled, platform system discovery is tried first, explicit environment

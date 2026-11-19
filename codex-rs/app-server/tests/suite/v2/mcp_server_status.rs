@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; renamed the program
+
 use super::mcp_resource::ResourceTestEnvironment;
 use super::mcp_resource::start_resource_test_app_server;
 use std::borrow::Cow;

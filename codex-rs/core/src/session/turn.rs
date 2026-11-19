@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks
+
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;

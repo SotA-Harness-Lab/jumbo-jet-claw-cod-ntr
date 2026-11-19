@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Fit warning counts and the configured warnings shortcut into the existing passive hint row.
 //! Interactive hints retain priority. Warnings occupy the trailing edge of the hints row.
 //! Only the count and warning label receive an amber accent; surrounding hints stay muted.

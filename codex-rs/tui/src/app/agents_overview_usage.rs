@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Demand-driven dashboard usage. Only the selected task is fetched on a one-minute
 //! refresh cadence, including after failures. Account changes and reconnects invalidate
 //! pending billing results and disabled capability state.

@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: Copyright 2025 OpenAI
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+# Modified by Tianyu (Sky) Lu in 2026: removed the Bazel build; renamed the program; made the interface translatable
+
 set working-directory := "codex-rs"
 set positional-arguments
 export CODEX_REPO_ROOT := justfile_directory()

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Agent`: Claude Code's subagent tool (called `Task` before).
 //!
 //! Delegated: starting the agent, to Codex's `spawn_agent` runtime of the turn's multi-agent

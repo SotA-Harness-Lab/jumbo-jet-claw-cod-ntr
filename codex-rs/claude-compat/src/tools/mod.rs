@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's built-in tools as the model sees them: their descriptions, the meaning of
 //! their parameters and the text of their results.
 //!

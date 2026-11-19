@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Synchronous UI handles for one helper-owning actor. Closing any handle or dropping the last
 //! owner cancels pending I/O; bounded, ordered commands preserve every mute transition.
 //! A shared process-lifetime runtime keeps child reapers alive after an actor stops.

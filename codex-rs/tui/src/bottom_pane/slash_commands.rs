@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name
+
 //! Shared helpers for filtering and matching built-in and model service-tier slash commands.
 //!
 //! The same sandbox- and feature-gating rules are used by both the composer

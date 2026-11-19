@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: changed the mark in the welcome animation
+
 //! Deterministic surface projection and Braille rasterization of the Codex logo morph.
 //!
 //! Fields and depth use Float32 sampling; all other math uses Float64.

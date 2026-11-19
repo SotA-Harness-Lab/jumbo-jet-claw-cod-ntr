@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! The tools of an agent spawned from a Claude Code subagent definition. With Claude Code's
 //! tools offered, the agent keeps only the tools its `tools` frontmatter lists and its
 //! `disallowedTools` does not, by the names the model sees (Claude Code's names for the

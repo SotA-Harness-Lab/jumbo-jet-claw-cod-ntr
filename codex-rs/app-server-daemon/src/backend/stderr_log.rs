@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Bounds managed stderr with the shared nonblocking logging worker and tail retention.
 //! The worker serializes writes with pruning and pauses pruning during Windows handoff.
 //! Native writers remain best effort.

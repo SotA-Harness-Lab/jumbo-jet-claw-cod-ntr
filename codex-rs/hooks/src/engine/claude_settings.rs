@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Hooks declared in Claude Code's settings files, run by Codex in place.
 //!
 //! Claude Code keeps hooks under the `hooks` key of `~/.claude/settings.json` and of a

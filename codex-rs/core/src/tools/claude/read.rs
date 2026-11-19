@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Read`: Claude Code's file reading tool.
 //!
 //! Delegated: reading through the executor filesystem under the turn's sandbox, and images

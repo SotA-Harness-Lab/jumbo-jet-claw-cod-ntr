@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: gave the skill list a larger share of the context window
+
 //! Pre-budget deduplication preserves source packages and aliases across executor readiness changes.
 
 use super::*;

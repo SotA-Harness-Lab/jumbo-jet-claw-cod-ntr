@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's expansion of an explicitly invoked skill.
 //!
 //! A skill invoked as `/<name> <arguments>` (the first text input starts that way) is given to

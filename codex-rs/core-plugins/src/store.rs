@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins
+
 use crate::command_migration::migrate_plugin_commands;
 use crate::manifest::ManifestCache;
 use crate::manifest::PluginManifest;

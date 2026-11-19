@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Tracks dedicated selections under the installer lock. Pruning requires both lifecycle and
 //! installer locks and valid history; inspect idle packages before a single best-effort retirement.
 

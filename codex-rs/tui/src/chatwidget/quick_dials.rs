@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Numbered reusable inputs with one HUD and pickers for editing, saving, and deleting.
 //! Saving leaves the draft untouched; recall preserves drafts and obeys normal command gates.
 //! The shared-leader submenu respects popup ownership, cancellation, and held-key repeats.

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 use std::sync::Arc;
 
 use codex_claude_compat::tools::edit::apply_edit;

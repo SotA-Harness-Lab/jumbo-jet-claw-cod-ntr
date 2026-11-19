@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Configured Windows sandbox modes and the effective local backend.
 //! Keep the configured backend for remote inheritance; apply the local rollout
 //! using the preference resolved during config loading.

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 use std::fs;
 
 use codex_utils_absolute_path::AbsolutePathBuf;

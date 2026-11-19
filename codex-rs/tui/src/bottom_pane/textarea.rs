@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; made the interface translatable
+
 //! The textarea owns editable composer text, placeholder elements, cursor/wrap state, and a
 //! single-entry kill buffer, including atomic ranges; rich payloads remain composer-owned.
 //! Single-line inputs ignore line breaks and scroll horizontally.

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! File access shared by the Claude file tools. Reading goes through the turn
 //! environment's executor filesystem under the turn's sandbox, as Codex's own tools read;
 //! writing goes through Codex's `apply_patch` runtime.

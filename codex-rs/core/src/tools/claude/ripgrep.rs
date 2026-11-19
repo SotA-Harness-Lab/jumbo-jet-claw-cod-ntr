@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Running ripgrep for `Glob` and `Grep`. The search is a command run through Codex's
 //! `exec_command` runtime, as `Bash` runs commands: the turn's sandbox, approval policy,
 //! execution policy and command events apply to it. Claude Code runs its own ripgrep; here

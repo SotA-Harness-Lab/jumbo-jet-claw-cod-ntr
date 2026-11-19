@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Project persisted items into the same rich cells as completed live output.
 //! Tool grouping spans hidden reasoning but stops at visible content and turn boundaries.
 //! Only one computer or exploration group can be pending at a time.

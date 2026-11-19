@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Write`: Claude Code's file writing tool.
 //!
 //! Delegated: the write itself, as a patch applied by Codex's `apply_patch` runtime

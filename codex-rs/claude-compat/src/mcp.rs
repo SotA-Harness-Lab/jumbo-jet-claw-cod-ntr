@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's MCP servers: `mcpServers` of `~/.claude.json` (the user's, and the one
 //! kept per project under `projects`) and of the project's `.mcp.json` files.
 

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Renders compact voice controls and caller-owned microphone/speaker sample histories.
 //! Keep control positions stable and show mute only when the current phase permits it.
 //! Reduced motion hides the sample-history row while preserving voice controls.

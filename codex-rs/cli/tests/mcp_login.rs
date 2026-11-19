@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: renamed the program
+
 //! Exercises terminal OAuth pasteback and its shared callback validation through the CLI.
 
 use std::collections::BTreeMap;

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Grep`: Claude Code's content search tool.
 //!
 //! Delegated: the search, a ripgrep command run through Codex's `exec_command` runtime

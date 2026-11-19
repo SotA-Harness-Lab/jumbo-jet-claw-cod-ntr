@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable
+
 //! The chat composer is the bottom-pane text input state machine.
 //! Rich registers retain original payloads across draft clears and composer replacement;
 //! only the live register transfers, not undo or repeat history. Copies receive fresh IDs and labels

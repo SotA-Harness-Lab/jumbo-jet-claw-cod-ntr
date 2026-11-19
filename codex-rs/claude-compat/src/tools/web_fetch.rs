@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `WebFetch` tool: description, URL rules, the fetch command, HTML to
 //! Markdown, the cache and the prompt of the secondary model.
 //!

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `WebSearch`: Claude Code's web search tool.
 //!
 //! Delegated to Codex's standalone search tool (`web.run`, from the web search extension):

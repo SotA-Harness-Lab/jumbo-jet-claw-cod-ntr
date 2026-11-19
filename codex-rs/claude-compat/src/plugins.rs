@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! The plugins the user installed and enabled in Claude Code, and which of them Codex uses.
 //!
 //! Claude Code records installed plugins in `~/.claude/plugins/installed_plugins.json` and turns

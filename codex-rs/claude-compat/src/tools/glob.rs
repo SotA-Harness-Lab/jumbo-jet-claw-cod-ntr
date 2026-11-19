@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `Glob` tool: description, parameters, the ripgrep arguments it runs and
 //! the text of its results.
 

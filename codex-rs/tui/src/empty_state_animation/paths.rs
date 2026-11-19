@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: changed the mark in the welcome animation; renamed the program
+
 //! Codex and CodClaw NTR mark geometry for the logo morph.
 
 pub(super) const CODEX: (&str, [f64; 4]) = (

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: renamed the program
+
 //! Isolated installed-CLI fixtures and PID cleanup for Unix daemon integration tests.
 //! Every test owns its home and CLI selection; only immutable executable contents are shared.
 

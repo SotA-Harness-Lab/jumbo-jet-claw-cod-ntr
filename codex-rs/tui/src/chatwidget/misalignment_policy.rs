@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Block ordinary input after a misalignment failure. Live findings can be reviewed and
 //! explicitly acknowledged; review identity prevents stale UI actions from authorizing a turn.
 

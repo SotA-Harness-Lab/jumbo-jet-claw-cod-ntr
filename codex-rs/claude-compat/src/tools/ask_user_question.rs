@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `AskUserQuestion` tool: description, the checks on its questions, their
 //! translation to Codex's `request_user_input` and the result text built from its answers.
 

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Overview of recent and locally retained sessions across registered backends.
 //! Selecting a task on another backend prepares its owner before switching the UI.
 //! Only the immediate attachment of a dashboard-created task is treated as fresh.

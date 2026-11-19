@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Fit whole composer hints with navigation and actions on the left and indicators on the right.
 //! Request a second row only when a compact input mode (Shell, Vim, Plan) and a
 //! current action (queue or active side conversation) fit separately but not together.

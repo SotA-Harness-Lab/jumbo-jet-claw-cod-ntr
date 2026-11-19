@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! What Claude Code tells the model about writing its auto memory, and the switches and
 //! settings that decide whether, and where, the memory is kept.
 

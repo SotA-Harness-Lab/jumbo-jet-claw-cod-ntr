@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `TodoWrite`: Claude Code's task list tool.
 //!
 //! Delegated: the list itself, sent to Codex's `update_plan` runtime as its plan, so that

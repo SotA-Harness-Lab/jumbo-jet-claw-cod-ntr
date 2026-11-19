@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+
 """Moves the slash commands' descriptions and the composer placeholders into Fluent messages:
 rewrites the Rust literals into tr!("id") and appends the English and Chinese messages."""
 import json

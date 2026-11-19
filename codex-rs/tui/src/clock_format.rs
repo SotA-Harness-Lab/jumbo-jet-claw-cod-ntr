@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+
 //! Detects the TUI host's clock preference once. Unknown preferences preserve 12-hour output;
 //! detection never changes the process locale. Views capture the preference for consistent rendering.
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `Bash`: Claude Code's shell tool.
 //!
 //! Delegated to Codex's `exec_command` runtime: the shell, execution policy and command

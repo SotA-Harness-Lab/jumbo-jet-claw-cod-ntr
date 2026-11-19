@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's permission rules (`permissions.allow`, `ask`, `deny` of the user's, the
 //! project's and the local settings files) for the Claude tools.
 //!

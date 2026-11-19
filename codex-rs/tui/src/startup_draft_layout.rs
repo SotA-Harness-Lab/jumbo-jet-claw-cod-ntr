@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! First-frame owned layout: the banner stays at the top and the normal composer at the bottom.
 //! Measurement, paint, and cursor placement use the same bottom rectangle, including both footers.
 //! Only a new conversation paints decoration in the unused area, so it cannot enter scrollback.

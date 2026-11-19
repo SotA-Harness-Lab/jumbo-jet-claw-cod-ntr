@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! `WebFetch`: Claude Code's URL fetching tool. Codex has no such tool, so this one is new;
 //! it is built from Codex's parts wherever they exist.
 //!

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code compatibility: instructions that apply to a file once the model works on it.
 //!
 //! Claude Code loads rules limited to some files by `paths:`, and the `CLAUDE.md` files of

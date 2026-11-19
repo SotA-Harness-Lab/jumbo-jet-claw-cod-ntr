@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code compatibility: the auto memory Claude Code keeps for a project. Codex finds
 //! it where Claude Code does, shows the model Claude Code's instructions for writing it,
 //! and lets the sandbox write there, so that both tools share one memory.

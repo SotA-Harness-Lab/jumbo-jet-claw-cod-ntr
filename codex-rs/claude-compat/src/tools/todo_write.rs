@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Claude Code's `TodoWrite` tool: description, the checks on its list, its translation to
 //! Codex's plan tool (`update_plan`) and its result text.
 

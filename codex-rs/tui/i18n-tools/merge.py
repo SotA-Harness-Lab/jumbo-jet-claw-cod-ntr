@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+
 """Merges the staged message files (staged/NN.<language>.ftl) into i18n/<language>/codex-tui.ftl.
 
 Checks before writing anything: each staged file parses as Fluent, no id is defined twice (in

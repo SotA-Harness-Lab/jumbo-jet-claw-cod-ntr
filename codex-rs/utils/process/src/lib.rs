@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: removed Windows support; marked the remaining Windows-only code
+
 //! Command construction for background processes that must not allocate a Windows console.
 //! Callers retain control of environment, stdio, and process lifetime. Interactive,
 //! detached, and private-desktop launches must select their own console policy.

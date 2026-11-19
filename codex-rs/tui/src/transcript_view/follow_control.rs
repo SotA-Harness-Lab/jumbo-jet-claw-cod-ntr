@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+
 //! Return-to-latest affordance in the owned transcript's existing composer gap.
 //! The control is hidden whenever the current final transcript row is visible.
 //! Rendering owns the hit rectangle; hidden controls never intercept pointer input.

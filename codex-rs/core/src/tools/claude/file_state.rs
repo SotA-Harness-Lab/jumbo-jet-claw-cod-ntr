@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+
 //! Which files the session has read, for Claude Code's rule that an existing file is read
 //! before it is edited or overwritten, and is not changed by someone else in between.
 //! Codex's own tools have no such rule, so the middleware keeps it.
