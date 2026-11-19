@@ -185,6 +185,7 @@ async fn load_plugins_from_layer_stack_with_scope(
         store,
         remote_global_catalog_active,
     );
+    add_external_plugins(&mut configured_plugins, store);
     for (plugin_id, plugin) in &mut configured_plugins {
         plugin.enabled =
             Some(plugin.enabled.unwrap_or(true) && plugin_policy.allows_plugin(plugin_id));
@@ -316,6 +317,52 @@ fn merge_configured_plugins_with_remote_installed(
     }
 
     configured_plugins
+}
+
+/// Enables the plugins installed outside the store (see
+/// [`PluginStore::with_external_plugin_roots`]). A key Codex's own configuration names is left
+/// to it, and so is a plugin whose name Codex already has installed from any marketplace, since
+/// both would claim the same skill namespace.
+fn add_external_plugins(
+    configured_plugins: &mut HashMap<String, PluginConfig>,
+    store: &PluginStore,
+) {
+    let installed_names = configured_plugins
+        .keys()
+        .filter_map(|plugin_key| PluginId::parse(plugin_key).ok())
+        .filter(|plugin_id| store.active_plugin_version(plugin_id).is_some())
+        .map(|plugin_id| plugin_id.plugin_name)
+        .collect::<HashSet<_>>();
+    for plugin_key in store.external_plugin_roots().keys() {
+        if configured_plugins.contains_key(plugin_key) {
+            continue;
+        }
+        let Ok(plugin_id) = PluginId::parse(plugin_key) else {
+            warn!(
+                plugin = plugin_key,
+                "ignoring external plugin with an invalid key"
+            );
+            continue;
+        };
+        if installed_names.contains(&plugin_id.plugin_name) {
+            tracing::info!(
+                plugin = plugin_key,
+                "external plugin left out: Codex has its own plugin of that name"
+            );
+            continue;
+        }
+        configured_plugins.insert(
+            plugin_key.clone(),
+            PluginConfig {
+                enabled: Some(true),
+                remote_plugin_id: None,
+                release_id: None,
+                auto_provision: None,
+                mcp_servers: HashMap::new(),
+                apps: HashMap::new(),
+            },
+        );
+    }
 }
 
 pub(crate) fn plugin_is_eligible_for_target_marketplace(

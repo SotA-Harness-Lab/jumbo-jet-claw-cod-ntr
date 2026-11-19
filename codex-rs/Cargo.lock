@@ -2571,10 +2571,12 @@ dependencies = [
  "ignore",
  "pretty_assertions",
  "regex-lite",
+ "serde",
  "serde_json",
  "serde_yaml",
  "tempfile",
  "tokio",
+ "toml 0.9.11+spec-1.1.0",
  "url",
 ]
 
