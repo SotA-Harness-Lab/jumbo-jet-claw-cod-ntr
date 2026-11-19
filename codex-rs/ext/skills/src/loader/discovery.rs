@@ -11,6 +11,9 @@ use codex_utils_plugins::SkillDiscoveryMode;
 use super::MAX_SCAN_DEPTH;
 use super::MAX_SKILLS_DIRS_PER_ROOT;
 use super::SKILLS_FILENAME;
+
+/// The suffix of Claude Code's command files (see [`SkillDiscoveryMode::CommandFiles`]).
+const COMMAND_FILE_SUFFIX: &str = ".md";
 use super::SKILLS_METADATA_DIR;
 use super::SKILLS_METADATA_FILENAME;
 
@@ -69,7 +72,9 @@ pub(super) async fn discover_skills(
             root,
             WalkOptions {
                 max_depth: match options.mode {
-                    SkillDiscoveryMode::Recursive => MAX_SCAN_DEPTH,
+                    SkillDiscoveryMode::Recursive | SkillDiscoveryMode::CommandFiles => {
+                        MAX_SCAN_DEPTH
+                    }
                     SkillDiscoveryMode::DirectChildren => 2,
                 },
                 max_directories: MAX_SKILLS_DIRS_PER_ROOT,
@@ -146,7 +151,15 @@ pub(super) async fn discover_skills(
             }
             WalkEntryKind::File => {
                 file_paths.insert(entry.path.clone());
-                if entry.path.basename().as_deref() == Some(SKILLS_FILENAME)
+                if options.mode == SkillDiscoveryMode::CommandFiles {
+                    if entry
+                        .path
+                        .basename()
+                        .is_some_and(|name| name.ends_with(COMMAND_FILE_SUFFIX))
+                    {
+                        skill_files.push(entry.path);
+                    }
+                } else if entry.path.basename().as_deref() == Some(SKILLS_FILENAME)
                     && (options.mode == SkillDiscoveryMode::Recursive
                         || entry
                             .path
@@ -163,12 +176,18 @@ pub(super) async fn discover_skills(
     let skills = skill_files
         .into_iter()
         .map(|path| DiscoveredSkill {
-            metadata: discover_skill_metadata(
-                &path,
-                &file_paths,
-                &metadata_directory_parents,
-                inventory_complete,
-            ),
+            // A command file has no `agents/openai.yaml` of its own: its directory holds
+            // other commands.
+            metadata: if options.mode == SkillDiscoveryMode::CommandFiles {
+                SkillMetadataDiscovery::Absent
+            } else {
+                discover_skill_metadata(
+                    &path,
+                    &file_paths,
+                    &metadata_directory_parents,
+                    inventory_complete,
+                )
+            },
             path,
         })
         .collect();

@@ -42,6 +42,8 @@ pub(crate) struct HostSkillRoot<'a> {
     pub(crate) scope: SkillScope,
     pub(crate) file_system: &'a dyn EnvironmentAccess,
     plugin: Option<PluginSkillRootContext>,
+    /// A directory of Claude Code's custom slash commands rather than of skills.
+    command_files: bool,
 }
 
 struct PluginSkillRootContext {
@@ -62,6 +64,20 @@ impl<'a> HostSkillRoot<'a> {
             scope,
             file_system,
             plugin: None,
+            command_files: false,
+        }
+    }
+
+    /// A directory of Claude Code's custom slash commands (`~/.claude/commands`, a project's
+    /// `.claude/commands`): each Markdown file in it is loaded as a skill.
+    pub(crate) fn commands(
+        path: AbsolutePathBuf,
+        scope: SkillScope,
+        file_system: &'a dyn EnvironmentAccess,
+    ) -> Self {
+        Self {
+            command_files: true,
+            ..Self::host(path, scope, file_system)
         }
     }
 
@@ -76,6 +92,7 @@ impl<'a> HostSkillRoot<'a> {
                 root: root.plugin_root,
                 discovery_mode: root.discovery_mode,
             }),
+            command_files: false,
         }
     }
 
@@ -103,6 +120,9 @@ impl<'a> HostSkillRoot<'a> {
     }
 
     pub(crate) fn discovery_mode(&self) -> SkillDiscoveryMode {
+        if self.command_files {
+            return SkillDiscoveryMode::CommandFiles;
+        }
         self.plugin
             .as_ref()
             .map_or(SkillDiscoveryMode::Recursive, |plugin| {
@@ -294,6 +314,9 @@ async fn load_skills_under_root(
                     .path
                     .to_abs_path()
                     .unwrap_or_else(|_| skill.path.clone());
+                let command_name = (discovery_mode == SkillDiscoveryMode::CommandFiles)
+                    .then(|| command_skill_name(root, &discovery_path))
+                    .flatten();
                 let result = parse_skill_file(
                     file_system,
                     &skill.skill,
@@ -302,6 +325,7 @@ async fn load_skills_under_root(
                     skill_root.scope,
                     plugin_identity,
                     plugin_root,
+                    command_name,
                 )
                 .await;
                 (skill.path, skill.path_uri, discovery_path, result)
@@ -344,6 +368,10 @@ async fn load_skills_under_root(
     )
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the command name joins the loader's own context; a struct would only rename them"
+)]
 async fn parse_skill_file(
     file_system: &dyn EnvironmentAccess,
     skill: &DiscoveredSkill,
@@ -352,6 +380,7 @@ async fn parse_skill_file(
     scope: SkillScope,
     plugin_identity: Option<&PluginIdentity>,
     plugin_root: Option<&AbsolutePathBuf>,
+    command_name: Option<String>,
 ) -> Result<SkillMetadata, String> {
     let metadata_path = path_uri
         .parent()
@@ -367,7 +396,12 @@ async fn parse_skill_file(
         file_system.read_file_text(path_uri, ReadFileOptions::default(),),
         load_host_skill_metadata(file_system, path, &metadata, plugin_root),
     );
-    let contents = contents.map_err(|error| format!("failed to read file: {error}"))?;
+    let mut contents = contents.map_err(|error| format!("failed to read file: {error}"))?;
+    // A command file may have no frontmatter at all; its description then comes from the
+    // first line of the body, as for a skill without one.
+    if command_name.is_some() && !contents.trim_start().starts_with("---") {
+        contents = format!("---\n{{}}\n---\n{contents}");
+    }
     let ParsedSkillFrontmatter {
         name,
         description,
@@ -375,6 +409,8 @@ async fn parse_skill_file(
         disable_model_invocation,
     } = parse_skill_frontmatter_metadata(&contents, || default_skill_name(path))
         .map_err(|error| error.to_string())?;
+    // Claude Code names a command after its file, whatever its frontmatter says.
+    let name = command_name.unwrap_or(name);
     let LoadedSkillMetadata {
         interface,
         dependencies,
@@ -394,6 +430,20 @@ async fn parse_skill_file(
         plugin_id: plugin_identity.map(|identity| identity.plugin_id.clone()),
         remote_plugin_id: plugin_identity.and_then(|identity| identity.remote_plugin_id.clone()),
     })
+}
+
+/// The name Claude Code gives the command file at `path` below the commands directory `root`:
+/// its path without `.md`, the directories joined with `:` (`git/commit.md` is `git:commit`).
+fn command_skill_name(root: &AbsolutePathBuf, path: &AbsolutePathBuf) -> Option<String> {
+    let relative = path.as_path().strip_prefix(root.as_path()).ok()?;
+    let parts = relative
+        .iter()
+        .map(|part| part.to_str().map(str::to_string))
+        .collect::<Option<Vec<_>>>()?;
+    let name = parts.join(":");
+    let name = name.strip_suffix(".md").unwrap_or(&name);
+    let name = sanitize_single_line(name);
+    (!name.is_empty()).then_some(name)
 }
 
 fn default_skill_name(path: &AbsolutePathBuf) -> String {

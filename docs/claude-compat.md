@@ -42,6 +42,7 @@ plugins are used.
 | --- | --- | --- |
 | `~/.claude/skills/` | A user skill root, beside `~/.agents/skills` | Like any other skill root |
 | `.claude/skills/` of a project | A repository skill root, beside `.agents/skills`, in each directory from the project root down to the working directory | Like any other skill root |
+| `~/.claude/commands/`, `.claude/commands/` of a project | Skills named after the file's path, see "Custom slash commands" | Like any other skill root |
 | `~/.claude/CLAUDE.md` | Appended to the global instructions, after `$CODEX_HOME/AGENTS.md` | At the next request |
 | `~/.claude/rules/**/*.md` without `paths:` | Appended after `CLAUDE.md`, sorted by path | At the next request |
 | `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/rules/**/*.md` without `paths:`, `CLAUDE.local.md` | Project instructions, after the project's `AGENTS.md` files | When project instructions are loaded |
@@ -466,6 +467,27 @@ name = "<SKILL_NAME>"
 enabled = false
 ```
 
+## Custom slash commands
+
+Claude Code's custom slash commands are loaded in place as skills, by the same loader as the
+skills, so they are listed, invoked and expanded as skills are:
+
+| Claude Code | Name in Codex |
+|---|---|
+| `~/.claude/commands/<name>.md` | `<name>` (user) |
+| `.claude/commands/<name>.md` of the project and the directories up to the working directory | `<name>` (repo) |
+| `<plugin>/commands/<name>.md` of a Claude Code plugin that is used | `<plugin>:<name>` |
+
+- A file in a subdirectory is named after its path, the directories joined with `:`:
+  `commands/git/commit.md` is `git:commit`, invoked as `/git:commit`. Frontmatter `name` is
+  ignored, as Claude Code ignores it.
+- Frontmatter is optional. `description` (or else the first line of the body) is the description
+  the model sees; `disable-model-invocation: true` keeps the command out of the model's list, so
+  only `/<name>` runs it. `$ARGUMENTS`, `$1`... and `arguments` work as for skills.
+- Plugins whose commands Codex migrated into skills when it installed them (Codex's own plugin
+  format) keep those; the commands of Claude Code's plugins are never copied.
+- `CODEX_CLAUDE_COMPAT=0` leaves out the user's and the projects' commands with the skills.
+
 ## Invoking skills
 
 In the TUI, `/<name> <args>` invokes the skill `<name>` as in Claude Code, for any skill Codex
@@ -565,11 +587,10 @@ install path is gone, or when it has no readable `.claude-plugin/plugin.json`, w
 loader needs; `enable` does not change that.
 
 From a plugin that is used, Codex loads what its plugin loader knows: skills, MCP servers and
-hooks. The rest is not loaded, without disabling the plugin:
+hooks, and its commands (`commands/`, or the directories `commands` of the manifest lists) as
+skills named `<plugin>:<command>` (see "Custom slash commands"). The rest is not loaded,
+without disabling the plugin:
 
-- `commands/` and `commands` of the manifest: custom slash commands are not supported yet. They
-  will be loaded once command support lands (one loader for `~/.claude/commands`, a project's
-  `.claude/commands` and plugins' `commands/`, as skills).
 - `agents/`: Codex's plugin loader has no plugin agents. Subagents in `~/.claude/agents` and
   `.claude/agents` are still read (see "Subagents").
 - MCP bundles (`.mcpb`), the plugin's `settings.json` and `userConfig`.
@@ -609,9 +630,7 @@ these plugins' hooks off too. The hooks see `CLAUDE_PLUGIN_ROOT` (the install pa
 
 ## What is not shared
 
-- Custom slash commands (`~/.claude/commands`, a project's `.claude/commands`, plugins'
-  `commands/`), not yet: a later change loads them as skills. Skills invoked as `/<name>` are
-  supported, see "Invoking skills".
+- A plugin's `commands` entry that names a single file rather than a directory.
 - Other skill frontmatter (`allowed-tools`, `model`, `context`, `hooks`, `user-invocable`,
   `argument-hint` and the like) is ignored.
 - Managed (enterprise) Claude Code files under `/etc/claude-code`.

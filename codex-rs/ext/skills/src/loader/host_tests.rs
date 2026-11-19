@@ -740,3 +740,49 @@ async fn follows_directory_symlinks_except_for_system_scope() {
     assert_eq!(system_snapshot.errors, Vec::new());
     assert_eq!(system_snapshot.skills, Vec::new());
 }
+
+#[tokio::test]
+async fn command_root_loads_markdown_files_named_after_their_path() {
+    let access = FileSystemEnvironmentAccessor::unrestricted(&LOCAL_FS);
+    let root = TempDir::new().expect("temp dir");
+    let write = |relative: &str, contents: &str| {
+        let path = root.path().join(relative);
+        fs::create_dir_all(path.parent().expect("command parent")).expect("create directory");
+        fs::write(path, contents).expect("write command");
+    };
+    write(
+        "review.md",
+        "Review the current diff\n\nLook for bugs in $ARGUMENTS.\n",
+    );
+    write(
+        "git/commit.md",
+        "---\nname: ignored\ndescription: Commit staged changes\n---\nCommit them.\n",
+    );
+    write("notes.txt", "not a command\n");
+    write(".hidden/secret.md", "Hidden command\n");
+
+    let snapshot = load_host_skill_root(HostSkillRoot::commands(
+        AbsolutePathBuf::from_absolute_path(root.path()).expect("absolute root"),
+        SkillScope::User,
+        &access,
+    ))
+    .await;
+
+    assert_eq!(snapshot.errors, Vec::new());
+    let mut skills = snapshot
+        .skills
+        .iter()
+        .map(|skill| (skill.name.clone(), skill.description.clone()))
+        .collect::<Vec<_>>();
+    skills.sort();
+    assert_eq!(
+        skills,
+        vec![
+            (
+                "git:commit".to_string(),
+                "Commit staged changes".to_string()
+            ),
+            ("review".to_string(), "Review the current diff".to_string()),
+        ]
+    );
+}

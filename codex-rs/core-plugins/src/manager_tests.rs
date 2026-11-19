@@ -8128,3 +8128,40 @@ fn plugin_install_error_preserves_store_io_sub_error_type() {
         Some("failed_to_copy_plugin_file".to_string())
     );
 }
+
+#[test]
+fn claude_plugin_command_roots_are_read_in_place() {
+    let claude_home = TempDir::new().unwrap();
+    let plugin_root = claude_home.path().join("plugins/cache/demo").abs();
+    write_file(
+        &plugin_root.join(".claude-plugin/plugin.json"),
+        r#"{"name":"demo"}"#,
+    );
+    write_file(&plugin_root.join("commands/review.md"), "Review the diff\n");
+    assert_eq!(
+        crate::loader::plugin_command_roots(&plugin_root),
+        vec![plugin_root.join("commands")]
+    );
+
+    // Codex's own plugin format keeps upstream's command migration.
+    let codex_root = claude_home.path().join("plugins/cache/codex-format").abs();
+    write_file(
+        &codex_root.join(".codex-plugin/plugin.json"),
+        r#"{"name":"codex-format"}"#,
+    );
+    write_file(&codex_root.join("commands/review.md"), "Review the diff\n");
+    assert_eq!(
+        crate::loader::plugin_command_roots(&codex_root),
+        Vec::<AbsolutePathBuf>::new()
+    );
+
+    // Commands Codex already migrated into skills are not loaded a second time.
+    write_file(
+        &plugin_root.join(".codex-plugin/migrated-command-skills/review/SKILL.md"),
+        "---\nname: review\ndescription: Review\n---\n",
+    );
+    assert_eq!(
+        crate::loader::plugin_command_roots(&plugin_root),
+        Vec::<AbsolutePathBuf>::new()
+    );
+}
