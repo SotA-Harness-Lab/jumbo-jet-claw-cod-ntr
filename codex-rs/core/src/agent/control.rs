@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends
+
 use crate::TurnInputRequest;
 use crate::TurnInputSubmission;
 use crate::TurnStartOptions;
@@ -580,7 +585,7 @@ impl LocalAgentControl {
                 ),
             };
             parent_thread
-                .inject_fragment_without_turn(
+                .deliver_background_notice(
                     SubagentNotification::new(child_reference.as_str(), status)
                         .with_metadata(ContentItemMetadata::tool(namespace)),
                 )

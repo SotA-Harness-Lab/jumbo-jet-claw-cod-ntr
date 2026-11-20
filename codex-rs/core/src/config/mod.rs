@@ -364,6 +364,24 @@ pub struct McpLaunchCwds {
     pub configured: HashMap<String, (String, AbsolutePathBuf)>,
 }
 
+/// Whether this project's changes to how sessions behave are on where the configuration does
+/// not say. They are; tests written for upstream's behaviour turn them off for their process.
+pub(crate) static REFINEMENTS_DEFAULT: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(true);
+
+/// Whether the changes are on by default here: not in a unit test of this crate, nor where
+/// [`REFINEMENTS_DEFAULT`] was turned off.
+pub(crate) fn refinements_default() -> bool {
+    !cfg!(test) && REFINEMENTS_DEFAULT.load(std::sync::atomic::Ordering::Acquire)
+}
+
+/// Whether `wake_on_agent_messages` is on where the configuration does not name it: by
+/// default here, unless `CCN_BACKGROUND_WAKE=0`. Upstream leaves it off.
+fn background_wake_default() -> bool {
+    refinements_default()
+        && std::env::var_os("CCN_BACKGROUND_WAKE").is_none_or(|value| value != "0")
+}
+
 /// Application configuration loaded from disk and merged with overrides.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Permissions {
@@ -3679,6 +3697,17 @@ impl Config {
             && managed_features::project_overrides_legacy_subagent_opt_out(&config_layer_stack)
         {
             configured_features.enable(Feature::Collab);
+        }
+        // An idle session goes on by itself when background work it started ends, unless the
+        // configuration names the feature or the default is turned off.
+        if background_wake_default()
+            && cfg.features.as_ref().is_none_or(|features| {
+                !features
+                    .entries()
+                    .contains_key(Feature::WakeOnAgentMessages.key())
+            })
+        {
+            configured_features.enable(Feature::WakeOnAgentMessages);
         }
         let runtime_auth_mode = managed_features::resolve_runtime_auth_mode(
             &cfg, feature_requirements.as_ref(),

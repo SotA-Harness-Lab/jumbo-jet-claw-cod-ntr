@@ -1016,6 +1016,73 @@ async fn unified_exec_respects_workdir_override() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn background_command_exit_wakes_the_idle_session() -> Result<()> {
+    skip_if_target_windows!(Ok(()), "uses a POSIX-only command fixture");
+    skip_if_no_network!(Ok(()));
+    skip_if_sandbox!(Ok(()));
+
+    let server = start_mock_server().await;
+    let mut builder = test_codex().with_config(|config| {
+        config
+            .features
+            .enable(Feature::WakeOnAgentMessages)
+            .expect("enable the wake");
+    });
+    let test = builder.build_with_auto_env(&server).await?;
+
+    let call_id = "uexec-background-wake";
+    let args = json!({
+        "cmd": "sleep 2; echo BACKGROUND-DONE",
+        "yield_time_ms": 250,
+    });
+    let responses = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-1"),
+                ev_function_call(call_id, "exec_command", &serde_json::to_string(&args)?),
+                ev_completed("resp-1"),
+            ]),
+            // The model leaves the command running and ends its turn.
+            sse(vec![
+                ev_response_created("resp-2"),
+                ev_assistant_message("msg-1", "started"),
+                ev_completed("resp-2"),
+            ]),
+            // Nobody types anything: this answers the turn the exit starts.
+            sse(vec![
+                ev_response_created("resp-3"),
+                ev_assistant_message("msg-2", "noticed"),
+                ev_completed("resp-3"),
+            ]),
+        ],
+    )
+    .await;
+
+    submit_unified_exec_turn(&test, "run it in the background", PermissionProfile::Disabled)
+        .await?;
+    for _ in 0..2 {
+        wait_for_event(&test.codex, |event| {
+            matches!(event, EventMsg::TurnComplete(_))
+        })
+        .await;
+    }
+
+    let requests = responses.requests();
+    assert_eq!(requests.len(), 3);
+    assert!(
+        !requests[1].has_content_kinds(&["unified_exec.background_command_notification"]),
+        "the command had not ended when the first turn did"
+    );
+    assert!(
+        requests[2].has_content_kinds(&["unified_exec.background_command_notification"]),
+        "the turn the exit starts tells the model of it"
+    );
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn unified_exec_emits_exec_command_end_event() -> Result<()> {
     // TODO(anp): Remove after unified-exec fixtures use target-native commands.
     skip_if_target_windows!(Ok(()), "uses a POSIX-only command fixture");

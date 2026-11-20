@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends
+
 //! Test-only helpers exposed for cross-crate integration tests.
 //!
 //! Production code should not depend on this module.
@@ -165,6 +170,13 @@ impl UserInstructionsProvider for EmptyUserInstructionsProvider {
 
 pub fn set_thread_manager_test_mode(enabled: bool) {
     thread_manager::set_thread_manager_test_mode_for_tests(enabled);
+}
+
+/// Whether this project's changes to how sessions behave (waking for finished background
+/// work, continuing a response cut off at the output limit) are on where the configuration
+/// does not say. Tests written for upstream's behaviour turn them off.
+pub fn set_refinements_default(enabled: bool) {
+    crate::config::REFINEMENTS_DEFAULT.store(enabled, std::sync::atomic::Ordering::Release);
 }
 
 pub fn set_deterministic_process_ids(enabled: bool) {

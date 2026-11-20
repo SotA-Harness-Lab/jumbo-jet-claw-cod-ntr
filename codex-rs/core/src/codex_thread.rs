@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends
+
 use crate::WithTurnExtensionData;
 use crate::agent::AgentStatus;
 use crate::agent::api::AgentControl;
@@ -1083,12 +1088,11 @@ impl CodexThread {
         self.session.token_usage_info().await
     }
 
-    /// Records a context fragment without creating a new user turn boundary.
-    pub(crate) async fn inject_fragment_without_turn(&self, fragment: impl ContextualUserFragment) {
+    /// Delivers a notice that background work has ended: into the running turn, as the
+    /// start of a turn when the idle session may be woken, or else into the history.
+    pub(crate) async fn deliver_background_notice(&self, fragment: impl ContextualUserFragment) {
         let item = ContextualUserFragment::into(fragment);
-        self.session
-            .inject_no_new_turn(vec![item], /*current_turn_context*/ None)
-            .await;
+        self.session.deliver_background_notice(item).await;
     }
 
     /// Records an explicit user goal mutation without scheduling a model response.

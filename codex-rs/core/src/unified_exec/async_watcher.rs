@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends
+
 use codex_protocol::openai_models::CatalogModel;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -166,6 +171,7 @@ pub(crate) fn spawn_exit_watcher(
     started_at: Instant,
     network_denial_monitor: Option<tokio::task::JoinHandle<()>>,
     plugin_metrics_sidecar: Option<SharedPluginMetricsSidecar>,
+    initial_exec_command_active: Arc<std::sync::atomic::AtomicBool>,
 ) {
     let session_ref = Arc::clone(&context.session);
     let turn_ref = Arc::clone(&context.step_context.turn);
@@ -186,6 +192,33 @@ pub(crate) fn spawn_exit_watcher(
             let _ = network_denial_monitor.await;
         }
         let _interaction_guard = interaction_lock.lock_owned().await;
+
+        // With `wake_on_agent_messages`, the model is told of this exit unless a tool call
+        // tells it: the call that started the command, while it still waits, or a later one
+        // that found the process gone and took it out of the store.
+        let notice = if session_ref.enabled(codex_features::Feature::WakeOnAgentMessages)
+            && !initial_exec_command_active.load(Ordering::Acquire)
+            && session_ref
+                .services
+                .unified_exec_manager
+                .process_store
+                .lock()
+                .await
+                .processes
+                .contains_key(&process_id)
+        {
+            Some((
+                Arc::clone(&session_ref),
+                crate::context::BackgroundCommandNotification {
+                    session_id: process_id.to_string(),
+                    command: command.join(" "),
+                    exit_code: process.exit_code(),
+                    failure: process.failure_message(),
+                },
+            ))
+        } else {
+            None
+        };
 
         let duration = Instant::now().saturating_duration_since(started_at);
         let plugin_metrics_sidecar = plugin_metrics_sidecar
@@ -238,6 +271,11 @@ pub(crate) fn spawn_exit_watcher(
                 timed_out,
             )
             .await;
+        }
+        if let Some((session, notice)) = notice {
+            session
+                .deliver_background_notice(crate::context::ContextualUserFragment::into(notice))
+                .await;
         }
     });
 }

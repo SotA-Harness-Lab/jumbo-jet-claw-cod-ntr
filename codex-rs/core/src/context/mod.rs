@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends
+
 //! Context fragments injected into model input.
 
 mod agent_message_board_notification;
@@ -46,6 +51,7 @@ mod realtime_start_instructions;
 mod realtime_start_with_instructions;
 mod recommended_plugins_instructions;
 mod rollout_budget;
+mod background_command_notification;
 mod subagent_notification;
 mod token_budget_context;
 mod turn_aborted;
@@ -125,6 +131,7 @@ pub(crate) use realtime_start_instructions::RealtimeStartInstructions;
 pub(crate) use realtime_start_with_instructions::RealtimeStartWithInstructions;
 pub(crate) use recommended_plugins_instructions::RecommendedPluginsInstructions;
 pub(crate) use rollout_budget::RolloutBudgetContext;
+pub(crate) use background_command_notification::BackgroundCommandNotification;
 pub(crate) use subagent_notification::SubagentNotification;
 pub(crate) use token_budget_context::AutoCompactFallbackPrompt;
 pub(crate) use token_budget_context::ContextWindowGuidance;

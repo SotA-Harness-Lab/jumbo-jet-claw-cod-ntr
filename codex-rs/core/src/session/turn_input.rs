@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends
+
 //! Handles reply-bearing turn-input operations.
 //!
 //! This is the one place Core decides whether submitted input starts a turn,
@@ -917,6 +922,43 @@ impl Session {
         let config = &state.session_configuration;
         !config.session_source.is_non_root_agent()
             && TurnStartKind::Automatic.permits_mode(config.step_settings.collaboration_mode.mode)
+    }
+
+    /// Tells the model that work it left in the background has ended.
+    ///
+    /// A running turn takes the notice in. An idle session starts a turn for it when
+    /// `wake_on_agent_messages` allows a wake (a root session, not in Plan mode, not just
+    /// interrupted), so that the model goes on without the user typing anything; otherwise
+    /// the notice is recorded and the model reads it at its next turn.
+    pub(crate) async fn deliver_background_notice(self: &Arc<Self>, item: ResponseItem) {
+        if !self.should_wake_on_agent_messages().await {
+            self.inject_no_new_turn(vec![item], /*current_turn_context*/ None)
+                .await;
+            return;
+        }
+        let item = match self.inject_if_running(vec![item]).await {
+            Ok(()) => return,
+            Err(mut items) => items.remove(0),
+        };
+        let submission = handle(
+            self,
+            TurnInputRequest::new(codex_protocol::turn_input::TurnInput::ResponseItem(
+                item.clone(),
+            )),
+            TurnInputMode::StartIfIdle,
+            Uuid::now_v7().to_string(),
+        )
+        .await;
+        if !matches!(
+            submission,
+            Ok(TurnInputSubmission::Accepted
+                | TurnInputSubmission::Started { .. }
+                | TurnInputSubmission::Steered { .. })
+        ) {
+            // A turn started in between, or turns cannot start now: keep the notice.
+            self.inject_no_new_turn(vec![item], /*current_turn_context*/ None)
+                .await;
+        }
     }
 
     pub(crate) async fn route_realtime_text_input(

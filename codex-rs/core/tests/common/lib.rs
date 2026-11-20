@@ -65,6 +65,9 @@ static TEST_ARG0_PATH_ENTRY: OnceLock<Option<Arg0PathEntryGuard>> = OnceLock::ne
 fn enable_deterministic_unified_exec_process_ids_for_tests() {
     codex_core::test_support::set_thread_manager_test_mode(/*enabled*/ true);
     codex_core::test_support::set_deterministic_process_ids(/*enabled*/ true);
+    // These suites describe upstream's sessions. A test of one of this project's changes to
+    // them turns it on in its own configuration.
+    codex_core::test_support::set_refinements_default(/*enabled*/ false);
 }
 
 #[ctor]
