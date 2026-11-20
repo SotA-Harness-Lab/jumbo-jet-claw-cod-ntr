@@ -50,6 +50,8 @@ pub struct HookJudgeRequest {
     /// An `agent` hook, which may look around with tools before it answers; a `prompt` hook
     /// answers from the prompt alone.
     pub agentic: bool,
+    /// The model the handler asks for, by the name its hooks file gives: a Claude model.
+    pub model: Option<String>,
     /// How long the handler may take.
     pub timeout: Duration,
 }

@@ -11,6 +11,9 @@
 //! [claude.plugins]
 //! enable = ["claude-hud@claude-hud"] # Claude Code plugins used even when found incompatible
 //!
+//! [hooks.models]                     # Claude models named by `prompt` and `agent` hooks,
+//! haiku = "gpt-5.5-mini"             # and the Codex model that judges in their place
+//!
 //! [ui]
 //! language = "zh-CN"                 # the TUI's language; the system's when left out
 //!
@@ -27,6 +30,7 @@
 //! program does not know is left alone, with a line in the log: another build of the program,
 //! or a later version, may share the file and keep settings of its own there.
 
+use std::collections::BTreeMap;
 use std::io;
 use std::path::Path;
 
@@ -41,6 +45,8 @@ pub const MOD_CONFIG_FILE: &str = "ccn-config.toml";
 pub struct ModConfig {
     /// `[claude]`: how Claude Code's configuration is used.
     pub claude: ClaudeModConfig,
+    /// `[hooks]`: how Claude Code's hooks are run.
+    pub hooks: HooksModConfig,
     /// `[ui]`: the terminal interface.
     pub ui: UiModConfig,
     /// `[harness]`: how the agent itself works.
@@ -69,6 +75,53 @@ pub struct HarnessModConfig {
     /// `file_checkpoints`: whether what the agent's edits replace is kept, so that rewinding
     /// the conversation can put the files back. On when left out.
     pub file_checkpoints: Option<bool>,
+}
+
+/// `[hooks]` of `ccn-config.toml`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(default)]
+pub struct HooksModConfig {
+    /// `[hooks.models]`: which Codex model judges a `prompt` or `agent` hook that names a
+    /// Claude model. See [`HooksModConfig::model_for`].
+    pub models: BTreeMap<String, String>,
+}
+
+/// The entry of `[hooks.models]` for a handler that names no model, for which Claude Code
+/// uses its small, fast one.
+pub const DEFAULT_HOOK_MODEL: &str = "default";
+
+impl HooksModConfig {
+    /// The Codex model to judge a hook whose handler names the Claude model `model`: the
+    /// entry for that very name, or else the longest entry whose name `model` contains, so
+    /// that `haiku` covers `claude-haiku-4-5`. A handler without `model` takes the entry
+    /// `default`. `None` when no entry fits: the handler's `model` is then ignored and the
+    /// session's own model judges.
+    pub fn model_for(&self, model: Option<&str>) -> Option<&str> {
+        let wanted = model
+            .map(str::trim)
+            .filter(|model| !model.is_empty())
+            .unwrap_or(DEFAULT_HOOK_MODEL)
+            .to_ascii_lowercase();
+        let entries = self
+            .models
+            .iter()
+            .filter_map(|(name, codex_model)| {
+                let name = name.trim().to_ascii_lowercase();
+                let codex_model = codex_model.trim();
+                (!name.is_empty() && !codex_model.is_empty()).then_some((name, codex_model))
+            })
+            .collect::<Vec<(String, &str)>>();
+        entries
+            .iter()
+            .find(|(name, _)| *name == wanted)
+            .or_else(|| {
+                entries
+                    .iter()
+                    .filter(|(name, _)| name != DEFAULT_HOOK_MODEL && wanted.contains(name.as_str()))
+                    .max_by_key(|(name, _)| name.len())
+            })
+            .map(|(_, codex_model)| *codex_model)
+    }
 }
 
 /// `[ui]` of `ccn-config.toml`.
@@ -112,6 +165,8 @@ impl ModConfig {
         let mut unknown = Vec::new();
         let config = serde_ignored::deserialize(value, |path| unknown.push(path.to_string()))
             .map_err(error)?;
+        // By name, whatever order the sections are read in.
+        unknown.sort();
         Ok((config, unknown))
     }
 

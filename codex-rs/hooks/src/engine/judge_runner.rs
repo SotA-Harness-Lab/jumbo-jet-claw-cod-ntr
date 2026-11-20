@@ -35,6 +35,7 @@ pub(crate) async fn run_judge(
     handler: &ConfiguredHandler,
     prompt: &str,
     agentic: bool,
+    model: Option<&str>,
     input_json: &str,
 ) -> HandlerRunResult {
     let started_at = chrono::Utc::now().timestamp();
@@ -46,6 +47,7 @@ pub(crate) async fn run_judge(
             let request = HookJudgeRequest {
                 prompt: with_arguments(prompt, input_json),
                 agentic,
+                model: model.map(str::to_string),
                 timeout,
             };
             match tokio::time::timeout(timeout, executor.judge(request)).await {

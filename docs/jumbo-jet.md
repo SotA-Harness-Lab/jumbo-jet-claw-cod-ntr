@@ -1,7 +1,18 @@
 # Jumbo Jet refinements
 
 What this project changes in the harness itself, on top of CodClaw NTR. Everything in
-[Claude Code compatibility](./claude-compat.md) holds here too.
+[Claude Code compatibility](./claude-compat.md) holds here too. That document is written for the
+program this one is built on; the rows of its "Not yet implemented" chapter below are
+implemented here, by the refinement named:
+
+| Row of "Not yet implemented" | Here |
+| --- | --- |
+| `Bash`: a background command (the model is not notified when it ends) | The model is told, and an idle session is woken: "Waking for finished background work" |
+| `Agent`: a background agent that ends | The same refinement wakes the session |
+| `Bash`: a command that reaches its timeout | Moved to the background: "Commands that outlast their timeout" |
+| Long results | A long command output is kept in a file the result names: "Long command output kept in a file" |
+| Scheduled prompts and monitors (`CronCreate`, `Monitor`) | Offered: "Monitor and scheduled prompts" |
+| Checkpoints and `/rewind` | Going back to an earlier prompt can put the files back: "Rewinding puts the files back" |
 
 ## Waking for finished background work
 

@@ -168,8 +168,13 @@ pub(crate) enum ConfiguredHandlerKind {
     /// Claude Code's `http` handler: the hook input is posted to a URL.
     Http(http_runner::HttpHook),
     /// Claude Code's `prompt` handler, or its `agent` handler when `agentic`: a model
-    /// answers whether the prompt's condition is met.
-    Judge { prompt: String, agentic: bool },
+    /// answers whether the prompt's condition is met. `model` is the handler's own, a Claude
+    /// model's name.
+    Judge {
+        prompt: String,
+        agentic: bool,
+        model: Option<String>,
+    },
 }
 
 #[derive(Debug)]

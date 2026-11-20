@@ -1119,18 +1119,20 @@ fn append_matcher_groups(
                             // this early.
                             event_name != HookEventName::SessionStart,
                         ),
-                        ClaudeHandlerKind::Prompt { prompt } => (
+                        ClaudeHandlerKind::Prompt { prompt, model } => (
                             ConfiguredHandlerKind::Judge {
                                 prompt: prompt.clone(),
                                 agentic: false,
+                                model: model.clone(),
                             },
                             30,
                             runs_judge_hooks(event_name),
                         ),
-                        ClaudeHandlerKind::Agent { prompt } => (
+                        ClaudeHandlerKind::Agent { prompt, model } => (
                             ConfiguredHandlerKind::Judge {
                                 prompt: prompt.clone(),
                                 agentic: true,
+                                model: model.clone(),
                             },
                             60,
                             runs_judge_hooks(event_name),
@@ -1269,7 +1271,7 @@ fn append_matcher_groups(
                     command: format!("POST {}", hook.url),
                     r#async: false,
                 },
-                ConfiguredHandlerKind::Judge { prompt, agentic } => HookListEntryHandler::Command {
+                ConfiguredHandlerKind::Judge { prompt, agentic, .. } => HookListEntryHandler::Command {
                     command: format!(
                         "{}: {prompt}",
                         if *agentic { "agent" } else { "prompt" }

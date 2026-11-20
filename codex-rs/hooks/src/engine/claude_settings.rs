@@ -114,10 +114,17 @@ pub(crate) type HookConditions = HashMap<HandlerPosition, String>;
 pub(crate) enum ClaudeHandlerKind {
     /// `type: "http"`: the hook input is posted to a URL.
     Http(HttpHook),
-    /// `type: "prompt"`: a model answers whether the prompt's condition is met.
-    Prompt { prompt: String },
+    /// `type: "prompt"`: a model answers whether the prompt's condition is met. `model` is
+    /// the handler's own, a Claude model's name.
+    Prompt {
+        prompt: String,
+        model: Option<String>,
+    },
     /// `type: "agent"`: as `prompt`, by a model that may look around with tools first.
-    Agent { prompt: String },
+    Agent {
+        prompt: String,
+        model: Option<String>,
+    },
 }
 
 /// A `prompt`, `agent` or `http` handler as its hooks file declares it.
@@ -347,9 +354,11 @@ pub(crate) fn handler_extras(hooks: &Value, http_policy: &HttpHookPolicy) -> Cla
             let kind = match handler.get("type").and_then(Value::as_str)? {
                 "prompt" => ClaudeHandlerKind::Prompt {
                     prompt: text("prompt")?,
+                    model: text("model"),
                 },
                 "agent" => ClaudeHandlerKind::Agent {
                     prompt: text("prompt")?,
+                    model: text("model"),
                 },
                 "http" => ClaudeHandlerKind::Http(HttpHook {
                     url: text("url")?,

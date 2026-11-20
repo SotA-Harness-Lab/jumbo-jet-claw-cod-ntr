@@ -50,6 +50,7 @@ pub use memory_instructions::auto_memory_instructions;
 pub use mod_config::ClaudeModConfig;
 pub use mod_config::ClaudePluginsModConfig;
 pub use mod_config::HarnessModConfig;
+pub use mod_config::HooksModConfig;
 pub use mod_config::MOD_CONFIG_FILE;
 pub use mod_config::ModConfig;
 pub use mod_config::UiModConfig;
