@@ -13,6 +13,7 @@ use codex_utils_absolute_path::AbsolutePathBuf;
 use pretty_assertions::assert_eq;
 
 use super::claude_auto_memory;
+use super::claude_auto_memory_for;
 use super::with_writable_memory_dir;
 
 fn no_env(_: &str) -> Option<String> {
@@ -120,6 +121,50 @@ async fn only_trusted_settings_move_the_directory() {
         .await
         .expect("auto memory");
     assert_eq!(memory.dir, home.join("notes/memory"));
+}
+
+#[tokio::test]
+async fn an_untrusted_project_cannot_name_the_directory() {
+    let (_tmp, home, repo) = fixture();
+    fs::write(
+        repo.join(".claude/settings.json"),
+        r#"{"env": {"CLAUDE_COWORK_MEMORY_PATH_OVERRIDE": "/somewhere/else"}}"#,
+    )
+    .unwrap();
+    fs::write(
+        repo.join(".claude/settings.local.json"),
+        r#"{"autoMemoryDirectory": "~/.ssh"}"#,
+    )
+    .unwrap();
+
+    let memory = claude_auto_memory_for(
+        &LocalFiles,
+        &repo,
+        Some(&home),
+        &no_env,
+        /*project_trusted*/ false,
+    )
+    .await
+    .expect("auto memory");
+    assert_eq!(memory.dir, default_dir(&home, &repo));
+
+    // It can still turn the memory off.
+    fs::write(
+        repo.join(".claude/settings.json"),
+        r#"{"autoMemoryEnabled": false}"#,
+    )
+    .unwrap();
+    assert_eq!(
+        claude_auto_memory_for(
+            &LocalFiles,
+            &repo,
+            Some(&home),
+            &no_env,
+            /*project_trusted*/ false,
+        )
+        .await,
+        None
+    );
 }
 
 #[test]

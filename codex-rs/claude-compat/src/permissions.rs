@@ -220,6 +220,16 @@ impl PermissionRules {
         &self.rules
     }
 
+    /// These rules without the allow rules of the project's own settings files, for a
+    /// project that is not trusted: its files come with the repository, which must not
+    /// be able to allow its own commands. What they deny or ask about is kept.
+    pub fn without_project_allow_rules(mut self) -> Self {
+        self.rules.retain(|rule| {
+            rule.decision != PermissionDecision::Allow || rule.source == RuleSource::User
+        });
+        self
+    }
+
     /// What the rules decide for a call of `tool` with `input`.
     pub fn evaluate(&self, tool: &str, input: ToolInput<'_>) -> RuleVerdict {
         let tool_name = normalize_tool_name(tool);
@@ -249,6 +259,13 @@ impl PermissionRules {
         };
         if verdict != RuleVerdict::NoMatch {
             return verdict;
+        }
+        // Claude Code asks about these files before it looks at a rule allowing the whole
+        // tool, so such a rule does not cover them either.
+        if let ToolInput::Edit { paths, .. } = &input
+            && paths.iter().any(|path| is_dangerous_to_edit(path))
+        {
+            return RuleVerdict::NoMatch;
         }
         match whole_tool(PermissionDecision::Allow) {
             Some(rule) => RuleVerdict::Allow {

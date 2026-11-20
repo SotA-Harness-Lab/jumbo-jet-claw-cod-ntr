@@ -138,7 +138,7 @@ impl Drop for PermissionGuard {
 }
 
 /// The rules for the session's project directory.
-fn rules_for(session: &Session, project_dir: &Path) -> Arc<PermissionRules> {
+fn rules_for(session: &Session, project_dir: &Path, project_trusted: bool) -> Arc<PermissionRules> {
     let cache = session
         .services
         .session_extension_data
@@ -157,7 +157,11 @@ fn rules_for(session: &Session, project_dir: &Path) -> Arc<PermissionRules> {
                 path.display()
             );
         }
-        Arc::new(rules)
+        Arc::new(if project_trusted {
+            rules
+        } else {
+            rules.without_project_allow_rules()
+        })
     });
     Arc::clone(rules)
 }
@@ -193,7 +197,11 @@ pub(crate) async fn check_permission(
     if !super::enabled(&invocation.turn) {
         return Ok(guard);
     }
-    let rules = rules_for(&invocation.session, invocation.turn.config.cwd.as_path());
+    let rules = rules_for(
+        &invocation.session,
+        invocation.turn.config.cwd.as_path(),
+        invocation.turn.config.active_project.is_trusted(),
+    );
     if rules.is_empty() {
         return Ok(guard);
     }

@@ -1832,6 +1832,7 @@ async fn claude_project_files_load_in_claude_code_order() {
         "local",
         &PathUri::from_abs_path(&cwd),
         /*sandbox*/ None,
+        /*project_trusted*/ true,
         &mut warnings,
     )
     .await;

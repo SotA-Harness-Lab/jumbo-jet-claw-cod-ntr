@@ -472,6 +472,47 @@ fn allow_rules_never_cover_sensitive_files() {
 }
 
 #[test]
+fn a_rule_for_the_whole_edit_tool_does_not_cover_sensitive_files_either() {
+    let rules = local_rules(&["Edit", "Write"], &[], &[]);
+    for tool in ["Edit", "Write"] {
+        assert_eq!(
+            edit(&rules, tool, "/work/project/.git/hooks/pre-commit"),
+            RuleVerdict::NoMatch,
+            "{tool}"
+        );
+        assert_eq!(edit(&rules, tool, "/work/project/src/a.rs"), allow(tool));
+    }
+}
+
+#[test]
+fn an_untrusted_project_keeps_its_deny_and_ask_rules_but_not_its_allow_rules() {
+    let rules = rules_from(&[
+        (
+            RuleSource::User,
+            json!({ "permissions": { "allow": ["Bash(ls)"] } }),
+        ),
+        (
+            RuleSource::Project,
+            json!({ "permissions": { "allow": ["Bash(make *)"], "deny": ["Bash(curl *)"] } }),
+        ),
+        (
+            RuleSource::Local,
+            json!({ "permissions": { "allow": ["Bash"], "ask": ["Bash(git push *)"] } }),
+        ),
+    ])
+    .without_project_allow_rules();
+
+    assert_eq!(bash(&rules, "ls"), allow("Bash(ls)"));
+    assert_eq!(bash(&rules, "make test"), RuleVerdict::NoMatch);
+    assert_eq!(bash(&rules, "rm -rf x"), RuleVerdict::NoMatch);
+    assert_eq!(
+        bash(&rules, "curl example.com"),
+        denied_command("Bash(curl *)", "curl example.com")
+    );
+    assert_eq!(bash(&rules, "git push origin"), ask("Bash(git push *)"));
+}
+
+#[test]
 fn web_fetch_rules_name_the_host() {
     let rules = local_rules(
         &["WebFetch(domain:docs.rs)"],

@@ -198,7 +198,17 @@ async fn read_agents_md(
     if !cfg!(test) && codex_claude_compat::enabled() {
         loaded
             .entries
-            .extend(claude_project_entries(fs, environment_id, cwd, sandbox, warnings).await);
+            .extend(
+                claude_project_entries(
+                    fs,
+                    environment_id,
+                    cwd,
+                    sandbox,
+                    config.active_project.is_trusted(),
+                    warnings,
+                )
+                .await,
+            );
     }
 
     if loaded.is_empty() {
@@ -217,6 +227,7 @@ async fn claude_project_entries(
     environment_id: &str,
     cwd: &PathUri,
     sandbox: Option<&FileSystemSandboxContext>,
+    project_trusted: bool,
     warnings: &mut Vec<String>,
 ) -> Vec<InstructionEntry> {
     // An executor with other path conventions than the host's is out of reach.
@@ -275,11 +286,12 @@ async fn claude_project_entries(
     } else {
         home_dir.as_deref()
     };
-    if let Some(memory) = crate::claude_memory::claude_auto_memory(
+    if let Some(memory) = crate::claude_memory::claude_auto_memory_for(
         &source,
         cwd_path.as_path(),
         memory_home,
         &crate::claude_memory::process_env,
+        project_trusted,
     )
     .await
     {
