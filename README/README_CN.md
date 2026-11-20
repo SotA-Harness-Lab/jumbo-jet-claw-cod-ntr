@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../.github/cod-claw-ntr-logo.svg" alt="CodClaw NTR logo" width="96">
+  <img src="../.github/cod-claw-ntr-logo.svg" alt="Jumbo Jet CodClaw NTR logo" width="96">
 </p>
 
-# CodClaw NTR
+# Jumbo Jet CodClaw NTR
 <p align="right">
     <a href="../README.md">English</a> | <strong>中文</strong>
 </p>
@@ -13,9 +13,11 @@
 >
 > —— 网络流行语
 
-CodClaw NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取，一套配置两个工具共用，在 `~/.claude` 里改了，Codex 下一次请求就能用上。
+Jumbo Jet CodClaw NTR 是在 [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) 之上重新打磨 harness 本身的版本。CodClaw NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取。本项目保留这一切，并加入对代理自身工作方式的改动，目标是下一代的代理 harness。
 
-NTR 是 Native Tooling Ready 的缩写：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
+NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 CodClaw NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
+
+程序名、设置文件和环境变量都沿用 CodClaw NTR 的（`ccn`、`ccn-config.toml`、`CCN_`），所以两个版本在同一台机器上可以互相替换。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得；它自己的改动目前还没有加入。
 
 ## 目录
 
@@ -31,7 +33,7 @@ NTR 是 Native Tooling Ready 的缩写：Claude Code 原生的配置可以直接
 
 ## 概述
 
-CodClaw NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件），在其上加一层兼容层，到 Claude Code 存放文件的地方直接读取。不复制、不转换，没有同步步骤；`CCN_CLAUDE_COMPAT=0` 可以关掉整个兼容层。Codex 已经有的机制，兼容层直接交给它做，只补上 Codex 没有的部分。逐项的说明见 [Claude Code compatibility](../docs/claude-compat.md)。
+Jumbo Jet CodClaw NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件），在其上加一层兼容层，到 Claude Code 存放文件的地方直接读取。不复制、不转换，没有同步步骤；`CCN_CLAUDE_COMPAT=0` 可以关掉整个兼容层。Codex 已经有的机制，兼容层直接交给它做，只补上 Codex 没有的部分。逐项的说明见 [Claude Code compatibility](../docs/claude-compat.md)。
 
 改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`。
 
@@ -52,12 +54,12 @@ CodClaw NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件�
 
 - `permissions` 里的 `defaultMode` 和 `additionalDirectories`、企业托管设置、输出风格和状态栏：Codex 没有对应的机制。
 - skill 正文里的 shell 注入（`` !`command` ``），以及模型自己打开（而不是通过 `/<名字>` 调用）的 skill 里的替换。
-- Claude Code 自己的模型和账号：CodClaw NTR 用的是 Codex 支持的模型。
+- Claude Code 自己的模型和账号：Jumbo Jet CodClaw NTR 用的是 Codex 支持的模型。
 - Windows：这个 fork 只构建 macOS 和 Linux 版。
 
 ## 安装
 
-CodClaw NTR 还没有发布版，需要从源码构建。
+Jumbo Jet CodClaw NTR 还没有发布版，需要从源码构建。
 
 ### 从源码构建
 
