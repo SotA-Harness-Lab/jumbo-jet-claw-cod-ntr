@@ -4209,6 +4209,38 @@ impl Config {
             } else {
                 Vec::new()
             };
+        // The agents these plugins bring, known as `<plugin>:<name>`. Every other role of the
+        // same name comes first, as in Claude Code.
+        for plugin in &claude_plugins {
+            let Some(variables) =
+                codex_claude_compat::PluginVariables::load(plugin.install_path.as_path())
+            else {
+                continue;
+            };
+            for agents_dir in variables.agent_dirs() {
+                let Ok(agents_dir) = AbsolutePathBuf::from_absolute_path_checked(&agents_dir)
+                else {
+                    continue;
+                };
+                match codex_agent_roles::load_claude_code_agent_roles(
+                    fs,
+                    &agents_dir,
+                    &mut startup_warnings,
+                )
+                .await
+                {
+                    Ok(roles) => {
+                        for (name, role) in roles {
+                            agent_roles.entry(name).or_insert(role);
+                        }
+                    }
+                    Err(err) => startup_warnings.push(format!(
+                        "Failed to read the agents of Claude Code plugin {}: {err}",
+                        plugin.id
+                    )),
+                }
+            }
+        }
 
         let openai_base_url = cfg
             .openai_base_url

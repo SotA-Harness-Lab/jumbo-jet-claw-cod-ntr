@@ -15,6 +15,7 @@ mod memory;
 mod memory_instructions;
 mod mod_config;
 mod permissions;
+mod plugin_vars;
 mod plugins;
 mod rules;
 mod settings;
@@ -56,6 +57,8 @@ pub use permissions::RuleSource;
 pub use permissions::RuleVerdict;
 pub use permissions::ToolInput;
 pub use permissions::parse_rule as parse_permission_rule;
+pub use plugin_vars::PluginVariables;
+pub use plugin_vars::plugin_root_of;
 pub use plugins::ClaudePlugin;
 pub use plugins::INSTALLED_PLUGINS_FILE;
 pub use plugins::applicable_plugins;
@@ -85,6 +88,7 @@ pub use source::LocalFiles;
 pub use source::SourceFuture;
 pub use subagents::Subagent;
 pub use subagents::parse_subagent;
+pub use subagents::parse_subagent_at;
 
 /// Name of Claude Code's configuration directory, in the home directory and in a project.
 pub const CLAUDE_DIR: &str = ".claude";

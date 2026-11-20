@@ -4184,6 +4184,7 @@ dependencies = [
  "base64 0.22.1",
  "codex-api",
  "codex-async-utils",
+ "codex-claude-compat",
  "codex-config",
  "codex-connectors",
  "codex-diagnostics",
