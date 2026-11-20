@@ -24,8 +24,8 @@ use serde_json::Value;
 use serde_json::json;
 
 use super::PermissionInput;
-use super::check_permission;
 use super::ToolSwap;
+use super::check_permission;
 use super::delegated;
 use super::failed;
 use super::output::ClaudeToolOutput;

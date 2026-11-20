@@ -77,7 +77,10 @@ fn unknown_keys_and_sections_are_left_out_and_named() {
             ..Default::default()
         }
     );
-    assert_eq!(unknown, vec!["claude.plugins.extra", "claude.tool", "harness"]);
+    assert_eq!(
+        unknown,
+        vec!["claude.plugins.extra", "claude.tool", "harness"]
+    );
 }
 
 #[test]

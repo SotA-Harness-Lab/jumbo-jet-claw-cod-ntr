@@ -169,11 +169,7 @@ impl ClaudeHooksEngine {
                 })
             })
             .filter(|handler| {
-                dispatcher::condition_covers(
-                    &handler.handler,
-                    matcher_inputs,
-                    tool_input,
-                )
+                dispatcher::condition_covers(&handler.handler, matcher_inputs, tool_input)
             })
             .map(|handler| handler.handler.clone())
             .collect()
@@ -197,12 +193,11 @@ impl ClaudeHooksEngine {
     /// Starts the `StopFailure` hooks in the background; Claude Code does not wait for them
     /// either, and their output is ignored.
     pub(crate) fn spawn_stop_failure(&self, request: StopFailureRequest) {
-        let handlers =
-            self.select_claude_only(
-                ClaudeOnlyEvent::StopFailure,
-                &[request.error.as_str()],
-                /*tool_input*/ None,
-            );
+        let handlers = self.select_claude_only(
+            ClaudeOnlyEvent::StopFailure,
+            &[request.error.as_str()],
+            /*tool_input*/ None,
+        );
         if handlers.is_empty() {
             return;
         }

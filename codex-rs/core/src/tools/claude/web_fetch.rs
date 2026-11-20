@@ -40,10 +40,10 @@ use serde_json::Value;
 use serde_json::json;
 use url::Url;
 
-use super::PermissionInput;
-use super::check_permission;
 use super::OFFERED_TOOLS;
+use super::PermissionInput;
 use super::ToolSwap;
+use super::check_permission;
 use super::delegated;
 use super::failed;
 use super::output::ClaudeToolOutput;

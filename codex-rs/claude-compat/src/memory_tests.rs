@@ -17,10 +17,15 @@ use crate::source::LocalFiles;
 fn memory_dir_is_named_after_the_project_path() {
     assert_eq!(
         auto_memory_dir(Path::new("/h/.claude"), Path::new("/home/u/0WSB/my_repo.x")),
-        Some(PathBuf::from("/h/.claude/projects/-home-u-0WSB-my-repo-x/memory"))
+        Some(PathBuf::from(
+            "/h/.claude/projects/-home-u-0WSB-my-repo-x/memory"
+        ))
     );
     let long = format!("/{}", "a".repeat(300));
-    assert_eq!(auto_memory_dir(Path::new("/h/.claude"), Path::new(&long)), None);
+    assert_eq!(
+        auto_memory_dir(Path::new("/h/.claude"), Path::new(&long)),
+        None
+    );
 }
 
 #[tokio::test]
@@ -38,11 +43,15 @@ async fn project_root_is_the_main_checkout() {
     .expect("write");
 
     assert_eq!(
-        auto_memory_project_root(&LocalFiles, &repo.join("src")).await.expect("root"),
+        auto_memory_project_root(&LocalFiles, &repo.join("src"))
+            .await
+            .expect("root"),
         repo
     );
     assert_eq!(
-        auto_memory_project_root(&LocalFiles, &worktree.join("src")).await.expect("root"),
+        auto_memory_project_root(&LocalFiles, &worktree.join("src"))
+            .await
+            .expect("root"),
         repo
     );
 }
@@ -50,7 +59,10 @@ async fn project_root_is_the_main_checkout() {
 #[test]
 fn long_index_is_cut_with_a_warning() {
     assert_eq!(truncate_memory_index("\n- a\n- b\n"), "- a\n- b");
-    let raw = (0..250).map(|i| format!("- {i}")).collect::<Vec<_>>().join("\n");
+    let raw = (0..250)
+        .map(|i| format!("- {i}"))
+        .collect::<Vec<_>>()
+        .join("\n");
     let cut = truncate_memory_index(&raw);
     assert!(cut.starts_with("- 0\n"));
     assert!(cut.contains("- 199\n\n> WARNING: MEMORY.md is 250 lines (limit: 200)."));

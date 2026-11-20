@@ -196,19 +196,17 @@ async fn read_agents_md(
     // Unit tests run against mock filesystems and real ancestor directories; they call
     // `claude_project_entries` directly instead.
     if !cfg!(test) && codex_claude_compat::enabled() {
-        loaded
-            .entries
-            .extend(
-                claude_project_entries(
-                    fs,
-                    environment_id,
-                    cwd,
-                    sandbox,
-                    config.active_project.is_trusted(),
-                    warnings,
-                )
-                .await,
-            );
+        loaded.entries.extend(
+            claude_project_entries(
+                fs,
+                environment_id,
+                cwd,
+                sandbox,
+                config.active_project.is_trusted(),
+                warnings,
+            )
+            .await,
+        );
     }
 
     if loaded.is_empty() {

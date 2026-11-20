@@ -78,10 +78,17 @@ pub(crate) async fn claude_auto_memory_for(
     // A project's shared settings never move the memory: a repository could otherwise
     // have Codex write wherever it names.
     let no_settings = None;
-    let trusted_settings = [&user, if project_trusted { &local } else { &no_settings }]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<&Value>>();
+    let trusted_settings = [
+        &user,
+        if project_trusted {
+            &local
+        } else {
+            &no_settings
+        },
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<&Value>>();
     let dir = match codex_claude_compat::auto_memory_dir_override(
         &trusted_settings,
         Some(home_dir),

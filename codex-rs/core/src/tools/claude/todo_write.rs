@@ -23,8 +23,8 @@ use serde::Deserialize;
 use serde_json::json;
 
 use super::PermissionInput;
-use super::check_permission;
 use super::ToolSwap;
+use super::check_permission;
 use super::delegated;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
@@ -43,9 +43,8 @@ pub(super) fn install(swap: &mut ToolSwap<'_>) {
     // `[tools.update_plan]` enables it: build the plan tool's runtime when it is missing, unless
     // the tool policy forbids it.
     let update_plan = swap.take("update_plan").or_else(|| {
-        swap.allows("update_plan").then(|| {
-            Arc::new(crate::tools::handlers::PlanHandler) as Arc<dyn CoreToolRuntime>
-        })
+        swap.allows("update_plan")
+            .then(|| Arc::new(crate::tools::handlers::PlanHandler) as Arc<dyn CoreToolRuntime>)
     });
     if let Some(update_plan) = update_plan {
         swap.add(TodoWriteHandler { update_plan });

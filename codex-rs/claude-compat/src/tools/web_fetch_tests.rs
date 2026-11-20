@@ -154,7 +154,10 @@ fn html_becomes_markdown_and_other_content_is_kept() {
         "text/html; charset=utf-8",
     );
     assert!(markdown.contains("# Title"), "{markdown}");
-    assert!(markdown.contains("Some [link](https://a.com)"), "{markdown}");
+    assert!(
+        markdown.contains("Some [link](https://a.com)"),
+        "{markdown}"
+    );
     assert!(!markdown.contains("x()"), "{markdown}");
     assert_eq!(to_markdown("<b>raw</b>", "text/plain"), "<b>raw</b>");
 }

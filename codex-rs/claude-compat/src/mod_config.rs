@@ -84,7 +84,9 @@ impl HooksModConfig {
             .or_else(|| {
                 entries
                     .iter()
-                    .filter(|(name, _)| name != DEFAULT_HOOK_MODEL && wanted.contains(name.as_str()))
+                    .filter(|(name, _)| {
+                        name != DEFAULT_HOOK_MODEL && wanted.contains(name.as_str())
+                    })
                     .max_by_key(|(name, _)| name.len())
             })
             .map(|(_, codex_model)| *codex_model)
