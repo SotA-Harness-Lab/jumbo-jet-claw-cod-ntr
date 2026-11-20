@@ -24,9 +24,32 @@ A feature is in one chapter only. Where a feature works in part, the part that w
 
 Throughout, "Codex" is this program: upstream Codex with the compatibility layer.
 
-What the tables say of Claude Code was checked against its documentation and against a
-reference copy of its source that is older than the documentation in places. Where the two
-differ, the cell says "newer versions" for what only the documentation has.
+What the tables say of Claude Code is dated: see "What Claude Code was compared" for the
+version and the day, and bring that section up to date with every change to a table.
+
+## What Claude Code was compared
+
+Claude Code changes every few days, so a statement about it is only as good as its date. The
+"Claude Code" column of every table was last checked on **2026-11-20**, against:
+
+| Source | State |
+| --- | --- |
+| Claude Code's documentation at `https://code.claude.com/docs/en/` (the pages `hooks`, `skills`, `sub-agents`, `mcp`, `memory`, `permissions`, `permission-modes`, `settings`, `tools-reference`, `plugins-reference`, and the index `https://code.claude.com/docs/llms.txt`) | As served on 2026-11-20, when the newest release in its changelog (`https://code.claude.com/docs/en/changelog`) was **2.1.329** of 2026-11-19 |
+| A reference copy of Claude Code's source | Its state of 2026-11-16. It follows an older release than the documentation and names no release of Claude Code it corresponds to |
+
+Where the two differ, the documentation is followed and the cell says "newer versions" for
+what only it has, with the release that brought the change where the documentation names
+one. A cell that says nothing of versions was found the same in both, or in the source alone.
+
+Keeping it current:
+
+- Read the changelog from the release named above to the newest one, and the pages above
+  for what changed; correct the rows it touches, add a row for each new feature, and move a
+  row to another chapter when this fork or Claude Code changed sides.
+- Then change the date and the release in this section, and only then: the date says that
+  every table was read against that release.
+- When this fork changes how it treats a Claude Code feature, change the row in the same
+  commit.
 
 ## The fork's own settings (ccn-config.toml)
 
@@ -110,7 +133,7 @@ same as in Claude Code (see "Fully compatible"); these rows are what is not.
 | How deep `@<path>` includes go | Four files below the one that starts the chain | Five |
 | A project file's `@<path>` include outside the working directory | Loaded once the user has approved external includes for the project, asked once | Never loaded |
 | Order of the files in `~/.claude/rules` | The order the directory lists them in | Sorted by path |
-| `AGENTS.md` | Newer versions read it where no `CLAUDE.md` is found | Always read, before the `CLAUDE.md` files: it is Codex's own instruction file |
+| `AGENTS.md` | Newer versions (2.1.277 on) read it where no `CLAUDE.md` is found | Always read, before the `CLAUDE.md` files: it is Codex's own instruction file |
 
 ### Skills, slash commands and invoking them
 
@@ -240,7 +263,7 @@ What does not behave as Claude Code's tool does:
 | `Read`: the 25,000-token limit | Counted in the model's tokens | Estimated at four bytes a token, so a file dense in tokens passes here and not there |
 | `Read`: text that is not UTF-8 | UTF-16 with a byte-order mark is read | Read as UTF-8, with a replacement character for what is not |
 | `Glob`, `Grep`: where they are offered | Newer versions leave them out on macOS and Linux, where the model uses `find` and `grep` through `Bash` | Always offered with `Bash` |
-| `WebFetch`: time limit | 60 seconds a request; newer versions give the whole fetch 5 minutes | 60 seconds a request |
+| `WebFetch`: time limit | 60 seconds a request; from 2.1.268 on the whole fetch has 5 minutes (`CLAUDE_CODE_WEBFETCH_DEADLINE_MS`) | 60 seconds a request |
 | `Agent`: the result | The agent's answer, then its id (`agentId: ... (use SendMessage ...)`) and a `<usage>` block; the hook's `tool_response` also has `totalToolUseCount`, `totalDurationMs`, `totalTokens` and `usage`, and `outputFile` for a background agent | The agent's answer; `tool_response` has `status`, `agentId`, `content` and `prompt` |
 | `Write`, `Edit`: the hook's `tool_response` | Has the change as `structuredPatch` | `structuredPatch` is empty |
 | `Bash`: the hook's `tool_response` | `stdout`, `stderr`, `interrupted`, and more (`isImage`, `returnCodeInterpretation`, `backgroundTaskId`, `persistedOutputPath` and others) | `stdout`, `stderr`, `interrupted` and some of the others |
@@ -477,7 +500,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | `TodoWrite`: checks | `content`, `status` and `activeForm` for each item, both forms non-empty | The same; the step in progress shows its `activeForm` |
 | `AskUserQuestion`: shape | 1-4 questions of `question`, `header` and 2-4 options; unique questions and labels; the answer as `"question"="answer"`, with `user notes:`; not offered to subagents | The same |
 | `Agent`: types | The description lists each agent type with its tools; an unknown type gets Claude Code's message | The same, with `general-purpose` as Codex's default role |
-| `Grep`: ripgrep fails without a result (an invalid pattern, a path it cannot read) | Newer versions return ripgrep's message; older ones said no match was found | The model is told ripgrep's message |
+| `Grep`: ripgrep fails without a result (an invalid pattern, a path it cannot read) | From 2.1.208 on, ripgrep's message is returned; before, no match was reported | The model is told ripgrep's message |
 | `Edit`: files that are not UTF-8 | Refused | The same |
 | `Edit`: an empty `old_string` | Creates the file, or fills an empty one | The same |
 
@@ -600,7 +623,7 @@ thing Codex has, where there is one.
 | --- | --- | --- |
 | Tools beyond the eleven offered | `Skill`, `NotebookEdit`, `TaskCreate`, `TaskGet`, `TaskList`, `TaskUpdate`, `TaskStop`, `SendMessage`, `EnterPlanMode`, `ExitPlanMode`, `EnterWorktree`, `ExitWorktree`, `ToolSearch`, `LSP`, `ListMcpResourcesTool`, `ReadMcpResourceTool`, `CronCreate`, `CronList`, `CronDelete`, `Monitor`, `PowerShell`, and for agent teams `TeamCreate` and `TeamDelete` | Not offered. Nearest: `update_plan` for the task tools, `write_stdin` for a background command, Codex's own agent tools (`wait_agent`, `send_input`, `close_agent`, or v2's `send_message`, `followup_task`, `list_agents`), Codex's plan mode, its tool search and its MCP resource tools |
 | `Bash`: working directory | `cd` carries over to the next command while it stays inside the project (outside it the shell is put back, with a note); never in a subagent | Each command starts in the session's working directory. The description says so |
-| `Bash`: a background command | Writes to an output file named in the result, which the model reads with `Read` (older versions: `TaskOutput`), and is stopped with `TaskStop`; the model is notified when it ends | Read and stopped with `write_stdin`; the model is not notified when it ends |
+| `Bash`: a background command | Writes to an output file named in the result, which the model reads with `Read` (`TaskOutput` until it was removed in 2.1.277), and is stopped with `TaskStop`; the model is notified when it ends | Read and stopped with `write_stdin`; the model is not notified when it ends |
 | `Read`: PDFs and notebooks | Rendered; `pages` chooses the pages of a PDF, at most 20 a call | A PDF is refused as a binary file and there is no `pages`; a notebook is read as its JSON |
 | `Read`: a second read of the same range of an unchanged file | Answers `File unchanged since last read` | The file is read again |
 | `Write`: a file that is not UTF-8 | Overwritten, as UTF-8 | Cannot be overwritten, since `apply_patch` takes text |
@@ -637,7 +660,7 @@ thing Codex has, where there is one.
 | "Don't ask again" for a call | Writes an allow rule into `.claude/settings.local.json` | Codex's own "approve for the session"; nothing is written to Claude Code's files |
 | Deny and ask rules for commands inside `$(...)`, subshells and loops (newer versions) | Matched | Such a command is decided only by a rule on its whole text |
 | Protected files beyond the reference source's list (`.husky`, `.cargo`, `.devcontainer`, `.npmrc`, `.envrc` and others, in newer versions) | Asked about | Treated like any other file |
-| `.claude/settings.local.json` of the repository's root, from a subdirectory | Read | Only `.claude` of the working directory is read |
+| `.claude/settings.local.json` of the repository's root, from a subdirectory | Read (from 2.1.211 on the local file is kept at the repository's root) | Only `.claude` of the working directory is read |
 
 ### Subagents
 
