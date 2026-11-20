@@ -74,6 +74,8 @@ and whatever it had built or downloaded by then was lost. Now it keeps running:
   and how to read the rest (`write_stdin` with that id).
 - The command is then a background command like any other: the model is told when it ends
   (see "Waking for finished background work"), and it is stopped with the session.
+- Its `cd` does not carry over to the next command, as with one started with
+  `run_in_background`; one that finishes before its timeout carries it over as usual.
 - If the turn is interrupted while the call still waits, the command is stopped, as before.
 - `sleep` as the first word is still stopped at the timeout, as in Claude Code: there is
   nothing to go on with while a command only waits.

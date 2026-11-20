@@ -58,7 +58,7 @@ Jumbo Jet CodClaw NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 I
 - **子代理**：`~/.claude/agents/*.md` 和项目的 `.claude/agents` 变成 agent role。
 - **MCP 服务器**：`~/.claude.json` 里的，以及已批准的 `.mcp.json`。
 - **插件**：Claude Code 里启用的插件在原处加载；用到 Codex 没有的机制（比如 Claude Code 的状态栏）的插件会被停用，除非在 `ccn-config.toml` 里手动启用。
-- **Claude Code 的工具集**（可选，在 `ccn-config.toml` 里设 `[claude] tools = true`）：`Bash`、`Read`、`Write`、`Edit`、`Glob`、`Grep`、`WebFetch`、`WebSearch`、`TodoWrite`、`AskUserQuestion` 和 `Agent` 替换 Codex 自己的工具，作为一层架在它们之上；`Skill` 让模型带参数调用 skill。权限规则（`Read(...)`、`Edit(...)`、`WebFetch(domain:...)`）、子代理的 `tools` 和 hook 的匹配都能和 Claude Code 一一对应。
+- **Claude Code 的工具集**（可选，在 `ccn-config.toml` 里设 `[claude] tools = true`）：`Bash`、`Read`、`Write`、`Edit`、`Glob`、`Grep`、`WebFetch`、`WebSearch`、`TodoWrite`、`AskUserQuestion` 和 `Agent` 替换 Codex 自己的工具，作为一层架在它们之上；`Skill` 让模型带参数调用 skill。权限规则（`Read(...)`、`Edit(...)`、`WebFetch(domain:...)`）、子代理的 `tools` 和 hook 的匹配都能和 Claude Code 一一对应。和 Claude Code 一样，`Bash` 里的 `cd` 只要还在项目内就延续到下一条命令，`Read` 能逐个单元格读 notebook、逐页读 PDF（PDF 需要 poppler-utils：`pdftoppm`、`pdftotext`、`pdfinfo`）。
 
 ## 不兼容的部分
 

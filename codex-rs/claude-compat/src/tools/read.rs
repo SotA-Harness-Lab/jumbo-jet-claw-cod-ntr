@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 
-//! Claude Code's `Read` tool: description, line selection and numbering, messages.
+//! Claude Code's `Read` tool: description, line selection and numbering, PDF page ranges,
+//! messages.
 
 use super::BASH;
 use super::format_file_size;
@@ -19,24 +20,37 @@ pub const OFFSET_PARAM_DESCRIPTION: &str =
 pub const LIMIT_PARAM_DESCRIPTION: &str =
     "The number of lines to read. Only provide if the file is too large to read at once.";
 
+/// The most pages a read of a PDF returns (Claude Code's `PDF_MAX_PAGES_PER_READ`).
+pub const PDF_MAX_PAGES_PER_READ: u32 = 20;
+/// A PDF with more pages is read only with `pages` (`PDF_AT_MENTION_INLINE_THRESHOLD`).
+pub const PDF_INLINE_MAX_PAGES: u32 = 10;
+/// The largest PDF whose pages are rendered (`PDF_MAX_EXTRACT_SIZE`).
+pub const PDF_MAX_EXTRACT_SIZE: u64 = 100 * 1024 * 1024;
+
+pub fn pages_param_description() -> String {
+    format!(
+        "Page range for PDF files (e.g., \"1-5\", \"3\", \"10-20\"). Only applicable to PDF files. Maximum {PDF_MAX_PAGES_PER_READ} pages per request."
+    )
+}
+
 /// Extensions Claude Code reads as images.
 const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp"];
 
-/// Extensions Claude Code refuses to read as text (its `BINARY_EXTENSIONS`). Images are
-/// read as images; PDF is listed because Codex's Read does not render PDFs.
+/// Extensions Claude Code refuses to read as text (its `BINARY_EXTENSIONS`, less `pdf`, which
+/// is rendered). Images are read as images.
 const BINARY_EXTENSIONS: &[&str] = &[
     "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "tiff", "tif", "mp4", "mov", "avi", "mkv",
     "webm", "wmv", "flv", "m4v", "mpeg", "mpg", "mp3", "wav", "ogg", "flac", "aac", "m4a", "wma",
     "aiff", "opus", "zip", "tar", "gz", "bz2", "7z", "rar", "xz", "z", "tgz", "iso", "exe", "dll",
-    "so", "dylib", "bin", "o", "a", "obj", "lib", "app", "msi", "deb", "rpm", "pdf", "doc", "docx",
-    "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "ttf", "otf", "woff", "woff2", "eot", "pyc",
-    "pyo", "class", "jar", "war", "ear", "node", "wasm", "rlib", "sqlite", "sqlite3", "db", "mdb",
-    "idx", "psd", "ai", "eps", "sketch", "fig", "xd", "blend", "3ds", "max", "swf", "fla", "lockb",
-    "dat", "data",
+    "so", "dylib", "bin", "o", "a", "obj", "lib", "app", "msi", "deb", "rpm", "doc", "docx", "xls",
+    "xlsx", "ppt", "pptx", "odt", "ods", "odp", "ttf", "otf", "woff", "woff2", "eot", "pyc", "pyo",
+    "class", "jar", "war", "ear", "node", "wasm", "rlib", "sqlite", "sqlite3", "db", "mdb", "idx",
+    "psd", "ai", "eps", "sketch", "fig", "xd", "blend", "3ds", "max", "swf", "fla", "lockb", "dat",
+    "data",
 ];
 
 /// The tool description, after Claude Code's. `images` says whether image files are shown
-/// to the model; Codex's Read does not render PDFs or notebooks, so those lines are left out.
+/// to the model.
 pub fn description(images: bool) -> String {
     let mut text = format!(
         "Reads a file from the local filesystem. You can access any file directly by using this tool.
@@ -51,6 +65,10 @@ Usage:
     if images {
         text.push_str("\n- This tool allows you to read images (eg PNG, JPG, etc). When reading an image file the contents are presented visually.");
     }
+    text.push_str(&format!(
+        "\n- This tool can read PDF files (.pdf). For large PDFs (more than {PDF_INLINE_MAX_PAGES} pages), you MUST provide the pages parameter to read specific page ranges (e.g., pages: \"1-5\"). Reading a large PDF without the pages parameter will fail. Maximum {PDF_MAX_PAGES_PER_READ} pages per request.
+- This tool can read Jupyter notebooks (.ipynb files) and returns all cells with their outputs, combining code, text, and visualizations."
+    ));
     text.push_str(&format!(
         "\n- This tool can only read files, not directories. To read a directory, use an ls command via the {BASH} tool.
 - You will regularly be asked to read screenshots. If the user provides a path to a screenshot, ALWAYS use this tool to view the file at the path. This tool will work with all temporary file paths.
@@ -68,6 +86,121 @@ fn extension(path: &str) -> Option<String> {
 /// Whether Claude Code reads the file as an image.
 pub fn is_image(path: &str) -> bool {
     extension(path).is_some_and(|extension| IMAGE_EXTENSIONS.contains(&extension.as_str()))
+}
+
+/// Whether Claude Code reads the file as a PDF.
+pub fn is_pdf(path: &str) -> bool {
+    extension(path).as_deref() == Some("pdf")
+}
+
+/// Whether Claude Code reads the file as a Jupyter notebook.
+pub fn is_notebook(path: &str) -> bool {
+    extension(path).as_deref() == Some("ipynb")
+}
+
+/// The pages a `pages` value selects, first and last (1-based, inclusive; no last page for
+/// `"N-"`), as Claude Code parses it; `None` when it is not a page range.
+pub fn parse_page_range(pages: &str) -> Option<(u32, Option<u32>)> {
+    let trimmed = pages.trim();
+    let number = |text: &str| leading_integer(text).filter(|page| *page >= 1);
+    if let Some(first) = trimmed.strip_suffix('-') {
+        return Some((number(first)?, None));
+    }
+    match trimmed.split_once('-') {
+        None => number(trimmed).map(|page| (page, Some(page))),
+        Some((first, last)) => {
+            let (first, last) = (number(first)?, number(last)?);
+            (last >= first).then_some((first, Some(last)))
+        }
+    }
+}
+
+/// The integer at the start of `text`, as JavaScript's `parseInt` reads it.
+fn leading_integer(text: &str) -> Option<u32> {
+    let text = text.trim_start();
+    let digits: String = text.chars().take_while(char::is_ascii_digit).collect();
+    digits.parse().ok()
+}
+
+/// Checks `pages` as Claude Code does before reading: a page range of at most
+/// [`PDF_MAX_PAGES_PER_READ`] pages (an open range counts as more).
+pub fn validate_pages(pages: &str) -> Result<(u32, Option<u32>), String> {
+    let Some((first, last)) = parse_page_range(pages) else {
+        return Err(format!(
+            "Invalid pages parameter: \"{pages}\". Use formats like \"1-5\", \"3\", or \"10-20\". Pages are 1-indexed."
+        ));
+    };
+    let count = last.map_or(PDF_MAX_PAGES_PER_READ + 1, |last| last - first + 1);
+    if count > PDF_MAX_PAGES_PER_READ {
+        return Err(format!(
+            "Page range \"{pages}\" exceeds maximum of {PDF_MAX_PAGES_PER_READ} pages per request. Please use a smaller range."
+        ));
+    }
+    Ok((first, last))
+}
+
+/// The page count `pdfinfo` prints.
+pub fn pdfinfo_page_count(output: &str) -> Option<u32> {
+    output
+        .lines()
+        .find_map(|line| line.strip_prefix("Pages:"))
+        .and_then(|count| count.trim().parse().ok())
+}
+
+pub fn too_many_pages_message(page_count: u32) -> String {
+    format!(
+        "This PDF has {page_count} pages, which is too many to read at once. Use the pages parameter to read specific page ranges (e.g., pages: \"1-5\"). Maximum {PDF_MAX_PAGES_PER_READ} pages per request."
+    )
+}
+
+pub fn pdf_empty_message(file_path: &str) -> String {
+    format!("PDF file is empty: {file_path}")
+}
+
+pub fn pdf_too_large_message() -> String {
+    format!(
+        "PDF file exceeds maximum allowed size for text extraction ({}).",
+        format_file_size(PDF_MAX_EXTRACT_SIZE)
+    )
+}
+
+pub fn not_a_pdf_message(file_path: &str) -> String {
+    format!("File is not a valid PDF (missing %PDF- header): {file_path}")
+}
+
+pub const PDFTOPPM_MISSING_MESSAGE: &str = "pdftoppm is not installed. Install poppler-utils (e.g. `brew install poppler` or `apt-get install poppler-utils`) to enable PDF page rendering.";
+pub const PDFTOTEXT_MISSING_MESSAGE: &str = "This model does not take images, and pdftotext is not installed to read the PDF's text. Install poppler-utils (e.g. `brew install poppler` or `apt-get install poppler-utils`).";
+
+/// Claude Code's message for a failed `pdftoppm`, from what it printed.
+pub fn pdftoppm_failed_message(stderr: &str) -> String {
+    let lower = stderr.to_ascii_lowercase();
+    if lower.contains("password") {
+        "PDF is password-protected. Please provide an unprotected version.".to_string()
+    } else if ["damaged", "corrupt", "invalid"]
+        .iter()
+        .any(|word| lower.contains(word))
+    {
+        "PDF file is corrupted or invalid.".to_string()
+    } else {
+        format!("pdftoppm failed: {stderr}")
+    }
+}
+
+pub const PDF_NO_PAGES_MESSAGE: &str = "pdftoppm produced no output pages. The PDF may be invalid.";
+
+/// The page number in the name of an image `pdftoppm` wrote (`page-07.jpg`).
+pub fn rendered_page_number(file_name: &str) -> Option<u32> {
+    let stem = file_name.strip_suffix(".jpg")?;
+    let (_, number) = stem.rsplit_once('-')?;
+    number.parse().ok()
+}
+
+/// The text of a read of a PDF, before its pages.
+pub fn pdf_pages_message(count: usize, file_path: &str, size: u64) -> String {
+    format!(
+        "PDF pages extracted: {count} page(s) from {file_path} ({})",
+        format_file_size(size)
+    )
 }
 
 /// The extension (with its dot) of a file Claude Code will not read as text, if it is one.

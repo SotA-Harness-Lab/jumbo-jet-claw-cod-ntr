@@ -27,6 +27,7 @@ mod output;
 mod permissions;
 mod read;
 mod ripgrep;
+mod shell_cwd;
 mod skill;
 mod subagent_tools;
 mod todo_write;
@@ -54,6 +55,7 @@ pub(crate) use permissions::apply_hook_permission;
 pub(crate) use permissions::apply_rule_decision;
 pub(crate) use permissions::check_permission;
 pub(crate) use permissions::rule_allows;
+pub(crate) use shell_cwd::take_cwd_report;
 pub(crate) use subagent_tools::restrict_to_subagent_tools;
 
 /// Whether the model is offered Claude Code's tools instead of Codex's: `[claude] tools = true`

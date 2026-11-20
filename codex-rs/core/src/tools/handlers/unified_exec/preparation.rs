@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: keep a command running past its timeout and its long output on disk
+// Modified by Tianyu (Sky) Lu in 2026: keep a command running past its timeout and its long output on disk,
+// and record where a Claude Bash command ends up
 
 //! Resolves exec arguments against the selected environment and effective turn permissions.
 //! The live handler emits its skill event between parsing and preparation.
@@ -65,6 +66,9 @@ pub(crate) struct PreparedExecCommand {
     /// How long the starting call waits before it leaves the command in the background, where
     /// the caller set it in place of `yield_time_ms`.
     pub(crate) foreground_wait: Option<Duration>,
+    /// File the command's working directory is written to after it succeeds, for a Claude
+    /// `Bash` call whose `cd` carries over to the next command.
+    pub(crate) cwd_report: Option<AbsolutePathBuf>,
 }
 
 impl PreparedExecCommand {
@@ -327,6 +331,7 @@ impl<'a> ParsedExecCommand<'a> {
             permissions,
             justification: args.justification,
             prefix_rule: args.prefix_rule,
+            cwd_report: None,
         })
     }
 }

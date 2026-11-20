@@ -8,9 +8,12 @@ use super::DEFAULT_TIMEOUT_MS;
 use super::MAX_TIMEOUT_MS;
 use super::background_message;
 use super::backgrounds_on_timeout;
+use super::cwd_trailer;
 use super::description;
 use super::format_result;
 use super::moved_to_background_message;
+use super::recorded_cwd;
+use super::shell_reset_message;
 use super::strip_empty_lines;
 use super::timeout_ms;
 
@@ -113,4 +116,39 @@ fn sleep_is_not_left_in_the_background() {
     assert!(backgrounds_on_timeout("FOO=1 sleep 5"));
     assert!(!backgrounds_on_timeout("sleep 600"));
     assert!(!backgrounds_on_timeout("  sleep 1 && echo done"));
+}
+
+#[test]
+fn cwd_trailer_records_the_directory_after_success_only() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let file = dir.path().join("it's cwd");
+    let file = file.to_str().expect("utf-8 path");
+    let run = |command: &str| {
+        let _ = std::fs::remove_file(file);
+        let status = std::process::Command::new("/bin/sh")
+            .arg("-c")
+            .arg(format!("{command}{}", cwd_trailer(file)))
+            .current_dir(dir.path())
+            .stdin(std::process::Stdio::null())
+            .status()
+            .expect("run sh");
+        (status.code(), std::fs::read_to_string(file).ok())
+    };
+
+    let (code, recorded) = run("cd /");
+    assert_eq!(code, Some(0));
+    assert_eq!(recorded.as_deref().and_then(recorded_cwd), Some("/"));
+
+    let (code, recorded) = run("cd / && false");
+    assert_eq!(code, Some(1));
+    assert_eq!(recorded, None);
+
+    let (code, recorded) = run("cat <<'EOF'\nhi\nEOF");
+    assert_eq!(code, Some(0));
+    assert!(recorded.is_some());
+}
+
+#[test]
+fn shell_reset_message_names_the_project() {
+    assert_eq!(shell_reset_message("/work"), "Shell cwd was reset to /work");
 }

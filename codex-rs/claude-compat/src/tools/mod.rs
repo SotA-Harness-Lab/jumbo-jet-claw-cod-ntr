@@ -16,6 +16,7 @@ pub mod edit;
 pub mod glob;
 pub mod grep;
 pub mod input;
+pub mod notebook;
 pub mod patch;
 pub mod read;
 pub mod ripgrep;
