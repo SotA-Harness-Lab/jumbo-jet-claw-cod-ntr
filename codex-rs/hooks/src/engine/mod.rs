@@ -7,6 +7,8 @@ pub(crate) mod claude_settings;
 pub(crate) mod command_runner;
 pub(crate) mod discovery;
 pub(crate) mod dispatcher;
+pub(crate) mod http_runner;
+pub(crate) mod judge_runner;
 mod matcher;
 pub(crate) mod mcp_runner;
 pub(crate) mod output_parser;
@@ -163,6 +165,11 @@ pub(crate) enum ConfiguredHandlerKind {
         tool: String,
         input: serde_json::Map<String, serde_json::Value>,
     },
+    /// Claude Code's `http` handler: the hook input is posted to a URL.
+    Http(http_runner::HttpHook),
+    /// Claude Code's `prompt` handler, or its `agent` handler when `agentic`: a model
+    /// answers whether the prompt's condition is met.
+    Judge { prompt: String, agentic: bool },
 }
 
 #[derive(Debug)]
@@ -206,7 +213,9 @@ impl ConfiguredHandler {
         match self.kind {
             ConfiguredHandlerKind::Command { r#async: true, .. } => HookExecutionMode::Async,
             ConfiguredHandlerKind::Command { r#async: false, .. }
-            | ConfiguredHandlerKind::McpTool { .. } => HookExecutionMode::Sync,
+            | ConfiguredHandlerKind::McpTool { .. }
+            | ConfiguredHandlerKind::Http(_)
+            | ConfiguredHandlerKind::Judge { .. } => HookExecutionMode::Sync,
         }
     }
 
@@ -247,6 +256,10 @@ impl ConfiguredHandler {
         match &self.kind {
             ConfiguredHandlerKind::Command { .. } => HookHandlerType::Command,
             ConfiguredHandlerKind::McpTool { .. } => HookHandlerType::McpTool,
+            // The protocol has no type for `http`; it is listed with the commands.
+            ConfiguredHandlerKind::Http(_) => HookHandlerType::Command,
+            ConfiguredHandlerKind::Judge { agentic: false, .. } => HookHandlerType::Prompt,
+            ConfiguredHandlerKind::Judge { agentic: true, .. } => HookHandlerType::Agent,
         }
     }
 }
