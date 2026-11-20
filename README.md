@@ -51,7 +51,8 @@ The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `co
   (`disable-model-invocation`, `when_to_use`, `arguments`). In the TUI, `/<skill-name> <args>` invokes a
   skill with `$ARGUMENTS`, `${CLAUDE_SKILL_DIR}` and the other substitutions.
 - **Hooks**: the hooks of `settings.json` run as they do in Claude Code, including `Notification`,
-  `PostToolUseFailure` and `StopFailure`, with Claude Code's tool names and input.
+  `PostToolUseFailure` and `StopFailure`, with Claude Code's tool names and input; a `PreToolUse` hook
+  may allow a call, ask about it or block it.
 - **Settings**: `env` is added to the commands' environment; Bash permission rules become Codex command
   rules.
 - **Auto memory**: the project's `MEMORY.md` is loaded, and Codex writes new memories where and how
@@ -66,7 +67,7 @@ The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `co
   it.
 - **Claude Code's tool set** (optional, `[claude] tools = true` in `ccn-config.toml`): `Bash`, `Read`,
   `Write`, `Edit`, `Glob`, `Grep`, `WebFetch`, `WebSearch`, `TodoWrite`, `AskUserQuestion` and `Agent`
-  replace Codex's tools, as a layer over them. Permission rules (`Read(...)`, `Edit(...)`,
+  replace Codex's tools, as a layer over them, and `Skill` lets the model invoke a skill with arguments. Permission rules (`Read(...)`, `Edit(...)`,
   `WebFetch(domain:...)`), subagent `tools` and hook matchers then match Claude Code one to one.
 
 ## What Is Not Compatible
