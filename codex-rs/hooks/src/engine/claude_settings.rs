@@ -10,6 +10,7 @@
 //! does not have, `Notification`, `PostToolUseFailure` and `StopFailure` are kept apart and run
 //! at the closest Codex moment (see `events::claude_only`); the others are ignored.
 
+use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -99,6 +100,9 @@ impl ClaudeHookSettings {
     }
 }
 
+/// The `if` conditions of a hooks file's handlers, by event name, group and handler position.
+pub(crate) type HookConditions = HashMap<(String, usize, usize), String>;
+
 /// The hooks of one settings file.
 pub(crate) struct ClaudeSettingsHooks {
     pub(crate) path: AbsolutePathBuf,
@@ -107,6 +111,8 @@ pub(crate) struct ClaudeSettingsHooks {
     pub(crate) events: HookEventsToml,
     /// The groups of the events Codex's own configuration does not have.
     pub(crate) claude_only: Vec<(ClaudeOnlyEvent, Vec<MatcherGroup>)>,
+    /// The handlers' `if` conditions, which `HookEventsToml` has no place for either.
+    pub(crate) conditions: HookConditions,
 }
 
 /// Loads the hooks of every settings file that exists, user first. When one of them sets
@@ -132,6 +138,7 @@ pub(crate) fn load(
         };
         let hooks = supported_handlers(hooks.clone(), &path, warnings);
         let claude_only = claude_only_groups(&hooks, &path, warnings);
+        let conditions = hook_conditions(&hooks);
         match serde_json::from_value::<HookEventsToml>(hooks) {
             Ok(events) if !events.is_empty() || !claude_only.is_empty() => {
                 loaded.push(ClaudeSettingsHooks {
@@ -139,6 +146,7 @@ pub(crate) fn load(
                     is_user,
                     events,
                     claude_only,
+                    conditions,
                 })
             }
             Ok(_) => {}
@@ -231,6 +239,42 @@ fn claude_only_groups(
         }
     }
     groups
+}
+
+/// The `if` of each handler that has one, by where the handler stands under `hooks`.
+pub(crate) fn hook_conditions(hooks: &Value) -> HookConditions {
+    let mut conditions = HookConditions::new();
+    let Some(events) = hooks.as_object() else {
+        return conditions;
+    };
+    for (event, groups) in events {
+        let groups = groups.as_array().map(Vec::as_slice).unwrap_or_default();
+        for (group_index, group) in groups.iter().enumerate() {
+            let handlers = group
+                .get("hooks")
+                .and_then(Value::as_array)
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            for (handler_index, handler) in handlers.iter().enumerate() {
+                if let Some(condition) = handler.get("if").and_then(Value::as_str)
+                    && !condition.trim().is_empty()
+                {
+                    conditions.insert(
+                        (event.clone(), group_index, handler_index),
+                        condition.to_string(),
+                    );
+                }
+            }
+        }
+    }
+    conditions
+}
+
+/// The `if` conditions of a plugin's hooks file, whose events are under its `hooks` key.
+pub(crate) fn plugin_hook_conditions(path: &AbsolutePathBuf) -> HookConditions {
+    read_settings(path, &mut Vec::new())
+        .and_then(|file| file.get("hooks").map(hook_conditions))
+        .unwrap_or_default()
 }
 
 /// Drops handlers of a type Codex does not know, such as `http`, reporting them.

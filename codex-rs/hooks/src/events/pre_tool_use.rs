@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks
+
 use std::path::PathBuf;
 
 use codex_protocol::ThreadId;
@@ -61,10 +66,11 @@ pub(crate) fn preview(
     request: &PreToolUseRequest,
 ) -> Vec<HookRunSummary> {
     let matcher_inputs = common::matcher_inputs(&request.tool_name, &request.matcher_aliases);
-    dispatcher::select_handlers_for_matcher_inputs(
+    dispatcher::select_handlers_for_tool(
         handlers,
         HookEventName::PreToolUse,
         &matcher_inputs,
+        &request.tool_input,
     )
     .into_iter()
     .map(|handler| {
@@ -78,10 +84,11 @@ pub(crate) async fn run(
     request: PreToolUseRequest,
 ) -> PreToolUseOutcome {
     let matcher_inputs = common::matcher_inputs(&request.tool_name, &request.matcher_aliases);
-    let matched = dispatcher::select_handlers_for_matcher_inputs(
+    let matched = dispatcher::select_handlers_for_tool(
         &engine.handlers,
         HookEventName::PreToolUse,
         &matcher_inputs,
+        &request.tool_input,
     );
     if matched.is_empty() {
         return PreToolUseOutcome {

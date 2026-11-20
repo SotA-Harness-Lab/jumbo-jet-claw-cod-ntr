@@ -8,6 +8,7 @@ use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
 use super::ClaudeHookSettings;
+use super::hook_conditions;
 use super::load;
 
 fn absolute(path: std::path::PathBuf) -> AbsolutePathBuf {
@@ -136,4 +137,55 @@ fn a_file_with_only_claude_only_events_is_loaded() {
             ("StopFailure", None),
         ]
     );
+}
+
+#[test]
+fn conditions_are_kept_by_the_position_handlers_load_with() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{
+            "hooks": {
+                "PreToolUse": [
+                    {"matcher": "Bash", "hooks": [
+                        {"type": "http", "url": "https://example.invalid", "if": "Bash(curl *)"},
+                        {"type": "command", "command": "plain.sh"},
+                        {"type": "command", "command": "git.sh", "if": "Bash(git *)"}
+                    ]},
+                    {"hooks": [{"type": "command", "command": "edit.sh", "if": "Edit(*.rs)"}]}
+                ],
+                "PostToolUseFailure": [
+                    {"hooks": [{"type": "command", "command": "failed.sh", "if": "Bash"}]}
+                ]
+            }
+        }"#,
+    )
+    .expect("write");
+
+    let mut warnings = Vec::new();
+    let loaded = load(&settings(&tmp), &mut warnings);
+
+    // The `http` handler is dropped before positions are counted.
+    let mut conditions = loaded[0]
+        .conditions
+        .iter()
+        .map(|((event, group, handler), condition)| {
+            (event.as_str(), *group, *handler, condition.as_str())
+        })
+        .collect::<Vec<_>>();
+    conditions.sort();
+    assert_eq!(
+        conditions,
+        vec![
+            ("PostToolUseFailure", 0, 0, "Bash"),
+            ("PreToolUse", 0, 1, "Bash(git *)"),
+            ("PreToolUse", 1, 0, "Edit(*.rs)"),
+        ]
+    );
+}
+
+#[test]
+fn a_hooks_value_that_is_not_an_object_has_no_conditions() {
+    assert_eq!(hook_conditions(&serde_json::json!([])).len(), 0);
 }

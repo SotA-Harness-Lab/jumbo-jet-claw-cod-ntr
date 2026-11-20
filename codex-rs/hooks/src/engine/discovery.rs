@@ -81,6 +81,8 @@ struct HookHandlerSource<'a> {
     plugin_content_hash: Option<&'a std::io::Result<String>>,
     config_layer_stack: Option<&'a ConfigLayerStack>,
     plugin_root: Option<&'a AbsolutePathBuf>,
+    /// The handlers' `if` conditions, for a hooks file in Claude Code's format.
+    conditions: Option<&'a super::claude_settings::HookConditions>,
 }
 
 enum HookRequirement<'a> {
@@ -202,6 +204,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
                 plugin_content_hash: None,
                 config_layer_stack: None,
                 plugin_root: None,
+                conditions: None,
             };
             if !policy.allows(&policy_source) {
                 continue;
@@ -245,6 +248,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
                         plugin_content_hash: None,
                         config_layer_stack: None,
                         plugin_root: None,
+                        conditions: None,
                     },
                     hook_events,
                     policy,
@@ -306,6 +310,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
                     plugin_content_hash: None,
                     config_layer_stack: None,
                     plugin_root: None,
+                    conditions: Some(&claude_hooks.conditions),
                 },
                 claude_hooks.events,
                 policy,
@@ -393,7 +398,7 @@ fn append_claude_only_handlers(
         HookSource::Project
     };
     for (event, groups) in &claude_hooks.claude_only {
-        for group in groups {
+        for (group_index, group) in groups.iter().enumerate() {
             let matcher = match group.matcher.as_deref().map(HookMatcher::new).transpose() {
                 Ok(matcher) => matcher,
                 Err(err) => {
@@ -405,7 +410,7 @@ fn append_claude_only_handlers(
                     continue;
                 }
             };
-            for handler in &group.hooks {
+            for (handler_index, handler) in group.hooks.iter().enumerate() {
                 let HookHandlerConfig::Command {
                     command,
                     timeout_sec,
@@ -438,7 +443,17 @@ fn append_claude_only_handlers(
                         builtin: false,
                         plugin_trust: None,
                         event_name: event.stand_in(),
-                        matcher: matcher.clone(),
+                        matcher: match claude_hooks.conditions.get(&(
+                            event.label().to_string(),
+                            group_index,
+                            handler_index,
+                        )) {
+                            Some(condition) => Some(HookMatcher::conditional(
+                                matcher.clone(),
+                                condition.clone(),
+                            )),
+                            None => matcher.clone(),
+                        },
                         timeout_sec: timeout_sec.unwrap_or(600).max(1),
                         status_message: status_message.clone(),
                         additional_context_limit: AdditionalContextLimit::from_config(
@@ -492,6 +507,7 @@ fn append_managed_requirement_handlers(
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
+            conditions: None,
         },
         managed_hooks.get().hooks.as_ref().clone(),
         policy,
@@ -550,6 +566,11 @@ fn append_plugin_hook_sources(
         env.insert("PLUGIN_DATA".to_string(), plugin_data_root_value.clone());
         // For OOTB compat with existing plugins that use this env var.
         env.insert("CLAUDE_PLUGIN_DATA".to_string(), plugin_data_root_value);
+        // A Claude Code plugin's hooks file may give handlers an `if`. Hooks written into the
+        // manifest are not read for it: their position there is not the one they load with.
+        let plugin_conditions = (claude_plugin.is_some()
+            && !source_relative_path.starts_with("plugin.json#"))
+        .then(|| super::claude_settings::plugin_hook_conditions(&source_path));
         append_hook_events(
             handlers,
             hook_entries,
@@ -573,6 +594,7 @@ fn append_plugin_hook_sources(
                 plugin_content_hash: content_hash.as_deref(),
                 config_layer_stack: policy.config_layer_stack,
                 plugin_root: Some(&plugin_root),
+                conditions: plugin_conditions.as_ref(),
             },
             hooks,
             policy,
@@ -810,6 +832,7 @@ fn append_environment_hooks(
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
+            conditions: None,
         },
         source.hooks,
         HookDiscoveryPolicy {
@@ -1160,11 +1183,24 @@ fn append_matcher_groups(
                         HookTrustStatus::Managed | HookTrustStatus::Trusted
                     ))
             {
+                let condition = source.conditions.and_then(|conditions| {
+                    conditions.get(&(
+                        hook_event_name_label(event_name).to_string(),
+                        group_index,
+                        handler_index,
+                    ))
+                });
                 handlers.push(ConfiguredHandler {
                     builtin,
                     plugin_trust,
                     event_name,
-                    matcher: compiled_matcher.clone(),
+                    matcher: match condition {
+                        Some(condition) => Some(HookMatcher::conditional(
+                            compiled_matcher.clone(),
+                            condition.clone(),
+                        )),
+                        None => compiled_matcher.clone(),
+                    },
                     timeout_sec,
                     status_message,
                     additional_context_limit: AdditionalContextLimit::from_config(
@@ -1358,6 +1394,7 @@ mod tests {
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
+            conditions: None,
         }
     }
 
@@ -1379,6 +1416,7 @@ mod tests {
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
+            conditions: None,
         }
     }
 

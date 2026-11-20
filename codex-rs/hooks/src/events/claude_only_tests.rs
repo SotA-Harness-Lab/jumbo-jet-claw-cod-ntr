@@ -188,7 +188,11 @@ async fn notification_and_stop_failure_hooks_run_in_the_background() {
 
     assert!(
         engine
-            .select_claude_only(ClaudeOnlyEvent::Notification, &["idle_prompt"])
+            .select_claude_only(
+                ClaudeOnlyEvent::Notification,
+                &["idle_prompt"],
+                /*tool_input*/ None,
+            )
             .is_empty()
     );
     engine.spawn_notification(NotificationRequest {

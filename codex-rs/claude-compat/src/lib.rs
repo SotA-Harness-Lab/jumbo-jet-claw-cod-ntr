@@ -7,6 +7,7 @@
 //! disk. The parsing is pure; the loaders reach the filesystem through [`FileSource`], so
 //! that the same code serves the user's home directory and a project on an executor.
 
+mod hook_condition;
 mod instructions;
 mod markdown;
 mod mcp;
@@ -22,6 +23,7 @@ mod source;
 mod subagents;
 pub mod tools;
 
+pub use hook_condition::hook_condition_matches;
 pub use instructions::INSTRUCTIONS_HEADER;
 pub use instructions::InstructionFile;
 pub use instructions::InstructionKind;

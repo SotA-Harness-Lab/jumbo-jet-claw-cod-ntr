@@ -43,10 +43,47 @@ pub(crate) fn select_handlers(
     select_handlers_for_matcher_inputs(handlers, event_name, &matcher_inputs)
 }
 
+/// The handlers of a tool event for a call of the tool known by `matcher_inputs` with
+/// `tool_input`: those whose matcher meets one of the names and whose `if` condition, when
+/// they have one, covers the call.
+pub(crate) fn select_handlers_for_tool(
+    handlers: &[ConfiguredHandler],
+    event_name: HookEventName,
+    matcher_inputs: &[&str],
+    tool_input: &Value,
+) -> Vec<ConfiguredHandler> {
+    select_matching_handlers(handlers, event_name, matcher_inputs, Some(tool_input))
+}
+
+/// The handlers of an event that is not a tool call. A handler with an `if` condition never
+/// runs for one, as in Claude Code: there is no tool input to hold the condition against.
 pub(crate) fn select_handlers_for_matcher_inputs(
     handlers: &[ConfiguredHandler],
     event_name: HookEventName,
     matcher_inputs: &[&str],
+) -> Vec<ConfiguredHandler> {
+    select_matching_handlers(handlers, event_name, matcher_inputs, /*tool_input*/ None)
+}
+
+/// Whether the handler's `if` condition, when it has one, covers the tool call.
+pub(crate) fn condition_covers(
+    handler: &ConfiguredHandler,
+    matcher_inputs: &[&str],
+    tool_input: Option<&Value>,
+) -> bool {
+    let Some(condition) = handler.matcher.as_ref().and_then(|matcher| matcher.condition()) else {
+        return true;
+    };
+    tool_input.is_some_and(|tool_input| {
+        codex_claude_compat::hook_condition_matches(condition, matcher_inputs, tool_input)
+    })
+}
+
+fn select_matching_handlers(
+    handlers: &[ConfiguredHandler],
+    event_name: HookEventName,
+    matcher_inputs: &[&str],
+    tool_input: Option<&Value>,
 ) -> Vec<ConfiguredHandler> {
     // Check each configured handler once, even when several compatibility names
     // match the same regex. A hook like `apply_patch|Write|Edit` should run a
@@ -78,6 +115,7 @@ pub(crate) fn select_handlers_for_matcher_inputs(
             | HookEventName::Stop
             | HookEventName::Interrupt => true,
         })
+        .filter(|handler| condition_covers(handler, matcher_inputs, tool_input))
         .cloned()
         .collect()
 }
@@ -426,6 +464,93 @@ mod tests {
                 env: std::collections::HashMap::new(),
             },
         }
+    }
+
+    fn with_condition(mut handler: ConfiguredHandler, condition: &str) -> ConfiguredHandler {
+        handler.matcher = Some(crate::engine::HookMatcher::conditional(
+            handler.matcher.take(),
+            condition.to_string(),
+        ));
+        handler
+    }
+
+    #[test]
+    fn tool_handlers_with_a_condition_run_only_for_calls_it_covers() {
+        let handlers = vec![
+            with_condition(
+                make_handler(
+                    HookEventName::PreToolUse,
+                    Some("Bash"),
+                    "echo git",
+                    /*display_order*/ 0,
+                ),
+                "Bash(git *)",
+            ),
+            with_condition(
+                make_handler(
+                    HookEventName::PreToolUse,
+                    /*matcher*/ None,
+                    "echo edit",
+                    /*display_order*/ 1,
+                ),
+                "Edit(*.rs)",
+            ),
+            make_handler(
+                HookEventName::PreToolUse,
+                Some("Bash"),
+                "echo every",
+                /*display_order*/ 2,
+            ),
+        ];
+        let selected = |names: &[&str], input: serde_json::Value| {
+            super::select_handlers_for_tool(&handlers, HookEventName::PreToolUse, names, &input)
+                .into_iter()
+                .map(|handler| handler.display_order)
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(
+            selected(&["Bash"], serde_json::json!({"command": "git push"})),
+            vec![0, 2]
+        );
+        assert_eq!(
+            selected(&["Bash"], serde_json::json!({"command": "ls"})),
+            vec![2]
+        );
+        assert_eq!(
+            selected(&["Edit"], serde_json::json!({"file_path": "/repo/a.rs"})),
+            vec![1]
+        );
+        assert_eq!(
+            selected(&["Edit"], serde_json::json!({"file_path": "/repo/a.md"})),
+            Vec::<i64>::new()
+        );
+    }
+
+    #[test]
+    fn handlers_with_a_condition_stay_out_of_events_without_a_tool_call() {
+        let handlers = vec![
+            with_condition(
+                make_handler(
+                    HookEventName::Stop,
+                    /*matcher*/ None,
+                    "echo conditional",
+                    /*display_order*/ 0,
+                ),
+                "Bash(git *)",
+            ),
+            make_handler(
+                HookEventName::Stop,
+                /*matcher*/ None,
+                "echo plain",
+                /*display_order*/ 1,
+            ),
+        ];
+
+        let selected = select_handlers(&handlers, HookEventName::Stop, /*matcher_input*/ None);
+
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].display_order, 1);
     }
 
     #[test]

@@ -97,8 +97,8 @@ This needs the session's environment to run on this machine.
 ## Hooks
 
 Codex's hook engine takes the same shape as Claude Code's `hooks` key (events, `matcher`,
-`type: "command"`, `timeout`, `async`, `statusMessage`), so the hooks of the settings files
-run as they are, with Claude Code's input on stdin and Claude Code's outputs understood.
+`type: "command"`, `timeout`, `async`, `statusMessage`, `if`), so the hooks of the settings
+files run as they are, with Claude Code's input on stdin and Claude Code's outputs understood.
 
 - The user's own hooks run without Codex's per-hook trust prompt, as they do in Claude Code. A
   project's hooks wait for Codex's trust like any other project hook. `disableAllHooks: true`
@@ -129,6 +129,19 @@ run as they are, with Claude Code's input on stdin and Claude Code's outputs und
   `WebFetch`, `WebSearch`, `TodoWrite`, `AskUserQuestion` and `Agent` are the tools' own names: hook input carries that name and Claude Code's input (`command`, `timeout`,
   `description`; `file_path`, `old_string`, `new_string`; ...), and `PostToolUse` gets
   Claude Code's `tool_response` object (`stdout`, `stderr`, `interrupted` for `Bash`).
+- `if`: a handler with an `if` runs only for the tool calls its permission rule covers
+  (`PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`), and never for
+  another event, as in Claude Code. The rule's tool is compared with the names the call is
+  matched by (above). Its content is matched for the tools Claude Code matches it for:
+  `Bash(git *)` against each simple command of the command line (a command that cannot be
+  taken apart runs the hook), `Read`, `Edit` and `Write` against `file_path`, `Glob` and
+  `Grep` against `pattern`; content for any other tool never matches. Where the input has no
+  such field (`Edit(*.rs)` for an `apply_patch` call without the Claude tool set), the hook
+  runs and decides for itself. `if` is read from the settings files and from a Claude Code
+  plugin's hooks file, not from hooks written into a plugin's manifest or from Codex's own
+  `hooks.json`. Changing a project hook's `if` alone does not ask for its trust again.
+- `once` does nothing in the settings files, as in Claude Code, where it only applies to the
+  hooks of a skill's frontmatter.
 - Events Codex's own configuration does not have run at the closest Codex moment, for command
   handlers only, and are not listed among Codex's hooks:
   - `Notification` when Codex asks the user: an approval of a command (`permission_prompt`,

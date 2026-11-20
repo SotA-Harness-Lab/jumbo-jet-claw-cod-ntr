@@ -152,10 +152,13 @@ impl ClaudeHooksEngine {
             .any(|handler| handler.event == event)
     }
 
+    /// The handlers of `event` matching one of `matcher_inputs`. `tool_input` is the input of
+    /// the tool call the event is about; without one, handlers with an `if` condition stay out.
     fn select_claude_only(
         &self,
         event: ClaudeOnlyEvent,
         matcher_inputs: &[&str],
+        tool_input: Option<&Value>,
     ) -> Vec<ConfiguredHandler> {
         self.claude_only_handlers
             .iter()
@@ -164,6 +167,13 @@ impl ClaudeHooksEngine {
                 matcher_inputs.iter().any(|input| {
                     common::matches_matcher(handler.handler.matcher.as_ref(), Some(*input))
                 })
+            })
+            .filter(|handler| {
+                dispatcher::condition_covers(
+                    &handler.handler,
+                    matcher_inputs,
+                    tool_input,
+                )
             })
             .map(|handler| handler.handler.clone())
             .collect()
@@ -175,6 +185,7 @@ impl ClaudeHooksEngine {
         let handlers = self.select_claude_only(
             ClaudeOnlyEvent::Notification,
             &[request.notification_type.as_str()],
+            /*tool_input*/ None,
         );
         if handlers.is_empty() {
             return;
@@ -187,7 +198,11 @@ impl ClaudeHooksEngine {
     /// either, and their output is ignored.
     pub(crate) fn spawn_stop_failure(&self, request: StopFailureRequest) {
         let handlers =
-            self.select_claude_only(ClaudeOnlyEvent::StopFailure, &[request.error.as_str()]);
+            self.select_claude_only(
+                ClaudeOnlyEvent::StopFailure,
+                &[request.error.as_str()],
+                /*tool_input*/ None,
+            );
         if handlers.is_empty() {
             return;
         }
@@ -201,8 +216,11 @@ impl ClaudeHooksEngine {
         request: PostToolUseFailureRequest,
     ) -> PostToolUseFailureOutcome {
         let matcher_inputs = common::matcher_inputs(&request.tool_name, &request.matcher_aliases);
-        let handlers =
-            self.select_claude_only(ClaudeOnlyEvent::PostToolUseFailure, &matcher_inputs);
+        let handlers = self.select_claude_only(
+            ClaudeOnlyEvent::PostToolUseFailure,
+            &matcher_inputs,
+            Some(&request.tool_input),
+        );
         if handlers.is_empty() {
             return PostToolUseFailureOutcome::default();
         }

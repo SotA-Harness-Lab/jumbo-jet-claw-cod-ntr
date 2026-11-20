@@ -3941,6 +3941,7 @@ dependencies = [
  "anyhow",
  "async-channel",
  "chrono",
+ "codex-claude-compat",
  "codex-config",
  "codex-plugin",
  "codex-protocol",

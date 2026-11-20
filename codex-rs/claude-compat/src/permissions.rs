@@ -38,7 +38,7 @@ use crate::settings::PermissionDecision;
 use crate::settings::read_settings;
 
 #[path = "permissions_bash.rs"]
-mod bash;
+pub(crate) mod bash;
 
 use bash::ShellDecision;
 use bash::ShellRules;
@@ -578,7 +578,7 @@ fn find_unescaped(text: &str, target: char, last: bool) -> Option<usize> {
     if last { found.next_back() } else { found.next() }
 }
 
-fn normalize_tool_name(name: &str) -> &str {
+pub(crate) fn normalize_tool_name(name: &str) -> &str {
     LEGACY_TOOL_NAMES
         .iter()
         .find(|(legacy, _)| *legacy == name)
