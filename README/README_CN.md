@@ -13,7 +13,7 @@
 >
 > —— 网络流行语
 
-jjcn 是在 [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) 之上重新打磨 harness 本身的版本。CodClaw NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取。本项目保留这一切，并加入对代理自身工作方式的改动，目标是下一代的代理 harness。
+Jumbo Jet CodClaw NTR（jjcn）是在 [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) 之上重新打磨 harness 本身的版本。CodClaw NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取。本项目保留这一切，并加入对代理自身工作方式的改动，目标是下一代的代理 harness。
 
 NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 CodClaw NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
 

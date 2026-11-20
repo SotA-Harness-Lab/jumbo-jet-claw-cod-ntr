@@ -13,7 +13,7 @@
 >
 > — an old English proverb, turned around
 
-jjcn is [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) with the harness
+Jumbo Jet CodClaw NTR (jjcn) is [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) with the harness
 itself reworked. CodClaw NTR is a fork of OpenAI's Codex CLI that runs on the configuration you already
 keep for Claude Code: your `CLAUDE.md` files, rules, skills, hooks, settings, subagents and MCP servers
 are read in place. This project keeps all of that and adds changes to how the agent itself works, aimed
