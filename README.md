@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./.github/cod-claw-ntr-logo.svg" alt="Jumbo Jet CodClaw NTR logo" width="96">
+  <img src="./.github/cod-claw-ntr-logo.svg" alt="jjcn logo" width="96">
 </p>
 
 # Jumbo Jet CodClaw NTR
@@ -13,7 +13,7 @@
 >
 > — an old English proverb, turned around
 
-Jumbo Jet CodClaw NTR is [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) with the harness
+jjcn is [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) with the harness
 itself reworked. CodClaw NTR is a fork of OpenAI's Codex CLI that runs on the configuration you already
 keep for Claude Code: your `CLAUDE.md` files, rules, skills, hooks, settings, subagents and MCP servers
 are read in place. This project keeps all of that and adds changes to how the agent itself works, aimed
@@ -27,7 +27,7 @@ The program, its settings file and its environment variables are CodClaw NTR's (
 `ccn-config.toml`, `CCN_`), so either build can take the other's place on a machine. The repository
 starts as a copy of CodClaw NTR's `main` and takes its later changes from there.
 
-What it adds so far, each described in [Jumbo Jet refinements](./docs/jumbo-jet.md):
+What it adds so far, each described in [jjcn refinements](./docs/jjcn.md):
 
 - An idle session goes on by itself when a background command or agent ends.
 - A response cut off at the output token limit is continued instead of failing the turn.
@@ -53,7 +53,7 @@ Each is on by default and has a switch in `~/.codex/ccn-config.toml`, under `[ha
 
 ## Overview
 
-Jumbo Jet CodClaw NTR keeps Codex itself (its models, sandbox, approvals, TUI and IDE extension) and adds a
+jjcn keeps Codex itself (its models, sandbox, approvals, TUI and IDE extension) and adds a
 compatibility layer that reads Claude Code's files where Claude Code keeps them. Nothing is copied or
 converted: there is no sync step, and `CCN_CLAUDE_COMPAT=0` turns the whole layer off. Where Codex
 already has a mechanism, the layer hands the work to it; it only adds what Codex lacks. The details,
@@ -98,12 +98,12 @@ The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `co
   styles and the status line: Codex has no counterpart.
 - Skill bodies' shell injection (`` !`command` ``), and substitutions in a skill the model opens by
   itself rather than through `/<name>`.
-- Claude Code's own models and account: Jumbo Jet CodClaw NTR talks to the models Codex supports.
+- Claude Code's own models and account: jjcn talks to the models Codex supports.
 - Windows: this fork builds for macOS and Linux only.
 
 ## Installation
 
-Jumbo Jet CodClaw NTR has no release yet; build it from source.
+jjcn has no release yet; build it from source.
 
 ### Building from Source
 
@@ -134,7 +134,7 @@ tools = true
 
 ## Docs
 
-- [**Jumbo Jet refinements**](./docs/jumbo-jet.md)
+- [**jjcn refinements**](./docs/jjcn.md)
 - [**Claude Code compatibility**](./docs/claude-compat.md)
 - [**Codex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](./docs/contributing.md)

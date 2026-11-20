@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../.github/cod-claw-ntr-logo.svg" alt="Jumbo Jet CodClaw NTR logo" width="96">
+  <img src="../.github/cod-claw-ntr-logo.svg" alt="jjcn logo" width="96">
 </p>
 
 # Jumbo Jet CodClaw NTR
@@ -13,13 +13,13 @@
 >
 > —— 网络流行语
 
-Jumbo Jet CodClaw NTR 是在 [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) 之上重新打磨 harness 本身的版本。CodClaw NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取。本项目保留这一切，并加入对代理自身工作方式的改动，目标是下一代的代理 harness。
+jjcn 是在 [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) 之上重新打磨 harness 本身的版本。CodClaw NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取。本项目保留这一切，并加入对代理自身工作方式的改动，目标是下一代的代理 harness。
 
 NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 CodClaw NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
 
 程序名、设置文件和环境变量都沿用 CodClaw NTR 的（`ccn`、`ccn-config.toml`、`CCN_`），所以两个版本在同一台机器上可以互相替换。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得。
 
-目前加入的改动，逐项说明见 [Jumbo Jet refinements](../docs/jumbo-jet.md)：
+目前加入的改动，逐项说明见 [jjcn refinements](../docs/jjcn.md)：
 
 - 后台命令或后台代理结束时，空闲的会话会自己接着干。
 - 回复被输出 token 上限截断时自动续写，而不是整轮失败。
@@ -43,7 +43,7 @@ NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一
 
 ## 概述
 
-Jumbo Jet CodClaw NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件），在其上加一层兼容层，到 Claude Code 存放文件的地方直接读取。不复制、不转换，没有同步步骤；`CCN_CLAUDE_COMPAT=0` 可以关掉整个兼容层。Codex 已经有的机制，兼容层直接交给它做，只补上 Codex 没有的部分。逐项的说明见 [Claude Code compatibility](../docs/claude-compat.md)。
+jjcn 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件），在其上加一层兼容层，到 Claude Code 存放文件的地方直接读取。不复制、不转换，没有同步步骤；`CCN_CLAUDE_COMPAT=0` 可以关掉整个兼容层。Codex 已经有的机制，兼容层直接交给它做，只补上 Codex 没有的部分。逐项的说明见 [Claude Code compatibility](../docs/claude-compat.md)。
 
 改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`。
 
@@ -64,12 +64,12 @@ Jumbo Jet CodClaw NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 I
 
 - `permissions` 里的 `defaultMode` 和 `additionalDirectories`、企业托管设置、输出风格和状态栏：Codex 没有对应的机制。
 - skill 正文里的 shell 注入（`` !`command` ``），以及模型自己打开（而不是通过 `/<名字>` 调用）的 skill 里的替换。
-- Claude Code 自己的模型和账号：Jumbo Jet CodClaw NTR 用的是 Codex 支持的模型。
+- Claude Code 自己的模型和账号：jjcn 用的是 Codex 支持的模型。
 - Windows：这个 fork 只构建 macOS 和 Linux 版。
 
 ## 安装
 
-Jumbo Jet CodClaw NTR 还没有发布版，需要从源码构建。
+jjcn 还没有发布版，需要从源码构建。
 
 ### 从源码构建
 
@@ -99,7 +99,7 @@ tools = true
 
 ## 文档
 
-- [**Jumbo Jet refinements**](../docs/jumbo-jet.md)
+- [**jjcn refinements**](../docs/jjcn.md)
 - [**Claude Code compatibility**](../docs/claude-compat.md)
 - [**Codex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](../docs/contributing.md)

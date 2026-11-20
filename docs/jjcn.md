@@ -1,4 +1,4 @@
-# Jumbo Jet refinements
+# jjcn refinements
 
 What this project changes in the harness itself, on top of CodClaw NTR. Everything in
 [Claude Code compatibility](./claude-compat.md) holds here too. That document is written for the
