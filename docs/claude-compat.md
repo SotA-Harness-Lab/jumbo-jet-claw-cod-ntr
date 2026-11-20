@@ -19,6 +19,11 @@ How this document is arranged:
 - "Incompatible" is what cannot be made to behave as in Claude Code, because it contradicts
   how Codex works at its core, with what Codex does in its place.
 
+The last column of each table, "Status", says where a row stands: "Done", with the day and the
+commit that brought the behaviour the row describes (the last one, where several did); "In
+progress"; "Planned"; or "Not planned". A row of the last two chapters that Jumbo Jet CodClaw
+NTR, the fork built on this one, has done says so with its own day and commit.
+
 A feature is in one chapter only. Where a feature works in part, the part that works is under
 "Differences" or "Fully compatible" and the part that is missing under one of the last two.
 
@@ -49,7 +54,9 @@ Keeping it current:
 - Then change the date and the release in this section, and only then: the date says that
   every table was read against that release.
 - When this fork changes how it treats a Claude Code feature, change the row in the same
-  commit.
+  commit, its Status included; the commit's own id goes in with the next commit, since a
+  commit cannot name itself. A row that moves to "Fully compatible" or "Differences" moves
+  with its new status.
 
 ## The fork's own settings (ccn-config.toml)
 
@@ -122,41 +129,41 @@ plugins are used.
 `CLAUDE.md`, `CLAUDE.local.md` and the rule files. How they are found and laid out is the
 same as in Claude Code (see "Fully compatible"); these rows are what is not.
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| Place in the model's context | A user message after the system prompt, headed `Codebase and user instructions are shown below` | The user's files after `$CODEX_HOME/AGENTS.md`, a project's after the project's `AGENTS.md` files, in Codex's instruction messages |
-| Words around them | None of Codex's | A short preamble tells the model that the global instructions come from Claude Code, that `/<name>` means the skill of that name, and that the hooks they mention may not run in Codex |
-| Size limit | None from Codex | They are not cut to `project_doc_max_bytes`, which still applies to `AGENTS.md`, and the global instructions are never truncated. When those are larger than `project_doc_max_bytes` (32 KiB by default), Codex prints a warning at startup; raise that setting to silence it and to leave room for project instructions |
-| When a rule with `paths:`, or the instruction files of a directory below the working directory, are shown | When `Read` touches a file they cover; in newer versions also `Edit`, `Write` and a `cat` or `head` of a single file | After each tool call, for the files a shell command reads (as Codex's command parser recognises them: `cat`, `sed -n`, `head` and the like), the files a patch adds, changes or moves to, and, with the Claude tool set, the file `Read`, `Write` or `Edit` names |
-| How such a file is shown | With the read that triggered it | Once per session, as a developer message headed like the other instruction files |
-| Where it works | Everywhere | Only when the session's environment runs on this machine |
-| How deep `@<path>` includes go | Four files below the one that starts the chain | Five |
-| A project file's `@<path>` include outside the working directory | Loaded once the user has approved external includes for the project, asked once | Never loaded |
-| Order of the files in `~/.claude/rules` | The order the directory lists them in | Sorted by path |
-| `AGENTS.md` | Newer versions (2.1.277 on) read it where no `CLAUDE.md` is found | Always read, before the `CLAUDE.md` files: it is Codex's own instruction file |
-| `@<path>` includes in a rule file (`.claude/rules`, `~/.claude/rules`) | Resolved as in `CLAUDE.md` | Not resolved: the line stays as text |
-| A Git worktree inside its own repository (`claude -w`) | The repository's checked-in `CLAUDE.md` and rules above the worktree are skipped, the worktree having its own; `CLAUDE.local.md` is still read | Both are read |
-| Files shown on demand, after the conversation is compacted or cleared | Forgotten, and shown again the next time a file they cover is worked on | Shown once in a session: after a compaction they are not shown again |
-| What else counts as working on a file | A file named with `@` in the prompt, and the file open in the IDE | Tool calls only |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| Place in the model's context | A user message after the system prompt, headed `Codebase and user instructions are shown below` | The user's files after `$CODEX_HOME/AGENTS.md`, a project's after the project's `AGENTS.md` files, in Codex's instruction messages | Done 2026-11-17 `80c1279420` |
+| Words around them | None of Codex's | A short preamble tells the model that the global instructions come from Claude Code, that `/<name>` means the skill of that name, and that the hooks they mention may not run in Codex | Done 2026-11-17 `13979cd030` |
+| Size limit | None from Codex | They are not cut to `project_doc_max_bytes`, which still applies to `AGENTS.md`, and the global instructions are never truncated. When those are larger than `project_doc_max_bytes` (32 KiB by default), Codex prints a warning at startup; raise that setting to silence it and to leave room for project instructions | Done 2026-11-17 `13979cd030` |
+| When a rule with `paths:`, or the instruction files of a directory below the working directory, are shown | When `Read` touches a file they cover; in newer versions also `Edit`, `Write` and a `cat` or `head` of a single file | After each tool call, for the files a shell command reads (as Codex's command parser recognises them: `cat`, `sed -n`, `head` and the like), the files a patch adds, changes or moves to, and, with the Claude tool set, the file `Read`, `Write` or `Edit` names | Done 2026-11-17 `80c1279420` |
+| How such a file is shown | With the read that triggered it | Once per session, as a developer message headed like the other instruction files | Done 2026-11-17 `80c1279420` |
+| Where it works | Everywhere | Only when the session's environment runs on this machine | Done 2026-11-17 `80c1279420` |
+| How deep `@<path>` includes go | Four files below the one that starts the chain | Five | Done 2026-11-17 `80c1279420` |
+| A project file's `@<path>` include outside the working directory | Loaded once the user has approved external includes for the project, asked once | Never loaded | Done 2026-11-17 `80c1279420` |
+| Order of the files in `~/.claude/rules` | The order the directory lists them in | Sorted by path | Done 2026-11-17 `13979cd030` |
+| `AGENTS.md` | Newer versions (2.1.277 on) read it where no `CLAUDE.md` is found | Always read, before the `CLAUDE.md` files: it is Codex's own instruction file | Done (upstream Codex) |
+| `@<path>` includes in a rule file (`.claude/rules`, `~/.claude/rules`) | Resolved as in `CLAUDE.md` | Not resolved: the line stays as text | Done 2026-11-17 `13979cd030` |
+| A Git worktree inside its own repository (`claude -w`) | The repository's checked-in `CLAUDE.md` and rules above the worktree are skipped, the worktree having its own; `CLAUDE.local.md` is still read | Both are read | Done 2026-11-17 `80c1279420` |
+| Files shown on demand, after the conversation is compacted or cleared | Forgotten, and shown again the next time a file they cover is worked on | Shown once in a session: after a compaction they are not shown again | Done 2026-11-17 `80c1279420` |
+| What else counts as working on a file | A file named with `@` in the prompt, and the file open in the IDE | Tool calls only | Done 2026-11-17 `80c1279420` |
 
 ### Skills, slash commands and invoking them
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| Which folders are skills | `<root>/<name>/SKILL.md`, one level below the root; directory symlinks followed; a skill reached twice is listed once | Codex's rules: nested folders up to six levels deep, directory symlinks followed, hidden folders (such as `.trash`) skipped; a skill reachable from two roots through a symlink is listed once |
-| Frontmatter fields that are used | `name`, `description`, `when_to_use`, `arguments`, `argument-hint`, `allowed-tools`, `model`, `effort`, `context`, `agent`, `hooks`, `paths`, `disable-model-invocation`, `user-invocable`, `version`, `shell` | `disable-model-invocation`, `description`, `when_to_use` and `arguments` (see "Fully compatible"); for the others see "Not yet implemented" |
-| `disable-model-invocation: true` | The skill is not offered to the model | The same, unless an explicit `allow_implicit_invocation` in the skill's `agents/openai.yaml` says otherwise; `$<name>` still runs it |
-| Shell operators and globs in the arguments | Dropped | Kept as words |
-| Skills that are not files on this machine (Codex's cloud and remote-environment skills) | Its own kinds, in some builds: skills of MCP servers and of the claude.ai account | Not expanded as Claude Code expands a skill |
-| A built-in command and a skill of the same name | The skill replaces the built-in command (not its aliases) | The built-in command wins |
-| `${CLAUDE_SESSION_ID}` | Claude Code's session id | The Codex thread's id |
-| Commands of a plugin in Codex's own plugin format | Not applicable | Such plugins keep the skills Codex made of their commands when it installed them; the commands of Claude Code's plugins are never copied |
-| How much of the skill list the model is shown | 1% of the context window (`SLASH_COMMAND_TOOL_CHAR_BUDGET`), an entry's description and `when_to_use` cut to 1,536 characters | Codex's own budget for its skill list |
-| Skills that come with the program | Claude Code's bundled skills | Codex's own system skills; Claude Code's are not there |
-| A skill's name | In the reference source the folder's name, `name` in the frontmatter being only the name shown; the documentation describes `name` as what is typed | `name` of the frontmatter, the folder's name when it has none: a skill whose `name` differs from its folder is `/<name>` here |
-| A `SKILL.md` without frontmatter | Loaded, named after its folder, with the first line of the body as description | Not loaded, and reported as invalid; a command file without frontmatter is loaded |
-| No `description` and no text in the body | Listed as `Skill` or `Custom command` | Not loaded |
-| `SKILL.md` in a folder of a commands directory (`commands/<dir>/SKILL.md`) | One command named after `<dir>`; the other files of that folder are left out | Each file is a command named after its path (`<dir>:SKILL`) |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| Which folders are skills | `<root>/<name>/SKILL.md`, one level below the root; directory symlinks followed; a skill reached twice is listed once | Codex's rules: nested folders up to six levels deep, directory symlinks followed, hidden folders (such as `.trash`) skipped; a skill reachable from two roots through a symlink is listed once | Done 2026-11-17 `13979cd030` |
+| Frontmatter fields that are used | `name`, `description`, `when_to_use`, `arguments`, `argument-hint`, `allowed-tools`, `model`, `effort`, `context`, `agent`, `hooks`, `paths`, `disable-model-invocation`, `user-invocable`, `version`, `shell` | `disable-model-invocation`, `description`, `when_to_use` and `arguments` (see "Fully compatible"); for the others see "Not yet implemented" | Done 2026-11-17 `2471894159` |
+| `disable-model-invocation: true` | The skill is not offered to the model | The same, unless an explicit `allow_implicit_invocation` in the skill's `agents/openai.yaml` says otherwise; `$<name>` still runs it | Done 2026-11-17 `2471894159` |
+| Shell operators and globs in the arguments | Dropped | Kept as words | Done 2026-11-17 `0d118bdf09` |
+| Skills that are not files on this machine (Codex's cloud and remote-environment skills) | Its own kinds, in some builds: skills of MCP servers and of the claude.ai account | Not expanded as Claude Code expands a skill | Done 2026-11-17 `0d118bdf09` |
+| A built-in command and a skill of the same name | The skill replaces the built-in command (not its aliases) | The built-in command wins | Done 2026-11-17 `0d118bdf09` |
+| `${CLAUDE_SESSION_ID}` | Claude Code's session id | The Codex thread's id | Done 2026-11-17 `0d118bdf09` |
+| Commands of a plugin in Codex's own plugin format | Not applicable | Such plugins keep the skills Codex made of their commands when it installed them; the commands of Claude Code's plugins are never copied | Done 2026-11-18 `c58a3409c6` |
+| How much of the skill list the model is shown | 1% of the context window (`SLASH_COMMAND_TOOL_CHAR_BUDGET`), an entry's description and `when_to_use` cut to 1,536 characters | Codex's own budget for its skill list | Done 2026-11-17 `aac85b1fcf` |
+| Skills that come with the program | Claude Code's bundled skills | Codex's own system skills; Claude Code's are not there | Done (upstream Codex) |
+| A skill's name | In the reference source the folder's name, `name` in the frontmatter being only the name shown; the documentation describes `name` as what is typed | `name` of the frontmatter, the folder's name when it has none: a skill whose `name` differs from its folder is `/<name>` here | Done 2026-11-17 `2471894159` |
+| A `SKILL.md` without frontmatter | Loaded, named after its folder, with the first line of the body as description | Not loaded, and reported as invalid; a command file without frontmatter is loaded | Done 2026-11-17 `2471894159` |
+| No `description` and no text in the body | Listed as `Skill` or `Custom command` | Not loaded | Done 2026-11-17 `2471894159` |
+| `SKILL.md` in a folder of a commands directory (`commands/<dir>/SKILL.md`) | One command named after `<dir>`; the other files of that folder are left out | Each file is a command named after its path (`<dir>:SKILL`) | Done 2026-11-18 `c58a3409c6` |
 
 To hide a Claude Code skill from Codex altogether (one that only makes sense in Claude Code,
 or one that duplicates a Codex skill), disable it in `config.toml`:
@@ -176,37 +183,37 @@ left out with the skills.
 Codex's hook engine takes the same shape as Claude Code's `hooks` key, so the hooks of the
 settings files run as they are. What differs:
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| `CLAUDE_CODE_ENTRYPOINT` | Set by what launched it (`cli`, `claude-vscode`, `sdk-ts` and others), `sdk-cli` when nothing did | `cli` in the TUI, `sdk-cli` under `codex exec` (as for `claude -p`), `claude-vscode` for the IDE; other sessions, subagents among them, get none |
-| `session_id` in the input | Claude Code's session id | The Codex thread id |
-| Tool names, with the Claude tool set off | Claude Code's tools | Codex's tools under Claude Code's names where they have one: shell commands are `Bash`; `apply_patch` is also matched by `Write` and `Edit`, `spawn_agent` by `Agent` and `Task`, `request_user_input` by `AskUserQuestion` (its input has the same `questions[].question`), `update_plan` by `TodoWrite`. The hook's input keeps Codex's name and Codex's input (`{"command": ...}` for shell commands). `Read`, `Grep`, `Glob`, `WebFetch` and `WebSearch` have no Codex tool and never match |
-| Tool names, with the Claude tool set on | Claude Code's tools | The same names with Claude Code's input and `tool_response` (see "Fully compatible"); a hook in Codex's own `hooks.json` matching `exec_command` or `apply_patch` then does not run for these tools |
-| `Notification` | Sent for permission prompts (`permission_prompt`), idle prompts (`idle_prompt`), `auth_success`, MCP elicitations (`elicitation_dialog`, `elicitation_complete`, `elicitation_response`; newer versions also `elicitation_url_dialog`) and other notices; awaited before the desktop notification | Sent when Codex asks the user: an approval of a command (`permission_prompt`, message `Codex needs your permission to use Bash`), of a patch (`... to use apply_patch`) or of more permissions (`... to use request_permissions`), and an MCP elicitation (`elicitation_dialog`, or `elicitation_url_dialog` for a URL). Not awaited |
-| `PostToolUseFailure` | Sent when a tool call fails | The same, with `error` set to what went wrong; `is_interrupt` is always `false`, since a cancelled call runs no hook. Codex's own `PostToolUse` hooks still run for a failed shell command |
-| `StopFailure` | Sent when a turn ends on an API error, with `error` one of `rate_limit`, `billing_error`, `authentication_failed`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown` (newer versions have more kinds) and `last_assistant_message` | Sent when a turn ends on an error instead of an answer, with `error` one of `rate_limit`, `billing_error`, `authentication_failed`, `invalid_request`, `server_error`, `unknown`, `error_details` the message Codex shows, and `last_assistant_message`; a model that is not found is `invalid_request` |
-| `if`, when the tool's input has nothing to match the rule's content against (`Edit(*.rs)` for an `apply_patch` call with the Claude tool set off) | The hook does not run: content is matched only for `Bash`, `Read`, `Edit`, `Write`, `Glob` and `Grep`, and for input of their shape | The hook runs and decides for itself, so that a guard does not silently stop firing |
-| `type: "prompt"` and `type: "agent"`: which model | The handler's `model`, or a small, fast Claude model | The handler's `model` names a Claude model, which Codex cannot run. `[hooks.models]` of `ccn-config.toml` says which Codex model judges in its place: the entry for that very name, or else the longest entry whose name the model's name contains (`haiku` covers `claude-haiku-4-5`), names compared without regard to case. A handler without `model` takes the entry `default`. Where no entry fits, `model` is ignored and the session's own model judges |
-| `type: "prompt"`: the request | One request, thinking off, the answer held to a JSON schema; no tool runs | One request without tools, the answer held to a JSON schema, at the lowest reasoning effort the model has, which is not always none |
-| `type: "agent"`: the verifier | A loop of its own with the session's tools (none for subagents, plan mode or questions), thinking off, in a permission mode that never asks: a call no rule allows is denied. Its prompt names the transcript file | A child session with read-only permissions that asks for no approvals. Every step of it carries Codex's full tool definitions and starting it takes a moment, so it suits `Stop`, which runs once a turn, better than an event of every tool call. No `prompt` or `agent` hook runs inside it |
-| `type: "agent"`: its limit | 50 turns | 50 tool calls started without an answer, after which it is ended without blocking; a turn that makes several calls at once counts for more here |
-| `type: "http"`: the network path | Through Claude Code's sandbox network proxy when sandboxing is on | Straight from Codex, not through Codex's sandbox network proxy |
-| A `Stop` hook that blocks again and again | Newer versions override the next block once hooks have continued the turn 8 times in a row, counting anew after each tool call (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`); the reference source has no limit | It may keep one turn from ending 8 times in a row; the next block is not honoured and a warning says so. The number is fixed |
-| Exit code 2 | Means what the event makes of it: it blocks for `PreToolUse`, `UserPromptSubmit`, `Stop` and `SubagentStop`; for `PostToolUse` and `PostToolUseFailure` stderr goes to the model, the tool having run; for `SessionStart`, `Notification`, `StopFailure`, `SessionEnd` and the like stderr is only shown | The same for these events, except that a `Stop` or `SubagentStop` hook blocks only when it wrote a reason to stderr |
-| `decision: "block"` without a `reason`, `permissionDecision: "deny"` without a `permissionDecisionReason` | Blocks, with `Blocked by hook` as the reason | Does not block; the output is reported as invalid |
-| `type: "prompt"`: a condition that is not met | Ends the turn, with the reason shown. An `agent` hook blocks as exit code 2 does | Both block as a command's exit code 2 does for the event, so the model is told the reason and goes on |
-| `type: "agent"` for `PermissionRequest` | Not run; `prompt` handlers are | Run |
-| `disableAllHooks` | The value after the settings files are merged, a later file's `false` undoing an earlier `true`; hooks of managed settings stay on unless those turn them off | `true` in any of the three files turns every hook off |
-| Two handlers that are the same (same command, `if` and shell; same prompt; same URL) | Run once | Each runs |
-| A `matcher` that is a regular expression | JavaScript's syntax | Rust's `regex` syntax: no look-around and no back-references |
-| `SessionEnd` | `reason` is `clear`, `resume`, `logout`, `prompt_input_exit` or `other`; the hooks get 1.5 seconds (`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`) | `reason` is always `other`; the hooks get 1 second, or their `timeout` up to 3 |
-| `model` and `turn_id` in the input | `model` for `SessionStart`; no `turn_id` | `model` for most events, and `turn_id`, the id of Codex's turn, for the events of a turn |
-| `type: "http"`: `NO_PROXY` | A host it exempts from the proxy is checked for private addresses again | Not read: with a proxy in the environment no host is checked |
-| A field Codex does not know in a hook's JSON output (`watchPaths`, a `hookSpecificOutput` for `Stop`, a field of a later version) | Ignored; the rest of the output counts | The whole output is invalid: nothing in it counts, and the hook is reported as failed |
-| The shell that runs a command handler | `/bin/sh` (Git Bash on Windows), or PowerShell with `shell: "powershell"` | The user's `$SHELL` as a login shell (`-lc`), so its profile is read and a command is in that shell's syntax |
-| What a command handler gets on stdin | The JSON input and a line break | The JSON input without a line break: `read -r line` fills the variable and returns non-zero |
-| A command handler under Claude Code's sandbox | Run with the network closed when sandboxing is on, the filesystem open | Run outside Codex's sandbox |
-| Several `PreToolUse` hooks that decide differently | Deny wins over ask, ask over allow | A block by any of them wins; there is no ask or allow (see "Not yet implemented") |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| `CLAUDE_CODE_ENTRYPOINT` | Set by what launched it (`cli`, `claude-vscode`, `sdk-ts` and others), `sdk-cli` when nothing did | `cli` in the TUI, `sdk-cli` under `codex exec` (as for `claude -p`), `claude-vscode` for the IDE; other sessions, subagents among them, get none | Done 2026-11-17 `df06fbae01` |
+| `session_id` in the input | Claude Code's session id | The Codex thread id | Done 2026-11-17 `80c1279420` |
+| Tool names, with the Claude tool set off | Claude Code's tools | Codex's tools under Claude Code's names where they have one: shell commands are `Bash`; `apply_patch` is also matched by `Write` and `Edit`, `spawn_agent` by `Agent` and `Task`, `request_user_input` by `AskUserQuestion` (its input has the same `questions[].question`), `update_plan` by `TodoWrite`. The hook's input keeps Codex's name and Codex's input (`{"command": ...}` for shell commands). `Read`, `Grep`, `Glob`, `WebFetch` and `WebSearch` have no Codex tool and never match | Done 2026-11-17 `df06fbae01` |
+| Tool names, with the Claude tool set on | Claude Code's tools | The same names with Claude Code's input and `tool_response` (see "Fully compatible"); a hook in Codex's own `hooks.json` matching `exec_command` or `apply_patch` then does not run for these tools | Done 2026-11-17 `c14ae9210a` |
+| `Notification` | Sent for permission prompts (`permission_prompt`), idle prompts (`idle_prompt`), `auth_success`, MCP elicitations (`elicitation_dialog`, `elicitation_complete`, `elicitation_response`; newer versions also `elicitation_url_dialog`) and other notices; awaited before the desktop notification | Sent when Codex asks the user: an approval of a command (`permission_prompt`, message `Codex needs your permission to use Bash`), of a patch (`... to use apply_patch`) or of more permissions (`... to use request_permissions`), and an MCP elicitation (`elicitation_dialog`, or `elicitation_url_dialog` for a URL). Not awaited | Done 2026-11-17 `df06fbae01` |
+| `PostToolUseFailure` | Sent when a tool call fails | The same, with `error` set to what went wrong; `is_interrupt` is always `false`, since a cancelled call runs no hook. Codex's own `PostToolUse` hooks still run for a failed shell command | Done 2026-11-17 `df06fbae01` |
+| `StopFailure` | Sent when a turn ends on an API error, with `error` one of `rate_limit`, `billing_error`, `authentication_failed`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown` (newer versions have more kinds) and `last_assistant_message` | Sent when a turn ends on an error instead of an answer, with `error` one of `rate_limit`, `billing_error`, `authentication_failed`, `invalid_request`, `server_error`, `unknown`, `error_details` the message Codex shows, and `last_assistant_message`; a model that is not found is `invalid_request` | Done 2026-11-17 `df06fbae01` |
+| `if`, when the tool's input has nothing to match the rule's content against (`Edit(*.rs)` for an `apply_patch` call with the Claude tool set off) | The hook does not run: content is matched only for `Bash`, `Read`, `Edit`, `Write`, `Glob` and `Grep`, and for input of their shape | The hook runs and decides for itself, so that a guard does not silently stop firing | Done 2026-11-19 `358f5dc8ca` |
+| `type: "prompt"` and `type: "agent"`: which model | The handler's `model`, or a small, fast Claude model | The handler's `model` names a Claude model, which Codex cannot run. `[hooks.models]` of `ccn-config.toml` says which Codex model judges in its place: the entry for that very name, or else the longest entry whose name the model's name contains (`haiku` covers `claude-haiku-4-5`), names compared without regard to case. A handler without `model` takes the entry `default`. Where no entry fits, `model` is ignored and the session's own model judges | Done 2026-11-20 `d7bc2a1b13` |
+| `type: "prompt"`: the request | One request, thinking off, the answer held to a JSON schema; no tool runs | One request without tools, the answer held to a JSON schema, at the lowest reasoning effort the model has, which is not always none | Done 2026-11-20 `d7bc2a1b13` |
+| `type: "agent"`: the verifier | A loop of its own with the session's tools (none for subagents, plan mode or questions), thinking off, in a permission mode that never asks: a call no rule allows is denied. Its prompt names the transcript file | A child session with read-only permissions that asks for no approvals. Every step of it carries Codex's full tool definitions and starting it takes a moment, so it suits `Stop`, which runs once a turn, better than an event of every tool call. No `prompt` or `agent` hook runs inside it | Done 2026-11-19 `57b49d1405` |
+| `type: "agent"`: its limit | 50 turns | 50 tool calls started without an answer, after which it is ended without blocking; a turn that makes several calls at once counts for more here | Done 2026-11-20 `d7bc2a1b13` |
+| `type: "http"`: the network path | Through Claude Code's sandbox network proxy when sandboxing is on | Straight from Codex, not through Codex's sandbox network proxy | Done 2026-11-19 `57b49d1405` |
+| A `Stop` hook that blocks again and again | Newer versions override the next block once hooks have continued the turn 8 times in a row, counting anew after each tool call (`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`); the reference source has no limit | It may keep one turn from ending 8 times in a row; the next block is not honoured and a warning says so. The number is fixed | Done 2026-11-19 `d3e0b4a47f` |
+| Exit code 2 | Means what the event makes of it: it blocks for `PreToolUse`, `UserPromptSubmit`, `Stop` and `SubagentStop`; for `PostToolUse` and `PostToolUseFailure` stderr goes to the model, the tool having run; for `SessionStart`, `Notification`, `StopFailure`, `SessionEnd` and the like stderr is only shown | The same for these events, except that a `Stop` or `SubagentStop` hook blocks only when it wrote a reason to stderr | Done 2026-11-17 `80c1279420` |
+| `decision: "block"` without a `reason`, `permissionDecision: "deny"` without a `permissionDecisionReason` | Blocks, with `Blocked by hook` as the reason | Does not block; the output is reported as invalid | Done 2026-11-17 `80c1279420` |
+| `type: "prompt"`: a condition that is not met | Ends the turn, with the reason shown. An `agent` hook blocks as exit code 2 does | Both block as a command's exit code 2 does for the event, so the model is told the reason and goes on | Done 2026-11-19 `57b49d1405` |
+| `type: "agent"` for `PermissionRequest` | Not run; `prompt` handlers are | Run | Done 2026-11-19 `57b49d1405` |
+| `disableAllHooks` | The value after the settings files are merged, a later file's `false` undoing an earlier `true`; hooks of managed settings stay on unless those turn them off | `true` in any of the three files turns every hook off | Done 2026-11-17 `80c1279420` |
+| Two handlers that are the same (same command, `if` and shell; same prompt; same URL) | Run once | Each runs | Done 2026-11-17 `80c1279420` |
+| A `matcher` that is a regular expression | JavaScript's syntax | Rust's `regex` syntax: no look-around and no back-references | Done 2026-11-17 `80c1279420` |
+| `SessionEnd` | `reason` is `clear`, `resume`, `logout`, `prompt_input_exit` or `other`; the hooks get 1.5 seconds (`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`) | `reason` is always `other`; the hooks get 1 second, or their `timeout` up to 3 | Done 2026-11-17 `80c1279420` |
+| `model` and `turn_id` in the input | `model` for `SessionStart`; no `turn_id` | `model` for most events, and `turn_id`, the id of Codex's turn, for the events of a turn | Done 2026-11-17 `80c1279420` |
+| `type: "http"`: `NO_PROXY` | A host it exempts from the proxy is checked for private addresses again | Not read: with a proxy in the environment no host is checked | Done 2026-11-19 `57b49d1405` |
+| A field Codex does not know in a hook's JSON output (`watchPaths`, a `hookSpecificOutput` for `Stop`, a field of a later version) | Ignored; the rest of the output counts | The whole output is invalid: nothing in it counts, and the hook is reported as failed | Done 2026-11-17 `80c1279420` |
+| The shell that runs a command handler | `/bin/sh` (Git Bash on Windows), or PowerShell with `shell: "powershell"` | The user's `$SHELL` as a login shell (`-lc`), so its profile is read and a command is in that shell's syntax | Done 2026-11-17 `80c1279420` |
+| What a command handler gets on stdin | The JSON input and a line break | The JSON input without a line break: `read -r line` fills the variable and returns non-zero | Done 2026-11-17 `80c1279420` |
+| A command handler under Claude Code's sandbox | Run with the network closed when sandboxing is on, the filesystem open | Run outside Codex's sandbox | Done 2026-11-17 `80c1279420` |
+| Several `PreToolUse` hooks that decide differently | Deny wins over ask, ask over allow | A block by any of them wins; there is no ask or allow (see "Not yet implemented") | Done 2026-11-17 `80c1279420` |
 
 The `prompt` and `agent` paths have not been run against a live model here: what is tested is
 how the handlers are read, how a verdict is turned into the hook's result, and the mapping of
@@ -236,19 +243,19 @@ nothing for it; Claude Code's permission rules are one (see "Permission rules" b
 
 How each tool is made:
 
-| Claude tool | Replaces | Delegated to Codex | Added by the layer |
-| --- | --- | --- | --- |
-| `Bash` | `exec_command` | Running the command (one-shot with the timeout; `run_in_background` as a process left running), shell, approval, sandbox, command rules, output truncation, events | Parameters (`command`, `timeout` in ms, default 2 minutes, at most 10; `description`; `run_in_background`; `dangerouslyDisableSandbox`, sent as `sandbox_permissions: "require_escalated"` with the description as justification), the result text: output trimmed, `Exit code N` and the output for a failed command, `(Bash completed with no output)` |
-| `Read` | `view_image` | Reading through the executor filesystem under the turn's sandbox; images (`png`, `jpg`, `jpeg`, `gif`, `webp`) to `view_image` | Parameters (`file_path`, `offset`, `limit`), `N<TAB>line` numbering from 1, the 256 KB limit without `limit`, the 25,000-token limit, refusal of binary files and directories, the empty-file and short-file reminders, the "file does not exist" message |
-| `Write` | `apply_patch` | Writing, as a patch: approval, sandbox, patch events, the turn's diff | Parameters (`file_path`, `content`), the rule that an existing file is read first and not changed since, messages |
-| `Edit` | `apply_patch` | Writing, as a patch, as for `Write` | Parameters (`file_path`, `old_string`, `new_string`, `replace_all`), exact matching (refused when not found, or found more than once without `replace_all`), the read-first rule, messages |
-| `Glob` | none (offered with `Bash`) | Listing and sorting, as `rg --files --glob <pattern> --sort=modified --no-ignore --hidden` run through `exec_command` (sandbox, approval, command rules, events); the directory check through the executor filesystem | Parameters (`pattern`, `path`), an absolute pattern split into its directory and the rest, the first 100 files and the truncation note, paths inside the working directory shortened, `No files found`, the "directory does not exist" and "not a directory" messages |
-| `Grep` | none (offered with `Bash`) | Searching, as one `rg` command run through `exec_command` as for `Glob`, files listed newest first by `rg --sortr=modified`; the path check through the executor filesystem | Parameters (`pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `context`, `multiline`, `head_limit`, `offset`), Claude Code's ripgrep arguments (hidden files, VCS directories left out, `--max-columns 500`), `head_limit` (250 by default, 0 for all) and `offset` with the pagination note, paths shortened, the text of each output mode (`Found N files`, `No matches found`, `Found N total occurrences across M files.`), the "path does not exist" message |
-| `WebSearch` | `web.run` (standalone search) | The search, its backend and settings (`web_search` mode, location, filters), its events and the TUI | Parameters (`query`, at least 2 characters; `allowed_domains`, sent as the search's domain filter; `blocked_domains`, sent as `-site:` operators in the query; not both), the result text with Claude Code's sources reminder |
-| `WebFetch` | nothing (new) | The request, as a `curl` command through `exec_command`: sandbox, managed network proxy and its host approvals, command rules, approval prompts, events; the answer to `prompt` from the session's model client | Parameters (`url`, `prompt`), URL checks (at most 2000 characters, no credentials, a dotted host), HTTP upgraded to HTTPS, same-site redirects (`www.` added or removed) followed up to 10, other redirects reported in Claude Code's format, the 10 MB and 60-second limits, HTML to Markdown, the 15-minute cache, the secondary model's prompt with Claude Code's quoting rules and preapproved documentation hosts, the result text |
-| `TodoWrite` | `update_plan` | The list, sent as the plan: the TUI's plan display, plan events, the refusal in Plan mode | Parameters (`todos` of `content`, `status`, `activeForm`), the checks (both forms non-empty), description, result text; the step in progress shows its `activeForm` |
-| `AskUserQuestion` | `request_user_input` | Asking: the TUI's question panel, the modes it is offered in, the root-thread rule, cancellation, recorded answers | Parameters (1-4 `questions` of `question`, `header`, 2-4 `options` of `label` and `description`, `multiSelect`), the uniqueness checks, description, result text (`"question"="answer"`, with `user notes:`) |
-| `Agent` | `spawn_agent` (multi-agent v1 or v2, whichever the turn has) | Starting the agent (roles, models, depth and thread limits, sandbox inheritance, TUI events), waiting through Codex's agent status subscription (as `wait_agent` does), the completion notice of a background agent | Parameters (`description`, `prompt`, `subagent_type`, `model`, `run_in_background`), the description listing the agent types with their tools, `general-purpose` as Codex's default role, Claude Code's message for an unknown type, result texts (the agent's final message) |
+| Claude tool | Replaces | Delegated to Codex | Added by the layer | Status |
+| --- | --- | --- | --- | --- |
+| `Bash` | `exec_command` | Running the command (one-shot with the timeout; `run_in_background` as a process left running), shell, approval, sandbox, command rules, output truncation, events | Parameters (`command`, `timeout` in ms, default 2 minutes, at most 10; `description`; `run_in_background`; `dangerouslyDisableSandbox`, sent as `sandbox_permissions: "require_escalated"` with the description as justification), the result text: output trimmed, `Exit code N` and the output for a failed command, `(Bash completed with no output)` | Done 2026-11-17 `c14ae9210a` |
+| `Read` | `view_image` | Reading through the executor filesystem under the turn's sandbox; images (`png`, `jpg`, `jpeg`, `gif`, `webp`) to `view_image` | Parameters (`file_path`, `offset`, `limit`), `N<TAB>line` numbering from 1, the 256 KB limit without `limit`, the 25,000-token limit, refusal of binary files and directories, the empty-file and short-file reminders, the "file does not exist" message | Done 2026-11-17 `c14ae9210a` |
+| `Write` | `apply_patch` | Writing, as a patch: approval, sandbox, patch events, the turn's diff | Parameters (`file_path`, `content`), the rule that an existing file is read first and not changed since, messages | Done 2026-11-17 `c14ae9210a` |
+| `Edit` | `apply_patch` | Writing, as a patch, as for `Write` | Parameters (`file_path`, `old_string`, `new_string`, `replace_all`), exact matching (refused when not found, or found more than once without `replace_all`), the read-first rule, messages | Done 2026-11-17 `c14ae9210a` |
+| `Glob` | none (offered with `Bash`) | Listing and sorting, as `rg --files --glob <pattern> --sort=modified --no-ignore --hidden` run through `exec_command` (sandbox, approval, command rules, events); the directory check through the executor filesystem | Parameters (`pattern`, `path`), an absolute pattern split into its directory and the rest, the first 100 files and the truncation note, paths inside the working directory shortened, `No files found`, the "directory does not exist" and "not a directory" messages | Done 2026-11-18 `092e61dcc8` |
+| `Grep` | none (offered with `Bash`) | Searching, as one `rg` command run through `exec_command` as for `Glob`, files listed newest first by `rg --sortr=modified`; the path check through the executor filesystem | Parameters (`pattern`, `path`, `glob`, `type`, `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `context`, `multiline`, `head_limit`, `offset`), Claude Code's ripgrep arguments (hidden files, VCS directories left out, `--max-columns 500`), `head_limit` (250 by default, 0 for all) and `offset` with the pagination note, paths shortened, the text of each output mode (`Found N files`, `No matches found`, `Found N total occurrences across M files.`), the "path does not exist" message | Done 2026-11-18 `092e61dcc8` |
+| `WebSearch` | `web.run` (standalone search) | The search, its backend and settings (`web_search` mode, location, filters), its events and the TUI | Parameters (`query`, at least 2 characters; `allowed_domains`, sent as the search's domain filter; `blocked_domains`, sent as `-site:` operators in the query; not both), the result text with Claude Code's sources reminder | Done 2026-11-18 `5e56c5502a` |
+| `WebFetch` | nothing (new) | The request, as a `curl` command through `exec_command`: sandbox, managed network proxy and its host approvals, command rules, approval prompts, events; the answer to `prompt` from the session's model client | Parameters (`url`, `prompt`), URL checks (at most 2000 characters, no credentials, a dotted host), HTTP upgraded to HTTPS, same-site redirects (`www.` added or removed) followed up to 10, other redirects reported in Claude Code's format, the 10 MB and 60-second limits, HTML to Markdown, the 15-minute cache, the secondary model's prompt with Claude Code's quoting rules and preapproved documentation hosts, the result text | Done 2026-11-18 `5e56c5502a` |
+| `TodoWrite` | `update_plan` | The list, sent as the plan: the TUI's plan display, plan events, the refusal in Plan mode | Parameters (`todos` of `content`, `status`, `activeForm`), the checks (both forms non-empty), description, result text; the step in progress shows its `activeForm` | Done 2026-11-18 `bf914e9b33`, `a965a5c156` |
+| `AskUserQuestion` | `request_user_input` | Asking: the TUI's question panel, the modes it is offered in, the root-thread rule, cancellation, recorded answers | Parameters (1-4 `questions` of `question`, `header`, 2-4 `options` of `label` and `description`, `multiSelect`), the uniqueness checks, description, result text (`"question"="answer"`, with `user notes:`) | Done 2026-11-18 `bf914e9b33` |
+| `Agent` | `spawn_agent` (multi-agent v1 or v2, whichever the turn has) | Starting the agent (roles, models, depth and thread limits, sandbox inheritance, TUI events), waiting through Codex's agent status subscription (as `wait_agent` does), the completion notice of a background agent | Parameters (`description`, `prompt`, `subagent_type`, `model`, `run_in_background`), the description listing the agent types with their tools, `general-purpose` as Codex's default role, Claude Code's message for an unknown type, result texts (the agent's final message) | Done 2026-11-18 `bf914e9b33` |
 
 `write_stdin` stays, to read the output of a background command and to stop it. Codex's
 other agent tools (`wait_agent`, `send_input`, `close_agent` and the rest, or v2's
@@ -257,29 +264,29 @@ other agent tools (`wait_agent`, `send_input`, `close_agent` and the rest, or v2
 
 What does not behave as Claude Code's tool does:
 
-| Tool | Claude Code | Codex |
-| --- | --- | --- |
-| `Bash`: description | Claude Code's, with its sandbox settings and attribution lines for commits and pull requests | Claude Code's instructions for commits and pull requests without attribution lines, and a short note on Codex's sandbox in place of Claude Code's sandbox settings |
-| `Read`: images | Shown | Need a model that takes images and Codex's `view_image` feature |
-| `Write`, `Edit`: a file changed since it was read | Refused, unless it was read whole and its content is still the same | Refused whenever its modification time is newer. Besides, the patch holds the whole file as context, so it can only apply to the file as it was read. The check follows the session: a file read or written in the session may be edited until it changes on disk |
-| `MultiEdit` | Gone from current versions | Not offered |
-| `Glob`, `Grep`: the search program | A ripgrep Claude Code ships | `rg` in the session's environment. Codex's own release packages ship one and put it on the path of every command Codex runs; a Codex built from source has none, so install ripgrep there. Without it they fail with a message saying so |
-| `Grep`: order of files | Newest first, names in order among files of the same time | Newest first through ripgrep's own sort, which also sorts files that do not match and searches on one thread; files with the same time keep ripgrep's order |
-| `WebSearch`: results | Anthropic's own search run by the model provider, up to 8 searches a call: links and the model's commentary | Codex's search output wrapped in Claude Code's text. `blocked_domains` is only as good as the engine's `-site:` support. Only plain web search is offered: opening pages goes through `WebFetch` |
-| `WebFetch`: how the request is made | By Claude Code itself | By a `curl` command (`curl.exe` under PowerShell or `cmd`) on the machine that runs commands, so it needs `Bash` and `curl` there. It goes out under the session's rules: with network in the sandbox, or a managed network proxy (which allows, denies or asks per host), it runs in the sandbox; otherwise it asks to run outside it, as `sandbox_permissions: "require_escalated"`, which Codex approves or refuses by its approval policy (refused under `never`). The approval shows the `curl` command, and command rules for `curl` apply to it |
-| `WebFetch`: the answer to `prompt` | A separate small model | The session's model at low reasoning effort; its tokens are not counted in the session's usage |
-| `WebFetch`: cache | 15 minutes, shared by the whole process | 15 minutes, kept per session |
-| `TodoWrite`: where it is offered | In sessions without a person (`claude -p`, the SDK); an interactive session has `TaskCreate`, `TaskGet`, `TaskList` and `TaskUpdate` in its place | Always, also where Codex's own plan tool is off (`[tools.update_plan]` is off by default); a tool policy that removes `update_plan` removes it too |
-| `Agent`: a foreground agent that has answered | Stays | Under multi-agent v1 it is closed, to free its thread. Codex also adds its own completion notice after the agent's answer |
-| `Bash`: which exit codes are failures | A code other than 0, except code 1 of `grep`, `rg`, `find`, `diff`, `test` and `[`, which is a result | Any code other than 0 |
-| `Write`, `Edit`: reading the file first | An existing file has to have been read; newer versions count a `cat`, `head` or the like of the one file as a read, and let newer models change an unread file that could be read without asking | Always required, and only a `Read` call counts |
-| `Read`: the 25,000-token limit | Counted in the model's tokens | Estimated at four bytes a token, so a file dense in tokens passes here and not there |
-| `Read`: text that is not UTF-8 | UTF-16 with a byte-order mark is read | Read as UTF-8, with a replacement character for what is not |
-| `Glob`, `Grep`: where they are offered | Newer versions leave them out on macOS and Linux, where the model uses `find` and `grep` through `Bash` | Always offered with `Bash` |
-| `WebFetch`: time limit | 60 seconds a request; from 2.1.268 on the whole fetch has 5 minutes (`CLAUDE_CODE_WEBFETCH_DEADLINE_MS`) | 60 seconds a request |
-| `Agent`: the result | The agent's answer, then its id (`agentId: ... (use SendMessage ...)`) and a `<usage>` block; the hook's `tool_response` also has `totalToolUseCount`, `totalDurationMs`, `totalTokens` and `usage`, and `outputFile` for a background agent | The agent's answer; `tool_response` has `status`, `agentId`, `content` and `prompt` |
-| `Write`, `Edit`: the hook's `tool_response` | Has the change as `structuredPatch` | `structuredPatch` is empty |
-| `Bash`: the hook's `tool_response` | `stdout`, `stderr`, `interrupted`, and more (`isImage`, `returnCodeInterpretation`, `backgroundTaskId`, `persistedOutputPath` and others) | `stdout`, `stderr`, `interrupted` and some of the others |
+| Tool | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| `Bash`: description | Claude Code's, with its sandbox settings and attribution lines for commits and pull requests | Claude Code's instructions for commits and pull requests without attribution lines, and a short note on Codex's sandbox in place of Claude Code's sandbox settings | Done 2026-11-17 `c14ae9210a` |
+| `Read`: images | Shown | Need a model that takes images and Codex's `view_image` feature | Done 2026-11-17 `c14ae9210a` |
+| `Write`, `Edit`: a file changed since it was read | Refused, unless it was read whole and its content is still the same | Refused whenever its modification time is newer. Besides, the patch holds the whole file as context, so it can only apply to the file as it was read. The check follows the session: a file read or written in the session may be edited until it changes on disk | Done 2026-11-17 `c14ae9210a` |
+| `MultiEdit` | Gone from current versions | Not offered | Done 2026-11-17 `c14ae9210a` |
+| `Glob`, `Grep`: the search program | A ripgrep Claude Code ships | `rg` in the session's environment. Codex's own release packages ship one and put it on the path of every command Codex runs; a Codex built from source has none, so install ripgrep there. Without it they fail with a message saying so | Done 2026-11-18 `092e61dcc8` |
+| `Grep`: order of files | Newest first, names in order among files of the same time | Newest first through ripgrep's own sort, which also sorts files that do not match and searches on one thread; files with the same time keep ripgrep's order | Done 2026-11-18 `092e61dcc8` |
+| `WebSearch`: results | Anthropic's own search run by the model provider, up to 8 searches a call: links and the model's commentary | Codex's search output wrapped in Claude Code's text. `blocked_domains` is only as good as the engine's `-site:` support. Only plain web search is offered: opening pages goes through `WebFetch` | Done 2026-11-18 `5e56c5502a` |
+| `WebFetch`: how the request is made | By Claude Code itself | By a `curl` command (`curl.exe` under PowerShell or `cmd`) on the machine that runs commands, so it needs `Bash` and `curl` there. It goes out under the session's rules: with network in the sandbox, or a managed network proxy (which allows, denies or asks per host), it runs in the sandbox; otherwise it asks to run outside it, as `sandbox_permissions: "require_escalated"`, which Codex approves or refuses by its approval policy (refused under `never`). The approval shows the `curl` command, and command rules for `curl` apply to it | Done 2026-11-18 `5e56c5502a` |
+| `WebFetch`: the answer to `prompt` | A separate small model | The session's model at low reasoning effort; its tokens are not counted in the session's usage | Done 2026-11-18 `5e56c5502a` |
+| `WebFetch`: cache | 15 minutes, shared by the whole process | 15 minutes, kept per session | Done 2026-11-18 `5e56c5502a` |
+| `TodoWrite`: where it is offered | In sessions without a person (`claude -p`, the SDK); an interactive session has `TaskCreate`, `TaskGet`, `TaskList` and `TaskUpdate` in its place | Always, also where Codex's own plan tool is off (`[tools.update_plan]` is off by default); a tool policy that removes `update_plan` removes it too | Done 2026-11-18 `a965a5c156` |
+| `Agent`: a foreground agent that has answered | Stays | Under multi-agent v1 it is closed, to free its thread. Codex also adds its own completion notice after the agent's answer | Done 2026-11-18 `bf914e9b33` |
+| `Bash`: which exit codes are failures | A code other than 0, except code 1 of `grep`, `rg`, `find`, `diff`, `test` and `[`, which is a result | Any code other than 0 | Done 2026-11-17 `c14ae9210a` |
+| `Write`, `Edit`: reading the file first | An existing file has to have been read; newer versions count a `cat`, `head` or the like of the one file as a read, and let newer models change an unread file that could be read without asking | Always required, and only a `Read` call counts | Done 2026-11-17 `c14ae9210a` |
+| `Read`: the 25,000-token limit | Counted in the model's tokens | Estimated at four bytes a token, so a file dense in tokens passes here and not there | Done 2026-11-17 `c14ae9210a` |
+| `Read`: text that is not UTF-8 | UTF-16 with a byte-order mark is read | Read as UTF-8, with a replacement character for what is not | Done 2026-11-17 `c14ae9210a` |
+| `Glob`, `Grep`: where they are offered | Newer versions leave them out on macOS and Linux, where the model uses `find` and `grep` through `Bash` | Always offered with `Bash` | Done 2026-11-18 `092e61dcc8` |
+| `WebFetch`: time limit | 60 seconds a request; from 2.1.268 on the whole fetch has 5 minutes (`CLAUDE_CODE_WEBFETCH_DEADLINE_MS`) | 60 seconds a request | Done 2026-11-18 `5e56c5502a` |
+| `Agent`: the result | The agent's answer, then its id (`agentId: ... (use SendMessage ...)`) and a `<usage>` block; the hook's `tool_response` also has `totalToolUseCount`, `totalDurationMs`, `totalTokens` and `usage`, and `outputFile` for a background agent | The agent's answer; `tool_response` has `status`, `agentId`, `content` and `prompt` | Done 2026-11-18 `bf914e9b33` |
+| `Write`, `Edit`: the hook's `tool_response` | Has the change as `structuredPatch` | `structuredPatch` is empty | Done 2026-11-17 `c14ae9210a` |
+| `Bash`: the hook's `tool_response` | `stdout`, `stderr`, `interrupted`, and more (`isImage`, `returnCodeInterpretation`, `backgroundTaskId`, `persistedOutputPath` and others) | `stdout`, `stderr`, `interrupted` and some of the others | Done 2026-11-17 `c14ae9210a` |
 
 #### Permission rules
 
@@ -289,24 +296,24 @@ and `deny` rules of `~/.claude/settings.json`, `.claude/settings.json` and
 them (see "Fully compatible"). What happens once a rule has matched is Codex's, because the
 decision is handed to Codex's own approval path:
 
-| Rule | What happens |
-| --- | --- |
-| `deny` | The tool does not run; the model gets Claude Code's denial (`Permission to use Bash with command ... has been denied.`, `Permission to read ... has been denied.`, ...). |
-| `allow` | A `Bash`, `Write` or `Edit` call Codex would ask about runs without asking. It still runs in the sandbox: the rule settles the approval Codex's orchestrator decides for `exec_command` and `apply_patch`, not the sandbox, and it does not cover a request to leave the sandbox (`dangerouslyDisableSandbox`), a command Codex forbids, or a managed rule that wants a person. An MCP call skips Codex's MCP approval. Tools Codex never asks about (`Read`, ...) run as before. |
-| `ask` | A `Bash`, `Write` or `Edit` call asks even where Codex would not, with the rule as the reason, and no "approve for the session" is remembered for later calls. A tool Codex has no approval for (`Read`, `Glob`, `Grep`, `WebFetch`, MCP tools, ...) asks with Codex's approval prompt, showing the tool and its input; declining gives the model Claude Code's rejection. When the approval policy cannot ask (`never`, or `granular` without rule approvals), the call is denied, as Claude Code denies in a non-interactive session. |
-| none | Codex decides, as for its own tools. |
+| Rule | What happens | Status |
+| --- | --- | --- |
+| `deny` | The tool does not run; the model gets Claude Code's denial (`Permission to use Bash with command ... has been denied.`, `Permission to read ... has been denied.`, ...). | Done 2026-11-18 `6c5d824b9f`, `4e25eb7045` |
+| `allow` | A `Bash`, `Write` or `Edit` call Codex would ask about runs without asking. It still runs in the sandbox: the rule settles the approval Codex's orchestrator decides for `exec_command` and `apply_patch`, not the sandbox, and it does not cover a request to leave the sandbox (`dangerouslyDisableSandbox`), a command Codex forbids, or a managed rule that wants a person. An MCP call skips Codex's MCP approval. Tools Codex never asks about (`Read`, ...) run as before. | Done 2026-11-18 `6c5d824b9f`, `4e25eb7045` |
+| `ask` | A `Bash`, `Write` or `Edit` call asks even where Codex would not, with the rule as the reason, and no "approve for the session" is remembered for later calls. A tool Codex has no approval for (`Read`, `Glob`, `Grep`, `WebFetch`, MCP tools, ...) asks with Codex's approval prompt, showing the tool and its input; declining gives the model Claude Code's rejection. When the approval policy cannot ask (`never`, or `granular` without rule approvals), the call is denied, as Claude Code denies in a non-interactive session. | Done 2026-11-18 `6c5d824b9f`, `4e25eb7045` |
+| none | Codex decides, as for its own tools. | Done 2026-11-18 `6c5d824b9f` |
 
 Where a rule is read as in Claude Code and still decides otherwise:
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| `Agent(<type>)` | Works as a deny rule only, which takes the type away; as an allow or ask rule it does nothing | Honoured as deny, ask and allow |
-| A command of more than 50 parts | Asks | Matched part by part like any other |
-| A command with several `cd`, or `cd` with `git` | Always asks, even with an exact allow rule | No allow rule covers it, so Codex decides |
-| `ask` where nobody can be asked: the text the model gets | Depends on the mode (`dontAsk`, a background agent, `claude -p`) | `Permission to use <tool> has been denied`, with the rule as the reason |
-| `/path` in a path rule of the project's files | Relative to the session's first working directory | Relative to the directory whose `.claude` holds the file, which is the working directory |
-| A project's `allow` rules, in a project Codex does not trust (no `trust_level = "trusted"` for it in `config.toml`) | Applied once the folder is trusted | Left out, since the files come with the repository; its `deny` and `ask` rules are kept |
-| `Read` and `Edit` rules, and shell commands | The deny rules are also checked against the paths of the commands Claude Code understands (`cat`, `sed`, `rm` and the like) and of output redirections | They govern the file tools only: a `Bash(...)` rule is needed for a command |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| `Agent(<type>)` | Works as a deny rule only, which takes the type away; as an allow or ask rule it does nothing | Honoured as deny, ask and allow | Done 2026-11-18 `4e25eb7045` |
+| A command of more than 50 parts | Asks | Matched part by part like any other | Done 2026-11-18 `6c5d824b9f` |
+| A command with several `cd`, or `cd` with `git` | Always asks, even with an exact allow rule | No allow rule covers it, so Codex decides | Done 2026-11-18 `6c5d824b9f` |
+| `ask` where nobody can be asked: the text the model gets | Depends on the mode (`dontAsk`, a background agent, `claude -p`) | `Permission to use <tool> has been denied`, with the rule as the reason | Done 2026-11-18 `4e25eb7045` |
+| `/path` in a path rule of the project's files | Relative to the session's first working directory | Relative to the directory whose `.claude` holds the file, which is the working directory | Done 2026-11-18 `6c5d824b9f` |
+| A project's `allow` rules, in a project Codex does not trust (no `trust_level = "trusted"` for it in `config.toml`) | Applied once the folder is trusted | Left out, since the files come with the repository; its `deny` and `ask` rules are kept | Done 2026-11-20 `2a011b3a43` |
+| `Read` and `Edit` rules, and shell commands | The deny rules are also checked against the paths of the commands Claude Code understands (`cat`, `sed`, `rm` and the like) and of output redirections | They govern the file tools only: a `Bash(...)` rule is needed for a command | Done 2026-11-18 `6c5d824b9f` |
 
 What Claude Code has around the rules and Codex does not apply (`defaultMode`,
 `additionalDirectories`, Claude Code's own checks, the managed file) is under "Not yet
@@ -339,43 +346,43 @@ registered from `add_shell_tools`, which owns the shell options.
 
 ### Settings
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| `env` | Written into Claude Code's own environment (the user's file at the start, a project's once the folder is trusted), so that Claude Code itself and everything it starts see it: commands, hooks, MCP servers | Added to the environment of the commands Codex runs, not to Codex's own; a project's files only when Codex trusts the project (`trust_level = "trusted"`); `shell_environment_policy.set` in `config.toml` wins over it |
-| `permissions`, with the Claude tool set off | Applied to Claude Code's tools | An approximation for commands only: a Bash rule that names a command prefix (`Bash(git status)`, `Bash(git diff*)`, `Bash(gh pr *)`, `Bash(npm run:*)`) becomes a Codex command rule of the same prefix, word by word. `allow` runs without asking (and, as for any Codex allow rule, outside the sandbox), `ask` asks, `deny` forbids; the strictest matching rule wins, as in Claude Code. A word cut short by `*` (`--force*`) matches only that whole word. Only the user's file is read. Rules for other tools, wildcards inside a command, `defaultMode` and `additionalDirectories` are not applied |
-| `permissions`, with the Claude tool set on | Applied | All of `allow`, `ask` and `deny` from the three files; see "Permission rules". The approximation above is then not loaded |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| `env` | Written into Claude Code's own environment (the user's file at the start, a project's once the folder is trusted), so that Claude Code itself and everything it starts see it: commands, hooks, MCP servers | Added to the environment of the commands Codex runs, not to Codex's own; a project's files only when Codex trusts the project (`trust_level = "trusted"`); `shell_environment_policy.set` in `config.toml` wins over it | Done 2026-11-20 `2a011b3a43` |
+| `permissions`, with the Claude tool set off | Applied to Claude Code's tools | An approximation for commands only: a Bash rule that names a command prefix (`Bash(git status)`, `Bash(git diff*)`, `Bash(gh pr *)`, `Bash(npm run:*)`) becomes a Codex command rule of the same prefix, word by word. `allow` runs without asking (and, as for any Codex allow rule, outside the sandbox), `ask` asks, `deny` forbids; the strictest matching rule wins, as in Claude Code. A word cut short by `*` (`--force*`) matches only that whole word. Only the user's file is read. Rules for other tools, wildcards inside a command, `defaultMode` and `additionalDirectories` are not applied | Done 2026-11-17 `80c1279420` |
+| `permissions`, with the Claude tool set on | Applied | All of `allow`, `ask` and `deny` from the three files; see "Permission rules". The approximation above is then not loaded | Done 2026-11-18 `6c5d824b9f` |
 
 ### Subagents
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| What a subagent is | An agent type of its own | An agent role of the same name: its `description` is the role's description, its body the role's developer instructions, and its `effort` the reasoning effort (`low`, `medium`, `high`, and `max` as `xhigh`; `xhigh` itself and a number are left out) |
-| A subagent and a Codex role of the same name | Not applicable | Codex's own role wins |
-| `tools` and `disallowedTools` | Applied | Applied only with the Claude tool set on; ignored without it. With it, the names are the ones the model sees: Claude Code's names, `mcp__<server>__<tool>` for MCP tools, Codex's own name for a Codex tool with no Claude counterpart; a Codex tool that serves a Claude tool goes with it (`write_stdin` with `Bash`, Codex's other agent tools with `Agent`). Hosted tools (Codex's built-in web search) and the tools code mode and tool search add are not filtered |
-| A subagent starting agents of its own | Newer versions allow it, 3 layers deep (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`); the reference source does not | Allowed within Codex's depth limit |
-| A subagent file with an empty body | Accepted | Ignored |
-| Which subagent wins among those of one name | A plugin's, then the user's, then the project's, then one given with `--agents`, then a managed one, the later winning | Codex's own role, then the project's, then the user's, then a plugin's, the earlier winning |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| What a subagent is | An agent type of its own | An agent role of the same name: its `description` is the role's description, its body the role's developer instructions, and its `effort` the reasoning effort (`low`, `medium`, `high`, and `max` as `xhigh`; `xhigh` itself and a number are left out) | Done 2026-11-17 `80c1279420` |
+| A subagent and a Codex role of the same name | Not applicable | Codex's own role wins | Done 2026-11-17 `80c1279420` |
+| `tools` and `disallowedTools` | Applied | Applied only with the Claude tool set on; ignored without it. With it, the names are the ones the model sees: Claude Code's names, `mcp__<server>__<tool>` for MCP tools, Codex's own name for a Codex tool with no Claude counterpart; a Codex tool that serves a Claude tool goes with it (`write_stdin` with `Bash`, Codex's other agent tools with `Agent`). Hosted tools (Codex's built-in web search) and the tools code mode and tool search add are not filtered | Done 2026-11-18 `bf914e9b33` |
+| A subagent starting agents of its own | Newer versions allow it, 3 layers deep (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`); the reference source does not | Allowed within Codex's depth limit | Done 2026-11-18 `bf914e9b33` |
+| A subagent file with an empty body | Accepted | Ignored | Done 2026-11-17 `80c1279420` |
+| Which subagent wins among those of one name | A plugin's, then the user's, then the project's, then one given with `--agents`, then a managed one, the later winning | Codex's own role, then the project's, then the user's, then a plugin's, the earlier winning | Done 2026-11-19 `4ff3147125` |
 
 ### MCP servers
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| A server of a name Codex configures itself | Not applicable | Left to Codex's configuration |
-| `.mcp.json` in the root directory of the filesystem | Not read | Read |
-| Approval of a project's server recorded in the project's entry of `~/.claude.json` | An old place, since moved to the settings files | Still counts |
-| A project's server nobody has approved, in a session without a person | Started, unless it is disabled | Never started |
-| Names of MCP tools | `mcp__<server>__<tool>`, the server's name with anything but letters, digits, `_` and `-` turned into `_` | Codex's own naming of MCP tools, which permission rules and hook matchers see |
-| A project's own settings files approving its `.mcp.json` servers (`enabledMcpjsonServers`, `enableAllProjectMcpServers` in `.claude/settings.json` or `.claude/settings.local.json`) | Count once the folder is trusted; newer versions ignore them in a folder that is not | Count only in a project Codex trusts. Elsewhere only the user's own files approve a server; what the project's files disable is honoured either way |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| A server of a name Codex configures itself | Not applicable | Left to Codex's configuration | Done 2026-11-17 `80c1279420` |
+| `.mcp.json` in the root directory of the filesystem | Not read | Read | Done 2026-11-17 `80c1279420` |
+| Approval of a project's server recorded in the project's entry of `~/.claude.json` | An old place, since moved to the settings files | Still counts | Done 2026-11-17 `80c1279420` |
+| A project's server nobody has approved, in a session without a person | Started, unless it is disabled | Never started | Done 2026-11-17 `80c1279420` |
+| Names of MCP tools | `mcp__<server>__<tool>`, the server's name with anything but letters, digits, `_` and `-` turned into `_` | Codex's own naming of MCP tools, which permission rules and hook matchers see | Done 2026-11-17 `80c1279420` |
+| A project's own settings files approving its `.mcp.json` servers (`enabledMcpjsonServers`, `enableAllProjectMcpServers` in `.claude/settings.json` or `.claude/settings.local.json`) | Count once the folder is trusted; newer versions ignore them in a folder that is not | Count only in a project Codex trusts. Elsewhere only the user's own files approve a server; what the project's files disable is honoured either way | Done 2026-11-20 `2a011b3a43` |
 
 ### Auto memory
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| Where the instructions and the index are shown | The instructions in its system prompt, the index among the `CLAUDE.md` files | Both together, after the project's instructions |
-| Tool names in the instructions | Claude Code's | Codex's: files are written with `apply_patch`, the task list is `update_plan`, and `AGENTS.md` is named beside `CLAUDE.md` among the files whose content is not to be saved again |
-| Writing a memory without an approval | Always | When the session may write its workspace (`workspace-write`), the directory is added to the sandbox's writable roots; a read-only session stays read-only, and full access needs nothing. Requirements that do not allow the extra root leave the sandbox as it was. Changing the permissions during a session (`/permissions`) drops the extra root |
-| A project whose path is longer than 200 characters | The directory's name is cut to 200 characters and a hash | No memory directory is used |
-| A project's settings files naming the directory (`autoMemoryDirectory` of `.claude/settings.local.json`, the memory variables in their `env`), in a project Codex does not trust | Taken once the folder is trusted | Not taken: the directory becomes writable, and the files come with the repository. They can still turn the memory off |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| Where the instructions and the index are shown | The instructions in its system prompt, the index among the `CLAUDE.md` files | Both together, after the project's instructions | Done 2026-11-17 `34b9401100` |
+| Tool names in the instructions | Claude Code's | Codex's: files are written with `apply_patch`, the task list is `update_plan`, and `AGENTS.md` is named beside `CLAUDE.md` among the files whose content is not to be saved again | Done 2026-11-17 `34b9401100` |
+| Writing a memory without an approval | Always | When the session may write its workspace (`workspace-write`), the directory is added to the sandbox's writable roots; a read-only session stays read-only, and full access needs nothing. Requirements that do not allow the extra root leave the sandbox as it was. Changing the permissions during a session (`/permissions`) drops the extra root | Done 2026-11-17 `34b9401100` |
+| A project whose path is longer than 200 characters | The directory's name is cut to 200 characters and a hash | No memory directory is used | Done 2026-11-17 `34b9401100` |
+| A project's settings files naming the directory (`autoMemoryDirectory` of `.claude/settings.local.json`, the memory variables in their `env`), in a project Codex does not trust | Taken once the folder is trusted | Not taken: the directory becomes writable, and the files come with the repository. They can still turn the memory off | Done 2026-11-20 `2a011b3a43` |
 
 To keep the memory directory writable whatever the permission mode, add it to `config.toml`
 yourself:
@@ -395,15 +402,15 @@ path: nothing is copied, and Codex's `config.toml` is not written. `[plugins]` p
 configuration applies to these plugins as to Codex's own, and `CCN_CLAUDE_COMPAT=0` or turning
 Codex's `plugins` feature off leaves them all out.
 
-| Behaviour | Claude Code | Codex |
-| --- | --- | --- |
-| A plugin Codex configures under the same id, or has installed under the same name from any marketplace | Not applicable | Codex's wins, and the Claude Code one is left out |
-| A plugin that relies on a mechanism only Claude Code has | Used | Disabled whole, with a startup warning; see "Which plugins are used" below |
-| Where `${CLAUDE_PLUGIN_ROOT}` is filled in | Hook, MCP and LSP declarations, the bodies of skills, commands and agents, and the environment of hooks and of MCP and LSP servers | Hook commands, MCP server declarations, agent bodies, and the environment of hooks |
-| Which files give `userConfig` its plain values | `pluginConfigs` of all the settings files, merged | `pluginConfigs` of `~/.claude/settings.json` only |
-| The manifest's `agents` list | Stands in place of `agents/` | Read beside `agents/` |
-| `${CLAUDE_PLUGIN_DATA}` in an MCP server's declaration | Filled in | Left as written; a hook's environment has it |
-| A project's settings enabling a plugin (`enabledPlugins` of `.claude/settings.json`), in a project Codex does not trust | Counts once the folder is trusted | Counts whatever the trust: a plugin the user has installed is used, its MCP servers included; only its hooks wait for trust |
+| Behaviour | Claude Code | Codex | Status |
+| --- | --- | --- | --- |
+| A plugin Codex configures under the same id, or has installed under the same name from any marketplace | Not applicable | Codex's wins, and the Claude Code one is left out | Done 2026-11-18 `471d20cf39` |
+| A plugin that relies on a mechanism only Claude Code has | Used | Disabled whole, with a startup warning; see "Which plugins are used" below | Done 2026-11-18 `471d20cf39` |
+| Where `${CLAUDE_PLUGIN_ROOT}` is filled in | Hook, MCP and LSP declarations, the bodies of skills, commands and agents, and the environment of hooks and of MCP and LSP servers | Hook commands, MCP server declarations, agent bodies, and the environment of hooks | Done 2026-11-19 `4ff3147125` |
+| Which files give `userConfig` its plain values | `pluginConfigs` of all the settings files, merged | `pluginConfigs` of `~/.claude/settings.json` only | Done 2026-11-19 `4ff3147125` |
+| The manifest's `agents` list | Stands in place of `agents/` | Read beside `agents/` | Done 2026-11-19 `4ff3147125` |
+| `${CLAUDE_PLUGIN_DATA}` in an MCP server's declaration | Filled in | Left as written; a hook's environment has it | Done 2026-11-19 `4ff3147125` |
+| A project's settings enabling a plugin (`enabledPlugins` of `.claude/settings.json`), in a project Codex does not trust | Counts once the folder is trusted | Counts whatever the trust: a plugin the user has installed is used, its MCP servers included; only its hooks wait for trust | Done 2026-11-18 `471d20cf39` |
 
 #### Which plugins are used
 
@@ -449,130 +456,130 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 
 ### Instructions and rules
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| Which files are instructions | `~/.claude/CLAUDE.md`, `~/.claude/rules/**/*.md`, and in a project `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/rules/**/*.md`, `CLAUDE.local.md` | The same files, read in place |
-| Order of project files | Every directory from the top of the filesystem down to the working directory | The same order, and in each directory the order of the row above. In the home directory, `.claude` is the user's own configuration and is not read a second time |
-| How a file is shown | A section headed `Contents of <path> (<kind>):`, under the line that these instructions override default behaviour | The same heading and the same line |
-| Frontmatter and comments | YAML frontmatter and HTML comment blocks are removed (a comment inside a paragraph stays); files that are left empty are skipped | The same |
-| `@<path>` includes | Another file is included after the one naming it (`@./x`, `@~/x`, `@/abs/x` or `@x`), not inside code blocks or code spans, and only a file of a text type; a project file may include files under the working directory, `~/.claude/CLAUDE.md` any | The same; depth and includes outside the working directory are under "Differences" |
-| Globs of a rule's `paths:` | Gitignore syntax, relative to the working directory for the user's rules and to the directory holding `.claude` for a project's; `{a,b}` is expanded; a list or a comma-separated string | The same |
-| Which rules wait for a file | Rules with `paths:` (the user's, and those of every directory from the top of the filesystem down to the working directory), and the `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md` and rules of directories below the working directory, for a file inside the working directory | The same |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| Which files are instructions | `~/.claude/CLAUDE.md`, `~/.claude/rules/**/*.md`, and in a project `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/rules/**/*.md`, `CLAUDE.local.md` | The same files, read in place | Done 2026-11-17 `80c1279420` |
+| Order of project files | Every directory from the top of the filesystem down to the working directory | The same order, and in each directory the order of the row above. In the home directory, `.claude` is the user's own configuration and is not read a second time | Done 2026-11-17 `80c1279420` |
+| How a file is shown | A section headed `Contents of <path> (<kind>):`, under the line that these instructions override default behaviour | The same heading and the same line | Done 2026-11-17 `80c1279420` |
+| Frontmatter and comments | YAML frontmatter and HTML comment blocks are removed (a comment inside a paragraph stays); files that are left empty are skipped | The same | Done 2026-11-17 `80c1279420` |
+| `@<path>` includes | Another file is included after the one naming it (`@./x`, `@~/x`, `@/abs/x` or `@x`), not inside code blocks or code spans, and only a file of a text type; a project file may include files under the working directory, `~/.claude/CLAUDE.md` any | The same; depth and includes outside the working directory are under "Differences" | Done 2026-11-17 `80c1279420` |
+| Globs of a rule's `paths:` | Gitignore syntax, relative to the working directory for the user's rules and to the directory holding `.claude` for a project's; `{a,b}` is expanded; a list or a comma-separated string | The same | Done 2026-11-17 `80c1279420` |
+| Which rules wait for a file | Rules with `paths:` (the user's, and those of every directory from the top of the filesystem down to the working directory), and the `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md` and rules of directories below the working directory, for a file inside the working directory | The same | Done 2026-11-17 `80c1279420` |
 
 ### Skills and slash commands
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| Skill roots | `~/.claude/skills/`, and `.claude/skills/` in each directory from the working directory up to the repository's root | A user skill root and a repository skill root in each of those directories, read by Codex's own skill loader beside `~/.agents/skills` and `.agents/skills` |
-| `description` missing or empty | The first non-empty line of the body stands in, its heading marks removed, cut to 100 characters | The same |
-| `when_to_use` | Shown with the description | Appended to the description as ` - <text>` |
-| Custom commands | `~/.claude/commands/<name>.md`, `.claude/commands/<name>.md` of a project and the directories up to the working directory | Loaded in place as skills of that name by the same loader, so they are listed, invoked and expanded as skills are |
-| A command in a subdirectory | Named after its path, the directories joined with `:` (`commands/git/commit.md` is `/git:commit`); frontmatter `name` is ignored | The same |
-| A plugin's commands | `<plugin>:<name>`, with the subdirectories in between | The same, as skills (`commands/`, or the directories the manifest's `commands` lists) |
-| A command's frontmatter | Optional; `description`, or else the first line of the body, is what the model sees; `disable-model-invocation: true` keeps it out of the model's list | The same |
-| `/<name> <args>` | Invokes the skill or command | In the TUI, for any skill Codex lists (Claude Code's and Codex's own). Once a name is typed after `/`, the slash popup lists the matching skills after the commands; Enter or Tab completes the name. The message is sent as typed, with the skill attached as `$<name>` would attach it |
-| What the model is given for `/<name> <args>` | The body without its frontmatter, headed `Base directory for this skill: <dir>` when the skill is a directory | The same, when the skill's `SKILL.md` is a file on this machine and Codex itself puts it into the conversation |
-| `$ARGUMENTS`, `$ARGUMENTS[N]`, `$N` | The arguments as typed; the N-th word, counted from 0 and split as a shell splits words, with quotes | The same. A placeholder past the last word becomes empty |
-| Named arguments | `$<name>` is the word at the position of `<name>` in the `arguments` frontmatter (a list, or names separated by spaces) | The same |
-| No placeholder in the body | The arguments are appended as `ARGUMENTS: <args>` | The same |
-| `${CLAUDE_SKILL_DIR}` | The skill's directory | The same, also when the skill is mentioned as `$<name>`; such a mention keeps the rest of the text as it is, `$ARGUMENTS` included |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| Skill roots | `~/.claude/skills/`, and `.claude/skills/` in each directory from the working directory up to the repository's root | A user skill root and a repository skill root in each of those directories, read by Codex's own skill loader beside `~/.agents/skills` and `.agents/skills` | Done 2026-11-17 `80c1279420` |
+| `description` missing or empty | The first non-empty line of the body stands in, its heading marks removed, cut to 100 characters | The same | Done 2026-11-17 `2471894159` |
+| `when_to_use` | Shown with the description | Appended to the description as ` - <text>` | Done 2026-11-17 `2471894159` |
+| Custom commands | `~/.claude/commands/<name>.md`, `.claude/commands/<name>.md` of a project and the directories up to the working directory | Loaded in place as skills of that name by the same loader, so they are listed, invoked and expanded as skills are | Done 2026-11-18 `c58a3409c6` |
+| A command in a subdirectory | Named after its path, the directories joined with `:` (`commands/git/commit.md` is `/git:commit`); frontmatter `name` is ignored | The same | Done 2026-11-18 `c58a3409c6` |
+| A plugin's commands | `<plugin>:<name>`, with the subdirectories in between | The same, as skills (`commands/`, or the directories the manifest's `commands` lists) | Done 2026-11-19 `3134f1b61a` |
+| A command's frontmatter | Optional; `description`, or else the first line of the body, is what the model sees; `disable-model-invocation: true` keeps it out of the model's list | The same | Done 2026-11-18 `c58a3409c6` |
+| `/<name> <args>` | Invokes the skill or command | In the TUI, for any skill Codex lists (Claude Code's and Codex's own). Once a name is typed after `/`, the slash popup lists the matching skills after the commands; Enter or Tab completes the name. The message is sent as typed, with the skill attached as `$<name>` would attach it | Done 2026-11-17 `0d118bdf09` |
+| What the model is given for `/<name> <args>` | The body without its frontmatter, headed `Base directory for this skill: <dir>` when the skill is a directory | The same, when the skill's `SKILL.md` is a file on this machine and Codex itself puts it into the conversation | Done 2026-11-17 `0d118bdf09` |
+| `$ARGUMENTS`, `$ARGUMENTS[N]`, `$N` | The arguments as typed; the N-th word, counted from 0 and split as a shell splits words, with quotes | The same. A placeholder past the last word becomes empty | Done 2026-11-17 `0d118bdf09` |
+| Named arguments | `$<name>` is the word at the position of `<name>` in the `arguments` frontmatter (a list, or names separated by spaces) | The same | Done 2026-11-17 `0d118bdf09` |
+| No placeholder in the body | The arguments are appended as `ARGUMENTS: <args>` | The same | Done 2026-11-17 `0d118bdf09` |
+| `${CLAUDE_SKILL_DIR}` | The skill's directory | The same, also when the skill is mentioned as `$<name>`; such a mention keeps the rest of the text as it is, `$ARGUMENTS` included | Done 2026-11-17 `0d118bdf09` |
 
 ### Hooks
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| The `hooks` key | Events, each with groups of a `matcher` and handlers; a handler has `type`, `timeout`, `async`, `statusMessage`, `if`, and what its type needs (`command`; `prompt`, `model`; `url`, `headers`, `allowedEnvVars`) | Read by Codex's hook engine, which takes the same shape, from the same three settings files |
-| The user's own hooks | Run without a question for each hook | Run without Codex's per-hook trust prompt |
-| `CLAUDE_PROJECT_DIR` | The project directory | The working directory |
-| Input on stdin | `cwd`, `hook_event_name`; `tool_name`, `tool_input`, `tool_use_id` and `tool_response` for tool events; `prompt` for `UserPromptSubmit`; `source` (`startup`, `resume`, `clear`, `compact`) for `SessionStart`; `stop_hook_active` and `last_assistant_message` for `Stop`; `agent_id`, `agent_type` and `agent_transcript_path` for `SubagentStop`; `agent_id` and `agent_type` in a subagent's hooks; `message`, `title` and `notification_type` for `Notification` | The same fields |
-| JSON output | `hookSpecificOutput.permissionDecision: "deny"` with `permissionDecisionReason`, and `"allow"` with `updatedInput` to change the tool's input, for `PreToolUse`; `decision: "block"` with `reason` for `PreToolUse`, `Stop`, `SubagentStop`, `UserPromptSubmit` and `PostToolUse`; `additionalContext` for `SessionStart`, `SubagentStart`, `UserPromptSubmit`, `PreToolUse` and `PostToolUse`; `systemMessage`, `continue` and `stopReason` | The same for these; what Codex refuses is under "Not yet implemented" |
-| Plain stdout | Context for `SessionStart` and `UserPromptSubmit` | The same |
-| Tool events with the Claude tool set on | Claude Code's tool names, input and `tool_response` | `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebFetch`, `WebSearch`, `TodoWrite`, `AskUserQuestion` and `Agent` are the tools' own names: the hook input carries that name and Claude Code's input (`command`, `timeout`, `description`; `file_path`, `old_string`, `new_string`; ...), and `PostToolUse` gets Claude Code's `tool_response` (`stdout`, `stderr`, `interrupted` for `Bash`; `bytes`, `code`, `codeText`, `result`, `durationMs`, `url` for `WebFetch`; `query`, `results`, `durationSeconds` for `WebSearch`) |
-| A shell command that exits with a non-zero code | A failure: `PostToolUseFailure` runs, with `error` set to `Exit code N` and the output, and `PostToolUse` does not | The same for the settings files' hooks. `additionalContext`, or stderr with exit code 2, reaches the model |
-| `Notification` and `StopFailure` | Run in the background; their output is ignored | The same. The matcher is matched against `notification_type`, or against the kind of error |
-| `if` | A handler with an `if` runs only for the tool calls its permission rule covers (`PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`), and never for another event | The same. The rule's tool is compared with the names the call is matched by. Its content is matched for the tools Claude Code matches it for: `Bash(git *)` against each simple command of the command line (a command that cannot be taken apart runs the hook), `Read`, `Edit` and `Write` against `file_path`, `Glob` and `Grep` against `pattern`; content for any other tool never matches |
-| `once` in the settings files | Does nothing: it only applies to the hooks of a skill's frontmatter | Does nothing |
-| `type: "prompt"` and `type: "agent"`: the verdict | A model reads the handler's `prompt`, with the hook input in place of `$ARGUMENTS` (after the prompt, as `ARGUMENTS: ...`, when it names none), and answers `{"ok": true}` or `{"ok": false, "reason": "..."}`. An answer that is not such JSON, an error or a timeout (30 s for `prompt`, 60 s for `agent`, or the handler's `timeout`) does not block | The same; what a condition that is not met does is under "Differences" |
-| `type: "http"` | The hook input is posted as JSON to `url`, and the JSON object the server answers with (or an empty body) is read as a command's stdout is. A response outside 2xx, a failed request, a body that is not a JSON object and a timeout (600 s, or `timeout`) are errors that do not block | The same |
-| `type: "http"`: headers | `headers` values may name environment variables (`$NAME`, `${NAME}`), filled in only for the names in the handler's `allowedEnvVars` and empty otherwise | The same |
-| `type: "http"`: limits | `allowedHttpHookUrls` and `httpHookAllowedEnvVars` of the settings files (lists of several files are joined) narrow which URLs and variables any handler may use; redirects are not followed; without a proxy for the host, a host that resolves to a private or link-local address is refused, loopback excepted; `http` handlers do not run for `SessionStart` | The same |
-| An enabled plugin's hooks | Run without asking | The same for a plugin the user's own `~/.claude/settings.json` enables. They see `CLAUDE_PLUGIN_ROOT` (the install path), `CLAUDE_PLUGIN_DATA`, `CLAUDE_PROJECT_DIR` and `CLAUDE_CODE_ENTRYPOINT` |
-| Events | `PreToolUse`, `PostToolUse` and `PermissionRequest` (matcher: the tool's name), `UserPromptSubmit`, `SessionStart` (matcher: `source`), `SessionEnd`, `Stop`, `SubagentStart` and `SubagentStop` (matcher: the agent's type), `PreCompact` and `PostCompact` (matcher: `manual` or `auto`) | The same events of Codex's own hook engine, run at Codex's moments of the same name |
-| A command handler's time limit | 600 seconds, or its `timeout` | The same |
-| Handlers of one event | Run side by side | The same |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| The `hooks` key | Events, each with groups of a `matcher` and handlers; a handler has `type`, `timeout`, `async`, `statusMessage`, `if`, and what its type needs (`command`; `prompt`, `model`; `url`, `headers`, `allowedEnvVars`) | Read by Codex's hook engine, which takes the same shape, from the same three settings files | Done 2026-11-17 `80c1279420` |
+| The user's own hooks | Run without a question for each hook | Run without Codex's per-hook trust prompt | Done 2026-11-17 `80c1279420` |
+| `CLAUDE_PROJECT_DIR` | The project directory | The working directory | Done 2026-11-17 `df06fbae01` |
+| Input on stdin | `cwd`, `hook_event_name`; `tool_name`, `tool_input`, `tool_use_id` and `tool_response` for tool events; `prompt` for `UserPromptSubmit`; `source` (`startup`, `resume`, `clear`, `compact`) for `SessionStart`; `stop_hook_active` and `last_assistant_message` for `Stop`; `agent_id`, `agent_type` and `agent_transcript_path` for `SubagentStop`; `agent_id` and `agent_type` in a subagent's hooks; `message`, `title` and `notification_type` for `Notification` | The same fields | Done 2026-11-17 `80c1279420` |
+| JSON output | `hookSpecificOutput.permissionDecision: "deny"` with `permissionDecisionReason`, and `"allow"` with `updatedInput` to change the tool's input, for `PreToolUse`; `decision: "block"` with `reason` for `PreToolUse`, `Stop`, `SubagentStop`, `UserPromptSubmit` and `PostToolUse`; `additionalContext` for `SessionStart`, `SubagentStart`, `UserPromptSubmit`, `PreToolUse` and `PostToolUse`; `systemMessage`, `continue` and `stopReason` | The same for these; what Codex refuses is under "Not yet implemented" | Done 2026-11-17 `80c1279420` |
+| Plain stdout | Context for `SessionStart` and `UserPromptSubmit` | The same | Done 2026-11-17 `80c1279420` |
+| Tool events with the Claude tool set on | Claude Code's tool names, input and `tool_response` | `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebFetch`, `WebSearch`, `TodoWrite`, `AskUserQuestion` and `Agent` are the tools' own names: the hook input carries that name and Claude Code's input (`command`, `timeout`, `description`; `file_path`, `old_string`, `new_string`; ...), and `PostToolUse` gets Claude Code's `tool_response` (`stdout`, `stderr`, `interrupted` for `Bash`; `bytes`, `code`, `codeText`, `result`, `durationMs`, `url` for `WebFetch`; `query`, `results`, `durationSeconds` for `WebSearch`) | Done 2026-11-17 `c14ae9210a` |
+| A shell command that exits with a non-zero code | A failure: `PostToolUseFailure` runs, with `error` set to `Exit code N` and the output, and `PostToolUse` does not | The same for the settings files' hooks. `additionalContext`, or stderr with exit code 2, reaches the model | Done 2026-11-17 `df06fbae01` |
+| `Notification` and `StopFailure` | Run in the background; their output is ignored | The same. The matcher is matched against `notification_type`, or against the kind of error | Done 2026-11-17 `df06fbae01` |
+| `if` | A handler with an `if` runs only for the tool calls its permission rule covers (`PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`), and never for another event | The same. The rule's tool is compared with the names the call is matched by. Its content is matched for the tools Claude Code matches it for: `Bash(git *)` against each simple command of the command line (a command that cannot be taken apart runs the hook), `Read`, `Edit` and `Write` against `file_path`, `Glob` and `Grep` against `pattern`; content for any other tool never matches | Done 2026-11-19 `358f5dc8ca` |
+| `once` in the settings files | Does nothing: it only applies to the hooks of a skill's frontmatter | Does nothing | Done 2026-11-19 `358f5dc8ca` |
+| `type: "prompt"` and `type: "agent"`: the verdict | A model reads the handler's `prompt`, with the hook input in place of `$ARGUMENTS` (after the prompt, as `ARGUMENTS: ...`, when it names none), and answers `{"ok": true}` or `{"ok": false, "reason": "..."}`. An answer that is not such JSON, an error or a timeout (30 s for `prompt`, 60 s for `agent`, or the handler's `timeout`) does not block | The same; what a condition that is not met does is under "Differences" | Done 2026-11-19 `57b49d1405` |
+| `type: "http"` | The hook input is posted as JSON to `url`, and the JSON object the server answers with (or an empty body) is read as a command's stdout is. A response outside 2xx, a failed request, a body that is not a JSON object and a timeout (600 s, or `timeout`) are errors that do not block | The same | Done 2026-11-19 `57b49d1405` |
+| `type: "http"`: headers | `headers` values may name environment variables (`$NAME`, `${NAME}`), filled in only for the names in the handler's `allowedEnvVars` and empty otherwise | The same | Done 2026-11-19 `57b49d1405` |
+| `type: "http"`: limits | `allowedHttpHookUrls` and `httpHookAllowedEnvVars` of the settings files (lists of several files are joined) narrow which URLs and variables any handler may use; redirects are not followed; without a proxy for the host, a host that resolves to a private or link-local address is refused, loopback excepted; `http` handlers do not run for `SessionStart` | The same | Done 2026-11-19 `57b49d1405` |
+| An enabled plugin's hooks | Run without asking | The same for a plugin the user's own `~/.claude/settings.json` enables. They see `CLAUDE_PLUGIN_ROOT` (the install path), `CLAUDE_PLUGIN_DATA`, `CLAUDE_PROJECT_DIR` and `CLAUDE_CODE_ENTRYPOINT` | Done 2026-11-18 `471d20cf39` |
+| Events | `PreToolUse`, `PostToolUse` and `PermissionRequest` (matcher: the tool's name), `UserPromptSubmit`, `SessionStart` (matcher: `source`), `SessionEnd`, `Stop`, `SubagentStart` and `SubagentStop` (matcher: the agent's type), `PreCompact` and `PostCompact` (matcher: `manual` or `auto`) | The same events of Codex's own hook engine, run at Codex's moments of the same name | Done 2026-11-17 `80c1279420` |
+| A command handler's time limit | 600 seconds, or its `timeout` | The same | Done 2026-11-17 `80c1279420` |
+| Handlers of one event | Run side by side | The same | Done 2026-11-17 `80c1279420` |
 
 ### Claude tool set
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| Parameters, descriptions and result texts of `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebSearch`, `WebFetch`, `TodoWrite`, `AskUserQuestion` and `Agent` | Claude Code's own | The same, produced by the layer over the Codex tool named in "How each tool is made", except for the parameters and texts the other chapters name |
-| `Bash`: `timeout` | Milliseconds, 2 minutes by default, at most 10 | The same; what happens at the limit, and the variables that move it, are under "Not yet implemented" |
-| `Bash`: result | Output trimmed; `Exit code N` and the output for a failed command; `(Bash completed with no output)` | The same |
-| `Read`: reading | `N<TAB>line` numbering from 1; the whole file when it is within the limits (256 KB without `limit`, 25,000 tokens); binary files and directories refused; the empty-file and short-file reminders | The same |
-| `Edit`: matching | Exact; refused when `old_string` is not found, or found more than once without `replace_all` | The same |
-| `Glob`: results | Sorted by modification time, oldest first, and the first 100 files kept, with a truncation note; hidden and ignored files included; paths inside the working directory shortened; `No files found` | The same |
-| `Grep`: options and output | `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `context`, `multiline`, `glob`, `type`; `head_limit` (250 by default, 0 for all) and `offset` with the pagination note; hidden files searched, VCS directories left out, `--max-columns 500`; `Found N files`, `No files found` (`No matches found` for the other modes), `Found N total occurrences across M files.`; the search stops after 20 seconds | The same |
-| `WebFetch`: checks and limits | A URL of at most 2000 characters without credentials and with a dotted host; HTTP upgraded to HTTPS; same-site redirects (`www.` added or removed) followed up to 10, other redirects reported; 10 MB; HTML to Markdown; 100,000 characters given to the secondary model, with the quoting rules of its prompt; a Markdown page of a preapproved host is returned as it is | The same |
-| `WebSearch`: parameters | `query` of at least 2 characters; `allowed_domains` or `blocked_domains`, not both | The same, with `allowed_domains` sent as the search's domain filter and `blocked_domains` as `-site:` operators |
-| `TodoWrite`: checks | `content`, `status` and `activeForm` for each item, both forms non-empty | The same; the step in progress shows its `activeForm` |
-| `AskUserQuestion`: shape | 1-4 questions of `question`, `header` and 2-4 options; unique questions and labels; the answer as `"question"="answer"`, with `user notes:`; not offered to subagents | The same |
-| `Agent`: types | The description lists each agent type with its tools; an unknown type gets Claude Code's message | The same, with `general-purpose` as Codex's default role |
-| `Grep`: ripgrep fails without a result (an invalid pattern, a path it cannot read) | From 2.1.208 on, ripgrep's message is returned; before, no match was reported | The model is told ripgrep's message |
-| `Edit`: files that are not UTF-8 | Refused | The same |
-| `Edit`: an empty `old_string` | Creates the file, or fills an empty one | The same |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| Parameters, descriptions and result texts of `Bash`, `Read`, `Write`, `Edit`, `Glob`, `Grep`, `WebSearch`, `WebFetch`, `TodoWrite`, `AskUserQuestion` and `Agent` | Claude Code's own | The same, produced by the layer over the Codex tool named in "How each tool is made", except for the parameters and texts the other chapters name | Done 2026-11-18 `c14ae9210a`, `092e61dcc8`, `5e56c5502a`, `bf914e9b33` |
+| `Bash`: `timeout` | Milliseconds, 2 minutes by default, at most 10 | The same; what happens at the limit, and the variables that move it, are under "Not yet implemented" | Done 2026-11-17 `c14ae9210a` |
+| `Bash`: result | Output trimmed; `Exit code N` and the output for a failed command; `(Bash completed with no output)` | The same | Done 2026-11-17 `c14ae9210a` |
+| `Read`: reading | `N<TAB>line` numbering from 1; the whole file when it is within the limits (256 KB without `limit`, 25,000 tokens); binary files and directories refused; the empty-file and short-file reminders | The same | Done 2026-11-17 `c14ae9210a` |
+| `Edit`: matching | Exact; refused when `old_string` is not found, or found more than once without `replace_all` | The same | Done 2026-11-17 `c14ae9210a` |
+| `Glob`: results | Sorted by modification time, oldest first, and the first 100 files kept, with a truncation note; hidden and ignored files included; paths inside the working directory shortened; `No files found` | The same | Done 2026-11-18 `092e61dcc8` |
+| `Grep`: options and output | `output_mode`, `-i`, `-n`, `-A`, `-B`, `-C`, `context`, `multiline`, `glob`, `type`; `head_limit` (250 by default, 0 for all) and `offset` with the pagination note; hidden files searched, VCS directories left out, `--max-columns 500`; `Found N files`, `No files found` (`No matches found` for the other modes), `Found N total occurrences across M files.`; the search stops after 20 seconds | The same | Done 2026-11-18 `092e61dcc8` |
+| `WebFetch`: checks and limits | A URL of at most 2000 characters without credentials and with a dotted host; HTTP upgraded to HTTPS; same-site redirects (`www.` added or removed) followed up to 10, other redirects reported; 10 MB; HTML to Markdown; 100,000 characters given to the secondary model, with the quoting rules of its prompt; a Markdown page of a preapproved host is returned as it is | The same | Done 2026-11-18 `5e56c5502a` |
+| `WebSearch`: parameters | `query` of at least 2 characters; `allowed_domains` or `blocked_domains`, not both | The same, with `allowed_domains` sent as the search's domain filter and `blocked_domains` as `-site:` operators | Done 2026-11-18 `5e56c5502a` |
+| `TodoWrite`: checks | `content`, `status` and `activeForm` for each item, both forms non-empty | The same; the step in progress shows its `activeForm` | Done 2026-11-18 `bf914e9b33` |
+| `AskUserQuestion`: shape | 1-4 questions of `question`, `header` and 2-4 options; unique questions and labels; the answer as `"question"="answer"`, with `user notes:`; not offered to subagents | The same | Done 2026-11-18 `bf914e9b33` |
+| `Agent`: types | The description lists each agent type with its tools; an unknown type gets Claude Code's message | The same, with `general-purpose` as Codex's default role | Done 2026-11-18 `bf914e9b33` |
+| `Grep`: ripgrep fails without a result (an invalid pattern, a path it cannot read) | From 2.1.208 on, ripgrep's message is returned; before, no match was reported | The model is told ripgrep's message | Done 2026-11-18 `092e61dcc8` |
+| `Edit`: files that are not UTF-8 | Refused | The same | Done 2026-11-17 `c14ae9210a` |
+| `Edit`: an empty `old_string` | Creates the file, or fills an empty one | The same | Done 2026-11-17 `c14ae9210a` |
 
 ### Permission rules (with the Claude tool set on)
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| Sources | `permissions.allow`, `ask` and `deny` of `~/.claude/settings.json`, `.claude/settings.json` and `.claude/settings.local.json` | The same three files |
-| Precedence | Deny wins over ask, ask over allow; a rule for a whole tool (`Bash`, `WebSearch`) is looked at first for deny and ask, last for allow | The same |
-| `Bash(...)` | An exact command; a legacy prefix `npm run:*` (the word itself, or followed by a space, also after `xargs`); or a pattern with `*` wildcards (`git * main`; `\*` is a literal star; a single trailing ` *` also matches the bare command) | The same |
-| Compound commands | Taken apart at `&&`, `\|\|`, `;`, `\|`, `\|&`, `&` and line breaks outside quotes, heredoc bodies left out, a part that is `cd <working directory>` dropped: a deny or ask rule for any part decides the whole, an allow rule allows it only when every part is allowed (or the whole command is an exact rule) | The same |
-| What is dropped before matching | Output redirections to plain files, safe variable assignments (`LANG=C`, `NODE_ENV=...`, the list Claude Code keeps) and, at the start, the wrappers `timeout`, `time`, `nice`, `stdbuf`, `nohup`; deny and ask rules drop any variable assignment | The same |
-| Limits of allow rules for commands | A prefix or wildcard allow rule never matches a part that still looks compound | The same |
-| `Read(...)` and `Edit(...)` | Gitignore patterns, compared without regard to case. `//path` is absolute, `~/path` is in the home directory, `/path` is relative to the settings file's root (`~/.claude` for the user's file), anything else (`*.env`, `./src/**`) is relative to the working directory, and a pattern without a slash matches at any depth. `dir/**` covers the directory and everything in it | The same |
-| Which tools a path rule governs | `Read` rules govern `Read`, `Glob` and `Grep`; `Edit` rules govern `Edit` and `Write` (`Write(...)` rules with a path do nothing); an `Edit` allow rule also allows reading | The same |
-| `WebFetch(domain:<host>)` | The URL's host name, exactly | The same; the wildcards of newer versions are under "Not yet implemented" |
-| `mcp__<server>__<tool>`, `mcp__<server>`, `mcp__<server>__*` | An MCP tool, or every tool of a server | The same; Codex's MCP tools are checked under the same names |
-| `Agent(<type>)` as a deny rule, `Task` read as `Agent` | The type is denied | The same decision, with the layer's own denial text |
-| A denied call | The model gets a denial (`Permission to use Bash with command ... has been denied.`, `Permission to read ... has been denied.`, ...) | The same text |
-| `ask` where nobody can be asked | The call fails without a question, in a session without a person | Denied when the approval policy cannot ask (`never`, or `granular` without rule approvals) |
-| Files no allow rule covers | `.git`, `.vscode`, `.idea`, `.claude` (except `.claude/worktrees`), shell profiles, `.gitconfig`, `.gitmodules`, `.ripgreprc`, `.mcp.json` and `.claude.json` are asked about whatever the allow rules say, a rule for the whole `Edit` tool included | The same files are left out of every allow rule; who asks is under "Incompatible" |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| Sources | `permissions.allow`, `ask` and `deny` of `~/.claude/settings.json`, `.claude/settings.json` and `.claude/settings.local.json` | The same three files | Done 2026-11-18 `6c5d824b9f` |
+| Precedence | Deny wins over ask, ask over allow; a rule for a whole tool (`Bash`, `WebSearch`) is looked at first for deny and ask, last for allow | The same | Done 2026-11-18 `6c5d824b9f` |
+| `Bash(...)` | An exact command; a legacy prefix `npm run:*` (the word itself, or followed by a space, also after `xargs`); or a pattern with `*` wildcards (`git * main`; `\*` is a literal star; a single trailing ` *` also matches the bare command) | The same | Done 2026-11-18 `6c5d824b9f` |
+| Compound commands | Taken apart at `&&`, `\|\|`, `;`, `\|`, `\|&`, `&` and line breaks outside quotes, heredoc bodies left out, a part that is `cd <working directory>` dropped: a deny or ask rule for any part decides the whole, an allow rule allows it only when every part is allowed (or the whole command is an exact rule) | The same | Done 2026-11-18 `6c5d824b9f` |
+| What is dropped before matching | Output redirections to plain files, safe variable assignments (`LANG=C`, `NODE_ENV=...`, the list Claude Code keeps) and, at the start, the wrappers `timeout`, `time`, `nice`, `stdbuf`, `nohup`; deny and ask rules drop any variable assignment | The same | Done 2026-11-18 `6c5d824b9f` |
+| Limits of allow rules for commands | A prefix or wildcard allow rule never matches a part that still looks compound | The same | Done 2026-11-18 `6c5d824b9f` |
+| `Read(...)` and `Edit(...)` | Gitignore patterns, compared without regard to case. `//path` is absolute, `~/path` is in the home directory, `/path` is relative to the settings file's root (`~/.claude` for the user's file), anything else (`*.env`, `./src/**`) is relative to the working directory, and a pattern without a slash matches at any depth. `dir/**` covers the directory and everything in it | The same | Done 2026-11-18 `6c5d824b9f` |
+| Which tools a path rule governs | `Read` rules govern `Read`, `Glob` and `Grep`; `Edit` rules govern `Edit` and `Write` (`Write(...)` rules with a path do nothing); an `Edit` allow rule also allows reading | The same | Done 2026-11-18 `6c5d824b9f` |
+| `WebFetch(domain:<host>)` | The URL's host name, exactly | The same; the wildcards of newer versions are under "Not yet implemented" | Done 2026-11-18 `4e25eb7045` |
+| `mcp__<server>__<tool>`, `mcp__<server>`, `mcp__<server>__*` | An MCP tool, or every tool of a server | The same; Codex's MCP tools are checked under the same names | Done 2026-11-18 `6c5d824b9f` |
+| `Agent(<type>)` as a deny rule, `Task` read as `Agent` | The type is denied | The same decision, with the layer's own denial text | Done 2026-11-18 `4e25eb7045` |
+| A denied call | The model gets a denial (`Permission to use Bash with command ... has been denied.`, `Permission to read ... has been denied.`, ...) | The same text | Done 2026-11-18 `6c5d824b9f` |
+| `ask` where nobody can be asked | The call fails without a question, in a session without a person | Denied when the approval policy cannot ask (`never`, or `granular` without rule approvals) | Done 2026-11-18 `6c5d824b9f` |
+| Files no allow rule covers | `.git`, `.vscode`, `.idea`, `.claude` (except `.claude/worktrees`), shell profiles, `.gitconfig`, `.gitmodules`, `.ripgreprc`, `.mcp.json` and `.claude.json` are asked about whatever the allow rules say, a rule for the whole `Edit` tool included | The same files are left out of every allow rule; who asks is under "Incompatible" | Done 2026-11-20 `2a011b3a43` |
 
 ### Settings, subagents and MCP servers
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| `env` of the settings files | The user's file, then the project's and the local one, later files winning | The same order |
-| Subagent files | `~/.claude/agents/**/*.md` and `.claude/agents/**/*.md`, with `name` and `description` in the frontmatter and the body as the prompt; a project's win over the user's | The same, for `.claude/agents` of the working directory |
-| A subagent's `tools` list, with the Claude tool set on | Every tool a subagent may have when absent or `*`, none when empty; `disallowedTools` taken away, where `Bash(git *)` takes all of `Bash`; `Task` counts as `Agent`; an MCP tool has to be listed like any other | The same. The list is read from the subagent file each time the agent's tools are built, and applied after MCP and dynamic tools are added |
-| A plugin's agents | `<plugin>:<name>`, with the subdirectories of the agent directory in between; `name` defaults to the file's name and `description` to `Agent from <plugin> plugin`; the body may use `${CLAUDE_PLUGIN_ROOT}` and `${user_config.KEY}` (a sensitive option is named, not shown); a user's or a project's agent of the same name wins | The same, as roles |
-| MCP servers of the user | `mcpServers` of `~/.claude.json` | The same |
-| MCP servers of a project | The `.mcp.json` files of the working directory and the directories above it, the nearer winning; a server there only once approved by `enabledMcpjsonServers` or `enableAllProjectMcpServers` and not listed in `disabledMcpjsonServers`; then the servers `~/.claude.json` keeps for the project, which win | The same |
-| Variables in a server's declaration | `${VAR}` and `${VAR:-default}` are expanded in `command`, `args`, `env`, `url` and `headers`; a variable that is not set and has no default stays as written | The same |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| `env` of the settings files | The user's file, then the project's and the local one, later files winning | The same order | Done 2026-11-17 `80c1279420` |
+| Subagent files | `~/.claude/agents/**/*.md` and `.claude/agents/**/*.md`, with `name` and `description` in the frontmatter and the body as the prompt; a project's win over the user's | The same, for `.claude/agents` of the working directory | Done 2026-11-17 `80c1279420` |
+| A subagent's `tools` list, with the Claude tool set on | Every tool a subagent may have when absent or `*`, none when empty; `disallowedTools` taken away, where `Bash(git *)` takes all of `Bash`; `Task` counts as `Agent`; an MCP tool has to be listed like any other | The same. The list is read from the subagent file each time the agent's tools are built, and applied after MCP and dynamic tools are added | Done 2026-11-18 `bf914e9b33` |
+| A plugin's agents | `<plugin>:<name>`, with the subdirectories of the agent directory in between; `name` defaults to the file's name and `description` to `Agent from <plugin> plugin`; the body may use `${CLAUDE_PLUGIN_ROOT}` and `${user_config.KEY}` (a sensitive option is named, not shown); a user's or a project's agent of the same name wins | The same, as roles | Done 2026-11-19 `4ff3147125` |
+| MCP servers of the user | `mcpServers` of `~/.claude.json` | The same | Done 2026-11-17 `80c1279420` |
+| MCP servers of a project | The `.mcp.json` files of the working directory and the directories above it, the nearer winning; a server there only once approved by `enabledMcpjsonServers` or `enableAllProjectMcpServers` and not listed in `disabledMcpjsonServers`; then the servers `~/.claude.json` keeps for the project, which win | The same | Done 2026-11-17 `80c1279420` |
+| Variables in a server's declaration | `${VAR}` and `${VAR:-default}` are expanded in `command`, `args`, `env`, `url` and `headers`; a variable that is not set and has no default stays as written | The same | Done 2026-11-17 `80c1279420` |
 
 ### Auto memory
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| The directory | `~/.claude/projects/<project>/memory/`, `<project>` being the path of the main checkout of the Git repository (or of the working directory) with every character but letters and digits replaced by `-` | The same directory, so a memory saved by one tool is recalled by the other. It is created when the session's configuration is loaded |
-| Moving it | `autoMemoryDirectory` (absolute, or with `~/`) in `~/.claude/settings.json` or the project's `.claude/settings.local.json`, not the project's shared `.claude/settings.json` (newer versions accept that too, in a trusted folder); `CLAUDE_COWORK_MEMORY_PATH_OVERRIDE` names the directory itself; `CLAUDE_CODE_REMOTE_MEMORY_DIR` stands for `~/.claude` in its path | The same, as the reference source has it |
-| The instructions | The four types of memory, one file per memory with `name`, `description` and `type` frontmatter, a one-line pointer to it in `MEMORY.md`, what not to save, when to read memory and how far to trust it; `CLAUDE_COWORK_MEMORY_EXTRA_GUIDELINES` is appended | Claude Code's own text, with the directory filled in |
-| The index | `MEMORY.md`, cut to 200 lines and 25,000 characters, with a warning line when cut | The same, counted in bytes |
-| Turning it off | `CLAUDE_CODE_DISABLE_AUTO_MEMORY` is `1` or `true` (`0` or `false` turns it on whatever the settings say); `CLAUDE_CODE_SIMPLE` is set; Claude Code on the web without `CLAUDE_CODE_REMOTE_MEMORY_DIR`; the last of the settings files to set `autoMemoryEnabled` sets it to `false` | The same. The variables are taken from the `env` of the settings files first, then from Codex's own environment. When it is off, neither the instructions nor the index are shown and nothing is made writable |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| The directory | `~/.claude/projects/<project>/memory/`, `<project>` being the path of the main checkout of the Git repository (or of the working directory) with every character but letters and digits replaced by `-` | The same directory, so a memory saved by one tool is recalled by the other. It is created when the session's configuration is loaded | Done 2026-11-17 `34b9401100` |
+| Moving it | `autoMemoryDirectory` (absolute, or with `~/`) in `~/.claude/settings.json` or the project's `.claude/settings.local.json`, not the project's shared `.claude/settings.json` (newer versions accept that too, in a trusted folder); `CLAUDE_COWORK_MEMORY_PATH_OVERRIDE` names the directory itself; `CLAUDE_CODE_REMOTE_MEMORY_DIR` stands for `~/.claude` in its path | The same, as the reference source has it | Done 2026-11-17 `34b9401100` |
+| The instructions | The four types of memory, one file per memory with `name`, `description` and `type` frontmatter, a one-line pointer to it in `MEMORY.md`, what not to save, when to read memory and how far to trust it; `CLAUDE_COWORK_MEMORY_EXTRA_GUIDELINES` is appended | Claude Code's own text, with the directory filled in | Done 2026-11-17 `34b9401100` |
+| The index | `MEMORY.md`, cut to 200 lines and 25,000 characters, with a warning line when cut | The same, counted in bytes | Done 2026-11-17 `34b9401100` |
+| Turning it off | `CLAUDE_CODE_DISABLE_AUTO_MEMORY` is `1` or `true` (`0` or `false` turns it on whatever the settings say); `CLAUDE_CODE_SIMPLE` is set; Claude Code on the web without `CLAUDE_CODE_REMOTE_MEMORY_DIR`; the last of the settings files to set `autoMemoryEnabled` sets it to `false` | The same. The variables are taken from the `env` of the settings files first, then from Codex's own environment. When it is off, neither the instructions nor the index are shown and nothing is made writable | Done 2026-11-17 `34b9401100` |
 
 ### Plugins
 
-| Feature | Claude Code | Equivalent in Codex |
-| --- | --- | --- |
-| Which plugins are installed | `~/.claude/plugins/installed_plugins.json`; a plugin is read from the `installPath` of the first installation recorded for it, whatever its scope | The same |
-| Which are enabled | `enabledPlugins` of `~/.claude/settings.json`, the project's `.claude/settings.json` and `.claude/settings.local.json`, merged in that order, a later file's value for a `<plugin>@<marketplace>` id winning; only `true` enables | The same. An enabled id that is not installed is reported at startup |
-| What a plugin brings | Skills as `<plugin>:<skill>`, commands, agents, MCP servers, hooks | The same components, loaded by Codex's plugin loader from the install path |
-| `${CLAUDE_PLUGIN_ROOT}` in hook commands, MCP server declarations and agent bodies | The plugin's install path | The same |
-| `userConfig`: where values are kept | The plain ones under `pluginConfigs.<plugin id>.options` of the settings, the ones marked `sensitive` in the secure store | The plain ones from `~/.claude/settings.json`, the sensitive ones from `pluginSecrets.<plugin id>` of `~/.claude/.credentials.json` |
-| `userConfig`: `${user_config.KEY}` | Filled in in MCP server declarations and agent bodies, and in the reference source in hook commands (newer versions refuse it in a hook's shell command and want `CLAUDE_PLUGIN_OPTION_<KEY>` there) | Filled in in all three |
-| `userConfig`: `CLAUDE_PLUGIN_OPTION_<KEY>` | In the environment of the plugin's hooks, the key in upper case with anything but letters, digits and `_` turned into `_` | The same |
+| Feature | Claude Code | Equivalent in Codex | Status |
+| --- | --- | --- | --- |
+| Which plugins are installed | `~/.claude/plugins/installed_plugins.json`; a plugin is read from the `installPath` of the first installation recorded for it, whatever its scope | The same | Done 2026-11-18 `471d20cf39` |
+| Which are enabled | `enabledPlugins` of `~/.claude/settings.json`, the project's `.claude/settings.json` and `.claude/settings.local.json`, merged in that order, a later file's value for a `<plugin>@<marketplace>` id winning; only `true` enables | The same. An enabled id that is not installed is reported at startup | Done 2026-11-18 `471d20cf39` |
+| What a plugin brings | Skills as `<plugin>:<skill>`, commands, agents, MCP servers, hooks | The same components, loaded by Codex's plugin loader from the install path | Done 2026-11-19 `471d20cf39`, `c58a3409c6`, `3134f1b61a`, `4ff3147125` |
+| `${CLAUDE_PLUGIN_ROOT}` in hook commands, MCP server declarations and agent bodies | The plugin's install path | The same | Done 2026-11-18 `471d20cf39` |
+| `userConfig`: where values are kept | The plain ones under `pluginConfigs.<plugin id>.options` of the settings, the ones marked `sensitive` in the secure store | The plain ones from `~/.claude/settings.json`, the sensitive ones from `pluginSecrets.<plugin id>` of `~/.claude/.credentials.json` | Done 2026-11-19 `4ff3147125` |
+| `userConfig`: `${user_config.KEY}` | Filled in in MCP server declarations and agent bodies, and in the reference source in hook commands (newer versions refuse it in a hook's shell command and want `CLAUDE_PLUGIN_OPTION_<KEY>` there) | Filled in in all three | Done 2026-11-19 `4ff3147125` |
+| `userConfig`: `CLAUDE_PLUGIN_OPTION_<KEY>` | In the environment of the plugin's hooks, the key in upper case with anything but letters, digits and `_` turned into `_` | The same | Done 2026-11-19 `4ff3147125` |
 
 ## Not yet implemented
 
@@ -582,186 +589,186 @@ thing Codex has, where there is one.
 
 ### Instructions and rules
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| Managed instructions: `CLAUDE.md` and `.claude/rules` under `/etc/claude-code` (`/Library/Application Support/ClaudeCode` on macOS) | Loaded first; cannot be excluded | Not read. Nearest: Codex's own managed configuration |
-| `claudeMdExcludes` | Globs of instruction files to leave out | Not read: every file found is loaded |
-| The instruction files of directories added with `--add-dir` (`CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD`) | Loaded | Not loaded |
-| A warning for a large instruction file (over 40,000 characters) | Shown at startup | Only the global instructions are measured, against `project_doc_max_bytes` |
-| `/memory` | Lists the instruction and memory files and opens them; turns auto memory on and off | Absent. Nearest: Codex's `/memories`, which is about Codex's own memories |
-| `/init` | Writes a `CLAUDE.md` for the project | Codex's `/init` writes `AGENTS.md` |
-| The `InstructionsLoaded` hook | Runs for each instruction file loaded | Not run (see "Hooks") |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| Managed instructions: `CLAUDE.md` and `.claude/rules` under `/etc/claude-code` (`/Library/Application Support/ClaudeCode` on macOS) | Loaded first; cannot be excluded | Not read. Nearest: Codex's own managed configuration | Not planned |
+| `claudeMdExcludes` | Globs of instruction files to leave out | Not read: every file found is loaded | Not planned |
+| The instruction files of directories added with `--add-dir` (`CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD`) | Loaded | Not loaded | Not planned |
+| A warning for a large instruction file (over 40,000 characters) | Shown at startup | Only the global instructions are measured, against `project_doc_max_bytes` | Not planned |
+| `/memory` | Lists the instruction and memory files and opens them; turns auto memory on and off | Absent. Nearest: Codex's `/memories`, which is about Codex's own memories | Not planned |
+| `/init` | Writes a `CLAUDE.md` for the project | Codex's `/init` writes `AGENTS.md` | Not planned |
+| The `InstructionsLoaded` hook | Runs for each instruction file loaded | Not run (see "Hooks") | Not planned |
 
 ### Skills and slash commands
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| A skill the model invokes itself | The model calls a Skill tool with arguments, and the skill is expanded as for `/<name> <args>` | No Skill tool. The model reads `SKILL.md` with a shell command, which Codex does not see as an invocation: the file is read as it is, nothing is expanded |
-| Shell injection (```` ```! ```` blocks and inline ``!`command` ``) | The commands run, each through the permission check of `Bash`, and their output replaces them; a command that is denied or fails stops the skill | Not run: Codex puts the skill into the conversation before the turn starts, where no command runs under the session's sandbox and approval rules. The text stays as written, so the model sees the commands and can run them itself, with the usual approvals |
-| `allowed-tools`, `model`, `effort`, `context`, `agent`, `argument-hint`, `shell` in the frontmatter | `allowed-tools` allows those tools without asking while the skill's turn runs; `context: fork` runs the skill in a subagent of type `agent`, with `model` and `effort`; `argument-hint` shows while typing | Ignored. Nearest: a skill's `agents/openai.yaml`, which holds Codex's own settings for a skill |
-| `hooks` in a skill's frontmatter, and `once` on them | Registered when the skill is invoked and kept for the rest of the session; `once` takes a hook away after its first success | Not run. Nearest: the hooks of the settings files, which run for the whole session |
-| `user-invocable: false` | Hides the skill from the slash menu and refuses `/<name>`; the model can still use it | The skill stays in the slash popup and `/<name>` runs it |
-| `/<name> <args>` outside the terminal interface | Also in `claude -p`, for the skills a user may invoke | A TUI feature. `codex exec` and other clients attach a skill with `$<name>`, and get the expansion only when they send the text together with the skill as a structured skill input, as the TUI does |
-| A plugin's `commands` entry that names a single file | Read | Not read; directories are |
-| `paths` in a skill's frontmatter | The skill stays out of the list until a file its globs cover is worked on | Ignored: the skill is always listed |
-| `.claude/skills` of directories below the working directory | Found when a file there is read or edited | Not found. Nearest: the roots from the project root down to the working directory |
-| Managed skills, and the skills of directories added with `--add-dir` | Loaded | Not loaded |
-| `Skill(<name>)` permission rules | Decide which skills the model may invoke | Not applied: there is no Skill tool |
-| `@<file>` in a skill's text | The file is attached when the skill is invoked | The text stays as written |
-| Skills across a compaction | The skills invoked are put back, 5,000 tokens each | Codex's own compaction, which knows nothing of skills |
-| `skillOverrides`, `disableSkillShellExecution`, `disableBundledSkills` (newer versions) | Applied | Not read. Nearest: `[[skills.config]]` in `config.toml` to turn a skill off |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| A skill the model invokes itself | The model calls a Skill tool with arguments, and the skill is expanded as for `/<name> <args>` | No Skill tool. The model reads `SKILL.md` with a shell command, which Codex does not see as an invocation: the file is read as it is, nothing is expanded | Not planned |
+| Shell injection (```` ```! ```` blocks and inline ``!`command` ``) | The commands run, each through the permission check of `Bash`, and their output replaces them; a command that is denied or fails stops the skill | Not run: Codex puts the skill into the conversation before the turn starts, where no command runs under the session's sandbox and approval rules. The text stays as written, so the model sees the commands and can run them itself, with the usual approvals | Not planned |
+| `allowed-tools`, `model`, `effort`, `context`, `agent`, `argument-hint`, `shell` in the frontmatter | `allowed-tools` allows those tools without asking while the skill's turn runs; `context: fork` runs the skill in a subagent of type `agent`, with `model` and `effort`; `argument-hint` shows while typing | Ignored. Nearest: a skill's `agents/openai.yaml`, which holds Codex's own settings for a skill | Not planned |
+| `hooks` in a skill's frontmatter, and `once` on them | Registered when the skill is invoked and kept for the rest of the session; `once` takes a hook away after its first success | Not run. Nearest: the hooks of the settings files, which run for the whole session | Not planned |
+| `user-invocable: false` | Hides the skill from the slash menu and refuses `/<name>`; the model can still use it | The skill stays in the slash popup and `/<name>` runs it | Not planned |
+| `/<name> <args>` outside the terminal interface | Also in `claude -p`, for the skills a user may invoke | A TUI feature. `codex exec` and other clients attach a skill with `$<name>`, and get the expansion only when they send the text together with the skill as a structured skill input, as the TUI does | Not planned |
+| A plugin's `commands` entry that names a single file | Read | Not read; directories are | Not planned |
+| `paths` in a skill's frontmatter | The skill stays out of the list until a file its globs cover is worked on | Ignored: the skill is always listed | Not planned |
+| `.claude/skills` of directories below the working directory | Found when a file there is read or edited | Not found. Nearest: the roots from the project root down to the working directory | Not planned |
+| Managed skills, and the skills of directories added with `--add-dir` | Loaded | Not loaded | Not planned |
+| `Skill(<name>)` permission rules | Decide which skills the model may invoke | Not applied: there is no Skill tool | Not planned |
+| `@<file>` in a skill's text | The file is attached when the skill is invoked | The text stays as written | Not planned |
+| Skills across a compaction | The skills invoked are put back, 5,000 tokens each | Codex's own compaction, which knows nothing of skills | Not planned |
+| `skillOverrides`, `disableSkillShellExecution`, `disableBundledSkills` (newer versions) | Applied | Not read. Nearest: `[[skills.config]]` in `config.toml` to turn a skill off | Not planned |
 
 ### Hooks
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| `CLAUDE_ENV_FILE` | For `SessionStart`, `Setup`, `CwdChanged` and `FileChanged`: a file whose assignments are kept for later commands | Not provided. Nearest: `env` of the settings files, and `shell_environment_policy.set` in `config.toml` |
-| The events Codex does not have: `PermissionDenied`, `Setup`, `TeammateIdle`, `TaskCreated`, `TaskCompleted`, `Elicitation`, `ElicitationResult`, `ConfigChange`, `InstructionsLoaded`, `WorktreeCreate`, `WorktreeRemove`, `CwdChanged`, `FileChanged` (and those newer versions add) | Run | Ignored. Codex has events of its own that Claude Code lacks (`Interrupt`, and two around each request to the model), which the settings files cannot name |
-| `Notification` of type `idle_prompt`, `auth_success`, `elicitation_complete`, `elicitation_response` | Sent | Never sent. Nearest: Codex's own `notify` program in `config.toml`, which runs when a turn ends |
-| `Notification`, `PostToolUseFailure`, `StopFailure`: handler types | `command` and `http` for `Notification` and `StopFailure`, any for `PostToolUseFailure` | Command handlers only, and these hooks are not listed among Codex's hooks (`/hooks`) |
-| The same three events from a plugin's hooks | Run | Do not run; only the settings files' do |
-| `prompt` and `agent` handlers for `PostToolUseFailure`, `PermissionDenied`, `TaskCreated`, `TaskCompleted` and `TeammateIdle` | Run | Not run: they run for `PreToolUse`, `PostToolUse`, `PermissionRequest`, `UserPromptSubmit`, `Stop` and `SubagentStop` |
-| The conversation, for a `prompt` handler of `Stop` or `SubagentStop` | Put before the prompt | The hook input only, which has `last_assistant_message`. An `agent` hook reads the transcript file in both |
-| `transcript_path` in Claude Code's format | One JSON message a line | Codex's rollout file, whose lines are Codex's own records: a hook that parses the transcript finds none of the messages it looks for. Nearest: `last_assistant_message` in the input of `Stop` |
-| `http` handlers of a plugin's hooks file | Run | The file is not loaded, with a warning: Codex's plugin loader reads it first and does not know the type. `http` handlers of the settings files run |
-| `prompt` and `agent` handlers, and `if`, written into a plugin's manifest rather than a hooks file, or into Codex's own `hooks.json` | Run (the manifest) | Not read there |
-| `PostToolUseFailure` for a cancelled call (`is_interrupt`) | Sent | A cancelled call runs no hook |
-| Hook output Codex refuses: `permissionDecision: "allow"` without `updatedInput`, `permissionDecision: "ask"`, `updatedInput` without `permissionDecision: "allow"`, and `decision: "approve"`; `continue: false`, `stopReason` and `suppressOutput` from `PreToolUse` and `PermissionRequest`; `updatedInput`, `updatedPermissions` and `interrupt` from `PermissionRequest`; `updatedMCPToolOutput` and `suppressOutput` from `PostToolUse` | Honoured: a `PreToolUse` hook that allows makes the call run without a question, one that asks forces the question, `updatedInput` changes the input in either case | The hook's output is reported as invalid and has no effect: a hook cannot approve a call here, only block it or rewrite its input. Nearest: `deny`, exit code 2, and `PermissionRequest` with `behavior: "allow"` |
-| `watchPaths` and `initialUserMessage` from `SessionStart`; `additionalContext` from `SubagentStart` and `Notification` | Honoured | Ignored |
-| `asyncRewake` | The hook runs in the background and its exit code 2 wakes the model | Ignored: the hook runs as an ordinary one. Nearest: `async` |
-| `shell` on a command handler (`bash`, `powershell`) | Chooses the shell | Ignored: Codex's shell runs it |
-| Hooks of managed settings, `allowManagedHooksOnly` | Managed hooks run whatever the user's files say; the setting leaves only them | Not read |
-| `CLAUDE_CODE_SIMPLE` | No hook runs | Read for auto memory only |
-| `permission_suggestions` for `PermissionRequest`, `custom_instructions` for `PreCompact`, `compact_summary` for `PostCompact`, `agent_type` for `SessionStart` | Present in the input | Absent |
-| Hooks in a subagent's frontmatter; hooks registered by an SDK | Run | Not run |
-| What a `PreCompact` hook prints | Added to the instructions for the summary | Ignored |
-| `{"async": true}` as a command handler's first line of output | The hook goes on in the background from there | Read as the hook's output, and invalid. Nearest: `async` on the handler |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| `CLAUDE_ENV_FILE` | For `SessionStart`, `Setup`, `CwdChanged` and `FileChanged`: a file whose assignments are kept for later commands | Not provided. Nearest: `env` of the settings files, and `shell_environment_policy.set` in `config.toml` | Not planned |
+| The events Codex does not have: `PermissionDenied`, `Setup`, `TeammateIdle`, `TaskCreated`, `TaskCompleted`, `Elicitation`, `ElicitationResult`, `ConfigChange`, `InstructionsLoaded`, `WorktreeCreate`, `WorktreeRemove`, `CwdChanged`, `FileChanged` (and those newer versions add) | Run | Ignored. Codex has events of its own that Claude Code lacks (`Interrupt`, and two around each request to the model), which the settings files cannot name | Not planned |
+| `Notification` of type `idle_prompt`, `auth_success`, `elicitation_complete`, `elicitation_response` | Sent | Never sent. Nearest: Codex's own `notify` program in `config.toml`, which runs when a turn ends | Not planned |
+| `Notification`, `PostToolUseFailure`, `StopFailure`: handler types | `command` and `http` for `Notification` and `StopFailure`, any for `PostToolUseFailure` | Command handlers only, and these hooks are not listed among Codex's hooks (`/hooks`) | Not planned |
+| The same three events from a plugin's hooks | Run | Do not run; only the settings files' do | Not planned |
+| `prompt` and `agent` handlers for `PostToolUseFailure`, `PermissionDenied`, `TaskCreated`, `TaskCompleted` and `TeammateIdle` | Run | Not run: they run for `PreToolUse`, `PostToolUse`, `PermissionRequest`, `UserPromptSubmit`, `Stop` and `SubagentStop` | Not planned |
+| The conversation, for a `prompt` handler of `Stop` or `SubagentStop` | Put before the prompt | The hook input only, which has `last_assistant_message`. An `agent` hook reads the transcript file in both | Not planned |
+| `transcript_path` in Claude Code's format | One JSON message a line | Codex's rollout file, whose lines are Codex's own records: a hook that parses the transcript finds none of the messages it looks for. Nearest: `last_assistant_message` in the input of `Stop` | Not planned |
+| `http` handlers of a plugin's hooks file | Run | The file is not loaded, with a warning: Codex's plugin loader reads it first and does not know the type. `http` handlers of the settings files run | Not planned |
+| `prompt` and `agent` handlers, and `if`, written into a plugin's manifest rather than a hooks file, or into Codex's own `hooks.json` | Run (the manifest) | Not read there | Not planned |
+| `PostToolUseFailure` for a cancelled call (`is_interrupt`) | Sent | A cancelled call runs no hook | Not planned |
+| Hook output Codex refuses: `permissionDecision: "allow"` without `updatedInput`, `permissionDecision: "ask"`, `updatedInput` without `permissionDecision: "allow"`, and `decision: "approve"`; `continue: false`, `stopReason` and `suppressOutput` from `PreToolUse` and `PermissionRequest`; `updatedInput`, `updatedPermissions` and `interrupt` from `PermissionRequest`; `updatedMCPToolOutput` and `suppressOutput` from `PostToolUse` | Honoured: a `PreToolUse` hook that allows makes the call run without a question, one that asks forces the question, `updatedInput` changes the input in either case | The hook's output is reported as invalid and has no effect: a hook cannot approve a call here, only block it or rewrite its input. Nearest: `deny`, exit code 2, and `PermissionRequest` with `behavior: "allow"` | Not planned |
+| `watchPaths` and `initialUserMessage` from `SessionStart`; `additionalContext` from `SubagentStart` and `Notification` | Honoured | Ignored | Not planned |
+| `asyncRewake` | The hook runs in the background and its exit code 2 wakes the model | Ignored: the hook runs as an ordinary one. Nearest: `async` | Not planned |
+| `shell` on a command handler (`bash`, `powershell`) | Chooses the shell | Ignored: Codex's shell runs it | Not planned |
+| Hooks of managed settings, `allowManagedHooksOnly` | Managed hooks run whatever the user's files say; the setting leaves only them | Not read | Not planned |
+| `CLAUDE_CODE_SIMPLE` | No hook runs | Read for auto memory only | Not planned |
+| `permission_suggestions` for `PermissionRequest`, `custom_instructions` for `PreCompact`, `compact_summary` for `PostCompact`, `agent_type` for `SessionStart` | Present in the input | Absent | Not planned |
+| Hooks in a subagent's frontmatter; hooks registered by an SDK | Run | Not run | Not planned |
+| What a `PreCompact` hook prints | Added to the instructions for the summary | Ignored | Not planned |
+| `{"async": true}` as a command handler's first line of output | The hook goes on in the background from there | Read as the hook's output, and invalid. Nearest: `async` on the handler | Not planned |
 
 ### Claude tool set
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| Tools beyond the eleven offered | `Skill`, `NotebookEdit`, `TaskCreate`, `TaskGet`, `TaskList`, `TaskUpdate`, `TaskStop`, `SendMessage`, `EnterPlanMode`, `ExitPlanMode`, `EnterWorktree`, `ExitWorktree`, `ToolSearch`, `LSP`, `ListMcpResourcesTool`, `ReadMcpResourceTool`, `CronCreate`, `CronList`, `CronDelete`, `Monitor`, `PowerShell`, and for agent teams `TeamCreate` and `TeamDelete` | Not offered. Nearest: `update_plan` for the task tools, `write_stdin` for a background command, Codex's own agent tools (`wait_agent`, `send_input`, `close_agent`, or v2's `send_message`, `followup_task`, `list_agents`), Codex's plan mode, its tool search and its MCP resource tools |
-| `Bash`: working directory | `cd` carries over to the next command while it stays inside the project (outside it the shell is put back, with a note); never in a subagent | Each command starts in the session's working directory. The description says so |
-| `Bash`: a background command | Writes to an output file named in the result, which the model reads with `Read` (`TaskOutput` until it was removed in 2.1.277), and is stopped with `TaskStop`; the model is notified when it ends | Read and stopped with `write_stdin`; the model is not notified when it ends |
-| `Read`: PDFs and notebooks | Rendered; `pages` chooses the pages of a PDF, at most 20 a call | A PDF is refused as a binary file and there is no `pages`; a notebook is read as its JSON |
-| `Read`: a second read of the same range of an unchanged file | Answers `File unchanged since last read` | The file is read again |
-| `Write`: a file that is not UTF-8 | Overwritten, as UTF-8 | Cannot be overwritten, since `apply_patch` takes text |
-| Long results | Saved to a file past the tool's limit (30,000 characters for `Bash`, 20,000 for `Grep`, up to 50,000 for the others); the model gets the path and the first 2 KB | Truncated as any tool output in Codex's history; output past Codex's capture of 1 MiB loses its middle before `Glob`, `Grep` or `WebFetch` see it |
-| `Glob`, `Grep`: files denied to `Read` | Left out of the results | Not left out; reading them is still denied |
-| `Read`, `Edit`, `Glob`, `Grep`: a path that does not exist | A similar path is suggested (`Did you mean ...?`) | No suggestion |
-| `WebFetch`: content that is not text | Decoded as UTF-8 for the secondary model like any other, and also saved to a file the result names | Decoded as UTF-8; nothing is saved |
-| `WebFetch`: preapproved documentation hosts | Fetched without asking | Never allow a request by themselves. Nearest: a `WebFetch(domain:...)` allow rule, or the managed network proxy's allowed hosts |
-| `TodoWrite`: clearing and `oldTodos` | A list whose items are all completed is cleared; the hook's `tool_response` has `oldTodos` and `newTodos` | The list is kept; `newTodos` only |
-| `AskUserQuestion`: `multiSelect` and option `preview`s | Several choices can be ticked; previews are shown | Codex's panel takes one choice a question: the question asks for the other choices in a note. Previews are not offered |
-| `AskUserQuestion` outside Plan mode | Asks in every permission mode | Only where Codex's `request_user_input` does: in Plan mode, and in Default mode with the `default_mode_request_user_input` feature; elsewhere the model gets Codex's refusal |
-| `Agent`: `isolation`, `name`, `team_name`, `mode` | Taken | Not taken. Nearest: Codex's roles and its own agent tools |
-| `Agent`: continuing an agent with `SendMessage` | Done | Codex's own agent tools (`send_input`, or v2's `send_message` and `followup_task`) |
-| `Agent`: a background agent that ends | The model is notified and goes on | Its result is added to the conversation without starting a turn; the model is told to use `wait_agent` to wait for it |
-| `Agent(type, ...)` in the tool list of the session's own agent (`--agent`) | Restricts the agent types it may start | No session runs as a subagent, so nothing is restricted |
-| Auto-review (guardian) of past tool calls | Not applicable | Recognises only Codex's tool names, so calls of the Claude tools are not reviewed as their Codex counterparts are |
-| `Bash`: a command that reaches its timeout | Newer versions move it to the background | It is stopped and the model is told `Command timed out` |
-| `BASH_DEFAULT_TIMEOUT_MS`, `BASH_MAX_TIMEOUT_MS`, `BASH_MAX_OUTPUT_LENGTH`, `CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS`, `CLAUDE_CODE_GLOB_TIMEOUT_SECONDS` and the other variables that move a tool's limits | Read | Not read: the limits are fixed |
-| `Edit` on a notebook | Refused, in favour of `NotebookEdit` | The notebook's JSON is edited |
-| `WebFetch`: `offset`, to read on in a long page (newer versions) | Taken | No such parameter |
-| `WebFetch(domain:...)` rules with `*` (newer versions) | `*.example.com` covers the subdomains | The host is compared exactly |
-| `Agent`: the built-in types `Explore`, `Plan` and the others | Offered beside `general-purpose` | `general-purpose` is Codex's default role; the others are Codex's own roles, if any |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| Tools beyond the eleven offered | `Skill`, `NotebookEdit`, `TaskCreate`, `TaskGet`, `TaskList`, `TaskUpdate`, `TaskStop`, `SendMessage`, `EnterPlanMode`, `ExitPlanMode`, `EnterWorktree`, `ExitWorktree`, `ToolSearch`, `LSP`, `ListMcpResourcesTool`, `ReadMcpResourceTool`, `CronCreate`, `CronList`, `CronDelete`, `Monitor`, `PowerShell`, and for agent teams `TeamCreate` and `TeamDelete` | Not offered. Nearest: `update_plan` for the task tools, `write_stdin` for a background command, Codex's own agent tools (`wait_agent`, `send_input`, `close_agent`, or v2's `send_message`, `followup_task`, `list_agents`), Codex's plan mode, its tool search and its MCP resource tools | Not planned; Jumbo Jet: `Monitor`, `CronCreate`, `CronList` and `CronDelete` done 2026-11-20 `aaa300e67a` |
+| `Bash`: working directory | `cd` carries over to the next command while it stays inside the project (outside it the shell is put back, with a note); never in a subagent | Each command starts in the session's working directory. The description says so | Not planned |
+| `Bash`: a background command | Writes to an output file named in the result, which the model reads with `Read` (`TaskOutput` until it was removed in 2.1.277), and is stopped with `TaskStop`; the model is notified when it ends | Read and stopped with `write_stdin`; the model is not notified when it ends | Not planned; Jumbo Jet: the model is told when it ends, done 2026-11-19 `6363eace6b` |
+| `Read`: PDFs and notebooks | Rendered; `pages` chooses the pages of a PDF, at most 20 a call | A PDF is refused as a binary file and there is no `pages`; a notebook is read as its JSON | Not planned |
+| `Read`: a second read of the same range of an unchanged file | Answers `File unchanged since last read` | The file is read again | Not planned |
+| `Write`: a file that is not UTF-8 | Overwritten, as UTF-8 | Cannot be overwritten, since `apply_patch` takes text | Not planned |
+| Long results | Saved to a file past the tool's limit (30,000 characters for `Bash`, 20,000 for `Grep`, up to 50,000 for the others); the model gets the path and the first 2 KB | Truncated as any tool output in Codex's history; output past Codex's capture of 1 MiB loses its middle before `Glob`, `Grep` or `WebFetch` see it | Not planned; Jumbo Jet: a long command output is kept in a file, done 2026-11-20 `f1627b6dc9` |
+| `Glob`, `Grep`: files denied to `Read` | Left out of the results | Not left out; reading them is still denied | Not planned |
+| `Read`, `Edit`, `Glob`, `Grep`: a path that does not exist | A similar path is suggested (`Did you mean ...?`) | No suggestion | Not planned |
+| `WebFetch`: content that is not text | Decoded as UTF-8 for the secondary model like any other, and also saved to a file the result names | Decoded as UTF-8; nothing is saved | Not planned |
+| `WebFetch`: preapproved documentation hosts | Fetched without asking | Never allow a request by themselves. Nearest: a `WebFetch(domain:...)` allow rule, or the managed network proxy's allowed hosts | Not planned |
+| `TodoWrite`: clearing and `oldTodos` | A list whose items are all completed is cleared; the hook's `tool_response` has `oldTodos` and `newTodos` | The list is kept; `newTodos` only | Not planned |
+| `AskUserQuestion`: `multiSelect` and option `preview`s | Several choices can be ticked; previews are shown | Codex's panel takes one choice a question: the question asks for the other choices in a note. Previews are not offered | Not planned |
+| `AskUserQuestion` outside Plan mode | Asks in every permission mode | Only where Codex's `request_user_input` does: in Plan mode, and in Default mode with the `default_mode_request_user_input` feature; elsewhere the model gets Codex's refusal | Not planned |
+| `Agent`: `isolation`, `name`, `team_name`, `mode` | Taken | Not taken. Nearest: Codex's roles and its own agent tools | Not planned |
+| `Agent`: continuing an agent with `SendMessage` | Done | Codex's own agent tools (`send_input`, or v2's `send_message` and `followup_task`) | Not planned |
+| `Agent`: a background agent that ends | The model is notified and goes on | Its result is added to the conversation without starting a turn; the model is told to use `wait_agent` to wait for it | Not planned; Jumbo Jet: the session goes on when it ends, done 2026-11-19 `6363eace6b` |
+| `Agent(type, ...)` in the tool list of the session's own agent (`--agent`) | Restricts the agent types it may start | No session runs as a subagent, so nothing is restricted | Not planned |
+| Auto-review (guardian) of past tool calls | Not applicable | Recognises only Codex's tool names, so calls of the Claude tools are not reviewed as their Codex counterparts are | Not planned |
+| `Bash`: a command that reaches its timeout | Newer versions move it to the background | It is stopped and the model is told `Command timed out` | Not planned; Jumbo Jet: moved to the background, done 2026-11-20 `f1627b6dc9` |
+| `BASH_DEFAULT_TIMEOUT_MS`, `BASH_MAX_TIMEOUT_MS`, `BASH_MAX_OUTPUT_LENGTH`, `CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS`, `CLAUDE_CODE_GLOB_TIMEOUT_SECONDS` and the other variables that move a tool's limits | Read | Not read: the limits are fixed | Not planned |
+| `Edit` on a notebook | Refused, in favour of `NotebookEdit` | The notebook's JSON is edited | Not planned |
+| `WebFetch`: `offset`, to read on in a long page (newer versions) | Taken | No such parameter | Not planned |
+| `WebFetch(domain:...)` rules with `*` (newer versions) | `*.example.com` covers the subdomains | The host is compared exactly | Not planned |
+| `Agent`: the built-in types `Explore`, `Plan` and the others | Offered beside `general-purpose` | `general-purpose` is Codex's default role; the others are Codex's own roles, if any | Not planned |
 
 ### Permission rules and settings
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| Managed settings (`/etc/claude-code/managed-settings.json` and `managed-settings.d/`, the system's device management), which win over every other file; `allowManagedPermissionRulesOnly`, `strictPluginOnlyCustomization` and the other keys that only managed settings may set | Applied | Not read. Nearest: Codex's own requirements and managed configuration |
-| Symbolic links in the paths of rules | Both the path as given and what it resolves to are checked | Paths are compared as written (made absolute and normalised) |
-| A change to the settings files during a session | Applied when the file changes | Read once a session for each project directory |
-| `permissions` for tools other than `Bash`, with the Claude tool set off | Applied | Not applied: only command-prefix rules of the user's file become Codex command rules. Turn the tool set on for the rest |
-| Settings keys other than the ones this document names | Applied | Not read. Nearest: the key of the same purpose in `config.toml`, where Codex has one |
-| Rules and settings given on the command line (`--allowedTools`, `--disallowedTools`, `--settings`, `--setting-sources`) | Applied | No such options. Nearest: `-c key=value` and `--profile` for Codex's own settings |
-| "Don't ask again" for a call | Writes an allow rule into `.claude/settings.local.json` | Codex's own "approve for the session"; nothing is written to Claude Code's files |
-| Deny and ask rules for commands inside `$(...)`, subshells and loops (newer versions) | Matched | Such a command is decided only by a rule on its whole text |
-| Protected files beyond the reference source's list (`.husky`, `.cargo`, `.devcontainer`, `.npmrc`, `.envrc` and others, in newer versions) | Asked about | Treated like any other file |
-| `.claude/settings.local.json` of the repository's root, from a subdirectory | Read (from 2.1.211 on the local file is kept at the repository's root) | Only `.claude` of the working directory is read |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| Managed settings (`/etc/claude-code/managed-settings.json` and `managed-settings.d/`, the system's device management), which win over every other file; `allowManagedPermissionRulesOnly`, `strictPluginOnlyCustomization` and the other keys that only managed settings may set | Applied | Not read. Nearest: Codex's own requirements and managed configuration | Not planned |
+| Symbolic links in the paths of rules | Both the path as given and what it resolves to are checked | Paths are compared as written (made absolute and normalised) | Not planned |
+| A change to the settings files during a session | Applied when the file changes | Read once a session for each project directory | Not planned |
+| `permissions` for tools other than `Bash`, with the Claude tool set off | Applied | Not applied: only command-prefix rules of the user's file become Codex command rules. Turn the tool set on for the rest | Not planned |
+| Settings keys other than the ones this document names | Applied | Not read. Nearest: the key of the same purpose in `config.toml`, where Codex has one | Not planned |
+| Rules and settings given on the command line (`--allowedTools`, `--disallowedTools`, `--settings`, `--setting-sources`) | Applied | No such options. Nearest: `-c key=value` and `--profile` for Codex's own settings | Not planned |
+| "Don't ask again" for a call | Writes an allow rule into `.claude/settings.local.json` | Codex's own "approve for the session"; nothing is written to Claude Code's files | Not planned |
+| Deny and ask rules for commands inside `$(...)`, subshells and loops (newer versions) | Matched | Such a command is decided only by a rule on its whole text | Not planned |
+| Protected files beyond the reference source's list (`.husky`, `.cargo`, `.devcontainer`, `.npmrc`, `.envrc` and others, in newer versions) | Asked about | Treated like any other file | Not planned |
+| `.claude/settings.local.json` of the repository's root, from a subdirectory | Read (from 2.1.211 on the local file is kept at the repository's root) | Only `.claude` of the working directory is read | Not planned |
 
 ### Subagents
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| Frontmatter other than `name`, `description`, `effort`, `tools` and `disallowedTools`: `permissionMode`, `mcpServers`, `hooks`, `maxTurns`, `skills`, `initialPrompt`, `memory`, `background`, `isolation`, `color` | Used | Left out. Nearest: a Codex role's own configuration file |
-| `tools` and `disallowedTools` with the Claude tool set off | Applied | Ignored: the names are Claude Code's, which only the tool set gives the tools |
-| Hosted tools and the tools code mode and tool search add, under `tools` | Not applicable | Not filtered |
-| A project's subagents in directories above the working directory | Found, up to the repository's root, the nearest winning | Only `.claude/agents` of the working directory is read |
-| A plugin's `agents` entry that names a single file | Read | Not read; directories are |
-| `${CLAUDE_PLUGIN_DATA}` in a plugin agent's body | Filled in | Left as written |
-| A subagent's own memory (`memory: user`, `project` or `local`) | A directory of its own (`~/.claude/agent-memory/<name>/` and the like), shown to that subagent | Not kept |
-| Subagents given with `--agents`, managed subagents, those of directories added with `--add-dir` | Loaded | Not loaded |
-| A session that runs as a subagent (`--agent`, the `agent` setting) | The whole session takes the subagent's prompt, tools and model | No such option. Nearest: a Codex profile |
-| Agent teams (`TeamCreate`, teammates, `team_name`) | An experiment | Absent. Nearest: Codex's own multi-agent tools |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| Frontmatter other than `name`, `description`, `effort`, `tools` and `disallowedTools`: `permissionMode`, `mcpServers`, `hooks`, `maxTurns`, `skills`, `initialPrompt`, `memory`, `background`, `isolation`, `color` | Used | Left out. Nearest: a Codex role's own configuration file | Not planned |
+| `tools` and `disallowedTools` with the Claude tool set off | Applied | Ignored: the names are Claude Code's, which only the tool set gives the tools | Not planned |
+| Hosted tools and the tools code mode and tool search add, under `tools` | Not applicable | Not filtered | Not planned |
+| A project's subagents in directories above the working directory | Found, up to the repository's root, the nearest winning | Only `.claude/agents` of the working directory is read | Not planned |
+| A plugin's `agents` entry that names a single file | Read | Not read; directories are | Not planned |
+| `${CLAUDE_PLUGIN_DATA}` in a plugin agent's body | Filled in | Left as written | Not planned |
+| A subagent's own memory (`memory: user`, `project` or `local`) | A directory of its own (`~/.claude/agent-memory/<name>/` and the like), shown to that subagent | Not kept | Not planned |
+| Subagents given with `--agents`, managed subagents, those of directories added with `--add-dir` | Loaded | Not loaded | Not planned |
+| A session that runs as a subagent (`--agent`, the `agent` setting) | The whole session takes the subagent's prompt, tools and model | No such option. Nearest: a Codex profile | Not planned |
+| Agent teams (`TeamCreate`, teammates, `team_name`) | An experiment | Absent. Nearest: Codex's own multi-agent tools | Not planned |
 
 ### MCP servers
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| `sse` and `ws` servers | Started (`sse` is deprecated) | Do not start: Codex speaks stdio and streamable HTTP |
-| MCP bundles (`.mcpb`) of a plugin | Used | Not loaded; the plugin is still used |
-| Servers turned off in `/mcp` (`disabledMcpServers` of the project's entry in `~/.claude.json`) | Not started | Started. Turn a server off in `config.toml` (`enabled = false` under its `[mcp_servers.<name>]`) |
-| `headersHelper`, and a server's `oauth` block | A command prints the headers; the OAuth client is as configured | Not read. Nearest: Codex's own MCP login (`codex mcp login`) |
-| `managed-mcp.json`, `allowedMcpServers`, `deniedMcpServers` | Decide which servers may run | Not read |
-| `--mcp-config`, `--strict-mcp-config` | Servers for one run | No such options. Nearest: `-c mcp_servers.<name>...` |
-| `MCP_TIMEOUT`, `MCP_TOOL_TIMEOUT`, `MAX_MCP_OUTPUT_TOKENS` | Read | Not read. Nearest: `startup_timeout_sec` and `tool_timeout_sec` of a server in `config.toml` |
-| A server's prompts as `/mcp__<server>__<prompt>`, its resources as `@<server>:<uri>` | Offered | Whatever Codex's own MCP client offers; these forms are not added |
-| Credential variables in a remote server's `url` and `headers` (newer versions) | Expanded to nothing, so that a declaration cannot send them away | Expanded like any other variable |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| `sse` and `ws` servers | Started (`sse` is deprecated) | Do not start: Codex speaks stdio and streamable HTTP | Not planned |
+| MCP bundles (`.mcpb`) of a plugin | Used | Not loaded; the plugin is still used | Not planned |
+| Servers turned off in `/mcp` (`disabledMcpServers` of the project's entry in `~/.claude.json`) | Not started | Started. Turn a server off in `config.toml` (`enabled = false` under its `[mcp_servers.<name>]`) | Not planned |
+| `headersHelper`, and a server's `oauth` block | A command prints the headers; the OAuth client is as configured | Not read. Nearest: Codex's own MCP login (`codex mcp login`) | Not planned |
+| `managed-mcp.json`, `allowedMcpServers`, `deniedMcpServers` | Decide which servers may run | Not read | Not planned |
+| `--mcp-config`, `--strict-mcp-config` | Servers for one run | No such options. Nearest: `-c mcp_servers.<name>...` | Not planned |
+| `MCP_TIMEOUT`, `MCP_TOOL_TIMEOUT`, `MAX_MCP_OUTPUT_TOKENS` | Read | Not read. Nearest: `startup_timeout_sec` and `tool_timeout_sec` of a server in `config.toml` | Not planned |
+| A server's prompts as `/mcp__<server>__<prompt>`, its resources as `@<server>:<uri>` | Offered | Whatever Codex's own MCP client offers; these forms are not added | Not planned |
+| Credential variables in a remote server's `url` and `headers` (newer versions) | Expanded to nothing, so that a declaration cannot send them away | Expanded like any other variable | Not planned |
 
 ### Auto memory
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| Background extraction of memories at the end of a turn | In some builds, behind a switch | Not done: memories are written only when the model writes them during a turn. Nearest: Codex's own memories feature, which keeps its files elsewhere |
-| Team memory, the daily logs of assistant mode, the search of past transcripts some builds add to the instructions | Present in some builds | Absent |
-| `CLAUDE_CONFIG_DIR` | Moves the configuration directory, and the memory with it | Not read: Codex always reads `~/.claude` |
-| The memory directory after the permissions change during a session | Still writable | `/permissions` drops the extra writable root; add the directory to `[sandbox_workspace_write] writable_roots` to keep it |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| Background extraction of memories at the end of a turn | In some builds, behind a switch | Not done: memories are written only when the model writes them during a turn. Nearest: Codex's own memories feature, which keeps its files elsewhere | Not planned |
+| Team memory, the daily logs of assistant mode, the search of past transcripts some builds add to the instructions | Present in some builds | Absent | Not planned |
+| `CLAUDE_CONFIG_DIR` | Moves the configuration directory, and the memory with it | Not read: Codex always reads `~/.claude` | Not planned |
+| The memory directory after the permissions change during a session | Still writable | `/permissions` drops the extra writable root; add the directory to `[sandbox_workspace_write] writable_roots` to keep it | Not planned |
 
 ### Plugins
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| A change to the installed or enabled plugins | Shows once the plugins are reloaded | Shows at the start of the next session |
-| A value for a `userConfig` option that was never set | Asked for in `/plugin`, when the plugin is installed, enabled or configured | Cannot be asked for. A hook whose command names the option is skipped with a warning, and an MCP server's string that names it is left as written, with a warning in the log. Set the option in Claude Code |
-| `sensitive` `userConfig` values on macOS | Read from the keychain | Not read: a sensitive option has no value there. On other systems they are read from `~/.claude/.credentials.json` |
-| `userConfig` values in a plugin's skills and commands | Filled in | Not filled in |
-| LSP servers of a plugin (`lspServers`, `.lsp.json`) | Started | The plugin is disabled whole (see "Which plugins are used") |
-| A plugin without a `plugin.json`, whose marketplace entry is its manifest; a marketplace entry that adds components to the `plugin.json` | Loaded | Not read: only `plugin.json` at the install path is |
-| Managed `enabledPlugins` (`false` there blocks a plugin the user enables), plugins from `--add-dir` and `--plugin-dir`, Claude Code's built-in plugins | Applied | Not read: a plugin the managed settings block is still used |
-| A path the manifest declares for `hooks` or `mcpServers` | Loaded beside `hooks/hooks.json` or `.mcp.json` | Replaces it. An `mcpServers` list mixing paths and objects is not read |
-| The plugin's `settings.json` | Its `agent` key is kept, which makes the session run as that agent | Not loaded |
-| `${CLAUDE_PLUGIN_ROOT}` in a plugin's skills and commands, and in the environment of its MCP servers | Filled in | Not filled in |
-| A plugin's `dependencies` | A plugin whose dependency is missing is not loaded | Not checked |
-| Marketplace policy (`strictKnownMarketplaces`, `blockedMarketplaces`) | A plugin of a marketplace that is not allowed does not load | Not read |
-| The manifest's `commands` as a map of names to files or inline text | Loaded | Only directories are read |
-| A plugin's `bin/` on the path of commands, its monitors, workflows and themes (newer versions) | Used | Not loaded |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| A change to the installed or enabled plugins | Shows once the plugins are reloaded | Shows at the start of the next session | Not planned |
+| A value for a `userConfig` option that was never set | Asked for in `/plugin`, when the plugin is installed, enabled or configured | Cannot be asked for. A hook whose command names the option is skipped with a warning, and an MCP server's string that names it is left as written, with a warning in the log. Set the option in Claude Code | Not planned |
+| `sensitive` `userConfig` values on macOS | Read from the keychain | Not read: a sensitive option has no value there. On other systems they are read from `~/.claude/.credentials.json` | Not planned |
+| `userConfig` values in a plugin's skills and commands | Filled in | Not filled in | Not planned |
+| LSP servers of a plugin (`lspServers`, `.lsp.json`) | Started | The plugin is disabled whole (see "Which plugins are used") | Not planned |
+| A plugin without a `plugin.json`, whose marketplace entry is its manifest; a marketplace entry that adds components to the `plugin.json` | Loaded | Not read: only `plugin.json` at the install path is | Not planned |
+| Managed `enabledPlugins` (`false` there blocks a plugin the user enables), plugins from `--add-dir` and `--plugin-dir`, Claude Code's built-in plugins | Applied | Not read: a plugin the managed settings block is still used | Not planned |
+| A path the manifest declares for `hooks` or `mcpServers` | Loaded beside `hooks/hooks.json` or `.mcp.json` | Replaces it. An `mcpServers` list mixing paths and objects is not read | Not planned |
+| The plugin's `settings.json` | Its `agent` key is kept, which makes the session run as that agent | Not loaded | Not planned |
+| `${CLAUDE_PLUGIN_ROOT}` in a plugin's skills and commands, and in the environment of its MCP servers | Filled in | Not filled in | Not planned |
+| A plugin's `dependencies` | A plugin whose dependency is missing is not loaded | Not checked | Not planned |
+| Marketplace policy (`strictKnownMarketplaces`, `blockedMarketplaces`) | A plugin of a marketplace that is not allowed does not load | Not read | Not planned |
+| The manifest's `commands` as a map of names to files or inline text | Loaded | Only directories are read | Not planned |
+| A plugin's `bin/` on the path of commands, its monitors, workflows and themes (newer versions) | Used | Not loaded | Not planned |
 
 ### Beyond the files this fork reads
 
 Claude Code features that have no part in the configuration this fork reads. Codex often has
 a feature of its own for the purpose, configured in its own way.
 
-| Feature | Claude Code | Codex today, and the nearest thing it has |
-| --- | --- | --- |
-| Output styles (`outputStyle`, `~/.claude/output-styles/`) | Replace parts of the system prompt | Not read. Nearest: `personality`, `developer_instructions` and `model_instructions_file` in `config.toml` |
-| `effortLevel`, `alwaysThinkingEnabled`, `MAX_THINKING_TOKENS` | Set how much the model thinks | Not read. Nearest: `model_reasoning_effort` |
-| `language` | The language the model answers in | Not read; `ui.language` of `ccn-config.toml` is the language of the interface |
-| `attribution`, `includeCoAuthoredBy`, `includeGitInstructions` | Decide the attribution lines and the Git instructions in the prompt | Not read. The `Bash` description here carries the commit instructions without attribution lines |
-| `~/.claude/keybindings.json`, `editorMode` | Key bindings and vim mode | Not read. Nearest: `[tui.keymap]` and Codex's `/keymap` and `/vim` |
-| Sessions: transcripts under `~/.claude/projects/`, `--continue`, `--resume`, `--fork-session`, `cleanupPeriodDays` | Kept, resumed and cleaned up | A Claude Code session cannot be resumed here, nor the reverse. Nearest: `codex resume` and `codex fork` for Codex's own sessions |
-| Checkpoints and `/rewind` | Put files and conversation back to an earlier prompt | Codex goes back in the conversation only |
-| `/compact <instructions>`, the automatic compaction settings | Compaction on request with a focus, and by itself | Codex's own `/compact` and `model_auto_compact_token_limit` |
-| Built-in commands without a Codex counterpart (`/security-review`, `/context`, `/cost`, `/add-dir`, `/doctor` and others) | Present | Codex's own commands (`/review`, `/status`, `/diff` and the rest); a missing one can be written as a skill |
-| Worktrees (`--worktree`, `.worktreeinclude`, `worktree.*`) | A session in a worktree of its own | Not read. Nearest: Codex's `/worktree` |
-| `claude -p` and its options (`--output-format`, `--input-format`, `--json-schema`, `--max-turns`, `--system-prompt`, `--append-system-prompt`) | A run without a person, with these controls | `codex exec`, with `--json` (events of Codex's own shape) and `--output-schema`; the other options have no counterpart |
-| Scheduled prompts and monitors (`CronCreate`, `Monitor`, `/loop`) | The model schedules prompts for itself and watches a command | Absent |
-| Channels, LSP servers and the `LSP` tool | Push events into a session; code intelligence | Absent |
-| `CLAUDE_CONFIG_DIR` | Moves `~/.claude` | Not read: `~/.claude` is always used. `CODEX_HOME` moves Codex's own directory |
-| `fastMode` | A faster output mode of some models | Not read. Nearest: `service_tier` in `config.toml` |
-| `respectGitignore`, `fileSuggestion`, `defaultShell`, `plansDirectory` | Tune file completion, the shell and where plans are kept | Not read |
+| Feature | Claude Code | Codex today, and the nearest thing it has | Status |
+| --- | --- | --- | --- |
+| Output styles (`outputStyle`, `~/.claude/output-styles/`) | Replace parts of the system prompt | Not read. Nearest: `personality`, `developer_instructions` and `model_instructions_file` in `config.toml` | Not planned |
+| `effortLevel`, `alwaysThinkingEnabled`, `MAX_THINKING_TOKENS` | Set how much the model thinks | Not read. Nearest: `model_reasoning_effort` | Not planned |
+| `language` | The language the model answers in | Not read; `ui.language` of `ccn-config.toml` is the language of the interface | Not planned |
+| `attribution`, `includeCoAuthoredBy`, `includeGitInstructions` | Decide the attribution lines and the Git instructions in the prompt | Not read. The `Bash` description here carries the commit instructions without attribution lines | Not planned |
+| `~/.claude/keybindings.json`, `editorMode` | Key bindings and vim mode | Not read. Nearest: `[tui.keymap]` and Codex's `/keymap` and `/vim` | Not planned |
+| Sessions: transcripts under `~/.claude/projects/`, `--continue`, `--resume`, `--fork-session`, `cleanupPeriodDays` | Kept, resumed and cleaned up | A Claude Code session cannot be resumed here, nor the reverse. Nearest: `codex resume` and `codex fork` for Codex's own sessions | Not planned |
+| Checkpoints and `/rewind` | Put files and conversation back to an earlier prompt | Codex goes back in the conversation only | Not planned; Jumbo Jet: going back to a prompt can put the files back, done 2026-11-20 `39f6a93cc3` |
+| `/compact <instructions>`, the automatic compaction settings | Compaction on request with a focus, and by itself | Codex's own `/compact` and `model_auto_compact_token_limit` | Not planned |
+| Built-in commands without a Codex counterpart (`/security-review`, `/context`, `/cost`, `/add-dir`, `/doctor` and others) | Present | Codex's own commands (`/review`, `/status`, `/diff` and the rest); a missing one can be written as a skill | Not planned |
+| Worktrees (`--worktree`, `.worktreeinclude`, `worktree.*`) | A session in a worktree of its own | Not read. Nearest: Codex's `/worktree` | Not planned |
+| `claude -p` and its options (`--output-format`, `--input-format`, `--json-schema`, `--max-turns`, `--system-prompt`, `--append-system-prompt`) | A run without a person, with these controls | `codex exec`, with `--json` (events of Codex's own shape) and `--output-schema`; the other options have no counterpart | Not planned |
+| Scheduled prompts and monitors (`CronCreate`, `Monitor`, `/loop`) | The model schedules prompts for itself and watches a command | Absent | Not planned; Jumbo Jet: `Monitor` and the Cron tools, done 2026-11-20 `aaa300e67a` |
+| Channels, LSP servers and the `LSP` tool | Push events into a session; code intelligence | Absent | Not planned |
+| `CLAUDE_CONFIG_DIR` | Moves `~/.claude` | Not read: `~/.claude` is always used. `CODEX_HOME` moves Codex's own directory | Not planned |
+| `fastMode` | A faster output mode of some models | Not read. Nearest: `service_tier` in `config.toml` | Not planned |
+| `respectGitignore`, `fileSuggestion`, `defaultShell`, `plansDirectory` | Tune file completion, the shell and where plans are kept | Not read | Not planned |
 ## Incompatible
 
 What cannot be made to behave as in Claude Code, because it contradicts how Codex works at
@@ -769,22 +776,22 @@ its core: the models it runs, its sandbox and approval path, its trust in projec
 tools the model provider runs. The third column says what stands in the way, the last what
 Codex does in its place.
 
-| Feature | Claude Code | What stands in the way | What Codex does in its place |
-| --- | --- | --- | --- |
-| Claude models: the `model` of a `prompt` or `agent` hook, of a subagent or of a skill, the `Agent` tool's `model` (`sonnet`, `opus`, `haiku`), `inherit`, the `model`, `availableModels` and `fallbackModel` settings, `opusplan`, `[1m]`, `CLAUDE_CODE_SUBAGENT_MODEL` and the `ANTHROPIC_*` variables | The named model runs | Codex runs the models of its own provider, not Claude's | A hook's model is mapped by `[hooks.models]` of `ccn-config.toml`, or else ignored; a subagent's and a skill's `model` are left out; the `Agent` tool takes a model name Codex knows; the settings are not read |
-| The permission mode: `defaultMode`, `--permission-mode`, and `permission_mode` in a hook's input (`default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`); `disableBypassPermissionsMode`; a subagent's `permissionMode` | One mode decides what is asked | Codex has two settings where Claude Code has one, the approval policy and the sandbox mode, and none of Claude Code's modes is one of their combinations | `defaultMode` is not applied. A hook is told `default`, or `bypassPermissions` when Codex never asks |
-| An `allow` rule, or `dangerouslyDisableSandbox`, as the last word | The call runs, outside the sandbox where it asks to | The sandbox is not part of the approval: Codex's orchestrator decides what may leave it, and a rule in a file the model can write must not | An allowed call runs without asking, still in the sandbox. Leaving the sandbox goes through Codex's approval, and a command Codex forbids, or a managed rule that wants a person, stays as it is |
-| `additionalDirectories`, `--add-dir`, `/add-dir` | The model reads there without asking; edits follow the permission mode | Codex reads without asking anyway, and its only way to let edits in is a writable root of the sandbox, which a project's settings could then open by themselves | Not applied. Add a directory to `[sandbox_workspace_write] writable_roots` in `config.toml` yourself |
-| Claude Code's own checks that are not rules: its read-only command list, its path checks for commands, the classifier; asking about a command its parser does not take apart; asking about `.git`, `.claude`, shell profiles and the like whatever the rules say | Decide what is asked | The decision belongs to Codex's approval path, which has its own judgment of commands and paths; two judges of the same call would contradict each other | Where no rule decides, Codex does, as for its own tools |
-| A project's hooks, instruction files, memory and settings, used as soon as the folder is trusted | One trust for the folder, asked once | Codex keeps a trust level for a project and, apart from it, a trust for each of a project's hooks, so that a cloned repository cannot run commands by itself | Project instruction files and the memory are left out of a project marked untrusted. A project's `env`, its approvals of `.mcp.json` servers, its `allow` rules and its naming of the memory directory need the project trusted. A project's hooks (and the hooks of a plugin only a project enables) wait for the hook's trust (`/hooks`, or `--dangerously-bypass-hook-trust`). The user's own hooks run without it |
-| `WebSearch` with Codex's usual search: its name, `allowed_domains` and `blocked_domains`, hooks matching it | A tool Claude Code runs | The hosted `web_search` tool is run by the model provider inside the model's response: the model calls it in its own format, not as a function Codex could rename, give other parameters or put a hook before | The model keeps Codex's `web_search`. `WebSearch` is offered only with Codex's standalone search (`web.run`); allowed domains can be set for every search with `[tools.web_search] filters.allowed_domains` in `config.toml` |
-| `ExitPlanMode`, and hooks matching it | A tool call ends plan mode and asks for approval of the plan | Codex's plan mode ends with the plan in the final answer, not with a tool call | Only `Stop` sees the plan |
-| `Read`, `Grep`, `Glob`, `WebFetch` and `WebSearch` in hook matchers and permission rules, with the Claude tool set off | Tools of their own | Codex's own tool set has no such tools: the model reads and searches with shell commands | Such matchers never match and such rules are not applied; shell commands are matched as `Bash`. Turn the Claude tool set on to have the tools |
-| `Write` and `Edit` writing the file themselves | `Write` writes the content as given; `Edit` writes the whole file back in the line ending it found | Every write is a patch, so that approval, the sandbox, patch events and the turn's diff stay Codex's; a patch ends every file with a line break and gives new lines the file's first line ending | Untouched lines keep their endings; a file changed since it was read makes the write fail |
-| `Glob`, `Grep` and `WebFetch` as actions of their own | Tool calls that are not commands | The layer has no way of its own to reach the filesystem or the network: only a command passes through Codex's sandbox, network proxy and command rules | Each is a command of the turn (`rg`, `curl`): it shows as one, is asked for under an approval policy that asks for commands, and needs the program on the machine that runs commands |
-| A plugin's output styles and channels, and files that configure Claude Code's interface (`statusLine`, `outputStyle`, spinner settings and the rest) | Used | They configure Claude Code's own program, which is not running | A plugin that declares or sets them is disabled whole, unless listed in `[claude.plugins] enable` (see "Which plugins are used") |
-| A plugin's saved state (`CLAUDE_PLUGIN_DATA`), and managing these plugins from Codex | One data directory; `/plugin` | The plugins stay Claude Code's installations: Codex loads them from their install paths without installing them, and writes nothing into Claude Code's directories for them | `CLAUDE_PLUGIN_DATA` is Codex's own directory (`$CODEX_HOME/plugins/data/...`), so state is not shared; install, enable and disable in Claude Code |
-| Names of a plugin's MCP servers (`plugin:<plugin>:<server>`) | Prefixed | Codex's plugin loader names a server as its file does, and tool names and permission rules follow from that name | The names their files give them. Of two plugins' servers of the same name, the first plugin's (by id) is used |
-| The `sandbox.*` settings (`enabled`, `excludedCommands`, `allowUnsandboxedCommands`, `filesystem.*`, `network.*`), and permission rules feeding the sandbox | A sandbox that is off unless turned on, built from these settings and from the `Edit`, `Read` and `WebFetch` rules; a sandboxed command needs no approval | Codex's sandbox is always there and is set by Codex's configuration alone; a file a project can write must not widen it | Not read. Set `sandbox_mode`, `[sandbox_workspace_write]` and the managed network proxy in `config.toml` |
-| Credentials and the provider: `apiKeyHelper`, `awsAuthRefresh`, `forceLoginMethod`, Bedrock, Vertex and gateway variables | Say how Claude Code reaches Anthropic's models | They belong to a provider Codex does not talk to | Not read. Codex's `model_providers` and its own login |
-| Tools and connectors that run at Anthropic: scheduled cloud tasks (`RemoteTrigger`), artifacts, claude.ai's MCP connectors, Remote Control and Claude Code on the web | Work with a claude.ai login | They need Anthropic's services and account | Absent |
+| Feature | Claude Code | What stands in the way | What Codex does in its place | Status |
+| --- | --- | --- | --- | --- |
+| Claude models: the `model` of a `prompt` or `agent` hook, of a subagent or of a skill, the `Agent` tool's `model` (`sonnet`, `opus`, `haiku`), `inherit`, the `model`, `availableModels` and `fallbackModel` settings, `opusplan`, `[1m]`, `CLAUDE_CODE_SUBAGENT_MODEL` and the `ANTHROPIC_*` variables | The named model runs | Codex runs the models of its own provider, not Claude's | A hook's model is mapped by `[hooks.models]` of `ccn-config.toml`, or else ignored; a subagent's and a skill's `model` are left out; the `Agent` tool takes a model name Codex knows; the settings are not read | Not planned |
+| The permission mode: `defaultMode`, `--permission-mode`, and `permission_mode` in a hook's input (`default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`); `disableBypassPermissionsMode`; a subagent's `permissionMode` | One mode decides what is asked | Codex has two settings where Claude Code has one, the approval policy and the sandbox mode, and none of Claude Code's modes is one of their combinations | `defaultMode` is not applied. A hook is told `default`, or `bypassPermissions` when Codex never asks | Not planned |
+| An `allow` rule, or `dangerouslyDisableSandbox`, as the last word | The call runs, outside the sandbox where it asks to | The sandbox is not part of the approval: Codex's orchestrator decides what may leave it, and a rule in a file the model can write must not | An allowed call runs without asking, still in the sandbox. Leaving the sandbox goes through Codex's approval, and a command Codex forbids, or a managed rule that wants a person, stays as it is | Not planned |
+| `additionalDirectories`, `--add-dir`, `/add-dir` | The model reads there without asking; edits follow the permission mode | Codex reads without asking anyway, and its only way to let edits in is a writable root of the sandbox, which a project's settings could then open by themselves | Not applied. Add a directory to `[sandbox_workspace_write] writable_roots` in `config.toml` yourself | Not planned |
+| Claude Code's own checks that are not rules: its read-only command list, its path checks for commands, the classifier; asking about a command its parser does not take apart; asking about `.git`, `.claude`, shell profiles and the like whatever the rules say | Decide what is asked | The decision belongs to Codex's approval path, which has its own judgment of commands and paths; two judges of the same call would contradict each other | Where no rule decides, Codex does, as for its own tools | Not planned |
+| A project's hooks, instruction files, memory and settings, used as soon as the folder is trusted | One trust for the folder, asked once | Codex keeps a trust level for a project and, apart from it, a trust for each of a project's hooks, so that a cloned repository cannot run commands by itself | Project instruction files and the memory are left out of a project marked untrusted. A project's `env`, its approvals of `.mcp.json` servers, its `allow` rules and its naming of the memory directory need the project trusted. A project's hooks (and the hooks of a plugin only a project enables) wait for the hook's trust (`/hooks`, or `--dangerously-bypass-hook-trust`). The user's own hooks run without it | Not planned |
+| `WebSearch` with Codex's usual search: its name, `allowed_domains` and `blocked_domains`, hooks matching it | A tool Claude Code runs | The hosted `web_search` tool is run by the model provider inside the model's response: the model calls it in its own format, not as a function Codex could rename, give other parameters or put a hook before | The model keeps Codex's `web_search`. `WebSearch` is offered only with Codex's standalone search (`web.run`); allowed domains can be set for every search with `[tools.web_search] filters.allowed_domains` in `config.toml` | Not planned |
+| `ExitPlanMode`, and hooks matching it | A tool call ends plan mode and asks for approval of the plan | Codex's plan mode ends with the plan in the final answer, not with a tool call | Only `Stop` sees the plan | Not planned |
+| `Read`, `Grep`, `Glob`, `WebFetch` and `WebSearch` in hook matchers and permission rules, with the Claude tool set off | Tools of their own | Codex's own tool set has no such tools: the model reads and searches with shell commands | Such matchers never match and such rules are not applied; shell commands are matched as `Bash`. Turn the Claude tool set on to have the tools | Not planned |
+| `Write` and `Edit` writing the file themselves | `Write` writes the content as given; `Edit` writes the whole file back in the line ending it found | Every write is a patch, so that approval, the sandbox, patch events and the turn's diff stay Codex's; a patch ends every file with a line break and gives new lines the file's first line ending | Untouched lines keep their endings; a file changed since it was read makes the write fail | Not planned |
+| `Glob`, `Grep` and `WebFetch` as actions of their own | Tool calls that are not commands | The layer has no way of its own to reach the filesystem or the network: only a command passes through Codex's sandbox, network proxy and command rules | Each is a command of the turn (`rg`, `curl`): it shows as one, is asked for under an approval policy that asks for commands, and needs the program on the machine that runs commands | Not planned |
+| A plugin's output styles and channels, and files that configure Claude Code's interface (`statusLine`, `outputStyle`, spinner settings and the rest) | Used | They configure Claude Code's own program, which is not running | A plugin that declares or sets them is disabled whole, unless listed in `[claude.plugins] enable` (see "Which plugins are used") | Not planned |
+| A plugin's saved state (`CLAUDE_PLUGIN_DATA`), and managing these plugins from Codex | One data directory; `/plugin` | The plugins stay Claude Code's installations: Codex loads them from their install paths without installing them, and writes nothing into Claude Code's directories for them | `CLAUDE_PLUGIN_DATA` is Codex's own directory (`$CODEX_HOME/plugins/data/...`), so state is not shared; install, enable and disable in Claude Code | Not planned |
+| Names of a plugin's MCP servers (`plugin:<plugin>:<server>`) | Prefixed | Codex's plugin loader names a server as its file does, and tool names and permission rules follow from that name | The names their files give them. Of two plugins' servers of the same name, the first plugin's (by id) is used | Not planned |
+| The `sandbox.*` settings (`enabled`, `excludedCommands`, `allowUnsandboxedCommands`, `filesystem.*`, `network.*`), and permission rules feeding the sandbox | A sandbox that is off unless turned on, built from these settings and from the `Edit`, `Read` and `WebFetch` rules; a sandboxed command needs no approval | Codex's sandbox is always there and is set by Codex's configuration alone; a file a project can write must not widen it | Not read. Set `sandbox_mode`, `[sandbox_workspace_write]` and the managed network proxy in `config.toml` | Not planned |
+| Credentials and the provider: `apiKeyHelper`, `awsAuthRefresh`, `forceLoginMethod`, Bedrock, Vertex and gateway variables | Say how Claude Code reaches Anthropic's models | They belong to a provider Codex does not talk to | Not read. Codex's `model_providers` and its own login | Not planned |
+| Tools and connectors that run at Anthropic: scheduled cloud tasks (`RemoteTrigger`), artifacts, claude.ai's MCP connectors, Remote Control and Claude Code on the web | Work with a claude.ai login | They need Anthropic's services and account | Absent | Not planned |
