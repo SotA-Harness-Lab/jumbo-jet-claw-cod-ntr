@@ -2052,7 +2052,8 @@ impl Config {
         }
         // Claude Code's MCP servers, below Codex's own servers of the same name.
         if !cfg!(test) && codex_claude_compat::enabled() {
-            for (name, server) in claude_code_mcp_servers(&self.cwd) {
+            let project_trusted = self.active_project.is_trusted();
+            for (name, server) in claude_code_mcp_servers(&self.cwd, project_trusted) {
                 if !self.mcp_servers.get().contains_key(&name) {
                     catalog.register(McpServerRegistration::from_config(name, server));
                 }
@@ -4273,7 +4274,11 @@ impl Config {
 
         let mut shell_environment_policy =
             ShellEnvironmentPolicy::from(cfg.shell_environment_policy);
-        add_claude_code_env(&mut shell_environment_policy, &resolved_cwd);
+        add_claude_code_env(
+            &mut shell_environment_policy,
+            &resolved_cwd,
+            active_project.is_trusted(),
+        );
         let allow_login_shell = cfg.allow_login_shell.unwrap_or(true);
 
         let history = cfg.history.unwrap_or_default();
@@ -4699,7 +4704,11 @@ impl Config {
         // workspace may write the memory too, unless requirements forbid it.
         if !active_project.is_untrusted()
             && let Some(memory_dir) =
-                crate::claude_memory::local_auto_memory_dir(resolved_cwd.as_path()).await
+                crate::claude_memory::local_auto_memory_dir(
+                    resolved_cwd.as_path(),
+                    active_project.is_trusted(),
+                )
+                .await
             && let Some(policy) = crate::claude_memory::with_writable_memory_dir(
                 &effective_file_system_sandbox_policy,
                 resolved_cwd.as_path(),
@@ -5566,15 +5575,22 @@ fn claude_code_plugins(
 
 /// Adds the `env` entries of Claude Code's settings files (the user's, then the project's,
 /// later files winning) to the environment of the commands Codex runs. Codex's own
-/// `shell_environment_policy.set` wins over them.
-fn add_claude_code_env(policy: &mut ShellEnvironmentPolicy, cwd: &AbsolutePathBuf) {
+/// `shell_environment_policy.set` wins over them. A project's files count only once the
+/// project is trusted, as in Claude Code: a repository that is merely opened must not be
+/// able to set `PATH` or the like for the commands run in it.
+fn add_claude_code_env(
+    policy: &mut ShellEnvironmentPolicy,
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) {
     // Unit tests never read the real home directory's Claude Code settings.
     if cfg!(test) || !codex_claude_compat::enabled() {
         return;
     }
     let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
     let mut env = std::collections::HashMap::new();
-    for path in codex_claude_compat::settings_paths(claude_home.as_deref(), Some(cwd.as_path())) {
+    let project_dir = project_trusted.then_some(cwd.as_path());
+    for path in codex_claude_compat::settings_paths(claude_home.as_deref(), project_dir) {
         match codex_claude_compat::read_settings(&path) {
             Ok(Some(settings)) => env.extend(codex_claude_compat::settings_env(&settings)),
             Ok(None) => {}
@@ -5592,9 +5608,14 @@ fn add_claude_code_env(policy: &mut ShellEnvironmentPolicy, cwd: &AbsolutePathBu
 }
 
 /// The MCP servers Claude Code would start in `cwd`, from `~/.claude.json` and the
-/// project's approved `.mcp.json` files, as Codex server configurations.
+/// project's approved `.mcp.json` files, as Codex server configurations. In a project that
+/// is not trusted, only the user's own files can approve a server of `.mcp.json`: the
+/// approvals in the project's `.claude/settings.json` and `.claude/settings.local.json`
+/// come with the repository, which would otherwise approve its own servers and have their
+/// commands run. What those files disable is honoured either way.
 fn claude_code_mcp_servers(
     cwd: &AbsolutePathBuf,
+    project_trusted: bool,
 ) -> std::collections::BTreeMap<String, McpServerConfig> {
     let read_json = |path: &std::path::Path| match codex_claude_compat::read_settings(path) {
         Ok(value) => value,
@@ -5608,9 +5629,20 @@ fn claude_code_mcp_servers(
         .as_ref()
         .and_then(|home| read_json(&home.join(".claude.json")));
     let claude_home = home.map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let user_settings = claude_home.as_ref().map(|home| home.join("settings.json"));
     let settings = codex_claude_compat::settings_paths(claude_home.as_deref(), Some(cwd.as_path()))
         .iter()
-        .filter_map(|path| read_json(path))
+        .filter_map(|path| {
+            let mut settings = read_json(path)?;
+            if !project_trusted
+                && user_settings.as_deref() != Some(path.as_path())
+                && let Some(settings) = settings.as_object_mut()
+            {
+                settings.remove("enabledMcpjsonServers");
+                settings.remove("enableAllProjectMcpServers");
+            }
+            Some(settings)
+        })
         .collect::<Vec<_>>();
     let mcp_json_files = codex_claude_compat::mcp_json_paths(cwd.as_path())
         .iter()

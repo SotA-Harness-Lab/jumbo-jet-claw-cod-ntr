@@ -29,11 +29,16 @@ pub(crate) struct ClaudeAutoMemory {
 /// `home_dir` and `cwd` and from the environment (`process_env`, under the `env` of the
 /// settings, which Claude Code applies over its own environment). `None` when Claude Code
 /// has auto memory turned off, or when there is no home directory.
-pub(crate) async fn claude_auto_memory(
+///
+/// In a project that is not trusted, the project's own settings files can still turn the
+/// memory off, but neither their `env` nor their `autoMemoryDirectory` is taken: both can
+/// name the directory, which is made writable, and they come with the repository.
+pub(crate) async fn claude_auto_memory_for(
     source: &dyn FileSource,
     cwd: &Path,
     home_dir: Option<&Path>,
     process_env: &(dyn Fn(&str) -> Option<String> + Sync),
+    project_trusted: bool,
 ) -> Option<ClaudeAutoMemory> {
     let home_dir = home_dir?;
     let claude_home = home_dir.join(CLAUDE_DIR);
@@ -53,7 +58,12 @@ pub(crate) async fn claude_auto_memory(
         .flatten()
         .collect::<Vec<&Value>>();
     let mut settings_env = HashMap::new();
-    for settings in &settings {
+    let env_settings = if project_trusted {
+        vec![&user, &project, &local]
+    } else {
+        vec![&user]
+    };
+    for settings in env_settings.into_iter().flatten() {
         settings_env.extend(codex_claude_compat::settings_env(settings));
     }
     let env = |name: &str| {
@@ -67,7 +77,8 @@ pub(crate) async fn claude_auto_memory(
     }
     // A project's shared settings never move the memory: a repository could otherwise
     // have Codex write wherever it names.
-    let trusted_settings = [&user, &local]
+    let no_settings = None;
+    let trusted_settings = [&user, if project_trusted { &local } else { &no_settings }]
         .into_iter()
         .flatten()
         .collect::<Vec<&Value>>();
@@ -89,16 +100,44 @@ pub(crate) async fn claude_auto_memory(
     Some(ClaudeAutoMemory { dir, instructions })
 }
 
+/// [`claude_auto_memory_for`] in a trusted project.
+#[cfg(test)]
+pub(crate) async fn claude_auto_memory(
+    source: &dyn FileSource,
+    cwd: &Path,
+    home_dir: Option<&Path>,
+    process_env: &(dyn Fn(&str) -> Option<String> + Sync),
+) -> Option<ClaudeAutoMemory> {
+    claude_auto_memory_for(
+        source,
+        cwd,
+        home_dir,
+        process_env,
+        /*project_trusted*/ true,
+    )
+    .await
+}
+
 /// The auto memory directory of a local session in `cwd`, created if missing, as Claude
 /// Code creates it at the start of every session (its instructions tell the model the
 /// directory exists). `None` when Claude Code compatibility or auto memory is off.
-pub(crate) async fn local_auto_memory_dir(cwd: &Path) -> Option<AbsolutePathBuf> {
+pub(crate) async fn local_auto_memory_dir(
+    cwd: &Path,
+    project_trusted: bool,
+) -> Option<AbsolutePathBuf> {
     // Unit tests never read the real home directory's Claude Code settings.
     if cfg!(test) || !codex_claude_compat::enabled() {
         return None;
     }
     let home_dir = dirs::home_dir();
-    let memory = claude_auto_memory(&LocalFiles, cwd, home_dir.as_deref(), &process_env).await?;
+    let memory = claude_auto_memory_for(
+        &LocalFiles,
+        cwd,
+        home_dir.as_deref(),
+        &process_env,
+        project_trusted,
+    )
+    .await?;
     if let Err(err) = tokio::fs::create_dir_all(&memory.dir).await {
         // The model's own write will show the real error.
         tracing::debug!(
