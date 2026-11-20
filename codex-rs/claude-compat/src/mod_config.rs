@@ -15,9 +15,10 @@
 //! language = "zh-CN"                 # the TUI's language; the system's when left out
 //! ```
 //!
-//! A missing file means the defaults. A file that does not parse, or names a key this fork does
-//! not know, is reported as a startup warning and the defaults are used: it never stops Codex
-//! from starting.
+//! A missing file means the defaults. A file that does not parse is reported as a startup
+//! warning and the defaults are used: it never stops Codex from starting. A key or section this
+//! program does not know is left alone, with a line in the log: another build of the program,
+//! or a later version, may share the file and keep settings of its own there.
 
 use std::io;
 use std::path::Path;
@@ -29,7 +30,7 @@ pub const MOD_CONFIG_FILE: &str = "ccn-config.toml";
 
 /// The contents of `ccn-config.toml`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct ModConfig {
     /// `[claude]`: how Claude Code's configuration is used.
     pub claude: ClaudeModConfig,
@@ -39,7 +40,7 @@ pub struct ModConfig {
 
 /// `[ui]` of `ccn-config.toml`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct UiModConfig {
     /// `language`: the TUI's language as a BCP 47 tag (`en`, `zh-CN`). When left out, the
     /// system's language is used, and English when the TUI has no translation for it.
@@ -48,7 +49,7 @@ pub struct UiModConfig {
 
 /// `[claude]` of `ccn-config.toml`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct ClaudeModConfig {
     /// `tools`: offer the model Claude Code's tool set in place of Codex's. Off by default.
     pub tools: bool,
@@ -58,16 +59,27 @@ pub struct ClaudeModConfig {
 
 /// `[claude.plugins]` of `ccn-config.toml`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct ClaudePluginsModConfig {
     /// `enable`: `<plugin>@<marketplace>` ids used even when found incompatible with Codex.
     pub enable: Vec<String>,
 }
 
 impl ModConfig {
-    /// Parses the contents of `ccn-config.toml`.
+    /// Parses the contents of `ccn-config.toml`, leaving out what this program does not know.
     pub fn parse(contents: &str) -> Result<Self, String> {
-        toml::from_str(contents).map_err(|err| err.to_string().trim_end().to_string())
+        Self::parse_with_unknown_keys(contents).map(|(config, _)| config)
+    }
+
+    /// Parses the contents of `ccn-config.toml` and names the keys and sections in it that
+    /// this program does not know, as dotted paths.
+    pub fn parse_with_unknown_keys(contents: &str) -> Result<(Self, Vec<String>), String> {
+        let error = |err: toml::de::Error| err.to_string().trim_end().to_string();
+        let value = toml::from_str::<toml::Value>(contents).map_err(error)?;
+        let mut unknown = Vec::new();
+        let config = serde_ignored::deserialize(value, |path| unknown.push(path.to_string()))
+            .map_err(error)?;
+        Ok((config, unknown))
     }
 
     /// Reads `ccn-config.toml` in `codex_home`: the defaults when it is missing, and the defaults with
@@ -87,8 +99,17 @@ impl ModConfig {
                 );
             }
         };
-        match Self::parse(&contents) {
-            Ok(config) => (config, None),
+        match Self::parse_with_unknown_keys(&contents) {
+            Ok((config, unknown)) => {
+                if !unknown.is_empty() {
+                    tracing::warn!(
+                        "ignoring settings this program does not know in {}: {}",
+                        path.display(),
+                        unknown.join(", ")
+                    );
+                }
+                (config, None)
+            }
             Err(err) => (
                 Self::default(),
                 Some(format!(

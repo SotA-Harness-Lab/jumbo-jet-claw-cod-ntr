@@ -54,11 +54,44 @@ fn missing_keys_are_the_defaults() {
 }
 
 #[test]
-fn unknown_keys_and_wrong_types_are_errors() {
-    assert!(ModConfig::parse("[claude]\ntool = true\n").is_err());
-    assert!(ModConfig::parse("[other]\n").is_err());
+fn wrong_types_are_errors() {
     assert!(ModConfig::parse("[claude]\ntools = \"yes\"\n").is_err());
     assert!(ModConfig::parse("[claude.plugins]\nenable = \"a@m\"\n").is_err());
+}
+
+#[test]
+fn unknown_keys_and_sections_are_left_out_and_named() {
+    let (config, unknown) = ModConfig::parse_with_unknown_keys(
+        "[claude]\ntools = true\ntool = 1\n\n[harness]\noutput_limit_continuations = 3\n\n[claude.plugins]\nextra = []\n",
+    )
+    .expect("a file with settings of another build parses");
+
+    assert_eq!(
+        config,
+        ModConfig {
+            claude: ClaudeModConfig {
+                tools: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    );
+    assert_eq!(unknown, vec!["claude.plugins.extra", "claude.tool", "harness"]);
+}
+
+#[test]
+fn a_file_with_unknown_keys_loads_without_a_warning() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    fs::write(
+        tmp.path().join(MOD_CONFIG_FILE),
+        "[claude]\ntools = true\n\n[harness]\nanything = 1\n",
+    )
+    .expect("write");
+
+    let (config, warning) = ModConfig::load(tmp.path());
+
+    assert!(config.claude.tools);
+    assert_eq!(warning, None);
 }
 
 #[test]
