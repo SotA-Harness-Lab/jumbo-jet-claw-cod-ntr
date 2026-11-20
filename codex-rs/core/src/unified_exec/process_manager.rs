@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code;
+// follow more of Claude Code's behaviour
 
 use crate::unified_exec::output::CapturedStream;
 use rand::Rng;
@@ -1510,6 +1511,7 @@ impl UnifiedExecProcessManager {
         );
         set_tool_call_id_env_var(&mut env, Some(&context.call_id));
         inject_session_env(&mut env, context.session.session_id());
+        crate::claude_env::apply_session_start_env(&context.session, &mut env);
         inject_apply_patch_env(&mut env);
         let active_permission_profile = prepared.turn_environment.active_permission_profile();
         inject_permission_profile_env(&mut env, active_permission_profile.as_ref());

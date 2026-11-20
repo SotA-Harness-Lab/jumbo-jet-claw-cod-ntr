@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; follow more of Claude Code's behaviour
 
 use super::account::McpToolAccountError;
 use super::*;
@@ -3211,7 +3211,8 @@ async fn permission_request_hook_allows_mcp_tool_call() {
                     "name": "Ada",
                     "entityType": "person"
                 }]
-            }
+            },
+            "permission_suggestions": []
         })]
     );
 }
@@ -3287,7 +3288,8 @@ async fn permission_request_hook_uses_hook_tool_name_without_metadata() {
             "permission_mode": "default",
             "tool_name": "mcp__memory__create_entities",
             "hook_event_name": "PermissionRequest",
-            "tool_input": { "entities": [] }
+            "tool_input": { "entities": [] },
+            "permission_suggestions": []
         })]
     );
 }

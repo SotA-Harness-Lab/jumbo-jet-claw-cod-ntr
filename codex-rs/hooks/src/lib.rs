@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks; load Claude Code plugins
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks; load Claude Code plugins;
+// follow more of Claude Code's behaviour
 
 mod config_rules;
 mod context;
@@ -87,6 +88,7 @@ pub use events::permission_request::PermissionRequestRequest;
 pub use events::post_tool_use::PostToolUseOutcome;
 pub use events::post_tool_use::PostToolUseRequest;
 pub use events::pre_tool_use::PreToolUseOutcome;
+pub use events::pre_tool_use::PreToolUsePermission;
 pub use events::pre_tool_use::PreToolUseRequest;
 pub use events::session_end::SessionEndOutcome;
 pub use events::session_end::SessionEndRequest;

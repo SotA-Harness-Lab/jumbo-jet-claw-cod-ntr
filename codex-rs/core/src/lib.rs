@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: removed Windows support; read Claude Code's configuration in place; write Claude Code auto memory
+// Modified by Tianyu (Sky) Lu in 2026: removed Windows support; read Claude Code's configuration in place; write Claude Code auto memory;
+// follow more of Claude Code's behaviour
 
 //! Root of the `codex-core` library.
 
@@ -95,6 +96,7 @@ pub use rollout_budget::RolloutBudgetReminder;
 mod agent_communication;
 pub use agent_communication::PendingAgentMessage;
 mod attestation;
+mod claude_env;
 mod claude_memory;
 mod claude_rules;
 mod code_mode_host;

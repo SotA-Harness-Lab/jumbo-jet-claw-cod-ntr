@@ -144,18 +144,42 @@ async fn file_instructions_follow_claude_code_phases() {
     fs::create_dir_all(cwd.join(".claude/rules")).expect("create");
     fs::create_dir_all(sub.join(".claude/rules")).expect("create");
     fs::create_dir_all(target.parent().unwrap()).expect("create");
-    fs::write(user_rules.join("rs.md"), "---\npaths: \"**/*.rs\"\n---\nuser rs").expect("write");
-    fs::write(user_rules.join("py.md"), "---\npaths: \"**/*.py\"\n---\nuser py").expect("write");
+    fs::write(
+        user_rules.join("rs.md"),
+        "---\npaths: \"**/*.rs\"\n---\nuser rs",
+    )
+    .expect("write");
+    fs::write(
+        user_rules.join("py.md"),
+        "---\npaths: \"**/*.py\"\n---\nuser py",
+    )
+    .expect("write");
     fs::write(user_rules.join("always.md"), "user always").expect("write");
-    fs::write(top.join(".claude/rules/top.md"), "---\npaths: repo/sub/**\n---\ntop rule").expect("write");
-    fs::write(cwd.join(".claude/rules/repo.md"), "---\npaths: sub/deep/*.rs\n---\nrepo rule").expect("write");
+    fs::write(
+        top.join(".claude/rules/top.md"),
+        "---\npaths: repo/sub/**\n---\ntop rule",
+    )
+    .expect("write");
+    fs::write(
+        cwd.join(".claude/rules/repo.md"),
+        "---\npaths: sub/deep/*.rs\n---\nrepo rule",
+    )
+    .expect("write");
     fs::write(cwd.join(".claude/rules/plain.md"), "repo always").expect("write");
     fs::write(cwd.join("CLAUDE.md"), "already loaded").expect("write");
     fs::write(sub.join("CLAUDE.md"), "sub doc").expect("write");
     fs::write(sub.join("CLAUDE.local.md"), "sub local").expect("write");
     fs::write(sub.join(".claude/rules/sub.md"), "sub always").expect("write");
-    fs::write(sub.join(".claude/rules/scoped.md"), "---\npaths: deep/**\n---\nsub scoped").expect("write");
-    fs::write(sub.join(".claude/rules/other.md"), "---\npaths: other/**\n---\nnever").expect("write");
+    fs::write(
+        sub.join(".claude/rules/scoped.md"),
+        "---\npaths: deep/**\n---\nsub scoped",
+    )
+    .expect("write");
+    fs::write(
+        sub.join(".claude/rules/other.md"),
+        "---\npaths: other/**\n---\nnever",
+    )
+    .expect("write");
 
     let files = file_instructions(
         &LocalFiles,
@@ -173,11 +197,31 @@ async fn file_instructions_follow_claude_code_phases() {
         vec![
             file(user_rules.join("rs.md"), InstructionKind::User, "user rs"),
             file(sub.join("CLAUDE.md"), InstructionKind::Project, "sub doc"),
-            file(sub.join("CLAUDE.local.md"), InstructionKind::Local, "sub local"),
-            file(sub.join(".claude/rules/sub.md"), InstructionKind::Project, "sub always"),
-            file(sub.join(".claude/rules/scoped.md"), InstructionKind::Project, "sub scoped"),
-            file(top.join(".claude/rules/top.md"), InstructionKind::Project, "top rule"),
-            file(cwd.join(".claude/rules/repo.md"), InstructionKind::Project, "repo rule"),
+            file(
+                sub.join("CLAUDE.local.md"),
+                InstructionKind::Local,
+                "sub local"
+            ),
+            file(
+                sub.join(".claude/rules/sub.md"),
+                InstructionKind::Project,
+                "sub always"
+            ),
+            file(
+                sub.join(".claude/rules/scoped.md"),
+                InstructionKind::Project,
+                "sub scoped"
+            ),
+            file(
+                top.join(".claude/rules/top.md"),
+                InstructionKind::Project,
+                "top rule"
+            ),
+            file(
+                cwd.join(".claude/rules/repo.md"),
+                InstructionKind::Project,
+                "repo rule"
+            ),
         ]
     );
 
@@ -193,6 +237,35 @@ async fn file_instructions_follow_claude_code_phases() {
     .expect("load");
     assert_eq!(
         user_only,
-        vec![file(user_rules.join("rs.md"), InstructionKind::User, "user rs")]
+        vec![file(
+            user_rules.join("rs.md"),
+            InstructionKind::User,
+            "user rs"
+        )]
+    );
+}
+
+#[tokio::test]
+async fn a_rule_s_includes_follow_it_and_the_chain_stops_four_files_down() {
+    let home = TempDir::new().expect("temp dir");
+    let claude = home.path().join(".claude");
+    fs::create_dir_all(claude.join("rules")).expect("create");
+    fs::write(claude.join("rules/always.md"), "always @../one.md").expect("write");
+    fs::write(claude.join("one.md"), "one @two.md").expect("write");
+    fs::write(claude.join("two.md"), "two @three.md").expect("write");
+    fs::write(claude.join("three.md"), "three @four.md").expect("write");
+    fs::write(claude.join("four.md"), "four @five.md").expect("write");
+    fs::write(claude.join("five.md"), "five").expect("write");
+
+    let files = user_instructions(&LocalFiles, &claude, Some(home.path()))
+        .await
+        .expect("load");
+
+    assert_eq!(
+        files
+            .iter()
+            .map(|file| file.content.split(' ').next().unwrap_or_default())
+            .collect::<Vec<_>>(),
+        vec!["always", "one", "two", "three", "four"]
     );
 }

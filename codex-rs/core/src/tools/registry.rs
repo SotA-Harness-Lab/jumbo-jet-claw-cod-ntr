@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks;
+// follow more of Claude Code's behaviour
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -899,8 +900,9 @@ impl ToolRegistry {
             Ok(environments) => environments,
             Err(err) => return Err(fail_before_execution(dispatch_trace, &invocation, err).await),
         };
-        match apply_pre_tool_use(tool.as_ref(), &mut invocation).await {
-            Ok(()) => {}
+        // A hook's `allow` or `ask` for the call, held until the call is over.
+        let _hook_permission = match apply_pre_tool_use(tool.as_ref(), &mut invocation).await {
+            Ok(permission) => permission,
             Err(PreToolUseError::Blocked(message)) => {
                 if tool.is_builtin_control_tool() {
                     let mut analytics = ControlToolCallGuard::new(&invocation);
@@ -920,7 +922,7 @@ impl ToolRegistry {
                 return Err(fail_before_execution(dispatch_trace, &invocation, err).await);
             }
             Err(PreToolUseError::Cancelled(err)) => return Err(err),
-        }
+        };
 
         if let Some(assessment) = &invocation.step_context.serving_assessment {
             let mut assessment = assessment.as_ref().clone();
@@ -1225,12 +1227,14 @@ pub(crate) enum PreToolUseError {
     Cancelled(FunctionCallError),
 }
 
+/// Runs the `PreToolUse` hooks of a call, applying a block or a rewritten input. A hook's
+/// `allow` or `ask` comes back as a guard to hold until the call is over.
 pub(crate) async fn apply_pre_tool_use(
     tool: &dyn CoreToolRuntime,
     invocation: &mut ToolInvocation,
-) -> Result<(), PreToolUseError> {
+) -> Result<Option<crate::tools::claude::PermissionGuard>, PreToolUseError> {
     let Some(payload) = tool.pre_tool_use_payload(invocation) else {
-        return Ok(());
+        return Ok(None);
     };
     let cwd = tool
         .pre_tool_use_cwd(invocation)
@@ -1248,23 +1252,31 @@ pub(crate) async fn apply_pre_tool_use(
     .await
     .map_err(PreToolUseError::Cancelled)?;
 
-    match outcome {
-        PreToolUseHookResult::Blocked(reason) => Err(PreToolUseError::Blocked(reason)),
+    let (updated_input, permission) = match outcome {
+        PreToolUseHookResult::Blocked(reason) => return Err(PreToolUseError::Blocked(reason)),
         PreToolUseHookResult::Continue {
-            updated_input: None,
-        } => Ok(()),
-        PreToolUseHookResult::Continue {
-            updated_input: Some(input),
-        } => {
-            let mut updated = tool
-                .with_updated_hook_input(invocation.clone(), input)
-                .map_err(PreToolUseError::Failed)?;
-            if updated.payload != invocation.payload {
-                Arc::make_mut(&mut updated.step_context).serving_assessment = None;
-            }
-            *invocation = updated;
-            Ok(())
+            updated_input,
+            permission,
+        } => (updated_input, permission),
+    };
+    if let Some(input) = updated_input {
+        let mut updated = tool
+            .with_updated_hook_input(invocation.clone(), input)
+            .map_err(PreToolUseError::Failed)?;
+        if updated.payload != invocation.payload {
+            Arc::make_mut(&mut updated.step_context).serving_assessment = None;
         }
+        *invocation = updated;
+    }
+    match permission {
+        Some(permission) => crate::tools::claude::apply_hook_permission(invocation, permission)
+            .await
+            .map(Some)
+            .map_err(|err| match err {
+                FunctionCallError::RespondToModel(message) => PreToolUseError::Blocked(message),
+                other => PreToolUseError::Failed(other),
+            }),
+        None => Ok(None),
     }
 }
 

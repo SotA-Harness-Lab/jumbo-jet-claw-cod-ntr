@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks;
+// follow more of Claude Code's behaviour
 
 use std::path::PathBuf;
 
@@ -634,6 +635,7 @@ mod tests {
             kind: crate::engine::ConfiguredHandlerKind::Command {
                 command: "python3 post_tool_use_hook.py".to_string(),
                 r#async,
+                posix_sh: false,
                 env: std::collections::HashMap::new(),
             },
         }

@@ -17,8 +17,8 @@ fn installed_plugin(tmp: &TempDir) -> (PathBuf, PathBuf) {
     let claude_home = tmp.path().join("home/.claude");
     let root = claude_home.join("plugins/cache/market/demo/1.0.0");
     fs::create_dir_all(root.join(".claude-plugin")).expect("create");
-    fs::create_dir_all(root.join("agents/review")).expect("create");
-    fs::create_dir_all(root.join("extra")).expect("create");
+    fs::create_dir_all(root.join("agents")).expect("create");
+    fs::create_dir_all(root.join("extra/review")).expect("create");
     fs::write(
         root.join(".claude-plugin/plugin.json"),
         r#"{
@@ -69,7 +69,10 @@ fn options_come_from_settings_and_the_secure_store() {
     assert_eq!(
         plugin.option_env(),
         vec![
-            ("CLAUDE_PLUGIN_OPTION_API_TOKEN".to_string(), "s3cret".to_string()),
+            (
+                "CLAUDE_PLUGIN_OPTION_API_TOKEN".to_string(),
+                "s3cret".to_string()
+            ),
             (
                 "CLAUDE_PLUGIN_OPTION_API_URL".to_string(),
                 "https://api.example.com".to_string()
@@ -86,7 +89,9 @@ fn commands_get_every_value_or_name_the_missing_option() {
     let plugin = load(&claude_home, &root);
 
     assert_eq!(
-        plugin.substitute("${CLAUDE_PLUGIN_ROOT}/run --url ${user_config.api_url} -t ${user_config.api-token}"),
+        plugin.substitute(
+            "${CLAUDE_PLUGIN_ROOT}/run --url ${user_config.api_url} -t ${user_config.api-token}"
+        ),
         Ok(format!(
             "{}/run --url https://api.example.com -t s3cret",
             root.display()
@@ -123,8 +128,12 @@ fn a_directory_without_a_manifest_is_no_plugin() {
 fn plugin_agents_are_named_after_the_plugin_and_their_directories() {
     let tmp = TempDir::new().expect("temp dir");
     let (_, root) = installed_plugin(&tmp);
-    let nested = root.join("agents/review/security.md");
-    fs::write(&nested, "Look for injection in ${CLAUDE_PLUGIN_ROOT}/rules.\n").expect("write");
+    let nested = root.join("extra/review/security.md");
+    fs::write(
+        &nested,
+        "Look for injection in ${CLAUDE_PLUGIN_ROOT}/rules.\n",
+    )
+    .expect("write");
     let named = root.join("extra/helper.md");
     fs::write(
         &named,
@@ -148,7 +157,13 @@ fn plugin_agents_are_named_after_the_plugin_and_their_directories() {
         ("demo:assistant", "Helps.")
     );
 
-    // A file of the plugin outside its agent directories is an ordinary subagent file.
+    // A file of the plugin outside its agent directories is an ordinary subagent file, and
+    // the manifest's `agents` list stands in place of `agents/`, as in Claude Code.
     let outside = root.join("docs/note.md");
     assert_eq!(parse_subagent_at("Just a note.\n", &outside), None);
+    let replaced = root.join("agents/old.md");
+    assert_eq!(
+        parse_subagent_at("An agent no longer listed.\n", &replaced),
+        None
+    );
 }

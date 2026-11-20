@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use std::sync::Arc;
 
 use crate::context::world_state::WorldState;
@@ -48,7 +53,7 @@ async fn run_compact_task_inner(
     let turn_context = &step_context.turn;
     let pre_compact_outcome = run_pre_compact_hooks(sess, turn_context, trigger).await;
     match pre_compact_outcome {
-        PreCompactHookOutcome::Continue => {}
+        PreCompactHookOutcome::Continue { .. } => {}
         PreCompactHookOutcome::Stopped => return Err(CodexErr::TurnAborted),
     }
 
@@ -67,6 +72,7 @@ async fn run_compact_task_inner(
     sess.emit_turn_item_completed(turn_context, compaction_item)
         .await;
 
+    crate::claude_rules::forget_shown_files(sess);
     let post_compact_outcome = run_post_compact_hooks(sess, turn_context, trigger).await;
     if let PostCompactHookOutcome::Stopped = post_compact_outcome {
         return Err(CodexErr::TurnAborted);

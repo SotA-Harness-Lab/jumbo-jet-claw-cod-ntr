@@ -31,6 +31,19 @@ const APPLY_PATCH_FILE_MARKERS: &[&str] = &["*** Add File: ", "*** Update File: 
 #[derive(Default)]
 struct ShownFiles(Mutex<HashSet<PathBuf>>);
 
+/// Forgets which instruction files were shown, after the conversation was compacted: their
+/// text is gone from it, so Claude Code shows them again the next time a file they cover
+/// is worked on.
+pub(crate) fn forget_shown_files(session: &crate::session::session::Session) {
+    if let Some(shown) = session.services.session_extension_data.get::<ShownFiles>() {
+        shown
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clear();
+    }
+}
+
 #[derive(Deserialize)]
 struct BashPaths {
     command: String,
@@ -115,9 +128,9 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
     record_additional_contexts(
         &invocation.session,
         &invocation.turn,
-        vec![codex_hooks::HookContext::harness(
-            render_instruction_files(&new),
-        )],
+        vec![codex_hooks::HookContext::harness(render_instruction_files(
+            &new,
+        ))],
     )
     .await;
 }

@@ -27,10 +27,11 @@ mod output;
 mod permissions;
 mod read;
 mod ripgrep;
-mod web_fetch;
-mod web_search;
+mod skill;
 mod subagent_tools;
 mod todo_write;
+mod web_fetch;
+mod web_search;
 mod write;
 
 use std::collections::HashMap;
@@ -47,7 +48,9 @@ use crate::tools::registry::CoreToolRuntime;
 use crate::tools::registry::ToolRegistry;
 
 pub(crate) use bash::register as register_bash;
+pub(crate) use permissions::PermissionGuard;
 pub(crate) use permissions::PermissionInput;
+pub(crate) use permissions::apply_hook_permission;
 pub(crate) use permissions::apply_rule_decision;
 pub(crate) use permissions::check_permission;
 pub(crate) use permissions::rule_allows;
@@ -73,6 +76,7 @@ pub(crate) const OFFERED_TOOLS: &[&str] = &[
     codex_claude_compat::tools::TODO_WRITE,
     codex_claude_compat::tools::ASK_USER_QUESTION,
     codex_claude_compat::tools::AGENT,
+    codex_claude_compat::tools::SKILL,
 ];
 
 /// Replaces Codex tools by Claude Code's in a registry that holds Codex's core tools.
@@ -91,6 +95,7 @@ pub(crate) fn replace_codex_tools(turn_context: &TurnContext, registry: &mut Too
     todo_write::install(&mut swap);
     ask_user_question::install(&mut swap);
     agent::install(&mut swap, turn_context);
+    skill::install(&mut swap);
 }
 
 /// Replaces Codex's standalone search (`web.run`) by `WebSearch`. Extension tools, that

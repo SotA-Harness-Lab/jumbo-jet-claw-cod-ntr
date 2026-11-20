@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks;
+// follow more of Claude Code's behaviour
 
 mod executor;
 pub(crate) mod sampling;
@@ -92,7 +93,11 @@ pub(crate) struct HookRuntimeOutcome {
 }
 
 pub(crate) enum PreToolUseHookResult {
-    Continue { updated_input: Option<Value> },
+    Continue {
+        updated_input: Option<Value>,
+        /// The hooks' `allow` or `ask` for the call.
+        permission: Option<codex_hooks::PreToolUsePermission>,
+    },
     Blocked(String),
 }
 
@@ -180,7 +185,7 @@ pub(crate) async fn run_pending_session_start_hooks(
             &turn_context.initial_environments.refresh_readiness(),
         );
         let preview_runs = hooks.preview_session_start(&request);
-        if run_context_injecting_hook(
+        let stopped = run_context_injecting_hook(
             sess,
             turn_context,
             preview_runs,
@@ -188,8 +193,9 @@ pub(crate) async fn run_pending_session_start_hooks(
         )
         .await
         .record_additional_contexts(sess, turn_context)
-        .await
-        {
+        .await;
+        crate::claude_env::load_session_start_env(sess);
+        if stopped {
             return true;
         }
     }
@@ -241,17 +247,22 @@ pub(crate) async fn run_pre_tool_use_hooks(
         block_reason,
         additional_contexts,
         updated_input,
+        permission,
     } = hooks.run_pre_tool_use(request).await;
     emit_hook_completed_events(sess, turn_context, hook_events).await;
     record_additional_contexts(sess, turn_context, additional_contexts).await;
 
     if !should_block {
-        return PreToolUseHookResult::Continue { updated_input };
+        return PreToolUseHookResult::Continue {
+            updated_input,
+            permission,
+        };
     }
 
     let Some(reason) = block_reason else {
         return PreToolUseHookResult::Continue {
             updated_input: None,
+            permission: None,
         };
     };
 
@@ -665,12 +676,18 @@ pub(crate) async fn run_pre_compact_hooks(
     if outcome.should_stop {
         PreCompactHookOutcome::Stopped
     } else {
-        PreCompactHookOutcome::Continue
+        PreCompactHookOutcome::Continue {
+            instructions: outcome.instructions,
+        }
     }
 }
 
 pub(crate) enum PreCompactHookOutcome {
-    Continue,
+    /// Compaction goes on, with what the hooks printed as plain text for its summary's
+    /// instructions, where the compaction writes the summary itself.
+    Continue {
+        instructions: Option<String>,
+    },
     Stopped,
 }
 

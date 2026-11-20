@@ -25,7 +25,7 @@ const CLAUDE_MD: &str = "CLAUDE.md";
 const CLAUDE_LOCAL_MD: &str = "CLAUDE.local.md";
 const RULES_DIR: &str = "rules";
 /// How deep `@` imports may nest.
-const MAX_IMPORT_DEPTH: usize = 5;
+const MAX_IMPORT_DEPTH: usize = 4;
 /// Extensions an imported file may have; one without an extension is accepted too.
 const IMPORT_EXTENSIONS: &[&str] = &[
     "md",
@@ -165,6 +165,8 @@ pub async fn user_instructions(
         source,
         &claude_home.join(RULES_DIR),
         InstructionKind::User,
+        home_dir,
+        /*import_root*/ None,
         &mut seen,
         &mut files,
     )
@@ -208,6 +210,8 @@ pub async fn directory_instructions(
             source,
             &dot_claude.join(RULES_DIR),
             InstructionKind::Project,
+            home_dir,
+            Some(import_root),
             seen,
             &mut files,
         )
@@ -288,6 +292,8 @@ pub async fn file_instructions(
             source,
             &rules_dir,
             InstructionKind::Project,
+            home_dir,
+            Some(cwd),
             &mut seen,
             &mut files,
         )
@@ -348,27 +354,31 @@ async fn push_matching_rules(
     Ok(())
 }
 
+/// The rules under `rules_dir` that are not limited to some files, each followed by the
+/// files it imports with `@path`, as Claude Code loads a rule like any instruction file.
+/// Imports may not leave `import_root`, when there is one.
+#[allow(clippy::too_many_arguments)]
 async fn push_unconditional_rules(
     source: &dyn FileSource,
     rules_dir: &Path,
     kind: InstructionKind,
+    home_dir: Option<&Path>,
+    import_root: Option<&Path>,
     seen: &mut HashSet<PathBuf>,
     files: &mut Vec<InstructionFile>,
 ) -> io::Result<()> {
     for rule in load_rules(source, rules_dir).await? {
-        if rule.globs.is_none() && seen.insert(rule.path.clone()) {
-            files.push(InstructionFile {
-                path: rule.path,
-                kind,
-                content: rule.content,
-            });
+        if rule.globs.is_none() && !seen.contains(&rule.path) {
+            load_instruction_file(source, &rule.path, kind, home_dir, import_root, seen, files)
+                .await?;
         }
     }
     Ok(())
 }
 
 /// Loads `path` and the files it imports with `@path`, the importing file first. Missing
-/// files, files already in `seen` and imports nested deeper than five levels are skipped.
+/// files, files already in `seen` and imports more than four files down the chain are skipped,
+/// as in Claude Code.
 /// With an `import_root`, imports outside it are skipped as well.
 pub async fn load_instruction_file(
     source: &dyn FileSource,

@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks;
+// follow more of Claude Code's behaviour
 
 use std::path::Path;
 
@@ -17,12 +18,14 @@ use codex_protocol::protocol::HookHandlerType;
 use codex_protocol::protocol::HookRunStatus;
 use codex_protocol::protocol::HookRunSummary;
 use codex_protocol::protocol::HookScope;
+use codex_protocol::protocol::HookSource;
 
 use super::ClaudeHooksEngine;
 use super::ConfiguredHandler;
 use super::ConfiguredHandlerKind;
 use super::HandlerRunResult;
 use super::HandlerSourcePath;
+use super::HookMatcher;
 use super::command_runner::run_command;
 use super::mcp_runner::run_mcp_tool;
 use crate::events::common::matches_matcher;
@@ -62,7 +65,12 @@ pub(crate) fn select_handlers_for_matcher_inputs(
     event_name: HookEventName,
     matcher_inputs: &[&str],
 ) -> Vec<ConfiguredHandler> {
-    select_matching_handlers(handlers, event_name, matcher_inputs, /*tool_input*/ None)
+    select_matching_handlers(
+        handlers,
+        event_name,
+        matcher_inputs,
+        /*tool_input*/ None,
+    )
 }
 
 /// Whether the handler's `if` condition, when it has one, covers the tool call.
@@ -71,7 +79,11 @@ pub(crate) fn condition_covers(
     matcher_inputs: &[&str],
     tool_input: Option<&Value>,
 ) -> bool {
-    let Some(condition) = handler.matcher.as_ref().and_then(|matcher| matcher.condition()) else {
+    let Some(condition) = handler
+        .matcher
+        .as_ref()
+        .and_then(|matcher| matcher.condition())
+    else {
         return true;
     };
     tool_input.is_some_and(|tool_input| {
@@ -88,7 +100,7 @@ fn select_matching_handlers(
     // Check each configured handler once, even when several compatibility names
     // match the same regex. A hook like `apply_patch|Write|Edit` should run a
     // single time for one tool call, not once per matching alias.
-    handlers
+    let selected = handlers
         .iter()
         .filter(|handler| handler.event_name == event_name)
         .filter(|handler| match event_name {
@@ -117,6 +129,51 @@ fn select_matching_handlers(
         })
         .filter(|handler| condition_covers(handler, matcher_inputs, tool_input))
         .cloned()
+        .collect::<Vec<_>>();
+    dedup_claude_handlers(selected)
+}
+
+/// Claude Code runs a hook once when several of its sources name the same one: the same
+/// command (and `if`), the same prompt or the same URL, within the settings files or within
+/// one plugin. The last of them is kept. Codex's own hooks are left as they are.
+fn dedup_claude_handlers(handlers: Vec<ConfiguredHandler>) -> Vec<ConfiguredHandler> {
+    let key = |handler: &ConfiguredHandler| {
+        let what = match &handler.kind {
+            ConfiguredHandlerKind::Command {
+                command,
+                posix_sh: true,
+                ..
+            } => format!("command\0{command}"),
+            ConfiguredHandlerKind::Judge {
+                prompt, agentic, ..
+            } => format!("judge\0{agentic}\0{prompt}"),
+            ConfiguredHandlerKind::Http(hook) => format!("http\0{}", hook.url),
+            ConfiguredHandlerKind::Command { .. } | ConfiguredHandlerKind::McpTool { .. } => {
+                return None;
+            }
+        };
+        let context = match handler.source {
+            HookSource::Plugin => format!("{:?}", handler.source_path),
+            _ => String::new(),
+        };
+        let condition = handler
+            .matcher
+            .as_ref()
+            .and_then(HookMatcher::condition)
+            .unwrap_or_default();
+        Some(format!("{context}\0{condition}\0{what}"))
+    };
+    let keys = handlers.iter().map(key).collect::<Vec<_>>();
+    handlers
+        .into_iter()
+        .enumerate()
+        .filter(|(index, _)| match &keys[*index] {
+            Some(own) => !keys[index + 1..]
+                .iter()
+                .any(|later| later.as_ref() == Some(own)),
+            None => true,
+        })
+        .map(|(_, handler)| handler)
         .collect()
 }
 
@@ -282,16 +339,45 @@ pub(crate) async fn execute_handler(
     metadata: Option<&Map<String, Value>>,
 ) -> HandlerRunResult {
     match &handler.kind {
-        ConfiguredHandlerKind::Command { command, env, .. } => {
-            run_command(
-                &engine.command_runtime,
-                handler,
-                command,
-                env,
-                &event_input.to_string(),
-                cwd,
-            )
-            .await
+        ConfiguredHandlerKind::Command {
+            command,
+            env,
+            posix_sh,
+            ..
+        } => {
+            // Claude Code ends the input with a line break, which `read -r line` needs.
+            let mut input = event_input.to_string();
+            input.push('\n');
+            let posix_runtime;
+            let runtime = if *posix_sh && cfg!(unix) {
+                posix_runtime = engine.command_runtime.with_posix_sh();
+                &posix_runtime
+            } else {
+                &engine.command_runtime
+            };
+            // Claude Code gives its `SessionStart` hooks a file to write variables into for
+            // the session's later commands.
+            let env_with_file;
+            let env = match event_input.get("session_id").and_then(Value::as_str) {
+                Some(session_id)
+                    if *posix_sh && handler.event_name == HookEventName::SessionStart =>
+                {
+                    let path =
+                        codex_claude_compat::hook_env_file(session_id, handler.display_order);
+                    if let Some(dir) = path.parent() {
+                        let _ = std::fs::create_dir_all(dir);
+                    }
+                    let mut with_file = env.clone();
+                    with_file.insert(
+                        "CLAUDE_ENV_FILE".to_string(),
+                        path.to_string_lossy().into_owned(),
+                    );
+                    env_with_file = with_file;
+                    &env_with_file
+                }
+                _ => env,
+            };
+            run_command(runtime, handler, command, env, &input, cwd).await
         }
         ConfiguredHandlerKind::McpTool {
             server,
@@ -479,6 +565,7 @@ mod tests {
             kind: ConfiguredHandlerKind::Command {
                 command: command.to_string(),
                 r#async: false,
+                posix_sh: false,
                 env: std::collections::HashMap::new(),
             },
         }

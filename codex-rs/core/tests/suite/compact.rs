@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; follow more of Claude Code's behaviour
 
 use anyhow::Result;
 use anyhow::anyhow;
@@ -840,7 +840,8 @@ async fn manual_pre_compact_block_decision_does_not_block_compaction() {
         _ => None,
     })
     .await;
-    assert_eq!(completed.run.status, HookRunStatus::Failed);
+    // As in Claude Code, a decision of a PreCompact hook is left out.
+    assert_eq!(completed.run.status, HookRunStatus::Completed);
     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
 
     let requests = request_log.requests();

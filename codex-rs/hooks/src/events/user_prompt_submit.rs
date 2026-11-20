@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use std::path::PathBuf;
 
 use codex_protocol::ThreadId;
@@ -380,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn claude_block_decision_requires_reason() {
+    fn claude_block_decision_without_reason_blocks_with_claude_code_s_default() {
         let stdout = r#"{"decision":"block","hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"do not inject"}}"#;
         let parsed = parse_completed(
             &handler(),
@@ -388,23 +393,9 @@ mod tests {
             Some("turn-1".to_string()),
         );
 
-        assert_eq!(
-            parsed.data,
-            UserPromptSubmitHandlerData {
-                should_stop: false,
-                stop_reason: None,
-                additional_contexts_for_model: Vec::new(),
-            }
-        );
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
-        assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Error,
-                text: "UserPromptSubmit hook returned decision:block without a non-empty reason"
-                    .to_string(),
-            }]
-        );
+        assert!(parsed.data.should_stop);
+        assert_eq!(parsed.data.stop_reason.as_deref(), Some("Blocked by hook"));
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
 
         let async_handler = handler_with_async(/*async*/ true);
         let parsed = parse_completed(
@@ -476,6 +467,7 @@ mod tests {
             kind: crate::engine::ConfiguredHandlerKind::Command {
                 command: "echo hook".to_string(),
                 r#async,
+                posix_sh: false,
                 env: std::collections::HashMap::new(),
             },
         }

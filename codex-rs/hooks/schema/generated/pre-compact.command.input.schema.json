@@ -16,6 +16,10 @@
     "agent_type": {
       "type": "string"
     },
+    "custom_instructions": {
+      "description": "Claude Code's instructions given with `/compact`; Codex's `/compact` takes none.",
+      "type": "string"
+    },
     "cwd": {
       "type": "string"
     },

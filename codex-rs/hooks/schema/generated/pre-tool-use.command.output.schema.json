@@ -1,6 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "additionalProperties": false,
   "definitions": {
     "PreToolUseDecisionWire": {
       "enum": [
@@ -10,7 +9,6 @@
       "type": "string"
     },
     "PreToolUseHookSpecificOutputWire": {
-      "additionalProperties": false,
       "properties": {
         "additionalContext": {
           "default": null,

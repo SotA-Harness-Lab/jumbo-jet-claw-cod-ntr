@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use codex_login::AuthOwner;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -205,7 +210,7 @@ async fn run_remote_compact_task_inner(
     .await;
     let pre_compact_outcome = run_pre_compact_hooks(sess, turn_context, trigger).await;
     match pre_compact_outcome {
-        PreCompactHookOutcome::Continue => {}
+        PreCompactHookOutcome::Continue { .. } => {}
         PreCompactHookOutcome::Stopped => {
             let error = CodexErr::TurnAborted;
             attempt
@@ -257,6 +262,7 @@ async fn run_remote_compact_task_inner(
     let status = compaction_status_from_result(&result);
     let codex_error = result.as_ref().err();
     if result.is_ok() && !interrupted {
+        crate::claude_rules::forget_shown_files(sess);
         let post_compact_outcome = run_post_compact_hooks(sess, turn_context, trigger).await;
         if let PostCompactHookOutcome::Stopped = post_compact_outcome {
             attempt

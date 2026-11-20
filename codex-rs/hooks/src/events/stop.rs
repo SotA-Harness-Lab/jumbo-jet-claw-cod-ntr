@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use std::path::PathBuf;
 
 use codex_protocol::ThreadId;
@@ -493,22 +498,16 @@ mod tests {
     }
 
     #[test]
-    fn block_decision_without_reason_is_invalid() {
+    fn block_decision_without_reason_blocks_with_claude_code_s_default() {
         let parsed = parse_completed(
             &handler(),
             run_result(Some(0), r#"{"decision":"block"}"#, ""),
             Some("turn-1".to_string()),
         );
 
-        assert_eq!(parsed.data, StopHandlerData::default());
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
-        assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Error,
-                text: "Stop hook returned decision:block without a non-empty reason".to_string(),
-            }]
-        );
+        assert!(parsed.data.should_block);
+        assert_eq!(parsed.data.block_reason.as_deref(), Some("Blocked by hook"));
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
 
         let async_handler = handler_with_async(/*async*/ true);
         let parsed = parse_completed(
@@ -592,22 +591,16 @@ mod tests {
     }
 
     #[test]
-    fn block_decision_with_blank_reason_fails_instead_of_blocking() {
+    fn block_decision_with_blank_reason_blocks_with_claude_code_s_default() {
         let parsed = parse_completed(
             &handler(),
             run_result(Some(0), "{\"decision\":\"block\",\"reason\":\"   \"}", ""),
             Some("turn-1".to_string()),
         );
 
-        assert_eq!(parsed.data, StopHandlerData::default());
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
-        assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Error,
-                text: "Stop hook returned decision:block without a non-empty reason".to_string(),
-            }]
-        );
+        assert!(parsed.data.should_block);
+        assert_eq!(parsed.data.block_reason.as_deref(), Some("Blocked by hook"));
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
     }
 
     #[test]
@@ -695,6 +688,7 @@ mod tests {
             kind: crate::engine::ConfiguredHandlerKind::Command {
                 command: "echo hook".to_string(),
                 r#async,
+                posix_sh: false,
                 env: std::collections::HashMap::new(),
             },
         }

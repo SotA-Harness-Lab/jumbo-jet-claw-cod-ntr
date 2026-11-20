@@ -14,7 +14,12 @@ use serde_json::Value;
 /// The MCP servers Claude Code would start in `cwd`, as Claude Code declares them, with
 /// `${VAR}` and `${VAR:-default}` expanded. Later sources win: the user's servers, then
 /// the approved servers of the project's `.mcp.json` files (the one nearest `cwd` winning),
-/// then the servers `~/.claude.json` keeps for the project.
+/// then the servers `~/.claude.json` keeps for the project. The servers turned off in
+/// `/mcp` (`disabledMcpServers` of the project's entry in `~/.claude.json`) are left out.
+///
+/// In a remote server's `url` and `headers`, the credentials Claude Code keeps out of them
+/// ([`CREDENTIAL_VARIABLES`]) read as empty, a `:-default` included, so that a project's
+/// `.mcp.json` cannot send them to a server it names.
 ///
 /// `claude_json` is `~/.claude.json`; `settings` are the parsed settings files, which
 /// approve `.mcp.json` servers; `mcp_json_files` are the `.mcp.json` files from the top of
@@ -45,17 +50,65 @@ pub fn mcp_server_declarations(
     if let Some(local) = project.and_then(servers_of) {
         servers.extend(local);
     }
+    if let Some(disabled) = project
+        .and_then(|project| project.get("disabledMcpServers"))
+        .and_then(Value::as_array)
+    {
+        for name in disabled.iter().filter_map(Value::as_str) {
+            servers.remove(name);
+        }
+    }
 
     servers
         .into_iter()
-        .map(|(name, server)| (name, expand_env(server, env)))
+        .map(|(name, server)| (name, expand_server(server, env)))
         .collect()
+}
+
+/// The environment variables that read as empty in a remote server's `url` and `headers`:
+/// the examples Claude Code's documentation gives of the credentials it keeps out of them
+/// (it does not list them all), and the credentials of this program's own providers.
+pub const CREDENTIAL_VARIABLES: &[&str] = &[
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "CLAUDE_CODE_OAUTH_TOKEN",
+    "AWS_BEARER_TOKEN_BEDROCK",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "HTTPS_PROXY",
+    "HTTP_PROXY",
+    "NPM_TOKEN",
+    "OPENAI_API_KEY",
+    "CODEX_API_KEY",
+];
+
+fn expand_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
+    let Value::Object(fields) = server else {
+        return expand_env(server, env);
+    };
+    let remote = fields.contains_key("url");
+    Value::Object(
+        fields
+            .into_iter()
+            .map(|(key, value)| {
+                let value = if remote && (key == "url" || key == "headers") {
+                    expand_env_with(value, env, /*credentials_empty*/ true)
+                } else {
+                    expand_env(value, env)
+                };
+                (key, value)
+            })
+            .collect(),
+    )
 }
 
 /// The `.mcp.json` files Claude Code reads for `cwd`, from the top of the filesystem down.
 pub fn mcp_json_paths(cwd: &Path) -> Vec<PathBuf> {
+    // As in Claude Code, the walk stops below the root of the filesystem.
     let mut paths = cwd
         .ancestors()
+        .filter(|dir| dir.parent().is_some())
         .map(|dir| dir.join(".mcp.json"))
         .collect::<Vec<_>>();
     paths.reverse();
@@ -90,12 +143,25 @@ fn mcp_json_server_approved(name: &str, sources: &[&Value]) -> bool {
 }
 
 fn expand_env(value: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
+    expand_env_with(value, env, /*credentials_empty*/ false)
+}
+
+fn expand_env_with(
+    value: Value,
+    env: &dyn Fn(&str) -> Option<String>,
+    credentials_empty: bool,
+) -> Value {
     match value {
-        Value::String(text) => Value::String(expand_text(&text, env)),
-        Value::Array(items) => Value::Array(items.into_iter().map(|item| expand_env(item, env)).collect()),
+        Value::String(text) => Value::String(expand_text(&text, env, credentials_empty)),
+        Value::Array(items) => Value::Array(
+            items
+                .into_iter()
+                .map(|item| expand_env_with(item, env, credentials_empty))
+                .collect(),
+        ),
         Value::Object(map) => Value::Object(
             map.into_iter()
-                .map(|(key, item)| (key, expand_env(item, env)))
+                .map(|(key, item)| (key, expand_env_with(item, env, credentials_empty)))
                 .collect(),
         ),
         other => other,
@@ -104,7 +170,11 @@ fn expand_env(value: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
 
 /// Expands `${VAR}` and `${VAR:-default}`; a missing variable without a default stays as
 /// written, as in Claude Code.
-fn expand_text(text: &str, env: &dyn Fn(&str) -> Option<String>) -> String {
+fn expand_text(
+    text: &str,
+    env: &dyn Fn(&str) -> Option<String>,
+    credentials_empty: bool,
+) -> String {
     let mut out = String::new();
     let mut rest = text;
     while let Some(start) = rest.find("${") {
@@ -119,7 +189,16 @@ fn expand_text(text: &str, env: &dyn Fn(&str) -> Option<String>) -> String {
             Some((name, default)) => (name, Some(default)),
             None => (inner, None),
         };
-        match env(name).or_else(|| default.map(str::to_string)) {
+        let is_credential = credentials_empty
+            && CREDENTIAL_VARIABLES
+                .iter()
+                .any(|credential| credential.eq_ignore_ascii_case(name));
+        let value = if is_credential {
+            Some(String::new())
+        } else {
+            env(name).or_else(|| default.map(str::to_string))
+        };
+        match value {
             Some(value) => out.push_str(&value),
             None => out.push_str(&rest[start..start + 2 + end + 1]),
         }

@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; write Claude Code auto memory; load Claude Code plugins
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; write Claude Code auto memory; load Claude Code plugins;
+// follow more of Claude Code's behaviour
 
 use crate::config::edit::ConfigEdit;
 use crate::config::edit::ConfigEditsBuilder;
@@ -4204,6 +4205,7 @@ impl Config {
             {
                 claude_code_plugins(
                     &resolved_cwd,
+                    active_project.is_trusted(),
                     &mod_config.claude.plugins.enable,
                     &mut startup_warnings,
                 )
@@ -5558,6 +5560,7 @@ mod runtime_auth_tests;
 /// warning for each one left out; `enable` lists those to use even when found incompatible.
 fn claude_code_plugins(
     cwd: &AbsolutePathBuf,
+    project_trusted: bool,
     enable: &[String],
     startup_warnings: &mut Vec<String>,
 ) -> Vec<codex_claude_compat::ClaudePlugin> {
@@ -5565,8 +5568,11 @@ fn claude_code_plugins(
         return Vec::new();
     };
     let claude_home = home.join(codex_claude_compat::CLAUDE_DIR);
-    let (plugins, warnings) =
-        codex_claude_compat::load_claude_plugins(&claude_home, Some(cwd.as_path()));
+    let (plugins, warnings) = codex_claude_compat::load_claude_plugins_for(
+        &claude_home,
+        Some(cwd.as_path()),
+        project_trusted,
+    );
     startup_warnings.extend(warnings);
     let (plugins, warnings) = codex_claude_compat::applicable_plugins(plugins, enable);
     startup_warnings.extend(warnings);

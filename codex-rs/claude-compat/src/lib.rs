@@ -7,6 +7,7 @@
 //! disk. The parsing is pure; the loaders reach the filesystem through [`FileSource`], so
 //! that the same code serves the user's home directory and a project on an executor.
 
+mod env_file;
 mod hook_condition;
 mod instructions;
 mod markdown;
@@ -24,6 +25,10 @@ mod source;
 mod subagents;
 pub mod tools;
 
+pub use env_file::hook_env_dir;
+pub use env_file::hook_env_file;
+pub use env_file::parse_env_file;
+pub use env_file::read_hook_env_dir;
 pub use hook_condition::hook_condition_matches;
 pub use instructions::INSTRUCTIONS_HEADER;
 pub use instructions::InstructionFile;
@@ -68,6 +73,7 @@ pub use plugins::incompatibility;
 pub use plugins::installed_enabled_plugins;
 pub use plugins::installed_plugin_paths;
 pub use plugins::load_claude_plugins;
+pub use plugins::load_claude_plugins_for;
 pub use rules::RuleFile;
 pub use rules::glob_matches;
 pub use rules::load_rules;

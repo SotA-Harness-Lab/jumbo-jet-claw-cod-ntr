@@ -16,6 +16,7 @@ use super::incompatibility;
 use super::installed_enabled_plugins;
 use super::installed_plugin_paths;
 use super::load_claude_plugins;
+use super::load_claude_plugins_for;
 
 fn write(path: &Path, contents: &str) {
     fs::create_dir_all(path.parent().expect("parent")).expect("create dir");
@@ -432,4 +433,44 @@ fn applicable_plugins_disable_incompatible_ones_unless_enabled() {
         ]
     );
     assert_eq!(warnings.len(), 3);
+}
+
+#[test]
+fn an_untrusted_project_can_turn_a_plugin_off_but_not_on() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let claude_home = tmp.path().join("home/.claude");
+    let project = tmp.path().join("project");
+    write(
+        &claude_home.join("plugins/installed_plugins.json"),
+        r#"{"version": 2, "plugins": {
+            "a@m": [{"scope": "user", "installPath": "/cache/a"}],
+            "b@m": [{"scope": "user", "installPath": "/cache/b"}]
+        }}"#,
+    );
+    write(
+        &claude_home.join("settings.json"),
+        r#"{"enabledPlugins": {"a@m": true}}"#,
+    );
+    write(
+        &project.join(".claude/settings.json"),
+        r#"{"enabledPlugins": {"a@m": false, "b@m": true}}"#,
+    );
+
+    let (plugins, _) =
+        load_claude_plugins_for(&claude_home, Some(&project), /*project_trusted*/ false);
+    assert_eq!(plugins, Vec::new());
+
+    write(
+        &project.join(".claude/settings.json"),
+        r#"{"enabledPlugins": {"b@m": true}}"#,
+    );
+    let (plugins, _) =
+        load_claude_plugins_for(&claude_home, Some(&project), /*project_trusted*/ false);
+    assert_eq!(
+        plugins
+            .iter()
+            .map(|plugin| plugin.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["a@m"]
+    );
 }

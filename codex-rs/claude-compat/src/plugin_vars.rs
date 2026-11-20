@@ -190,10 +190,14 @@ impl PluginVariables {
             .collect()
     }
 
-    /// The directories the plugin keeps agents in: `agents/` and the directories among the
-    /// manifest's `agents` entries. An entry that names a single file is not among them.
+    /// The directories the plugin keeps agents in: the directories among the manifest's
+    /// `agents` entries, which stand in place of `agents/` as in Claude Code, or else
+    /// `agents/`. An entry that names a single file is not among them.
     pub fn agent_dirs(&self) -> Vec<PathBuf> {
-        let mut dirs = vec![self.root.join("agents")];
+        let mut dirs = Vec::new();
+        if self.agent_paths.is_empty() {
+            dirs.push(self.root.join("agents"));
+        }
         for path in &self.agent_paths {
             let dir = self.root.join(path.trim_start_matches("./"));
             if !dirs.contains(&dir) {

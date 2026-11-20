@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks;
+// follow more of Claude Code's behaviour
 
 //! Permission-request hook execution.
 //!
@@ -193,6 +194,7 @@ fn build_command_input(request: &PermissionRequestRequest) -> PermissionRequestC
         permission_mode: request.permission_mode.clone(),
         tool_name: request.tool_name.clone(),
         tool_input: request.tool_input.clone(),
+        permission_suggestions: Vec::new(),
     }
 }
 

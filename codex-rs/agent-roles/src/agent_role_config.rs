@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; added Claude Code's tool set; load Claude Code plugins
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; added Claude Code's tool set; load Claude Code plugins;
+// follow more of Claude Code's behaviour
 
 use codex_config::config_toml::ConfigToml;
 use codex_utils_absolute_path::AbsolutePathBufGuard;
@@ -250,7 +251,7 @@ fn claude_subagent_role_toml(contents: &str, path: &Path) -> Option<String> {
         TomlValue::String(subagent.prompt),
     );
     let effort = match subagent.effort.as_deref() {
-        Some(effort @ ("low" | "medium" | "high")) => Some(effort),
+        Some(effort @ ("low" | "medium" | "high" | "xhigh")) => Some(effort),
         Some("max") => Some("xhigh"),
         _ => None,
     };
