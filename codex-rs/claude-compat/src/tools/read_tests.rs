@@ -8,9 +8,16 @@ use super::binary_extension;
 use super::description;
 use super::exceeds_token_limit;
 use super::is_image;
+use super::is_notebook;
+use super::is_pdf;
+use super::parse_page_range;
+use super::pdfinfo_page_count;
+use super::pdftoppm_failed_message;
 use super::render;
+use super::rendered_page_number;
 use super::slice_text;
 use super::too_large_message;
+use super::validate_pages;
 
 #[test]
 fn whole_file_is_numbered_from_one() {
@@ -54,7 +61,7 @@ fn file_kinds_follow_the_extension() {
     assert!(is_image("/tmp/Shot.PNG"));
     assert!(!is_image("/tmp/png"));
     assert_eq!(binary_extension("/a/b.tar.gz"), Some(".gz".to_string()));
-    assert_eq!(binary_extension("/a/doc.pdf"), Some(".pdf".to_string()));
+    assert_eq!(binary_extension("/a/doc.pdf"), None);
     assert_eq!(binary_extension("/a/.bashrc"), None);
     assert_eq!(binary_extension("/a/main.rs"), None);
 }
@@ -69,4 +76,59 @@ fn limits_and_messages() {
     );
     assert!(description(true).contains("read images"));
     assert!(!description(false).contains("read images"));
+}
+
+#[test]
+fn pdfs_and_notebooks_are_recognised_by_extension() {
+    assert!(is_pdf("/a/Paper.PDF"));
+    assert!(!is_pdf("/a/.pdf"));
+    assert!(is_notebook("/a/analysis.ipynb"));
+    assert!(!is_notebook("/a/analysis.py"));
+}
+
+#[test]
+fn page_ranges_are_parsed_as_claude_code_parses_them() {
+    assert_eq!(parse_page_range("5"), Some((5, Some(5))));
+    assert_eq!(parse_page_range(" 1-10 "), Some((1, Some(10))));
+    assert_eq!(parse_page_range("3-"), Some((3, None)));
+    assert_eq!(parse_page_range("0"), None);
+    assert_eq!(parse_page_range("5-2"), None);
+    assert_eq!(parse_page_range("-5"), None);
+    assert_eq!(parse_page_range("x"), None);
+    assert_eq!(parse_page_range(""), None);
+}
+
+#[test]
+fn a_read_takes_at_most_twenty_pages() {
+    assert_eq!(validate_pages("1-20"), Ok((1, Some(20))));
+    assert_eq!(
+        validate_pages("1-21"),
+        Err("Page range \"1-21\" exceeds maximum of 20 pages per request. Please use a smaller range.".to_string())
+    );
+    assert!(validate_pages("3-").is_err());
+    assert!(
+        validate_pages("a")
+            .unwrap_err()
+            .starts_with("Invalid pages parameter: \"a\".")
+    );
+}
+
+#[test]
+fn poppler_output_is_read() {
+    assert_eq!(
+        pdfinfo_page_count("Title: x\nPages:          12\nEncrypted: no\n"),
+        Some(12)
+    );
+    assert_eq!(pdfinfo_page_count("Title: x\n"), None);
+    assert_eq!(rendered_page_number("page-07.jpg"), Some(7));
+    assert_eq!(rendered_page_number("page-120.jpg"), Some(120));
+    assert_eq!(rendered_page_number("page-1.png"), None);
+    assert_eq!(
+        pdftoppm_failed_message("Command Line Error: Incorrect password"),
+        "PDF is password-protected. Please provide an unprotected version."
+    );
+    assert_eq!(
+        pdftoppm_failed_message("Syntax Error: Couldn't find trailer dictionary; damaged"),
+        "PDF file is corrupted or invalid."
+    );
 }

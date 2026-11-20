@@ -220,6 +220,19 @@ pub(crate) async fn check_permission(
     }
     let (cwd_uri, environment_id) = call_directory(invocation);
     let cwd = PathBuf::from(cwd_uri.inferred_native_path_string());
+    // Where a command starts: where `Bash`'s `cd` left the session, as `cd <that directory>`
+    // in a compound command is dropped against it.
+    let command_cwd = selected_executor(
+        &invocation.environments,
+        &invocation.step_context.environments,
+    )
+    .map(|environment| {
+        PathBuf::from(
+            super::shell_cwd::working_directory(invocation, environment)
+                .inferred_native_path_string(),
+        )
+    })
+    .unwrap_or_else(|_| cwd.clone());
     let paths = match input {
         PermissionInput::ReadPath(path) | PermissionInput::EditPath(path) => {
             vec![cwd.join(path)]
@@ -228,7 +241,10 @@ pub(crate) async fn check_permission(
     };
     let tool_input = match input {
         PermissionInput::Tool => ToolInput::Tool,
-        PermissionInput::Command(command) => ToolInput::Command { command, cwd: &cwd },
+        PermissionInput::Command(command) => ToolInput::Command {
+            command,
+            cwd: &command_cwd,
+        },
         PermissionInput::ReadPath(_) => ToolInput::Read {
             paths: &paths,
             cwd: &cwd,

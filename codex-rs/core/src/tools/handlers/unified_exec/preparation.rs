@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: record where a Claude Bash command ends up
+
 //! Resolves exec arguments against the selected environment and effective turn permissions.
 //! The live handler emits its skill event between parsing and preparation.
 
@@ -57,6 +62,9 @@ pub(crate) struct PreparedExecCommand {
     pub(crate) yield_time_ms: u64,
     pub(crate) max_output_tokens: Option<usize>,
     pub(crate) completion_timeout: Option<Duration>,
+    /// File the command's working directory is written to after it succeeds, for a Claude
+    /// `Bash` call whose `cd` carries over to the next command.
+    pub(crate) cwd_report: Option<AbsolutePathBuf>,
 }
 
 impl PreparedExecCommand {
@@ -313,6 +321,7 @@ impl<'a> ParsedExecCommand<'a> {
             permissions,
             justification: args.justification,
             prefix_rule: args.prefix_rule,
+            cwd_report: None,
         })
     }
 }

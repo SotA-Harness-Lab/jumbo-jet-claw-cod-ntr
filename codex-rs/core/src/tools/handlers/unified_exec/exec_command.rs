@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; record where a
+// Claude Bash command ends up
 
 use std::sync::Arc;
 
@@ -175,7 +176,10 @@ impl ExecCommandHandler {
             &turn_environment.selection.environment_id,
         )
         .await;
-        let prepared = parsed.prepare(self.lifetime)?;
+        let mut prepared = parsed.prepare(self.lifetime)?;
+        if !prepared.turn_environment.environment().is_remote() {
+            prepared.cwd_report = crate::tools::claude::take_cwd_report(&session, &call_id);
+        }
         let max_output_tokens = prepared.max_output_tokens;
         let fs = prepared.turn_environment.environment().get_filesystem();
         let intercepted_patch = intercept_apply_patch(

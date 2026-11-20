@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: record where a Claude Bash command ends up
+
 /*
 Runtime: unified exec
 
@@ -462,6 +467,11 @@ impl<'a> ToolRuntime<UnifiedExecRequest<'_>, UnifiedExecAttempt> for UnifiedExec
         {
             command = command_with_path_prepends;
         }
+        // Added after approval, so that approval, rules and the TUI see the command as given.
+        let cwd_report_permissions = prepared
+            .cwd_report
+            .as_ref()
+            .and_then(|file| append_cwd_trailer(&mut command, file));
         let mut snapshot_used = false;
         if !environment_is_remote {
             let wrapped = maybe_wrap_shell_lc_with_snapshot(
@@ -571,6 +581,10 @@ impl<'a> ToolRuntime<UnifiedExecRequest<'_>, UnifiedExecAttempt> for UnifiedExec
             });
         let internal_permissions =
             merge_permission_profiles(sidecar_permissions.as_ref(), snapshot_permissions.as_ref());
+        let internal_permissions = merge_permission_profiles(
+            internal_permissions.as_ref(),
+            cwd_report_permissions.as_ref(),
+        );
         let additional_permissions = merge_permission_profiles(
             prepared.permissions.additional_permissions.as_ref(),
             internal_permissions.as_ref(),
@@ -663,6 +677,34 @@ impl<'a> ToolRuntime<UnifiedExecRequest<'_>, UnifiedExecAttempt> for UnifiedExec
             permissions,
         })
     }
+}
+
+/// Appends [`codex_claude_compat::tools::bash::cwd_trailer`] to a POSIX shell's `-c` or
+/// `-lc` script, and returns the permission to write the file it writes to (the file's own
+/// directory, made for this command). Other commands are left as they are.
+fn append_cwd_trailer(
+    command: &mut [String],
+    file: &codex_utils_absolute_path::AbsolutePathBuf,
+) -> Option<AdditionalPermissionProfile> {
+    let [_, flag, script] = command else {
+        return None;
+    };
+    if !matches!(flag.as_str(), "-c" | "-lc") {
+        return None;
+    }
+    let directory = file.parent()?;
+    script.push_str(&codex_claude_compat::tools::bash::cwd_trailer(
+        file.as_path().to_str()?,
+    ));
+    Some(AdditionalPermissionProfile {
+        file_system: Some(
+            codex_protocol::models::FileSystemPermissions::from_read_write_roots(
+                /*read*/ None,
+                /*write*/ Some(vec![directory]),
+            ),
+        ),
+        ..Default::default()
+    })
 }
 
 async fn warn_if_remote_credential_masking_unavailable(
@@ -836,6 +878,30 @@ mod tests {
         );
     }
 
+    #[test]
+    fn cwd_trailer_goes_after_a_shell_script_and_may_write_its_directory() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let file = AbsolutePathBuf::from_absolute_path(dir.path().join("cwd")).expect("absolute");
+        let mut command = vec!["/bin/zsh".to_string(), "-lc".to_string(), "cd src".to_string()];
+        let permissions = append_cwd_trailer(&mut command, &file).expect("a shell script");
+        assert!(command[2].starts_with("cd src\n__ccn_status=$?\n"));
+        assert!(command[2].contains(file.as_path().to_str().expect("utf-8")));
+        let directory = AbsolutePathBuf::from_absolute_path(dir.path()).expect("absolute");
+        assert_eq!(
+            permissions.file_system,
+            Some(
+                codex_protocol::models::FileSystemPermissions::from_read_write_roots(
+                    None,
+                    Some(vec![directory]),
+                )
+            )
+        );
+
+        let mut direct = vec!["/usr/bin/env".to_string(), "ls".to_string()];
+        assert_eq!(append_cwd_trailer(&mut direct, &file), None);
+        assert_eq!(direct, vec!["/usr/bin/env".to_string(), "ls".to_string()]);
+    }
+
     fn test_prepared_command() -> PreparedExecCommand {
         let cwd = AbsolutePathBuf::try_from(std::env::current_dir().unwrap())
             .expect("current dir is absolute");
@@ -860,6 +926,7 @@ mod tests {
             },
             justification: None,
             prefix_rule: None,
+            cwd_report: None,
             tty: false,
             yield_time_ms: 10_000,
             max_output_tokens: None,

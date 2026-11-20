@@ -30,13 +30,15 @@ use crate::tools::registry::CoreToolRuntime;
 pub(crate) struct FileTarget<'a> {
     pub(crate) environment: &'a TurnEnvironment,
     pub(crate) uri: PathUri,
+    /// The directory a relative path resolves against.
+    cwd: PathUri,
     fs: Arc<dyn ExecutorFileSystem>,
     sandbox: FileSystemSandboxContext,
 }
 
 impl<'a> FileTarget<'a> {
     /// Resolves `file_path` (absolute, or relative to the working directory, as Claude Code
-    /// expands it) in the call's environment.
+    /// expands it: where `Bash`'s `cd` left the session) in the call's environment.
     pub(crate) fn resolve(
         invocation: &'a ToolInvocation,
         file_path: &str,
@@ -45,15 +47,16 @@ impl<'a> FileTarget<'a> {
             &invocation.environments,
             &invocation.step_context.environments,
         )?;
-        let uri = environment.cwd().join(file_path).map_err(|err| {
+        let cwd = super::shell_cwd::working_directory(invocation, environment);
+        let uri = cwd.join(file_path).map_err(|err| {
             failed(format!(
-                "unable to resolve `{file_path}` against the working directory `{}`: {err}",
-                environment.cwd()
+                "unable to resolve `{file_path}` against the working directory `{cwd}`: {err}"
             ))
         })?;
         Ok(Self {
             environment,
             uri,
+            cwd,
             fs: environment.environment().get_filesystem(),
             sandbox: environment.sandbox_context(/*additional_permissions*/ None),
         })
@@ -71,7 +74,7 @@ impl<'a> FileTarget<'a> {
 
     /// The working directory, for Claude Code's "file does not exist" message.
     pub(crate) fn cwd_display(&self) -> String {
-        self.environment.cwd().inferred_native_path_string()
+        self.cwd.inferred_native_path_string()
     }
 
     /// The file's metadata, `None` when it does not exist.

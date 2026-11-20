@@ -8,7 +8,8 @@
 //! `sandbox_permissions: "require_escalated"` does), the timeout (a one-shot run),
 //! background processes (an interactive run, read and stopped with `write_stdin`), output
 //! truncation, events and the TUI. Added: Claude Code's parameters, its timeout default and
-//! cap, and its result text (`Exit code N` for a failed command).
+//! cap, its result text (`Exit code N` for a failed command), and a working directory that
+//! carries over from one command to the next (see `shell_cwd`).
 
 use std::collections::BTreeMap;
 
@@ -28,6 +29,7 @@ use super::check_permission;
 use super::delegated;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::shell_cwd::Tracking;
 use crate::function_tool::FunctionCallError;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolOutput;
@@ -36,6 +38,7 @@ use crate::tools::context::boxed_tool_output;
 use crate::tools::handlers::ExecCommandHandler;
 use crate::tools::handlers::ExecCommandHandlerOptions;
 use crate::tools::handlers::WriteStdinHandler;
+use crate::tools::handlers::selected_executor;
 use crate::tools::registry::CoreToolRuntime;
 use crate::tools::registry::ToolExecutor;
 use crate::tools::registry::ToolRegistry;
@@ -149,11 +152,14 @@ impl CoreToolRuntime for BashHandler {
 
 /// The `exec_command` arguments for a Claude Code `Bash` call. Output is truncated by
 /// Codex, to the token budget its shell tool uses by default.
-fn exec_command_arguments(args: &BashArgs, background: bool) -> Value {
+fn exec_command_arguments(args: &BashArgs, background: bool, workdir: Option<&str>) -> Value {
     let mut arguments = json!({
         "cmd": args.command,
         "max_output_tokens": crate::unified_exec::resolve_max_tokens(/*max_tokens*/ None),
     });
+    if let Some(workdir) = workdir {
+        arguments["workdir"] = json!(workdir);
+    }
     if background {
         arguments["yield_time_ms"] = json!(BACKGROUND_YIELD_MS);
     } else {
@@ -184,12 +190,29 @@ impl BashHandler {
             Some(background) if args.run_in_background == Some(true) => (background, true),
             _ => (&self.foreground, false),
         };
+        let environment = selected_executor(
+            &invocation.environments,
+            &invocation.step_context.environments,
+        )?;
+        let tracking = Tracking::for_call(&invocation, environment);
+        let workdir = tracking
+            .as_ref()
+            .and_then(|tracking| tracking.start.as_ref())
+            .and_then(|start| start.as_path().to_str());
         let payload = ToolPayload::Function {
-            arguments: exec_command_arguments(&args, background).to_string(),
+            arguments: exec_command_arguments(&args, background, workdir).to_string(),
         };
+        // A background command's directory does not carry over, as in Claude Code.
+        let report = tracking
+            .as_ref()
+            .filter(|_| !background)
+            .and_then(|tracking| tracking.request_report(&invocation.session, &invocation.call_id));
         let output = handler
             .handle(delegated(&invocation, payload.clone()))
-            .await?;
+            .await;
+        // The exec runtime took the request unless the command never ran.
+        let _ = super::take_cwd_report(&invocation.session, &invocation.call_id);
+        let output = output?;
 
         // The structured result of `exec_command`: its truncated output, exit code, and the
         // session of a process still running.
@@ -228,10 +251,28 @@ impl BashHandler {
             timed_out,
             timeout_ms: bash::timeout_ms(args.timeout),
         };
-        let (model_text, is_error) = bash::format_result(&run);
+        let (mut model_text, is_error) = bash::format_result(&run);
+        let reset = match (&tracking, &report) {
+            (Some(tracking), Some((_directory, file))) if exit_code == Some(0) && !timed_out => {
+                std::fs::read_to_string(file).ok().and_then(|contents| {
+                    bash::recorded_cwd(&contents)
+                        .and_then(|cwd| tracking.finish(&invocation.session, cwd))
+                })
+            }
+            _ => None,
+        };
+        let stdout = bash::strip_empty_lines(text);
+        if let Some(reset) = &reset {
+            if stdout.is_empty() && !is_error {
+                model_text = reset.clone();
+            } else {
+                model_text.push('\n');
+                model_text.push_str(reset);
+            }
+        }
         let tool_response = json!({
-            "stdout": bash::strip_empty_lines(text),
-            "stderr": "",
+            "stdout": stdout,
+            "stderr": reset.unwrap_or_default(),
             "interrupted": timed_out,
             "isImage": false,
         });
@@ -247,5 +288,5 @@ impl BashHandler {
 pub(super) fn exec_command_arguments_for_test(arguments: &str, background: bool) -> Value {
     let args: BashArgs = serde_json::from_str(arguments)
         .unwrap_or_else(|err| panic!("invalid Bash arguments: {err}"));
-    exec_command_arguments(&args, background)
+    exec_command_arguments(&args, background, /*workdir*/ None)
 }

@@ -56,9 +56,8 @@ pub fn timeout_ms(requested: Option<f64>) -> u64 {
 /// model is offered, so that the description only points to tools that exist;
 /// `background` says whether `run_in_background` is offered.
 ///
-/// Where Codex differs from Claude Code the text says what Codex does: each command starts
-/// in the session's working directory, the sandbox is Codex's, and a background command is
-/// read with `write_stdin`. The commit and pull request instructions carry no attribution
+/// Where Codex differs from Claude Code the text says what Codex does: the sandbox is
+/// Codex's, and a background command is read with `write_stdin`. The commit and pull request instructions carry no attribution
 /// lines, as with Claude Code's `attribution` setting left empty.
 pub fn description(available: &[&str], background: bool) -> String {
     let has = |tool: &str| available.contains(&tool);
@@ -88,7 +87,7 @@ pub fn description(available: &[&str], background: bool) -> String {
     let mut text = String::new();
     text.push_str("Executes a given bash command and returns its output.\n\n");
     text.push_str(
-        "Each command starts in the session's working directory: `cd` does not carry over to the next command, and neither does other shell state. The shell environment is initialized from the user's profile.\n\n",
+        "The working directory persists between commands, but shell state does not. The shell environment is initialized from the user's profile (bash or zsh).\n\n",
     );
     text.push_str(&format!(
         "IMPORTANT: Avoid using this tool to run {avoid} commands, unless explicitly instructed or after you have verified that a dedicated tool cannot accomplish your task. Instead, use the appropriate dedicated tool as this will provide a much better experience for the user:\n\n"
@@ -103,7 +102,7 @@ pub fn description(available: &[&str], background: bool) -> String {
     let mut instructions = vec![
         "If your command will create new directories or files, first use this tool to run `ls` to verify the parent directory exists and is the correct location.".to_string(),
         "Always quote file paths that contain spaces with double quotes in your command (e.g., cd \"path with spaces/file.txt\")".to_string(),
-        "Use absolute paths, or `cd <dir> && <command>` within one command, to work outside the working directory.".to_string(),
+        "Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of `cd`. You may use `cd` if the User explicitly requests it.".to_string(),
         format!(
             "You may specify an optional timeout in milliseconds (up to {MAX_TIMEOUT_MS}ms / {} minutes). By default, your command will timeout after {DEFAULT_TIMEOUT_MS}ms ({} minutes).",
             MAX_TIMEOUT_MS / 60_000,
@@ -305,6 +304,34 @@ pub fn background_message(id: &str) -> String {
     format!(
         "Command running in background with ID: {id}. Read its output with write_stdin, passing session_id {id} and empty chars."
     )
+}
+
+/// Lines added after a command, in the shell that runs it, to carry its working directory
+/// over to the next one: after a command that succeeded, its physical working directory
+/// (`pwd -P`, as Claude Code records it) is written to `file`. The command's exit status
+/// stays the call's.
+pub fn cwd_trailer(file: &str) -> String {
+    format!(
+        "\n__ccn_status=$?\nif [ \"$__ccn_status\" -eq 0 ]; then pwd -P >| {} 2>/dev/null; fi\nexit \"$__ccn_status\"",
+        shell_quote(file)
+    )
+}
+
+/// `text` as one single-quoted word of a POSIX shell.
+fn shell_quote(text: &str) -> String {
+    format!("'{}'", text.replace('\'', "'\\''"))
+}
+
+/// The working directory recorded by [`cwd_trailer`]: the file's text without its line end.
+pub fn recorded_cwd(contents: &str) -> Option<&str> {
+    let cwd = contents.trim_end_matches(['\n', '\r']);
+    (!cwd.is_empty()).then_some(cwd)
+}
+
+/// What Claude Code adds to a command's result when the command left the project: the next
+/// command starts in the project again.
+pub fn shell_reset_message(project_dir: &str) -> String {
+    format!("Shell cwd was reset to {project_dir}")
 }
 
 /// Drops the blank lines before the first and after the last line with text, and the

@@ -69,6 +69,9 @@ The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `co
   `Write`, `Edit`, `Glob`, `Grep`, `WebFetch`, `WebSearch`, `TodoWrite`, `AskUserQuestion` and `Agent`
   replace Codex's tools, as a layer over them, and `Skill` lets the model invoke a skill with arguments. Permission rules (`Read(...)`, `Edit(...)`,
   `WebFetch(domain:...)`), subagent `tools` and hook matchers then match Claude Code one to one.
+  As in Claude Code, a `cd` in `Bash` carries over to the next command while it stays inside the
+  project, and `Read` shows notebooks cell by cell and PDFs page by page (PDFs need poppler-utils:
+  `pdftoppm`, `pdftotext`, `pdfinfo`).
 
 ## What Is Not Compatible
 
