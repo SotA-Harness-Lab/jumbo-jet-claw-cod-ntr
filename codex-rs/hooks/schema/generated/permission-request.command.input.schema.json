@@ -36,6 +36,11 @@
       ],
       "type": "string"
     },
+    "permission_suggestions": {
+      "description": "Claude Code's suggested permission updates for the prompt; Codex has none to offer.",
+      "items": true,
+      "type": "array"
+    },
     "session_id": {
       "type": "string"
     },
@@ -56,6 +61,7 @@
     "hook_event_name",
     "model",
     "permission_mode",
+    "permission_suggestions",
     "session_id",
     "tool_input",
     "tool_name",

@@ -169,6 +169,16 @@ pub fn load_claude_plugins(
     claude_home: &Path,
     project_dir: Option<&Path>,
 ) -> (Vec<ClaudePlugin>, Vec<String>) {
+    load_claude_plugins_for(claude_home, project_dir, /*project_trusted*/ true)
+}
+
+/// [`load_claude_plugins`], for a project that may not be trusted: then its settings files
+/// can turn a plugin off but not on, since they come with the repository.
+pub fn load_claude_plugins_for(
+    claude_home: &Path,
+    project_dir: Option<&Path>,
+    project_trusted: bool,
+) -> (Vec<ClaudePlugin>, Vec<String>) {
     let mut warnings = Vec::new();
     let installed_path = claude_home.join(INSTALLED_PLUGINS_FILE);
     let installed = match read_settings(&installed_path) {
@@ -189,7 +199,12 @@ pub fn load_claude_plugins(
         .enumerate()
     {
         match read_settings(path) {
-            Ok(Some(file)) => settings.push(file),
+            Ok(Some(mut file)) => {
+                if index > 0 && !project_trusted {
+                    keep_only_disabled_plugins(&mut file);
+                }
+                settings.push(file);
+            }
             Ok(None) if index == 0 => settings.push(Value::Null),
             Ok(None) => {}
             Err(err) => {
@@ -207,6 +222,16 @@ pub fn load_claude_plugins(
         installed_enabled_plugins(&installed, &settings, /*first_is_user*/ true);
     warnings.extend(missing);
     (plugins, warnings)
+}
+
+/// Leaves only the plugins `settings` turns off in its `enabledPlugins`.
+fn keep_only_disabled_plugins(settings: &mut Value) {
+    if let Some(enabled) = settings
+        .get_mut("enabledPlugins")
+        .and_then(Value::as_object_mut)
+    {
+        enabled.retain(|_, value| value.as_bool() != Some(true));
+    }
 }
 
 /// Why the plugin in `root` is incompatible with Codex, or `None` when it is not. A plugin is
@@ -256,11 +281,7 @@ pub fn incompatibility(root: &Path) -> Option<String> {
         .copied()
         .filter_map(&field)
         .flat_map(relative_paths);
-    for path in SCANNED_DIRS
-        .iter()
-        .map(ToString::to_string)
-        .chain(declared)
-    {
+    for path in SCANNED_DIRS.iter().map(ToString::to_string).chain(declared) {
         if path.split(['/', '\\']).any(|part| part == "..") {
             continue;
         }

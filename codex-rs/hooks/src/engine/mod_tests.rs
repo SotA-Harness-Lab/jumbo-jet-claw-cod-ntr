@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; read Claude Code's configuration in place
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; read Claude Code's configuration in place;
+// follow more of Claude Code's behaviour
 
 use std::collections::HashMap;
 use std::fs;
@@ -112,6 +113,7 @@ fn permission_request_timeout_only_counts_synchronous_handlers() {
         kind: ConfiguredHandlerKind::Command {
             command: command.to_string(),
             r#async: false,
+            posix_sh: false,
             env: HashMap::new(),
         },
     };
@@ -120,6 +122,7 @@ fn permission_request_timeout_only_counts_synchronous_handlers() {
         kind: ConfiguredHandlerKind::Command {
             command: command.to_string(),
             r#async: true,
+            posix_sh: false,
             env: HashMap::new(),
         },
         ..synchronous_handler.clone()
@@ -1169,6 +1172,7 @@ fn requirements_managed_hooks_load_when_managed_dir_is_missing() {
         ConfiguredHandlerKind::Command {
             command: "echo hi".to_string(),
             r#async: false,
+            posix_sh: false,
             env: HashMap::new(),
         }
     );
@@ -2263,6 +2267,7 @@ fn plugin_hook_sources_expand_plugin_placeholders() {
                 plugin_data_root.display()
             ),
             r#async: false,
+            posix_sh: false,
             env: HashMap::from([
                 ("PLUGIN_ROOT".to_string(), plugin_root.display().to_string()),
                 (

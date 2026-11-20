@@ -17,15 +17,39 @@ fn blocked(address: &str) -> bool {
 #[test]
 fn url_patterns_match_whole_urls_with_wildcards() {
     for (url, pattern, expected) in [
-        ("https://hooks.example.com/a", "https://hooks.example.com/a", true),
-        ("https://hooks.example.com/a/b", "https://hooks.example.com/a", false),
-        ("https://hooks.example.com/a/b", "https://hooks.example.com/*", true),
-        ("https://api.example.com/v1/hook", "https://*.example.com/*/hook", true),
-        ("https://api.example.org/v1/hook", "https://*.example.com/*/hook", false),
+        (
+            "https://hooks.example.com/a",
+            "https://hooks.example.com/a",
+            true,
+        ),
+        (
+            "https://hooks.example.com/a/b",
+            "https://hooks.example.com/a",
+            false,
+        ),
+        (
+            "https://hooks.example.com/a/b",
+            "https://hooks.example.com/*",
+            true,
+        ),
+        (
+            "https://api.example.com/v1/hook",
+            "https://*.example.com/*/hook",
+            true,
+        ),
+        (
+            "https://api.example.org/v1/hook",
+            "https://*.example.com/*/hook",
+            false,
+        ),
         ("https://example.com/", "*", true),
         ("http://example.com/x", "https://*", false),
     ] {
-        assert_eq!(url_matches_pattern(url, pattern), expected, "{url} {pattern}");
+        assert_eq!(
+            url_matches_pattern(url, pattern),
+            expected,
+            "{url} {pattern}"
+        );
     }
 }
 
@@ -68,7 +92,13 @@ fn private_addresses_are_refused_and_loopback_is_not() {
     ] {
         assert_eq!(blocked(address), true, "{address}");
     }
-    for address in ["127.0.0.1", "::1", "8.8.8.8", "2606:4700::1111", "100.128.0.1"] {
+    for address in [
+        "127.0.0.1",
+        "::1",
+        "8.8.8.8",
+        "2606:4700::1111",
+        "100.128.0.1",
+    ] {
         assert_eq!(blocked(address), false, "{address}");
     }
 }
@@ -77,7 +107,10 @@ fn private_addresses_are_refused_and_loopback_is_not() {
 fn a_response_is_a_json_object_or_empty() {
     assert_eq!(validate_body(""), Ok(()));
     assert_eq!(validate_body("  \n"), Ok(()));
-    assert_eq!(validate_body(r#"{"decision":"block","reason":"no"}"#), Ok(()));
+    assert_eq!(
+        validate_body(r#"{"decision":"block","reason":"no"}"#),
+        Ok(())
+    );
     assert!(validate_body("ok").is_err());
     assert!(validate_body("{not json").is_err());
 }

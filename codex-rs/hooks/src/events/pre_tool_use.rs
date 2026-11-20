@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks; let a hook
+// allow a call or ask about it
 
 use std::path::PathBuf;
 
@@ -51,6 +52,18 @@ pub struct PreToolUseOutcome {
     pub block_reason: Option<String>,
     pub additional_contexts: Vec<crate::HookContext>,
     pub updated_input: Option<Value>,
+    /// What the hooks decided about asking the user, when none blocked: ask wins over
+    /// allow, as in Claude Code.
+    pub permission: Option<PreToolUsePermission>,
+}
+
+/// A `PreToolUse` hook's `permissionDecision` short of a denial.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PreToolUsePermission {
+    /// `allow` (or the legacy `decision: "approve"`): the call runs without asking.
+    Allow,
+    /// `ask`: the user is asked about the call, with the hook's reason.
+    Ask { reason: Option<String> },
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -59,6 +72,7 @@ struct PreToolUseHandlerData {
     block_reason: Option<String>,
     additional_contexts_for_model: Vec<AdditionalContext>,
     updated_input: Option<Value>,
+    permission: Option<PreToolUsePermission>,
 }
 
 pub(crate) fn preview(
@@ -97,6 +111,7 @@ pub(crate) async fn run(
             block_reason: None,
             additional_contexts: Vec::new(),
             updated_input: None,
+            permission: None,
         };
     }
 
@@ -142,6 +157,19 @@ pub(crate) async fn run(
     } else {
         latest_updated_input(&results)
     };
+    let permission = if should_block {
+        None
+    } else {
+        let permissions = results
+            .iter()
+            .filter_map(|result| result.data.permission.clone())
+            .collect::<Vec<_>>();
+        permissions
+            .iter()
+            .find(|permission| matches!(permission, PreToolUsePermission::Ask { .. }))
+            .or_else(|| permissions.first())
+            .cloned()
+    };
 
     PreToolUseOutcome {
         hook_events: results
@@ -154,6 +182,7 @@ pub(crate) async fn run(
         block_reason,
         additional_contexts,
         updated_input,
+        permission,
     }
 }
 
@@ -214,6 +243,7 @@ fn parse_completed(
     let mut block_reason = None;
     let mut additional_contexts_for_model = Vec::new();
     let mut updated_input = None;
+    let mut permission = None;
 
     match run_result.error.as_deref() {
         Some(error) => {
@@ -262,6 +292,7 @@ fn parse_completed(
                             });
                         } else {
                             updated_input = parsed.updated_input;
+                            permission = parsed.permission;
                         }
                     }
                 } else if output_parser::looks_like_json(&run_result.stdout) {
@@ -318,6 +349,7 @@ fn parse_completed(
             block_reason,
             additional_contexts_for_model,
             updated_input,
+            permission,
         },
         completion_order: 0,
     }
@@ -330,6 +362,7 @@ fn serialization_failure_outcome(hook_events: Vec<HookCompletedEvent>) -> PreToo
         block_reason: None,
         additional_contexts: Vec::new(),
         updated_input: None,
+        permission: None,
     }
 }
 
@@ -345,6 +378,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::PreToolUseHandlerData;
+    use super::PreToolUsePermission;
     use super::command_input;
     use super::latest_updated_input;
     use super::parse_completed;
@@ -400,6 +434,7 @@ mod tests {
                 block_reason: Some("do not run that".to_string()),
                 additional_contexts_for_model: Vec::new(),
                 updated_input: None,
+                permission: None,
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
@@ -431,6 +466,7 @@ mod tests {
                 block_reason: None,
                 additional_contexts_for_model: Vec::new(),
                 updated_input: Some(serde_json::json!({ "command": "echo rewritten" })),
+                permission: Some(PreToolUsePermission::Allow),
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
@@ -467,49 +503,6 @@ mod tests {
     }
 
     #[test]
-    fn permission_decision_allow_without_updated_input_fails_open() {
-        let stdout = r#"{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","additionalContext":"preserved"}}"#;
-        let parsed = parse_completed(
-            &handler(),
-            run_result(Some(0), stdout, ""),
-            Some("turn-1".to_string()),
-        );
-
-        assert_eq!(
-            parsed.data,
-            PreToolUseHandlerData {
-                should_block: false,
-                block_reason: None,
-                additional_contexts_for_model: Vec::new(),
-                updated_input: None,
-            }
-        );
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
-        assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Error,
-                text: "PreToolUse hook returned unsupported permissionDecision:allow".to_string(),
-            }]
-        );
-
-        let async_handler = handler_with_async(/*async*/ true);
-        let parsed = parse_completed(
-            &async_handler,
-            run_result(Some(0), stdout, ""),
-            Some("turn-1".to_string()),
-        );
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
-        assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Context,
-                text: "preserved".to_string(),
-            }],
-        );
-    }
-
-    #[test]
     fn deprecated_block_decision_blocks_processing() {
         let parsed = parse_completed(
             &handler(),
@@ -528,6 +521,7 @@ mod tests {
                 block_reason: Some("do not run that".to_string()),
                 additional_contexts_for_model: Vec::new(),
                 updated_input: None,
+                permission: None,
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
@@ -562,6 +556,7 @@ mod tests {
                     limit: Default::default(),
                 }],
                 updated_input: None,
+                permission: None,
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
@@ -581,61 +576,91 @@ mod tests {
     }
 
     #[test]
-    fn unsupported_permission_decision_fails_open() {
+    fn permission_decision_allow_without_updated_input_allows_the_call() {
+        let stdout = r#"{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","additionalContext":"preserved"}}"#;
+        let parsed = parse_completed(
+            &handler(),
+            run_result(Some(0), stdout, ""),
+            Some("turn-1".to_string()),
+        );
+
+        assert_eq!(parsed.data.permission, Some(PreToolUsePermission::Allow));
+        assert_eq!(parsed.data.updated_input, None);
+        assert!(!parsed.data.should_block);
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
+    }
+
+    #[test]
+    fn permission_decision_ask_asks_with_the_reason() {
         let parsed = parse_completed(
             &handler(),
             run_result(
                 Some(0),
-                r#"{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"please confirm"}}"#,
+                r#"{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"please confirm","updatedInput":{"command":"echo checked"}}}"#,
                 "",
             ),
             Some("turn-1".to_string()),
         );
 
         assert_eq!(
-            parsed.data,
-            PreToolUseHandlerData {
-                should_block: false,
-                block_reason: None,
-                additional_contexts_for_model: Vec::new(),
-                updated_input: None,
-            }
+            parsed.data.permission,
+            Some(PreToolUsePermission::Ask {
+                reason: Some("please confirm".to_string())
+            })
         );
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
         assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Error,
-                text: "PreToolUse hook returned unsupported permissionDecision:ask".to_string(),
-            }]
+            parsed.data.updated_input,
+            Some(serde_json::json!({ "command": "echo checked" }))
         );
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
     }
 
     #[test]
-    fn deprecated_approve_decision_fails_open() {
+    fn deprecated_approve_decision_allows_the_call() {
         let parsed = parse_completed(
             &handler(),
             run_result(Some(0), r#"{"decision":"approve"}"#, ""),
             Some("turn-1".to_string()),
         );
 
-        assert_eq!(
-            parsed.data,
-            PreToolUseHandlerData {
-                should_block: false,
-                block_reason: None,
-                additional_contexts_for_model: Vec::new(),
-                updated_input: None,
-            }
+        assert_eq!(parsed.data.permission, Some(PreToolUsePermission::Allow));
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
+    }
+
+    #[test]
+    fn a_denial_without_a_reason_blocks_with_claude_code_s_default() {
+        for stdout in [
+            r#"{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny"}}"#,
+            r#"{"decision":"block"}"#,
+        ] {
+            let parsed = parse_completed(
+                &handler(),
+                run_result(Some(0), stdout, ""),
+                Some("turn-1".to_string()),
+            );
+            assert!(parsed.data.should_block, "{stdout}");
+            assert_eq!(
+                parsed.data.block_reason.as_deref(),
+                Some("Blocked by hook"),
+                "{stdout}"
+            );
+        }
+    }
+
+    #[test]
+    fn fields_codex_does_not_know_are_left_out() {
+        let parsed = parse_completed(
+            &handler(),
+            run_result(
+                Some(0),
+                r#"{"suppressOutput":true,"futureField":1,"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"no","somethingNew":true}}"#,
+                "",
+            ),
+            Some("turn-1".to_string()),
         );
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
-        assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Error,
-                text: "PreToolUse hook returned unsupported decision:approve".to_string(),
-            }]
-        );
+
+        assert!(parsed.data.should_block);
+        assert_eq!(parsed.data.block_reason.as_deref(), Some("no"));
     }
 
     #[test]
@@ -662,6 +687,7 @@ mod tests {
                     limit: AdditionalContextLimit::from_config(Some(13)),
                 }],
                 updated_input: None,
+                permission: None,
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
@@ -695,6 +721,7 @@ mod tests {
                 block_reason: None,
                 additional_contexts_for_model: Vec::new(),
                 updated_input: None,
+                permission: None,
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
@@ -716,6 +743,7 @@ mod tests {
                 block_reason: None,
                 additional_contexts_for_model: Vec::new(),
                 updated_input: None,
+                permission: None,
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
@@ -743,6 +771,7 @@ mod tests {
                 block_reason: Some("blocked by policy".to_string()),
                 additional_contexts_for_model: Vec::new(),
                 updated_input: None,
+                permission: None,
             }
         );
         assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
@@ -814,6 +843,7 @@ mod tests {
             kind: crate::engine::ConfiguredHandlerKind::Command {
                 command: "echo hook".to_string(),
                 r#async,
+                posix_sh: false,
                 env: std::collections::HashMap::new(),
             },
         }

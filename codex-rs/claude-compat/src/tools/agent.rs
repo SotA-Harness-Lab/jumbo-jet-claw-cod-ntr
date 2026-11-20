@@ -174,10 +174,7 @@ fn rule_tool_name(rule: &str) -> String {
 
 /// The Codex agent role for a `subagent_type`: none (Codex's default agent) when it is left
 /// out or is Claude Code's `general-purpose` and no role has that name.
-pub fn role_for(
-    subagent_type: Option<&str>,
-    has_role: impl Fn(&str) -> bool,
-) -> Option<&str> {
+pub fn role_for(subagent_type: Option<&str>, has_role: impl Fn(&str) -> bool) -> Option<&str> {
     let subagent_type = subagent_type
         .map(str::trim)
         .filter(|name| !name.is_empty())?;

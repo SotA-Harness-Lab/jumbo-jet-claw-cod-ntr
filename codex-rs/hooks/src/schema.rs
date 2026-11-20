@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use schemars::JsonSchema;
 use schemars::r#gen::SchemaGenerator;
 use schemars::r#gen::SchemaSettings;
@@ -87,7 +92,6 @@ impl From<Option<&SubagentHookContext>> for SubagentCommandInputFields {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct HookUniversalOutputWire {
     #[serde(default = "default_continue")]
     pub r#continue: bool,
@@ -127,7 +131,6 @@ pub(crate) enum HookEventNameWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "pre-tool-use.command.output")]
 pub(crate) struct PreToolUseCommandOutputWire {
     #[serde(flatten)]
@@ -142,7 +145,6 @@ pub(crate) struct PreToolUseCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "post-tool-use.command.output")]
 pub(crate) struct PostToolUseCommandOutputWire {
     #[serde(flatten)]
@@ -157,7 +159,6 @@ pub(crate) struct PostToolUseCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "permission-request.command.output")]
 pub(crate) struct PermissionRequestCommandOutputWire {
     #[serde(flatten)]
@@ -168,7 +169,6 @@ pub(crate) struct PermissionRequestCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "pre-compact.command.output")]
 pub(crate) struct PreCompactCommandOutputWire {
     #[serde(flatten)]
@@ -177,7 +177,6 @@ pub(crate) struct PreCompactCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "post-compact.command.output")]
 pub(crate) struct PostCompactCommandOutputWire {
     #[serde(flatten)]
@@ -186,7 +185,6 @@ pub(crate) struct PostCompactCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct PermissionRequestHookSpecificOutputWire {
     #[schemars(schema_with = "permission_request_hook_event_name_schema")]
     pub hook_event_name: HookEventNameWire,
@@ -196,7 +194,6 @@ pub(crate) struct PermissionRequestHookSpecificOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct PermissionRequestDecisionWire {
     pub behavior: PermissionRequestBehaviorWire,
     /// Reserved for a future input-rewrite capability.
@@ -228,7 +225,6 @@ pub(crate) enum PermissionRequestBehaviorWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct PostToolUseHookSpecificOutputWire {
     #[schemars(schema_with = "post_tool_use_hook_event_name_schema")]
     pub hook_event_name: HookEventNameWire,
@@ -241,7 +237,6 @@ pub(crate) struct PostToolUseHookSpecificOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct PreToolUseHookSpecificOutputWire {
     #[schemars(schema_with = "pre_tool_use_hook_event_name_schema")]
     pub hook_event_name: HookEventNameWire,
@@ -316,6 +311,8 @@ pub(crate) struct PermissionRequestCommandInput {
     pub permission_mode: String,
     pub tool_name: String,
     pub tool_input: Value,
+    /// Claude Code's suggested permission updates for the prompt; Codex has none to offer.
+    pub permission_suggestions: Vec<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
@@ -360,6 +357,8 @@ pub(crate) struct PreCompactCommandInput {
     pub model: String,
     #[schemars(schema_with = "compaction_trigger_schema")]
     pub trigger: String,
+    /// Claude Code's instructions given with `/compact`; Codex's `/compact` takes none.
+    pub custom_instructions: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]
@@ -384,7 +383,6 @@ pub(crate) struct PostCompactCommandInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "session-start.command.output")]
 pub(crate) struct SessionStartCommandOutputWire {
     #[serde(flatten)]
@@ -395,7 +393,6 @@ pub(crate) struct SessionStartCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct SessionStartHookSpecificOutputWire {
     #[schemars(schema_with = "session_start_hook_event_name_schema")]
     pub hook_event_name: HookEventNameWire,
@@ -405,7 +402,6 @@ pub(crate) struct SessionStartHookSpecificOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "subagent-start.command.output")]
 pub(crate) struct SubagentStartCommandOutputWire {
     #[serde(flatten)]
@@ -416,7 +412,6 @@ pub(crate) struct SubagentStartCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct SubagentStartHookSpecificOutputWire {
     #[schemars(schema_with = "subagent_start_hook_event_name_schema")]
     pub hook_event_name: HookEventNameWire,
@@ -426,7 +421,6 @@ pub(crate) struct SubagentStartHookSpecificOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "user-prompt-submit.command.output")]
 pub(crate) struct UserPromptSubmitCommandOutputWire {
     #[serde(flatten)]
@@ -441,7 +435,6 @@ pub(crate) struct UserPromptSubmitCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 pub(crate) struct UserPromptSubmitHookSpecificOutputWire {
     #[schemars(schema_with = "user_prompt_submit_hook_event_name_schema")]
     pub hook_event_name: HookEventNameWire,
@@ -451,7 +444,6 @@ pub(crate) struct UserPromptSubmitHookSpecificOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "stop.command.output")]
 pub(crate) struct StopCommandOutputWire {
     #[serde(flatten)]
@@ -466,7 +458,6 @@ pub(crate) struct StopCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "subagent-stop.command.output")]
 pub(crate) struct SubagentStopCommandOutputWire {
     #[serde(flatten)]
@@ -481,8 +472,8 @@ pub(crate) struct SubagentStopCommandOutputWire {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
 #[schemars(rename = "interrupt.command.output")]
+#[serde(deny_unknown_fields)]
 pub(crate) struct InterruptCommandOutputWire {
     #[serde(default)]
     pub system_message: Option<String>,
@@ -492,6 +483,9 @@ pub(crate) struct InterruptCommandOutputWire {
 pub(crate) enum BlockDecisionWire {
     #[serde(rename = "block")]
     Block,
+    /// Claude Code's legacy approval, which has nothing to approve outside `PreToolUse`.
+    #[serde(rename = "approve")]
+    Approve,
 }
 
 #[derive(Debug, Clone, Serialize, JsonSchema)]

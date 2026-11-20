@@ -20,10 +20,10 @@ use codex_tools::ToolName;
 use codex_tools::ToolSpec;
 use serde_json::Value;
 
-use super::PermissionInput;
-use super::check_permission;
 use super::OFFERED_TOOLS;
+use super::PermissionInput;
 use super::ToolSwap;
+use super::check_permission;
 use super::files::FileTarget;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;

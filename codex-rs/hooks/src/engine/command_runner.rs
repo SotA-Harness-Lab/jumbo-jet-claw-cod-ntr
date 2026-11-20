@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code;
+// follow more of Claude Code's behaviour
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -118,6 +119,14 @@ impl CommandHookRuntime {
             state: Arc::clone(&self.state),
             output_spiller: self.output_spiller.clone(),
         }
+    }
+
+    /// This runtime with `/bin/sh -c` as its shell, as Claude Code runs its hooks.
+    pub(crate) fn with_posix_sh(&self) -> Self {
+        self.reconfigured(CommandShell {
+            program: "/bin/sh".to_string(),
+            args: vec!["-c".to_string()],
+        })
     }
 
     pub(crate) fn output_spiller(&self) -> &HookOutputSpiller {

@@ -20,6 +20,11 @@
 //!
 //! A Claude tool calls [`check_permission`] before it delegates, and keeps the returned
 //! guard until the delegated call has finished.
+//!
+//! A `PreToolUse` hook's `permissionDecision` goes the same way, for any tool and whether
+//! or not the Claude tool set is on ([`apply_hook_permission`]): `allow` as an allow rule,
+//! `ask` as an ask rule. As in Claude Code, a deny rule still denies a call a hook allows,
+//! and an ask rule still asks about it.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -79,7 +84,11 @@ impl PermissionInput<'_> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum RuleDecision {
     Allow,
-    Ask { reason: String },
+    Ask {
+        reason: String,
+    },
+    /// The user was asked already and said yes: nothing asks again.
+    Approved,
 }
 
 /// The rules of each project directory of the session, read once.
@@ -115,6 +124,13 @@ pub(crate) struct PermissionGuard {
 }
 
 impl PermissionGuard {
+    fn new(session: &Arc<Session>) -> Self {
+        Self {
+            session: Arc::clone(session),
+            call_id: None,
+        }
+    }
+
     fn record(&mut self, call_id: &str, decision: RuleDecision) {
         CallDecisions::of(&self.session)
             .0
@@ -190,10 +206,7 @@ pub(crate) async fn check_permission(
     tool: &str,
     input: PermissionInput<'_>,
 ) -> Result<PermissionGuard, FunctionCallError> {
-    let mut guard = PermissionGuard {
-        session: Arc::clone(&invocation.session),
-        call_id: None,
-    };
+    let mut guard = PermissionGuard::new(&invocation.session);
     if !super::enabled(&invocation.turn) {
         return Ok(guard);
     }
@@ -228,10 +241,21 @@ pub(crate) async fn check_permission(
         PermissionInput::Content(content) => ToolInput::Content(content),
     };
 
+    // What a `PreToolUse` hook decided for this call: an ask or the user's yes outranks
+    // an allow rule, and the user is not asked twice.
+    let hook_decision = CallDecisions::of(&invocation.session).get(&invocation.call_id);
     match rules.evaluate(tool, tool_input) {
         RuleVerdict::NoMatch => {}
         RuleVerdict::Deny { message, .. } => return Err(failed(message)),
-        RuleVerdict::Allow { .. } => guard.record(&invocation.call_id, RuleDecision::Allow),
+        RuleVerdict::Allow { .. } => {
+            if !matches!(
+                hook_decision,
+                Some(RuleDecision::Ask { .. } | RuleDecision::Approved)
+            ) {
+                guard.record(&invocation.call_id, RuleDecision::Allow);
+            }
+        }
+        RuleVerdict::Ask { .. } if hook_decision == Some(RuleDecision::Approved) => {}
         RuleVerdict::Ask { rule } => {
             let reason = format!("Claude Code permission rule `{rule}` asks before this call.");
             if input.codex_asks() {
@@ -239,7 +263,7 @@ pub(crate) async fn check_permission(
             } else {
                 ask_user(invocation, tool, input, reason, cwd_uri, environment_id).await?;
                 // The user said yes: Codex does not ask again for this call.
-                guard.record(&invocation.call_id, RuleDecision::Allow);
+                guard.record(&invocation.call_id, RuleDecision::Approved);
             }
         }
     }
@@ -310,7 +334,62 @@ async fn ask_user(
 /// Whether a Claude Code allow rule (or the user, for an ask rule) already approved the
 /// call `call_id`, so that Codex does not ask about it again.
 pub(crate) fn rule_allows(session: &Session, call_id: &str) -> bool {
-    CallDecisions::of(session).get(call_id) == Some(RuleDecision::Allow)
+    matches!(
+        CallDecisions::of(session).get(call_id),
+        Some(RuleDecision::Allow | RuleDecision::Approved)
+    )
+}
+
+/// The Codex tools whose approval Codex's orchestrator decides, where an ask is left to it.
+const ORCHESTRATED_TOOLS: &[&str] = &[
+    "exec_command",
+    "shell",
+    "shell_command",
+    "local_shell",
+    "apply_patch",
+    "Bash",
+    "Write",
+    "Edit",
+];
+
+/// Takes a `PreToolUse` hook's `allow` or `ask` for the call `invocation`, before its tool
+/// runs. `allow` is kept as an allow rule is. `ask` is kept as an ask rule for a tool whose
+/// approval Codex's orchestrator decides; any other tool is asked about here, with Codex's
+/// approval prompt, and a no is Claude Code's rejection. The returned guard has to be held
+/// until the call is over.
+pub(crate) async fn apply_hook_permission(
+    invocation: &ToolInvocation,
+    permission: codex_hooks::PreToolUsePermission,
+) -> Result<PermissionGuard, FunctionCallError> {
+    let mut guard = PermissionGuard::new(&invocation.session);
+    match permission {
+        codex_hooks::PreToolUsePermission::Allow => {
+            guard.record(&invocation.call_id, RuleDecision::Allow);
+        }
+        codex_hooks::PreToolUsePermission::Ask { reason } => {
+            let reason =
+                reason.unwrap_or_else(|| "A PreToolUse hook asks before this call.".to_string());
+            let tool = invocation.tool_name.name.as_str();
+            if ORCHESTRATED_TOOLS.contains(&tool) && invocation.tool_name.is_default_namespace() {
+                guard.record(&invocation.call_id, RuleDecision::Ask { reason });
+            } else {
+                let shown = invocation.payload.log_payload().into_owned();
+                let (cwd_uri, environment_id) = call_directory(invocation);
+                let label = crate::tools::flat_tool_name(&invocation.tool_name).into_owned();
+                ask_user(
+                    invocation,
+                    &label,
+                    PermissionInput::Content(&shown),
+                    reason,
+                    cwd_uri,
+                    environment_id,
+                )
+                .await?;
+                guard.record(&invocation.call_id, RuleDecision::Approved);
+            }
+        }
+    }
+    Ok(guard)
 }
 
 /// Codex's approval requirement for a call, after the Claude Code rule recorded for it:
@@ -330,15 +409,16 @@ pub(crate) fn apply_rule_decision(
     match (decision, requirement) {
         (_, requirement @ ExecApprovalRequirement::Forbidden { .. })
         | (_, requirement @ ExecApprovalRequirement::NeedsHumanApproval { .. }) => requirement,
-        (RuleDecision::Allow, ExecApprovalRequirement::NeedsApproval { .. })
-            if !sandbox_permissions.requires_escalated_permissions() =>
-        {
+        (
+            RuleDecision::Allow | RuleDecision::Approved,
+            ExecApprovalRequirement::NeedsApproval { .. },
+        ) if !sandbox_permissions.requires_escalated_permissions() => {
             ExecApprovalRequirement::Skip {
                 bypass_sandbox: false,
                 proposed_execpolicy_amendment: None,
             }
         }
-        (RuleDecision::Allow, requirement) => requirement,
+        (RuleDecision::Allow | RuleDecision::Approved, requirement) => requirement,
         (RuleDecision::Ask { reason }, _) => {
             match prompt_is_rejected_by_policy(approval_policy, /*prompt_is_rule*/ true) {
                 Some(rejection) => ExecApprovalRequirement::Forbidden {

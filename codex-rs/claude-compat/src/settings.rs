@@ -110,7 +110,9 @@ fn bash_prefix(rule: &str) -> Option<Vec<String>> {
         .or_else(|| content.strip_suffix('*'))
         .unwrap_or(content)
         .trim();
-    if content.contains(['*', '\\', '"', '\'', '`', '$', '|', '&', ';', '<', '>', '(', ')']) {
+    if content.contains([
+        '*', '\\', '"', '\'', '`', '$', '|', '&', ';', '<', '>', '(', ')',
+    ]) {
         return None;
     }
     let words = content

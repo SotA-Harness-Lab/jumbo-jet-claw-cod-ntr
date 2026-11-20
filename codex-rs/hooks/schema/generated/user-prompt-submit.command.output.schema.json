@@ -1,15 +1,24 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "additionalProperties": false,
   "definitions": {
     "BlockDecisionWire": {
-      "enum": [
-        "block"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "enum": [
+            "block"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Claude Code's legacy approval, which has nothing to approve outside `PreToolUse`.",
+          "enum": [
+            "approve"
+          ],
+          "type": "string"
+        }
+      ]
     },
     "UserPromptSubmitHookSpecificOutputWire": {
-      "additionalProperties": false,
       "properties": {
         "additionalContext": {
           "default": null,

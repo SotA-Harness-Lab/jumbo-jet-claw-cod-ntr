@@ -41,8 +41,8 @@ use tokio_util::sync::CancellationToken;
 use crate::Prompt;
 use crate::client_common::ResponseEvent;
 use crate::codex_delegate::run_codex_thread_one_shot;
-use crate::responses_metadata::CodexResponsesRequestKind;
 use crate::config::Constrained;
+use crate::responses_metadata::CodexResponsesRequestKind;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 

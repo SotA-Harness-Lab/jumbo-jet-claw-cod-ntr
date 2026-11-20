@@ -19,9 +19,10 @@ pub mod input;
 pub mod patch;
 pub mod read;
 pub mod ripgrep;
+pub mod skill;
+pub mod todo_write;
 pub mod web_fetch;
 pub mod web_search;
-pub mod todo_write;
 pub mod write;
 
 /// Claude Code's name of its shell tool.
@@ -46,6 +47,8 @@ pub const WEB_SEARCH: &str = "WebSearch";
 pub const WEB_FETCH: &str = "WebFetch";
 /// Claude Code's name of its tool asking the user multiple-choice questions.
 pub const ASK_USER_QUESTION: &str = "AskUserQuestion";
+/// Claude Code's tool for invoking a skill.
+pub const SKILL: &str = "Skill";
 
 /// Wraps a message the way Claude Code reports an input it rejects before running the tool.
 pub fn tool_use_error(message: &str) -> String {

@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; run more of Claude Code's hooks;
+// follow more of Claude Code's behaviour
 
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -132,6 +133,7 @@ async fn hook_shell_startup_does_not_stop_on_controlling_terminal() {
         kind: ConfiguredHandlerKind::Command {
             command: command.to_string(),
             r#async: false,
+            posix_sh: false,
             env: env.clone(),
         },
     };
@@ -236,6 +238,7 @@ async fn cmd_shell_runs_quoted_hook_command_path() {
         kind: ConfiguredHandlerKind::Command {
             command: command.clone(),
             r#async: false,
+            posix_sh: false,
             env: env.clone(),
         },
     };
@@ -287,6 +290,7 @@ async fn fast_exiting_hook_preserves_stdout_when_stdin_is_not_consumed() {
         kind: ConfiguredHandlerKind::Command {
             command: command.to_string(),
             r#async: false,
+            posix_sh: false,
             env: env.clone(),
         },
     };
@@ -378,6 +382,7 @@ async fn command_hook_does_not_expose_configured_noise_auth_token() {
         kind: ConfiguredHandlerKind::Command {
             command: command.to_string(),
             r#async: false,
+            posix_sh: false,
             env: env.clone(),
         },
     };
@@ -524,6 +529,7 @@ fn write_handler(temp: &TempDir, source: &str) -> ConfiguredHandler {
         kind: ConfiguredHandlerKind::Command {
             command: format!("python3 {}", script_path.display()),
             r#async: true,
+            posix_sh: false,
             env: HashMap::new(),
         },
     }

@@ -32,9 +32,9 @@ use serde_json::Value;
 use serde_json::json;
 
 use super::PermissionInput;
-use super::check_permission;
 use super::ToolSwap;
 use super::ask_user_question::output_json;
+use super::check_permission;
 use super::failed;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;

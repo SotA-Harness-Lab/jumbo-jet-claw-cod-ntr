@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use crate::context::UserGoalUpdate;
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -180,7 +185,7 @@ async fn run_compact_task_inner(
     sess: Arc<Session>,
     step_context: Arc<StepContext>,
     replacement_step_context: Arc<StepContext>,
-    input: Vec<ResolvedUserInput>,
+    mut input: Vec<ResolvedUserInput>,
     world_state: Arc<WorldState>,
     compaction_metadata: CompactionTurnMetadata,
 ) -> CodexResult<bool> {
@@ -199,7 +204,12 @@ async fn run_compact_task_inner(
     .await;
     let pre_compact_outcome = run_pre_compact_hooks(&sess, &turn_context, trigger).await;
     match pre_compact_outcome {
-        PreCompactHookOutcome::Continue => {}
+        // Claude Code adds what PreCompact hooks print to the summary's instructions.
+        PreCompactHookOutcome::Continue { instructions } => {
+            if let Some(instructions) = instructions {
+                input.push(ResolvedUserInput::text(instructions));
+            }
+        }
         PreCompactHookOutcome::Stopped => {
             let error = CodexErr::TurnAborted;
             attempt
@@ -225,6 +235,7 @@ async fn run_compact_task_inner(
     let status = compaction_status_from_result(&result);
     let codex_error = result.as_ref().err();
     if result.is_ok() {
+        crate::claude_rules::forget_shown_files(&sess);
         let post_compact_outcome = run_post_compact_hooks(&sess, &turn_context, trigger).await;
         if let PostCompactHookOutcome::Stopped = post_compact_outcome {
             attempt

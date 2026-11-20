@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks;
+// follow more of Claude Code's behaviour
 
 pub(crate) mod claude_settings;
 pub(crate) mod command_runner;
@@ -159,6 +160,9 @@ pub(crate) enum ConfiguredHandlerKind {
         command: String,
         env: HashMap<String, String>,
         r#async: bool,
+        /// Run with `/bin/sh -c`, as Claude Code runs its hooks, rather than with the
+        /// user's shell: set for the hooks of Claude Code's settings files and plugins.
+        posix_sh: bool,
     },
     McpTool {
         server: String,

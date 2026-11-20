@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 //! Prepares a recorded tool call for review against captured history and current policy.
 //! Preparation never executes the tool or grants permissions.
 
@@ -136,7 +141,7 @@ pub(crate) async fn review_tool_call(
             .runtime
             .environments_for_input(&invocation)
             .map_err(tool_error)?;
-        apply_pre_tool_use(tool.runtime.as_ref(), &mut invocation)
+        let _hook_permission = apply_pre_tool_use(tool.runtime.as_ref(), &mut invocation)
             .await
             .map_err(|err| match err {
                 PreToolUseError::Blocked(reason) => CodexErr::InvalidRequest(reason),

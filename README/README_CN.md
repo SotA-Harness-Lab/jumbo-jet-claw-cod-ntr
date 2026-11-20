@@ -51,14 +51,14 @@ Jumbo Jet CodClaw NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 I
 
 - **指令**：`~/.claude/CLAUDE.md`、项目的 `CLAUDE.md`、`.claude/CLAUDE.md` 和 `CLAUDE.local.md`（支持 `@` 引用），以及 `.claude/rules` 下的规则。带 `paths:` 的规则和子目录里的 `CLAUDE.md`，在读到或改到相应文件时才注入。
 - **Skill**：`~/.claude/skills` 和各项目的 `.claude/skills`，支持 Claude Code 的 frontmatter（`disable-model-invocation`、`when_to_use`、`arguments`）。TUI 里用 `/<skill 名> <参数>` 调用，`$ARGUMENTS`、`${CLAUDE_SKILL_DIR}` 等都会替换。
-- **Hook**：`settings.json` 里的 hook 照 Claude Code 的方式运行，包括 `Notification`、`PostToolUseFailure`、`StopFailure`，工具名和输入格式也和 Claude Code 一致。
+- **Hook**：`settings.json` 里的 hook 照 Claude Code 的方式运行，包括 `Notification`、`PostToolUseFailure`、`StopFailure`，工具名和输入格式也和 Claude Code 一致；`PreToolUse` hook 可以放行、询问或阻止一次调用。
 - **设置**：`env` 加进命令的环境变量；Bash 权限规则转成 Codex 的命令规则。
 - **自动记忆**：读取项目的 `MEMORY.md`，并且按 Claude Code 的位置和格式写入新记忆，两个工具共用一份记忆。
 - **自定义斜杠命令**：`~/.claude/commands`、项目的 `.claude/commands` 和插件的 `commands/` 在原处作为 skill 加载，名字取自路径（`git/commit.md` 就是 `/git:commit`，插件的是 `/<插件名>:<命令名>`）。
 - **子代理**：`~/.claude/agents/*.md` 和项目的 `.claude/agents` 变成 agent role。
 - **MCP 服务器**：`~/.claude.json` 里的，以及已批准的 `.mcp.json`。
 - **插件**：Claude Code 里启用的插件在原处加载；用到 Codex 没有的机制（比如 Claude Code 的状态栏）的插件会被停用，除非在 `ccn-config.toml` 里手动启用。
-- **Claude Code 的工具集**（可选，在 `ccn-config.toml` 里设 `[claude] tools = true`）：`Bash`、`Read`、`Write`、`Edit`、`Glob`、`Grep`、`WebFetch`、`WebSearch`、`TodoWrite`、`AskUserQuestion` 和 `Agent` 替换 Codex 自己的工具，作为一层架在它们之上。权限规则（`Read(...)`、`Edit(...)`、`WebFetch(domain:...)`）、子代理的 `tools` 和 hook 的匹配都能和 Claude Code 一一对应。
+- **Claude Code 的工具集**（可选，在 `ccn-config.toml` 里设 `[claude] tools = true`）：`Bash`、`Read`、`Write`、`Edit`、`Glob`、`Grep`、`WebFetch`、`WebSearch`、`TodoWrite`、`AskUserQuestion` 和 `Agent` 替换 Codex 自己的工具，作为一层架在它们之上；`Skill` 让模型带参数调用 skill。权限规则（`Read(...)`、`Edit(...)`、`WebFetch(domain:...)`）、子代理的 `tools` 和 hook 的匹配都能和 Claude Code 一一对应。
 
 ## 不兼容的部分
 

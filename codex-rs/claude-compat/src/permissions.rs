@@ -592,7 +592,11 @@ fn find_unescaped(text: &str, target: char, last: bool) -> Option<usize> {
         .char_indices()
         .filter(|(index, c)| *c == target && unescaped(*index))
         .map(|(index, _)| index);
-    if last { found.next_back() } else { found.next() }
+    if last {
+        found.next_back()
+    } else {
+        found.next()
+    }
 }
 
 pub(crate) fn normalize_tool_name(name: &str) -> &str {

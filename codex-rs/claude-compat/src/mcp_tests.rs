@@ -27,13 +27,11 @@ fn sources_are_merged_in_claude_code_order() {
         }
     });
     let settings = [json!({"disabledMcpjsonServers": ["d"]})];
-    let mcp_json = [
-        json!({"mcpServers": {
-            "b": {"command": "project-b", "args": ["--token=${TOKEN}", "${MISSING}", "${PORT:-80}"]},
-            "c": {"command": "project-c"},
-            "d": {"command": "project-d"}
-        }}),
-    ];
+    let mcp_json = [json!({"mcpServers": {
+        "b": {"command": "project-b", "args": ["--token=${TOKEN}", "${MISSING}", "${PORT:-80}"]},
+        "c": {"command": "project-c"},
+        "d": {"command": "project-d"}
+    }})];
 
     let servers = mcp_server_declarations(
         Some(&claude_json),
@@ -57,7 +55,64 @@ fn sources_are_merged_in_claude_code_order() {
 fn enable_all_approves_every_unlisted_server() {
     let settings = [json!({"enableAllProjectMcpServers": true, "disabledMcpjsonServers": ["y"]})];
     let mcp_json = [json!({"mcpServers": {"x": {"command": "x"}, "y": {"command": "y"}}})];
-    let servers =
-        mcp_server_declarations(None, &settings, &mcp_json, Path::new("/work/p"), &env);
+    let servers = mcp_server_declarations(None, &settings, &mcp_json, Path::new("/work/p"), &env);
     assert_eq!(servers.keys().collect::<Vec<_>>(), vec!["x"]);
+}
+
+#[test]
+fn servers_turned_off_in_mcp_are_left_out() {
+    let claude_json = json!({
+        "mcpServers": {"a": {"command": "user-a"}, "b": {"command": "user-b"}},
+        "projects": {"/work/p": {"disabledMcpServers": ["b"]}}
+    });
+
+    let servers = mcp_server_declarations(Some(&claude_json), &[], &[], Path::new("/work/p"), &env);
+
+    assert_eq!(servers.keys().collect::<Vec<_>>(), vec!["a"]);
+}
+
+#[test]
+fn credentials_read_as_empty_in_a_remote_server_s_address() {
+    let credentials = |name: &str| match name {
+        "OPENAI_API_KEY" => Some("sk-secret".to_string()),
+        "TOKEN" => Some("plain".to_string()),
+        _ => None,
+    };
+    let mcp_json = [json!({"mcpServers": {
+        "remote": {
+            "url": "https://example.com/mcp?key=${OPENAI_API_KEY}&t=${TOKEN}",
+            "headers": {"Authorization": "Bearer ${OPENAI_API_KEY:-fallback}"}
+        },
+        "local": {"command": "srv", "env": {"KEY": "${OPENAI_API_KEY}"}}
+    }})];
+    let settings = [json!({"enableAllProjectMcpServers": true})];
+
+    let servers = mcp_server_declarations(
+        None,
+        &settings,
+        &mcp_json,
+        Path::new("/work/p"),
+        &credentials,
+    );
+
+    assert_eq!(
+        servers["remote"],
+        json!({
+            "url": "https://example.com/mcp?key=&t=plain",
+            "headers": {"Authorization": "Bearer "}
+        })
+    );
+    // A local server's own environment is the user's to give.
+    assert_eq!(servers["local"]["env"]["KEY"], json!("sk-secret"));
+}
+
+#[test]
+fn the_walk_stops_below_the_root() {
+    assert_eq!(
+        super::mcp_json_paths(Path::new("/work/p")),
+        vec![
+            Path::new("/work/.mcp.json").to_path_buf(),
+            Path::new("/work/p/.mcp.json").to_path_buf(),
+        ]
+    );
 }

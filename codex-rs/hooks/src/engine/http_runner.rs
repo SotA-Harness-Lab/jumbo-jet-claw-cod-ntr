@@ -138,10 +138,12 @@ async fn post(hook: &HttpHook, input_json: &str) -> Result<String, String> {
     if !status.is_success() {
         return Err(format!("HTTP {} from {}", status.as_u16(), hook.url));
     }
-    response
-        .text()
-        .await
-        .map_err(|err| format!("failed to read the HTTP hook response from {}: {err}", hook.url))
+    response.text().await.map_err(|err| {
+        format!(
+            "failed to read the HTTP hook response from {}: {err}",
+            hook.url
+        )
+    })
 }
 
 /// Whether a proxy named in the environment carries the request, in which case the proxy
@@ -168,7 +170,10 @@ async fn guarded_address(url: &reqwest::Url) -> Result<(String, SocketAddr), Str
     let port = url
         .port_or_known_default()
         .ok_or_else(|| format!("HTTP hook URL {url} has no port"))?;
-    let lookup_host = host.trim_start_matches('[').trim_end_matches(']').to_string();
+    let lookup_host = host
+        .trim_start_matches('[')
+        .trim_end_matches(']')
+        .to_string();
     let addresses = tokio::net::lookup_host((lookup_host.as_str(), port))
         .await
         .map_err(|err| format!("failed to resolve HTTP hook host {host}: {err}"))?

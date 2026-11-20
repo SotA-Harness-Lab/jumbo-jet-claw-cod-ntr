@@ -23,16 +23,16 @@ fn a_tool_is_also_known_by_its_claude_code_names() {
     let input = json!({"file_path": "/repo/src/main.rs"});
     check(
         hook_condition_matches("Edit(*.rs)", &["apply_patch", "Write", "Edit"], &input),
-        true
+        true,
     );
     check(
         hook_condition_matches("Read(*.rs)", &["apply_patch", "Write", "Edit"], &input),
-        false
+        false,
     );
     // `Task` is the old name of `Agent`.
     check(
         hook_condition_matches("Task", &["spawn_agent", "Agent"], &json!({})),
-        true
+        true,
     );
 }
 
@@ -65,20 +65,28 @@ fn a_command_that_cannot_be_taken_apart_runs_the_hook() {
 #[test]
 fn file_and_search_tools_match_their_path_or_pattern() {
     check(
-        hook_condition_matches("Write(*.md)", &["Write"], &json!({"file_path": "/a/README.md"})),
-        true
+        hook_condition_matches(
+            "Write(*.md)",
+            &["Write"],
+            &json!({"file_path": "/a/README.md"}),
+        ),
+        true,
     );
     check(
-        hook_condition_matches("Write(*.md)", &["Write"], &json!({"file_path": "/a/main.rs"})),
-        false
+        hook_condition_matches(
+            "Write(*.md)",
+            &["Write"],
+            &json!({"file_path": "/a/main.rs"}),
+        ),
+        false,
     );
     check(
         hook_condition_matches("Grep(TODO*)", &["Grep"], &json!({"pattern": "TODO: fix"})),
-        true
+        true,
     );
     check(
         hook_condition_matches("Glob(*.ts)", &["Glob"], &json!({"pattern": "src/**/*.rs"})),
-        false
+        false,
     );
 }
 
@@ -88,9 +96,9 @@ fn content_for_another_tool_never_matches() {
         hook_condition_matches(
             "WebFetch(domain:example.com)",
             &["WebFetch"],
-            &json!({"url": "https://example.com"})
+            &json!({"url": "https://example.com"}),
         ),
-        false
+        false,
     );
 }
 
@@ -100,8 +108,8 @@ fn input_without_the_matched_field_runs_the_hook() {
         hook_condition_matches(
             "Edit(*.rs)",
             &["apply_patch", "Write", "Edit"],
-            &json!({"command": "*** Begin Patch"})
+            &json!({"command": "*** Begin Patch"}),
         ),
-        true
+        true,
     );
 }

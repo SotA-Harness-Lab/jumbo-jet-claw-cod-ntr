@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; read Claude Code's configuration in place; run more of Claude Code's hooks; load Claude Code plugins
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; read Claude Code's configuration in place; run more of Claude Code's hooks; load Claude Code plugins;
+// follow more of Claude Code's behaviour
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -450,10 +451,9 @@ fn append_claude_only_handlers(
                             group_index,
                             handler_index,
                         )) {
-                            Some(condition) => Some(HookMatcher::conditional(
-                                matcher.clone(),
-                                condition.clone(),
-                            )),
+                            Some(condition) => {
+                                Some(HookMatcher::conditional(matcher.clone(), condition.clone()))
+                            }
                             None => matcher.clone(),
                         },
                         timeout_sec: timeout_sec.unwrap_or(600).max(1),
@@ -468,6 +468,7 @@ fn append_claude_only_handlers(
                             command,
                             env: env.clone(),
                             r#async: *r#async,
+                            posix_sh: true,
                         },
                     },
                 });
@@ -1026,6 +1027,7 @@ fn append_matcher_groups(
                             command,
                             env: source.env.clone(),
                             r#async: runs_async,
+                            posix_sh: source.claude.is_some(),
                         },
                         timeout_sec,
                         status_message,
@@ -1091,7 +1093,9 @@ fn append_matcher_groups(
                         group_index,
                         handler_index,
                     );
-                    let Some(spec) = source.claude.and_then(|claude| claude.handlers.get(&position))
+                    let Some(spec) = source
+                        .claude
+                        .and_then(|claude| claude.handlers.get(&position))
                     else {
                         source.record_load_failure(
                             {
@@ -1271,11 +1275,10 @@ fn append_matcher_groups(
                     command: format!("POST {}", hook.url),
                     r#async: false,
                 },
-                ConfiguredHandlerKind::Judge { prompt, agentic, .. } => HookListEntryHandler::Command {
-                    command: format!(
-                        "{}: {prompt}",
-                        if *agentic { "agent" } else { "prompt" }
-                    ),
+                ConfiguredHandlerKind::Judge {
+                    prompt, agentic, ..
+                } => HookListEntryHandler::Command {
+                    command: format!("{}: {prompt}", if *agentic { "agent" } else { "prompt" }),
                     r#async: false,
                 },
             };
@@ -1880,6 +1883,7 @@ mod tests {
                 kind: ConfiguredHandlerKind::Command {
                     command: "echo hello".to_string(),
                     r#async: false,
+                    posix_sh: false,
                     env: std::collections::HashMap::new(),
                 },
             }]
@@ -1921,6 +1925,7 @@ mod tests {
                 kind: ConfiguredHandlerKind::Command {
                     command: "echo hello".to_string(),
                     r#async: false,
+                    posix_sh: false,
                     env: std::collections::HashMap::new(),
                 },
             }]
@@ -2283,6 +2288,7 @@ mod tests {
                 .to_string(),
                 env: std::collections::HashMap::new(),
                 r#async: false,
+                posix_sh: false,
             }
         );
     }

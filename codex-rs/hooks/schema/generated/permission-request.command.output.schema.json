@@ -1,6 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "additionalProperties": false,
   "definitions": {
     "PermissionRequestBehaviorWire": {
       "enum": [
@@ -10,7 +9,6 @@
       "type": "string"
     },
     "PermissionRequestDecisionWire": {
-      "additionalProperties": false,
       "properties": {
         "behavior": {
           "$ref": "#/definitions/PermissionRequestBehaviorWire"
@@ -39,7 +37,6 @@
       "type": "object"
     },
     "PermissionRequestHookSpecificOutputWire": {
-      "additionalProperties": false,
       "properties": {
         "decision": {
           "allOf": [

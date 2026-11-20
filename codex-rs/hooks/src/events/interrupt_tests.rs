@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use codex_protocol::protocol::HookEventName;
 use codex_protocol::protocol::HookOutputEntry;
 use codex_protocol::protocol::HookOutputEntryKind;
@@ -111,6 +116,7 @@ fn handler() -> ConfiguredHandler {
         kind: ConfiguredHandlerKind::Command {
             command: "echo hook".to_string(),
             r#async: false,
+            posix_sh: false,
             env: std::collections::HashMap::new(),
         },
     }

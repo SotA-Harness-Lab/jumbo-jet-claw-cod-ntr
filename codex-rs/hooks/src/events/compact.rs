@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: follow more of Claude Code's behaviour
+
 use std::path::PathBuf;
 
 use codex_protocol::ThreadId;
@@ -54,6 +59,9 @@ pub struct PreCompactOutcome {
     pub hook_events: Vec<HookCompletedEvent>,
     pub should_stop: bool,
     pub stop_reason: Option<String>,
+    /// What the hooks printed as plain text, for the summary's instructions, as Claude
+    /// Code adds it to them; several hooks' texts are joined by a blank line.
+    pub instructions: Option<String>,
 }
 
 pub(crate) fn preview_pre(
@@ -84,6 +92,7 @@ pub(crate) async fn run_pre(
             hook_events: Vec::new(),
             should_stop: false,
             stop_reason: None,
+            instructions: None,
         };
     }
 
@@ -98,6 +107,7 @@ pub(crate) async fn run_pre(
                 ),
                 should_stop: false,
                 stop_reason: None,
+                instructions: None,
             };
         }
     };
@@ -115,10 +125,15 @@ pub(crate) async fn run_pre(
     let stop_reason = results
         .iter()
         .find_map(|result| result.data.stop_reason.clone());
+    let instructions = results
+        .iter()
+        .filter_map(|result| result.data.plain_text.clone())
+        .collect::<Vec<_>>();
     PreCompactOutcome {
         hook_events: results.into_iter().map(|result| result.completed).collect(),
         should_stop,
         stop_reason,
+        instructions: (!instructions.is_empty()).then(|| instructions.join("\n\n")),
     }
 }
 
@@ -134,6 +149,7 @@ fn pre_command_input(request: &PreCompactRequest) -> Result<Value, serde_json::E
         hook_event_name: "PreCompact".to_string(),
         model: request.model.clone(),
         trigger: request.trigger.clone(),
+        custom_instructions: None,
     })
 }
 
@@ -222,6 +238,8 @@ fn post_command_input(request: &PostCompactRequest) -> Result<Value, serde_json:
 struct CompactHandlerData {
     should_stop: bool,
     stop_reason: Option<String>,
+    /// Plain text the hook printed on success.
+    plain_text: Option<String>,
 }
 
 fn parse_pre_completed(
@@ -263,6 +281,7 @@ fn parse_completed(
     let mut status = HookRunStatus::Completed;
     let mut should_stop = false;
     let mut stop_reason = None;
+    let mut plain_text = None;
 
     match run_result.error.as_deref() {
         Some(error) => {
@@ -309,6 +328,8 @@ fn parse_completed(
                         kind: HookOutputEntryKind::Error,
                         text: format!("hook returned invalid {event_label} hook JSON output"),
                     });
+                } else {
+                    plain_text = Some(trimmed_stdout.to_string());
                 }
             }
             Some(code) => {
@@ -337,6 +358,7 @@ fn parse_completed(
         data: CompactHandlerData {
             should_stop,
             stop_reason,
+            plain_text,
         },
         completion_order: 0,
     }
@@ -376,6 +398,7 @@ mod tests {
                 "hook_event_name": "PreCompact",
                 "model": "gpt-test",
                 "trigger": "manual",
+                "custom_instructions": null,
             })
         );
     }
@@ -400,7 +423,8 @@ mod tests {
     }
 
     #[test]
-    fn block_decision_is_not_supported_for_pre_compact() {
+    fn block_decision_is_left_out_for_pre_compact() {
+        // Claude Code's PreCompact hooks cannot block compaction with a decision.
         let parsed = parse_pre_completed(
             &handler(HookEventName::PreCompact),
             run_result(
@@ -411,14 +435,9 @@ mod tests {
             Some("turn-1".to_string()),
         );
 
-        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
-        assert_eq!(
-            parsed.completed.run.entries,
-            vec![HookOutputEntry {
-                kind: HookOutputEntryKind::Error,
-                text: "hook returned invalid PreCompact hook JSON output".to_string(),
-            }]
-        );
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
+        assert_eq!(parsed.data.should_stop, false);
+        assert_eq!(parsed.completed.run.entries, Vec::new());
     }
 
     #[test]
@@ -469,15 +488,19 @@ mod tests {
     }
 
     #[test]
-    fn pre_compact_ignores_plain_stdout() {
+    fn pre_compact_keeps_plain_stdout_for_the_summary_s_instructions() {
         let parsed = parse_pre_completed(
             &handler(HookEventName::PreCompact),
-            run_result(Some(0), "checking compact policy\n", ""),
+            run_result(Some(0), "keep the test results\n", ""),
             Some("turn-1".to_string()),
         );
 
         assert_eq!(parsed.completed.run.status, HookRunStatus::Completed);
         assert_eq!(parsed.completed.run.entries, Vec::new());
+        assert_eq!(
+            parsed.data.plain_text.as_deref(),
+            Some("keep the test results")
+        );
     }
 
     #[test]
@@ -533,6 +556,7 @@ mod tests {
             kind: crate::engine::ConfiguredHandlerKind::Command {
                 command: "python3 compact_hook.py".to_string(),
                 r#async: false,
+                posix_sh: false,
                 env: std::collections::HashMap::new(),
             },
         }
