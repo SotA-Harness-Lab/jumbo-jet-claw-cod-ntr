@@ -17,7 +17,17 @@ Jumbo Jet CodClaw NTR 是在 [CodClaw NTR](https://github.com/lutianyu2001/cod-c
 
 NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 CodClaw NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
 
-程序名、设置文件和环境变量都沿用 CodClaw NTR 的（`ccn`、`ccn-config.toml`、`CCN_`），所以两个版本在同一台机器上可以互相替换。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得；它自己的改动目前还没有加入。
+程序名、设置文件和环境变量都沿用 CodClaw NTR 的（`ccn`、`ccn-config.toml`、`CCN_`），所以两个版本在同一台机器上可以互相替换。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得。
+
+目前加入的改动，逐项说明见 [Jumbo Jet refinements](../docs/jumbo-jet.md)：
+
+- 后台命令或后台代理结束时，空闲的会话会自己接着干。
+- 回复被输出 token 上限截断时自动续写，而不是整轮失败。
+- `Bash` 命令到了超时会留在后台继续运行；模型看不全的超长命令输出会存成文件供它读取。
+- `Monitor` 把长时间运行的命令输出的内容告诉模型；`CronCreate`、`CronList`、`CronDelete` 让模型给自己安排定时提示。
+- 回退到更早的提示时，可以把此后被代理的编辑改动的文件一并恢复。
+
+每一项默认开启，在 `~/.codex/ccn-config.toml` 的 `[harness]` 下各有开关。
 
 ## 目录
 
@@ -89,6 +99,7 @@ tools = true
 
 ## 文档
 
+- [**Jumbo Jet refinements**](../docs/jumbo-jet.md)
 - [**Claude Code compatibility**](../docs/claude-compat.md)
 - [**Codex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](../docs/contributing.md)

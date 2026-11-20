@@ -25,8 +25,19 @@ configuration works as it is, with nothing to convert or migrate.
 
 The program, its settings file and its environment variables are CodClaw NTR's (`ccn`,
 `ccn-config.toml`, `CCN_`), so either build can take the other's place on a machine. The repository
-starts as a copy of CodClaw NTR's `main` and takes its later changes from there; no refinement of its
-own has landed yet.
+starts as a copy of CodClaw NTR's `main` and takes its later changes from there.
+
+What it adds so far, each described in [Jumbo Jet refinements](./docs/jumbo-jet.md):
+
+- An idle session goes on by itself when a background command or agent ends.
+- A response cut off at the output token limit is continued instead of failing the turn.
+- A `Bash` command that runs into its timeout keeps running in the background, and command output
+  too long for the model is kept in a file it can read.
+- `Monitor` tells the model what a long-running command writes; `CronCreate`, `CronList` and
+  `CronDelete` let it schedule prompts for itself.
+- Rewinding to an earlier prompt can put back the files the agent's edits changed since.
+
+Each is on by default and has a switch in `~/.codex/ccn-config.toml`, under `[harness]`.
 
 ## Table of Contents
 
@@ -119,6 +130,7 @@ tools = true
 
 ## Docs
 
+- [**Jumbo Jet refinements**](./docs/jumbo-jet.md)
 - [**Claude Code compatibility**](./docs/claude-compat.md)
 - [**Codex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](./docs/contributing.md)
