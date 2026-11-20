@@ -14,8 +14,10 @@ Settings that only this fork has are kept in their own file, `$CODEX_HOME/ccn-co
 (`~/.codex/ccn-config.toml` by default), never in Codex's `config.toml`, which keeps only upstream
 Codex's settings. The file is read once each time the configuration is loaded, at the start of a
 session. Every key is optional; a missing file means the defaults. A file that does not parse,
-or that names a key or section not listed here, is reported as one startup warning and the
-defaults are used in its place; Codex still starts.
+or gives a key a value of the wrong type, is reported as one startup warning and the defaults
+are used in its place; Codex still starts. A key or section not listed here is left alone and
+only noted in the log, so that another build of the program, or a later version, can keep
+settings of its own in the same file.
 
 ```toml
 [claude]
