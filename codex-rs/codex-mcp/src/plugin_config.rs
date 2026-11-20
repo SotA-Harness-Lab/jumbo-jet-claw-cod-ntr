@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables
+
 use codex_config::McpServerAuth;
 use codex_config::McpServerConfig;
 use codex_config::McpServerEnvVar;
@@ -273,6 +278,14 @@ fn normalize_plugin_mcp_server_value(
     value: JsonValue,
     source: PluginMcpSource<'_>,
 ) -> JsonMap<String, JsonValue> {
+    let mut value = value;
+    // A Claude Code plugin's server may refer to the plugin's install path and to the
+    // options the user set for it (`${CLAUDE_PLUGIN_ROOT}`, `${user_config.KEY}`).
+    if let PluginMcpSource::Host { root } = source
+        && let Some(plugin) = codex_claude_compat::PluginVariables::load(root)
+    {
+        substitute_plugin_variables(&mut value, &plugin, &source.display());
+    }
     let mut object = match value {
         JsonValue::Object(object) => object,
         _ => return JsonMap::new(),
@@ -331,6 +344,36 @@ fn normalize_plugin_mcp_server_value(
     }
 
     object
+}
+
+/// Fills in a Claude Code plugin's variables in every string of a server's declaration. A
+/// string that names an option without a value is left as written.
+fn substitute_plugin_variables(
+    value: &mut JsonValue,
+    plugin: &codex_claude_compat::PluginVariables,
+    plugin_display: &str,
+) {
+    match value {
+        JsonValue::String(text) => match plugin.substitute(text) {
+            Ok(substituted) => *text = substituted,
+            Err(option) => warn!(
+                plugin = %plugin_display,
+                option = %option,
+                "plugin MCP server names an option that has no value; set it in Claude Code"
+            ),
+        },
+        JsonValue::Array(items) => {
+            for item in items {
+                substitute_plugin_variables(item, plugin, plugin_display);
+            }
+        }
+        JsonValue::Object(fields) => {
+            for field in fields.values_mut() {
+                substitute_plugin_variables(field, plugin, plugin_display);
+            }
+        }
+        JsonValue::Null | JsonValue::Bool(_) | JsonValue::Number(_) => {}
+    }
 }
 
 #[cfg(test)]

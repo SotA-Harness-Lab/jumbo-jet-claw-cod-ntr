@@ -7,6 +7,7 @@ use codex_utils_absolute_path::AbsolutePathBuf;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
+use super::ClaudeHandlerKind;
 use super::ClaudeHookSettings;
 use super::hook_conditions;
 use super::load;
@@ -36,7 +37,7 @@ fn loads_user_and_project_hooks_and_drops_unknown_handler_types() {
             "hooks": {
                 "PreToolUse": [{"matcher": "Bash", "hooks": [
                     {"type": "command", "command": "check.sh", "timeout": 5},
-                    {"type": "http", "url": "https://example.invalid"}
+                    {"type": "webhook", "url": "https://example.invalid"}
                 ]}],
                 "Notification": [{"hooks": [{"type": "command", "command": "notify.sh"}]}]
             }
@@ -83,7 +84,7 @@ fn loads_user_and_project_hooks_and_drops_unknown_handler_types() {
         vec![("Notification", 1)]
     );
     assert_eq!(warnings.len(), 1, "{warnings:?}");
-    assert!(warnings[0].contains("of type http"), "{warnings:?}");
+    assert!(warnings[0].contains("of type webhook"), "{warnings:?}");
 }
 
 #[test]
@@ -149,7 +150,7 @@ fn conditions_are_kept_by_the_position_handlers_load_with() {
             "hooks": {
                 "PreToolUse": [
                     {"matcher": "Bash", "hooks": [
-                        {"type": "http", "url": "https://example.invalid", "if": "Bash(curl *)"},
+                        {"type": "webhook", "url": "https://example.invalid", "if": "Bash(curl *)"},
                         {"type": "command", "command": "plain.sh"},
                         {"type": "command", "command": "git.sh", "if": "Bash(git *)"}
                     ]},
@@ -166,8 +167,9 @@ fn conditions_are_kept_by_the_position_handlers_load_with() {
     let mut warnings = Vec::new();
     let loaded = load(&settings(&tmp), &mut warnings);
 
-    // The `http` handler is dropped before positions are counted.
+    // The handler of an unknown type is dropped before positions are counted.
     let mut conditions = loaded[0]
+        .extras
         .conditions
         .iter()
         .map(|((event, group, handler), condition)| {
@@ -188,4 +190,66 @@ fn conditions_are_kept_by_the_position_handlers_load_with() {
 #[test]
 fn a_hooks_value_that_is_not_an_object_has_no_conditions() {
     assert_eq!(hook_conditions(&serde_json::json!([])).len(), 0);
+}
+
+#[test]
+fn prompt_agent_and_http_handlers_keep_what_they_declare() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{
+            "allowedHttpHookUrls": ["https://hooks.example.com/*"],
+            "hooks": {
+                "Stop": [{"hooks": [
+                    {"type": "prompt", "prompt": "Did the tests run? $ARGUMENTS", "timeout": 12},
+                    {"type": "agent", "prompt": "Verify the build."},
+                    {"type": "command", "command": "plain.sh"}
+                ]}],
+                "PostToolUse": [{"matcher": "Bash", "hooks": [
+                    {"type": "http", "url": "https://hooks.example.com/post",
+                     "headers": {"Authorization": "Bearer $TOKEN"},
+                     "allowedEnvVars": ["TOKEN"], "statusMessage": "Reporting"}
+                ]}]
+            }
+        }"#,
+    )
+    .expect("write");
+
+    let mut warnings = Vec::new();
+    let loaded = load(&settings(&tmp), &mut warnings);
+
+    assert_eq!(warnings, Vec::<String>::new());
+    let handlers = &loaded[0].extras.handlers;
+    assert_eq!(handlers.len(), 3);
+    let prompt = &handlers[&("Stop".to_string(), 0, 0)];
+    assert_eq!(
+        (&prompt.kind, prompt.timeout_sec),
+        (
+            &ClaudeHandlerKind::Prompt {
+                prompt: "Did the tests run? $ARGUMENTS".to_string()
+            },
+            Some(12)
+        )
+    );
+    assert_eq!(
+        handlers[&("Stop".to_string(), 0, 1)].kind,
+        ClaudeHandlerKind::Agent {
+            prompt: "Verify the build.".to_string()
+        }
+    );
+    let http = &handlers[&("PostToolUse".to_string(), 0, 0)];
+    assert_eq!(http.status_message.as_deref(), Some("Reporting"));
+    let ClaudeHandlerKind::Http(hook) = &http.kind else {
+        panic!("expected an http handler, got {:?}", http.kind);
+    };
+    assert_eq!(hook.url, "https://hooks.example.com/post");
+    assert_eq!(hook.allowed_env_vars, vec!["TOKEN".to_string()]);
+    assert_eq!(
+        hook.policy.allowed_urls,
+        Some(vec!["https://hooks.example.com/*".to_string()])
+    );
+    assert_eq!(hook.policy.allowed_env_vars, None);
+    // The `http` handler is parsed in the place of a `prompt` one.
+    assert_eq!(loaded[0].events.post_tool_use[0].hooks.len(), 1);
 }

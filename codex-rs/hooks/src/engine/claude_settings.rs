@@ -10,6 +10,7 @@
 //! does not have, `Notification`, `PostToolUseFailure` and `StopFailure` are kept apart and run
 //! at the closest Codex moment (see `events::claude_only`); the others are ignored.
 
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::fs;
 use std::io;
@@ -20,11 +21,13 @@ use codex_config::MatcherGroup;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use serde_json::Value;
 
+use super::http_runner::HttpHook;
+use super::http_runner::HttpHookPolicy;
 use crate::events::claude_only::ClaudeOnlyEvent;
 
 const SETTINGS_FILES: &[&str] = &["settings.json", "settings.local.json"];
-/// Handler types Codex runs or knowingly skips; any other is dropped before parsing.
-const KNOWN_HANDLER_TYPES: &[&str] = &["command", "prompt", "agent", "mcp_tool"];
+/// Handler types Codex runs; any other is dropped before parsing.
+const KNOWN_HANDLER_TYPES: &[&str] = &["command", "prompt", "agent", "http", "mcp_tool"];
 
 /// Where Claude Code's settings files are looked for.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -100,8 +103,41 @@ impl ClaudeHookSettings {
     }
 }
 
-/// The `if` conditions of a hooks file's handlers, by event name, group and handler position.
-pub(crate) type HookConditions = HashMap<(String, usize, usize), String>;
+/// Where a handler stands in a hooks file: event name, group and position in the group.
+pub(crate) type HandlerPosition = (String, usize, usize);
+
+/// The `if` conditions of a hooks file's handlers.
+pub(crate) type HookConditions = HashMap<HandlerPosition, String>;
+
+/// What a handler of a type only Claude Code's hooks files have is to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum ClaudeHandlerKind {
+    /// `type: "http"`: the hook input is posted to a URL.
+    Http(HttpHook),
+    /// `type: "prompt"`: a model answers whether the prompt's condition is met.
+    Prompt { prompt: String },
+    /// `type: "agent"`: as `prompt`, by a model that may look around with tools first.
+    Agent { prompt: String },
+}
+
+/// A `prompt`, `agent` or `http` handler as its hooks file declares it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ClaudeHandlerSpec {
+    pub(crate) kind: ClaudeHandlerKind,
+    pub(crate) timeout_sec: Option<u64>,
+    pub(crate) status_message: Option<String>,
+    /// The handler as written, so that trust given to it ends when any of it changes.
+    pub(crate) declaration: String,
+}
+
+/// What a hooks file in Claude Code's format says that `HookEventsToml` has no place for.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ClaudeHandlerExtras {
+    pub(crate) conditions: HookConditions,
+    pub(crate) handlers: HashMap<HandlerPosition, ClaudeHandlerSpec>,
+    /// A plugin's variables, filled in in its hooks' commands before they run.
+    pub(crate) plugin: Option<codex_claude_compat::PluginVariables>,
+}
 
 /// The hooks of one settings file.
 pub(crate) struct ClaudeSettingsHooks {
@@ -111,8 +147,8 @@ pub(crate) struct ClaudeSettingsHooks {
     pub(crate) events: HookEventsToml,
     /// The groups of the events Codex's own configuration does not have.
     pub(crate) claude_only: Vec<(ClaudeOnlyEvent, Vec<MatcherGroup>)>,
-    /// The handlers' `if` conditions, which `HookEventsToml` has no place for either.
-    pub(crate) conditions: HookConditions,
+    /// The handlers' `if` conditions and the handlers of Claude Code's own types.
+    pub(crate) extras: ClaudeHandlerExtras,
 }
 
 /// Loads the hooks of every settings file that exists, user first. When one of them sets
@@ -122,10 +158,14 @@ pub(crate) fn load(
     warnings: &mut Vec<String>,
 ) -> Vec<ClaudeSettingsHooks> {
     let mut loaded = Vec::new();
-    for (path, is_user) in settings_files(settings) {
-        let Some(settings) = read_settings(&path, warnings) else {
-            continue;
-        };
+    let files = settings_files(settings)
+        .into_iter()
+        .filter_map(|(path, is_user)| {
+            read_settings(&path, warnings).map(|settings| (path, is_user, settings))
+        })
+        .collect::<Vec<_>>();
+    let http_policy = http_hook_policy(files.iter().map(|(_, _, settings)| settings));
+    for (path, is_user, settings) in files {
         if settings
             .get("disableAllHooks")
             .and_then(Value::as_bool)
@@ -136,9 +176,10 @@ pub(crate) fn load(
         let Some(hooks) = settings.get("hooks") else {
             continue;
         };
-        let hooks = supported_handlers(hooks.clone(), &path, warnings);
+        let mut hooks = supported_handlers(hooks.clone(), &path, warnings);
+        let extras = handler_extras(&hooks, &http_policy);
+        stand_in_for_http(&mut hooks);
         let claude_only = claude_only_groups(&hooks, &path, warnings);
-        let conditions = hook_conditions(&hooks);
         match serde_json::from_value::<HookEventsToml>(hooks) {
             Ok(events) if !events.is_empty() || !claude_only.is_empty() => {
                 loaded.push(ClaudeSettingsHooks {
@@ -146,7 +187,7 @@ pub(crate) fn load(
                     is_user,
                     events,
                     claude_only,
-                    conditions,
+                    extras,
                 })
             }
             Ok(_) => {}
@@ -157,6 +198,29 @@ pub(crate) fn load(
         }
     }
     loaded
+}
+
+/// `allowedHttpHookUrls` and `httpHookAllowedEnvVars` of the settings files together: a
+/// list set in several files is their concatenation, and one set nowhere restricts nothing.
+fn http_hook_policy<'a>(settings: impl Iterator<Item = &'a Value> + Clone) -> HttpHookPolicy {
+    let list = |key: &str| {
+        let lists = settings
+            .clone()
+            .filter_map(|settings| settings.get(key).and_then(Value::as_array))
+            .collect::<Vec<_>>();
+        (!lists.is_empty()).then(|| {
+            lists
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect()
+        })
+    };
+    HttpHookPolicy {
+        allowed_urls: list("allowedHttpHookUrls"),
+        allowed_env_vars: list("httpHookAllowedEnvVars"),
+    }
 }
 
 /// Whether one of the settings files sets `disableAllHooks`, which in Claude Code turns off
@@ -241,39 +305,132 @@ fn claude_only_groups(
     groups
 }
 
-/// The `if` of each handler that has one, by where the handler stands under `hooks`.
-pub(crate) fn hook_conditions(hooks: &Value) -> HookConditions {
-    let mut conditions = HookConditions::new();
+/// Each handler under `hooks` with where it stands.
+fn handlers_by_position(hooks: &Value) -> Vec<(HandlerPosition, &Value)> {
+    let mut handlers = Vec::new();
     let Some(events) = hooks.as_object() else {
-        return conditions;
+        return handlers;
     };
     for (event, groups) in events {
         let groups = groups.as_array().map(Vec::as_slice).unwrap_or_default();
         for (group_index, group) in groups.iter().enumerate() {
-            let handlers = group
+            let group_handlers = group
                 .get("hooks")
                 .and_then(Value::as_array)
                 .map(Vec::as_slice)
                 .unwrap_or_default();
-            for (handler_index, handler) in handlers.iter().enumerate() {
-                if let Some(condition) = handler.get("if").and_then(Value::as_str)
-                    && !condition.trim().is_empty()
-                {
-                    conditions.insert(
-                        (event.clone(), group_index, handler_index),
-                        condition.to_string(),
-                    );
-                }
+            for (handler_index, handler) in group_handlers.iter().enumerate() {
+                handlers.push(((event.clone(), group_index, handler_index), handler));
             }
         }
     }
-    conditions
+    handlers
 }
 
-/// The `if` conditions of a plugin's hooks file, whose events are under its `hooks` key.
-pub(crate) fn plugin_hook_conditions(path: &AbsolutePathBuf) -> HookConditions {
+/// The `if` of each handler that has one, by where the handler stands under `hooks`.
+pub(crate) fn hook_conditions(hooks: &Value) -> HookConditions {
+    handlers_by_position(hooks)
+        .into_iter()
+        .filter_map(|(position, handler)| {
+            let condition = handler.get("if").and_then(Value::as_str)?;
+            (!condition.trim().is_empty()).then(|| (position, condition.to_string()))
+        })
+        .collect()
+}
+
+/// The conditions and the `prompt`, `agent` and `http` handlers under `hooks`.
+pub(crate) fn handler_extras(hooks: &Value, http_policy: &HttpHookPolicy) -> ClaudeHandlerExtras {
+    let handlers = handlers_by_position(hooks)
+        .into_iter()
+        .filter_map(|(position, handler)| {
+            let text = |key: &str| handler.get(key).and_then(Value::as_str).map(str::to_string);
+            let kind = match handler.get("type").and_then(Value::as_str)? {
+                "prompt" => ClaudeHandlerKind::Prompt {
+                    prompt: text("prompt")?,
+                },
+                "agent" => ClaudeHandlerKind::Agent {
+                    prompt: text("prompt")?,
+                },
+                "http" => ClaudeHandlerKind::Http(HttpHook {
+                    url: text("url")?,
+                    headers: handler
+                        .get("headers")
+                        .and_then(Value::as_object)
+                        .map(|headers| {
+                            headers
+                                .iter()
+                                .filter_map(|(name, value)| {
+                                    Some((name.clone(), value.as_str()?.to_string()))
+                                })
+                                .collect::<BTreeMap<_, _>>()
+                        })
+                        .unwrap_or_default(),
+                    allowed_env_vars: handler
+                        .get("allowedEnvVars")
+                        .and_then(Value::as_array)
+                        .map(|names| {
+                            names
+                                .iter()
+                                .filter_map(Value::as_str)
+                                .map(str::to_string)
+                                .collect()
+                        })
+                        .unwrap_or_default(),
+                    policy: http_policy.clone(),
+                }),
+                _ => return None,
+            };
+            Some((
+                position,
+                ClaudeHandlerSpec {
+                    kind,
+                    timeout_sec: handler
+                        .get("timeout")
+                        .and_then(Value::as_f64)
+                        .filter(|timeout| *timeout > 0.0)
+                        .map(|timeout| timeout.ceil() as u64),
+                    status_message: text("statusMessage"),
+                    declaration: handler.to_string(),
+                },
+            ))
+        })
+        .collect();
+    ClaudeHandlerExtras {
+        conditions: hook_conditions(hooks),
+        handlers,
+        plugin: None,
+    }
+}
+
+/// Gives `http` handlers the type of `prompt` ones for parsing: `HookEventsToml` has no
+/// `http`, and the handler keeps its place while [`handler_extras`] holds what it is.
+fn stand_in_for_http(hooks: &mut Value) {
+    let Some(events) = hooks.as_object_mut() else {
+        return;
+    };
+    for groups in events.values_mut().filter_map(Value::as_array_mut) {
+        for handler in groups
+            .iter_mut()
+            .filter_map(|group| group.get_mut("hooks"))
+            .filter_map(Value::as_array_mut)
+            .flatten()
+        {
+            if handler.get("type").and_then(Value::as_str) == Some("http") {
+                handler["type"] = Value::String("prompt".to_string());
+            }
+        }
+    }
+}
+
+/// What a Claude Code plugin's hooks file, whose events are under its `hooks` key, says
+/// beyond `HookEventsToml`. A plugin's `http` handlers are not among them: Codex's plugin
+/// loader reads the file first and does not know the type.
+pub(crate) fn plugin_handler_extras(path: &AbsolutePathBuf) -> ClaudeHandlerExtras {
     read_settings(path, &mut Vec::new())
-        .and_then(|file| file.get("hooks").map(hook_conditions))
+        .and_then(|file| {
+            file.get("hooks")
+                .map(|hooks| handler_extras(hooks, &HttpHookPolicy::default()))
+        })
         .unwrap_or_default()
 }
 

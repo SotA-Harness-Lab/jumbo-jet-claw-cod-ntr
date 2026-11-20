@@ -31,6 +31,7 @@ codex-utils-output-truncation = { workspace = true }
 codex-utils-path-uri = { workspace = true }
 futures = { workspace = true, features = ["alloc"] }
 regex = { workspace = true }
+reqwest = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

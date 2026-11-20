@@ -52,7 +52,7 @@ pub fn parse_agent_role_file_contents(
         .extension()
         .is_some_and(|extension| extension == "md")
     {
-        converted = claude_subagent_role_toml(contents).ok_or_else(|| {
+        converted = claude_subagent_role_toml(contents, role_file_label).ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!(
@@ -237,8 +237,8 @@ pub(crate) fn normalize_agent_role_nickname_candidates(
 /// Claude Code fields have no Codex counterpart and are left out. `tools` and
 /// `disallowedTools` are not part of the role: with the Claude tool set on, the Claude tool layer
 /// reads them from the role's file when it builds the spawned agent's tools.
-fn claude_subagent_role_toml(contents: &str) -> Option<String> {
-    let subagent = codex_claude_compat::parse_subagent(contents)?;
+fn claude_subagent_role_toml(contents: &str, path: &Path) -> Option<String> {
+    let subagent = codex_claude_compat::parse_subagent_at(contents, path)?;
     let mut table = toml::map::Map::new();
     table.insert("name".to_string(), TomlValue::String(subagent.name));
     table.insert(

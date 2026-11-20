@@ -34,6 +34,7 @@ use super::ConfiguredHandler;
 use super::ConfiguredHandlerKind;
 use super::HookListEntry;
 use super::HookListEntryHandler;
+use super::claude_settings::ClaudeHandlerKind;
 use super::dispatcher::hook_event_name_label;
 use super::plugin_trust::PluginHookTrust;
 use crate::config_rules::hook_states_from_stack;
@@ -81,8 +82,9 @@ struct HookHandlerSource<'a> {
     plugin_content_hash: Option<&'a std::io::Result<String>>,
     config_layer_stack: Option<&'a ConfigLayerStack>,
     plugin_root: Option<&'a AbsolutePathBuf>,
-    /// The handlers' `if` conditions, for a hooks file in Claude Code's format.
-    conditions: Option<&'a super::claude_settings::HookConditions>,
+    /// What a hooks file in Claude Code's format says beyond `HookEventsToml`: the handlers'
+    /// `if` conditions, and its `prompt`, `agent` and `http` handlers.
+    claude: Option<&'a super::claude_settings::ClaudeHandlerExtras>,
 }
 
 enum HookRequirement<'a> {
@@ -204,7 +206,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
                 plugin_content_hash: None,
                 config_layer_stack: None,
                 plugin_root: None,
-                conditions: None,
+                claude: None,
             };
             if !policy.allows(&policy_source) {
                 continue;
@@ -248,7 +250,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
                         plugin_content_hash: None,
                         config_layer_stack: None,
                         plugin_root: None,
-                        conditions: None,
+                        claude: None,
                     },
                     hook_events,
                     policy,
@@ -310,7 +312,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
                     plugin_content_hash: None,
                     config_layer_stack: None,
                     plugin_root: None,
-                    conditions: Some(&claude_hooks.conditions),
+                    claude: Some(&claude_hooks.extras),
                 },
                 claude_hooks.events,
                 policy,
@@ -443,7 +445,7 @@ fn append_claude_only_handlers(
                         builtin: false,
                         plugin_trust: None,
                         event_name: event.stand_in(),
-                        matcher: match claude_hooks.conditions.get(&(
+                        matcher: match claude_hooks.extras.conditions.get(&(
                             event.label().to_string(),
                             group_index,
                             handler_index,
@@ -507,7 +509,7 @@ fn append_managed_requirement_handlers(
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
-            conditions: None,
+            claude: None,
         },
         managed_hooks.get().hooks.as_ref().clone(),
         policy,
@@ -566,11 +568,22 @@ fn append_plugin_hook_sources(
         env.insert("PLUGIN_DATA".to_string(), plugin_data_root_value.clone());
         // For OOTB compat with existing plugins that use this env var.
         env.insert("CLAUDE_PLUGIN_DATA".to_string(), plugin_data_root_value);
-        // A Claude Code plugin's hooks file may give handlers an `if`. Hooks written into the
-        // manifest are not read for it: their position there is not the one they load with.
-        let plugin_conditions = (claude_plugin.is_some()
-            && !source_relative_path.starts_with("plugin.json#"))
-        .then(|| super::claude_settings::plugin_hook_conditions(&source_path));
+        // A Claude Code plugin's hooks file may give handlers an `if`, and have `prompt` and
+        // `agent` handlers. Hooks written into the manifest are not read for these: their
+        // position there is not the one they load with.
+        let plugin_extras = claude_plugin.map(|_| {
+            let mut extras = if source_relative_path.starts_with("plugin.json#") {
+                Default::default()
+            } else {
+                super::claude_settings::plugin_handler_extras(&source_path)
+            };
+            // The options the user set for the plugin in Claude Code, for its hooks.
+            extras.plugin = codex_claude_compat::PluginVariables::load(plugin_root.as_path());
+            if let Some(plugin) = &extras.plugin {
+                env.extend(plugin.option_env());
+            }
+            extras
+        });
         append_hook_events(
             handlers,
             hook_entries,
@@ -594,7 +607,7 @@ fn append_plugin_hook_sources(
                 plugin_content_hash: content_hash.as_deref(),
                 config_layer_stack: policy.config_layer_stack,
                 plugin_root: Some(&plugin_root),
-                conditions: plugin_conditions.as_ref(),
+                claude: plugin_extras.as_ref(),
             },
             hooks,
             policy,
@@ -832,7 +845,7 @@ fn append_environment_hooks(
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
-            conditions: None,
+            claude: None,
         },
         source.hooks,
         HookDiscoveryPolicy {
@@ -878,6 +891,20 @@ fn append_hook_events(
             groups,
         );
     }
+}
+
+/// The events a `prompt` or `agent` handler runs for: the ones that have a turn, and so a
+/// model, to judge with.
+fn runs_judge_hooks(event_name: HookEventName) -> bool {
+    matches!(
+        event_name,
+        HookEventName::PreToolUse
+            | HookEventName::PostToolUse
+            | HookEventName::PermissionRequest
+            | HookEventName::UserPromptSubmit
+            | HookEventName::Stop
+            | HookEventName::SubagentStop
+    )
 }
 
 fn append_matcher_groups(
@@ -975,6 +1002,24 @@ fn append_matcher_groups(
                     let command = source.env.iter().fold(command, |command, (key, value)| {
                         command.replace(&format!("${{{key}}}"), value)
                     });
+                    // `${user_config.KEY}` of a Claude Code plugin. A hook that names an
+                    // option without a value cannot run, as in Claude Code.
+                    let command = match source.claude.and_then(|claude| claude.plugin.as_ref()) {
+                        Some(plugin) => match plugin.substitute(&command) {
+                            Ok(command) => command,
+                            Err(option) => {
+                                source.record_load_failure(
+                                    format!(
+                                        "skipping a hook in {}: the plugin's option {option} has no value; set it in Claude Code",
+                                        source.path.display()
+                                    ),
+                                    warnings,
+                                );
+                                continue;
+                            }
+                        },
+                        None => command,
+                    };
                     NormalizedHandler {
                         config,
                         kind: ConfiguredHandlerKind::Command {
@@ -1040,25 +1085,75 @@ fn append_matcher_groups(
                         additional_context_limit: None,
                     }
                 }
-                HookHandlerConfig::Prompt {} => {
-                    source.record_load_failure(
-                        format!(
-                            "skipping prompt hook in {}: prompt hooks are not supported yet",
-                            source.path.display()
-                        ),
-                        warnings,
+                HookHandlerConfig::Prompt {} | HookHandlerConfig::Agent {} => {
+                    let position = (
+                        hook_event_name_label(event_name).to_string(),
+                        group_index,
+                        handler_index,
                     );
-                    continue;
-                }
-                HookHandlerConfig::Agent {} => {
-                    source.record_load_failure(
-                        format!(
-                            "skipping agent hook in {}: agent hooks are not supported yet",
-                            source.path.display()
+                    let Some(spec) = source.claude.and_then(|claude| claude.handlers.get(&position))
+                    else {
+                        source.record_load_failure(
+                            {
+                                let kind = if matches!(handler, HookHandlerConfig::Prompt {}) {
+                                    "prompt"
+                                } else {
+                                    "agent"
+                                };
+                                // Only a hooks file in Claude Code's format says what such a
+                                // handler is to do.
+                                format!(
+                                    "skipping {kind} hook in {}: {kind} hooks are not supported yet",
+                                    source.path.display()
+                                )
+                            },
+                            warnings,
+                        );
+                        continue;
+                    };
+                    let (kind, default_timeout_sec, allowed) = match &spec.kind {
+                        ClaudeHandlerKind::Http(hook) => (
+                            ConfiguredHandlerKind::Http(hook.clone()),
+                            600,
+                            // As in Claude Code, which has no session to ask about a request
+                            // this early.
+                            event_name != HookEventName::SessionStart,
                         ),
-                        warnings,
-                    );
-                    continue;
+                        ClaudeHandlerKind::Prompt { prompt } => (
+                            ConfiguredHandlerKind::Judge {
+                                prompt: prompt.clone(),
+                                agentic: false,
+                            },
+                            30,
+                            runs_judge_hooks(event_name),
+                        ),
+                        ClaudeHandlerKind::Agent { prompt } => (
+                            ConfiguredHandlerKind::Judge {
+                                prompt: prompt.clone(),
+                                agentic: true,
+                            },
+                            60,
+                            runs_judge_hooks(event_name),
+                        ),
+                    };
+                    if !allowed {
+                        source.record_load_failure(
+                            format!(
+                                "skipping a hook in {}: its type does not run for {}",
+                                source.path.display(),
+                                hook_event_name_label(event_name),
+                            ),
+                            warnings,
+                        );
+                        continue;
+                    }
+                    NormalizedHandler {
+                        config: handler.clone(),
+                        kind,
+                        timeout_sec: spec.timeout_sec.unwrap_or(default_timeout_sec).max(1),
+                        status_message: spec.status_message.clone(),
+                        additional_context_limit: None,
+                    }
                 }
             };
 
@@ -1095,6 +1190,21 @@ fn append_matcher_groups(
                 Some(Err(_)) | None => None,
             };
             let declaration_hash = hook_hash(event_name, matcher, &group, &config);
+            // A `prompt`, `agent` or `http` handler parses to a bare type; what it does is in
+            // its declaration, which has to be part of what trust was given to.
+            let declaration_hash = match source.claude.and_then(|claude| {
+                claude.handlers.get(&(
+                    hook_event_name_label(event_name).to_string(),
+                    group_index,
+                    handler_index,
+                ))
+            }) {
+                Some(spec) => version_for_toml(&TomlValue::String(format!(
+                    "{declaration_hash}\n{}",
+                    spec.declaration
+                ))),
+                None => declaration_hash,
+            };
             // The config writer persists these two approval hashes separately.
             let current_hash = plugin_content_hash.map_or_else(
                 || declaration_hash.clone(),
@@ -1154,6 +1264,18 @@ fn append_matcher_groups(
                         tool: tool.clone(),
                     }
                 }
+                // Listed as what they do, in the one text field an entry has.
+                ConfiguredHandlerKind::Http(hook) => HookListEntryHandler::Command {
+                    command: format!("POST {}", hook.url),
+                    r#async: false,
+                },
+                ConfiguredHandlerKind::Judge { prompt, agentic } => HookListEntryHandler::Command {
+                    command: format!(
+                        "{}: {prompt}",
+                        if *agentic { "agent" } else { "prompt" }
+                    ),
+                    r#async: false,
+                },
             };
 
             hook_entries.push(HookListEntry {
@@ -1183,8 +1305,8 @@ fn append_matcher_groups(
                         HookTrustStatus::Managed | HookTrustStatus::Trusted
                     ))
             {
-                let condition = source.conditions.and_then(|conditions| {
-                    conditions.get(&(
+                let condition = source.claude.and_then(|claude| {
+                    claude.conditions.get(&(
                         hook_event_name_label(event_name).to_string(),
                         group_index,
                         handler_index,
@@ -1394,7 +1516,7 @@ mod tests {
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
-            conditions: None,
+            claude: None,
         }
     }
 
@@ -1416,7 +1538,7 @@ mod tests {
             plugin_content_hash: None,
             config_layer_stack: None,
             plugin_root: None,
-            conditions: None,
+            claude: None,
         }
     }
 

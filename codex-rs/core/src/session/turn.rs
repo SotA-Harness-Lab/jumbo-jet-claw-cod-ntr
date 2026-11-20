@@ -203,6 +203,11 @@ async fn preserve_initial_input_during<T>(
     Ok(result)
 }
 
+/// How many times in a row Stop hooks may keep one turn from ending. Claude Code has no such
+/// limit and leaves it to the hook to read `stop_hook_active`; a hook that does not would
+/// otherwise run the model, and its cost, without end.
+const MAX_STOP_HOOK_BLOCKS: u32 = 8;
+
 /// Takes initial turn input and runs a loop where, at each sampling request,
 /// the model replies with either:
 ///
@@ -533,6 +538,8 @@ pub(crate) async fn run_turn(
 
     let mut last_agent_message: Option<String> = None;
     let mut stop_hook_active = false;
+    // How many times in a row a Stop hook has kept this turn from ending.
+    let mut stop_hook_blocks = 0u32;
     // A steer can reopen sampling within the same turn. Keep its aggregate until the turn ends.
     let turn_diff_tracker = turn_context
         .extension_data
@@ -855,7 +862,18 @@ pub(crate) async fn run_turn(
                             "Memory consolidation was rejected by a Stop hook.".to_string(),
                         ));
                     }
-                    if stop_outcome.should_block {
+                    if stop_outcome.should_block && stop_hook_blocks >= MAX_STOP_HOOK_BLOCKS {
+                        // A hook that never lets go would keep the model working without end.
+                        sess.send_event(
+                            &turn_context,
+                            EventMsg::Warning(WarningEvent {
+                                message: format!(
+                                    "A Stop hook kept the turn from ending {MAX_STOP_HOOK_BLOCKS} times in a row; ending the turn."
+                                ),
+                            }),
+                        )
+                        .await;
+                    } else if stop_outcome.should_block {
                         if let Some(hook_prompt_message) = build_hook_prompt_message(
                             &stop_outcome.continuation_fragments,
                             &sess.item_id_generator,
@@ -873,6 +891,7 @@ pub(crate) async fn run_turn(
                                 )
                                 .await;
                             stop_hook_active = true;
+                            stop_hook_blocks += 1;
                             continue;
                         } else {
                             sess.send_event(

@@ -14,6 +14,7 @@ mod mcp;
 pub use environment::EnvironmentHookOutput;
 pub use environment::EnvironmentHookSource;
 pub use environment::HookEnvironmentExecutor;
+pub use environment::HookJudgeRequest;
 mod output_spill;
 mod registry;
 mod schema;

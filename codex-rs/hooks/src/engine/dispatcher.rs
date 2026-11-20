@@ -309,6 +309,19 @@ pub(crate) async fn execute_handler(
             )
             .await
         }
+        ConfiguredHandlerKind::Http(hook) => {
+            super::http_runner::run_http(handler, hook, &event_input.to_string()).await
+        }
+        ConfiguredHandlerKind::Judge { prompt, agentic } => {
+            super::judge_runner::run_judge(
+                engine.command_runtime.environment_executor.as_deref(),
+                handler,
+                prompt,
+                *agentic,
+                &event_input.to_string(),
+            )
+            .await
+        }
     }
 }
 

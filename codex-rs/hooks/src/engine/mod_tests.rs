@@ -1468,7 +1468,9 @@ fn allow_managed_hooks_only_keeps_managed_requirement_and_config_layer_hooks() {
             .iter()
             .map(|handler| match &handler.kind {
                 ConfiguredHandlerKind::Command { command, .. } => Some(command.as_str()),
-                ConfiguredHandlerKind::McpTool { .. } => None,
+                ConfiguredHandlerKind::McpTool { .. }
+                | ConfiguredHandlerKind::Http(_)
+                | ConfiguredHandlerKind::Judge { .. } => None,
             })
             .collect::<Vec<_>>(),
         vec![

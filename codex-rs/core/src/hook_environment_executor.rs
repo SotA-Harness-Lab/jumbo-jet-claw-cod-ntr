@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: run Claude Code's prompt, agent and http hooks
+
 //! Dispatches admitted hooks on the ready environments captured for a lifecycle event.
 
 use std::collections::HashMap;
@@ -233,6 +238,13 @@ impl HookEnvironmentExecutor for EnvironmentCommandExecutor {
             Ok(output)
         }
         .boxed()
+    }
+
+    fn judge(
+        &self,
+        request: codex_hooks::HookJudgeRequest,
+    ) -> BoxFuture<'_, anyhow::Result<String>> {
+        Box::pin(crate::hook_judge::judge(&self.session, &self.turn, request))
     }
 }
 

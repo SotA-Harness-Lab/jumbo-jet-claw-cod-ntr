@@ -44,7 +44,7 @@ pub(super) fn role_tool_list(role: &AgentRoleConfig) -> Option<ToolList> {
             tracing::warn!("cannot read the subagent file {}: {err}", path.display());
         })
         .ok()?;
-    Some(codex_claude_compat::parse_subagent(&contents)?.tools)
+    Some(codex_claude_compat::parse_subagent_at(&contents, path)?.tools)
 }
 
 /// Keeps in the registry only the tools `tools` permits.

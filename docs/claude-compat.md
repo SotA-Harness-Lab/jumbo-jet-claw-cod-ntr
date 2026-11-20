@@ -99,6 +99,7 @@ This needs the session's environment to run on this machine.
 Codex's hook engine takes the same shape as Claude Code's `hooks` key (events, `matcher`,
 `type: "command"`, `timeout`, `async`, `statusMessage`, `if`), so the hooks of the settings
 files run as they are, with Claude Code's input on stdin and Claude Code's outputs understood.
+Handlers of type `prompt`, `agent` and `http` run too (below).
 
 - The user's own hooks run without Codex's per-hook trust prompt, as they do in Claude Code. A
   project's hooks wait for Codex's trust like any other project hook. `disableAllHooks: true`
@@ -163,8 +164,37 @@ files run as they are, with Claude Code's input on stdin and Claude Code's outpu
   `--dangerously-bypass-hook-trust`, since Codex's trust prompt has no place for them; without
   it they are skipped with a warning.
 - Other events Codex does not have (`PermissionDenied`, `Setup`, `CwdChanged` and the rest)
-  are ignored; handlers of type `http` are skipped with a warning; `prompt` and `agent`
-  handlers are skipped as for Codex's own hooks.
+  are ignored.
+- `type: "prompt"` and `type: "agent"`: a model reads the handler's `prompt`, with the hook
+  input in place of `$ARGUMENTS` (after the prompt when it names none), and answers
+  `{"ok": true}` or `{"ok": false, "reason": "..."}`. Not met blocks, with the reason, exactly
+  as a command's exit code 2 does for the event; an answer that is not such JSON, an error
+  or a timeout (30 s for `prompt`, 60 s for `agent`, or the handler's `timeout`) does not
+  block. They run for `PreToolUse`, `PostToolUse`, `PermissionRequest`, `UserPromptSubmit`,
+  `Stop` and `SubagentStop`. Differences from Claude Code:
+  - The model is the session's own: `model` is ignored, since it names a Claude model.
+  - Both are judged in a child session with read-only permissions that asks for no
+    approvals. A `prompt` hook is told to answer from its prompt alone, an `agent` hook may
+    use its tools first; neither is given the conversation, only the hook input (which names
+    the transcript file).
+  - No hook of these two types runs inside such a child session.
+- `type: "http"`: the hook input is posted as JSON to `url`, and the JSON object the server
+  answers with (or an empty body) is read as a command's stdout is. A response outside 2xx,
+  a failed request, a body that is not a JSON object and a timeout (600 s, or `timeout`) are
+  errors that do not block. As in Claude Code: `headers` values may name environment
+  variables (`$NAME`, `${NAME}`), filled in only for the names in the handler's
+  `allowedEnvVars` and empty otherwise; `allowedHttpHookUrls` and `httpHookAllowedEnvVars`
+  of the settings files (lists of several files are joined) narrow which URLs and variables
+  any handler may use; redirects are not followed; without a proxy in the environment, a host
+  that resolves to a private or link-local address is refused, loopback excepted; and
+  `http` handlers do not run for `SessionStart`. The request does not go through Codex's
+  sandbox network proxy.
+- A `prompt`, `agent` or `http` handler is declared in the settings files, or (`prompt` and
+  `agent` only) in a Claude Code plugin's hooks file; Codex's own `hooks.json` has no such
+  types. Changing anything in such a project handler asks for its trust again.
+- Stop hooks may keep one turn from ending 8 times in a row; the next block is not honoured
+  and a warning says so. Claude Code has no such limit and leaves it to the hook to read
+  `stop_hook_active`.
 
 ## Claude tool set
 
@@ -397,6 +427,15 @@ reasoning effort (`max` as `xhigh`). `model` and the other fields are left out.
 Codex's own roles win over subagents of the same name, and a project's subagents over the
 user's. Only `.claude/agents` of the working directory is read for the project.
 
+The agents of a Claude Code plugin Codex uses (see "Plugins") are roles too, under the name
+Claude Code gives them: `<plugin>:<name>`, with the subdirectories of the plugin's agent
+directory in between (`<plugin>:<dir>:<name>`). They are read from the plugin's `agents/`
+and from the directories its manifest lists under `agents` (an entry naming a single file is
+not read). As in Claude Code, `name` defaults to the file's name and `description` to
+`Agent from <plugin> plugin`, the body may use `${CLAUDE_PLUGIN_ROOT}` and
+`${user_config.KEY}` (a sensitive option is named, not shown), and every other role of the
+same name comes first. `${CLAUDE_PLUGIN_DATA}` is left as written.
+
 `tools` and `disallowedTools` apply only with the Claude tool set on (`[claude] tools`): an
 agent spawned with the role then keeps only the tools its `tools` lists (all when absent,
 none when empty, all with `*`) and its `disallowedTools` does not, by the names the model
@@ -607,12 +646,31 @@ loader needs; `enable` does not change that.
 
 From a plugin that is used, Codex loads what its plugin loader knows: skills, MCP servers and
 hooks, and its commands (`commands/`, or the directories `commands` of the manifest lists) as
-skills named `<plugin>:<command>` (see "Custom slash commands"). The rest is not loaded,
-without disabling the plugin:
+skills named `<plugin>:<command>` (see "Custom slash commands"), and its agents as roles named
+`<plugin>:<name>` (see "Subagents"). The rest is not loaded, without disabling the plugin:
 
-- `agents/`: Codex's plugin loader has no plugin agents. Subagents in `~/.claude/agents` and
-  `.claude/agents` are still read (see "Subagents").
-- MCP bundles (`.mcpb`), the plugin's `settings.json` and `userConfig`.
+- MCP bundles (`.mcpb`) and the plugin's `settings.json`.
+
+### Options (`userConfig`)
+
+The options a plugin's manifest declares under `userConfig` have the values the user gave them
+in Claude Code: the plain ones from `pluginConfigs.<plugin id>.options` of
+`~/.claude/settings.json`, the ones marked `sensitive` from `pluginSecrets.<plugin id>` of
+`~/.claude/.credentials.json`. They are filled in as in Claude Code:
+
+- `${user_config.KEY}` in the commands of the plugin's hooks, in every string of its MCP
+  servers' declarations (with `${CLAUDE_PLUGIN_ROOT}`), and in the body of its agents.
+- `CLAUDE_PLUGIN_OPTION_<KEY>` in the environment of its hooks, the key in upper case with
+  anything but letters, digits and `_` turned into `_`.
+
+Differences from Claude Code:
+
+- Codex cannot ask for a value. An option never set in Claude Code has none: a hook whose
+  command names it is skipped with a warning, and an MCP server's string that names it is
+  left as written, with a warning in the log.
+- On macOS Claude Code keeps sensitive values in the keychain, which is not read: a sensitive
+  option has no value there.
+- The values are not filled in in the plugin's skills and commands.
 
 ### Hooks
 
@@ -635,13 +693,13 @@ these plugins' hooks off too. The hooks see `CLAUDE_PLUGIN_ROOT` (the install pa
   both. An `mcpServers` list mixing paths and objects is not read.
 - Hook events Codex does not have (`Notification`, `PostToolUseFailure`, `StopFailure` among
   them) do not run from plugins, and a plugin hooks file with a handler type Codex does not know
-  (`http`) is not loaded, with a warning.
+  (`http`) is not loaded, with a warning. `prompt` and `agent` handlers of a plugin's hooks file
+  run as the settings files' do; those written into the manifest do not.
 - MCP servers keep the names their files give them, where Claude Code names them
   `plugin:<plugin>:<server>`. Of two plugins' servers of the same name, the first plugin's (by
   id) is used.
 - `CLAUDE_PLUGIN_DATA` is Codex's plugin data directory (`$CODEX_HOME/plugins/data/...`), not
   Claude Code's, so a plugin's saved state is not shared between the two.
-- `${user_config.*}` values from a plugin's `userConfig` are not filled in.
 - A plugin is taken from its recorded install path; one whose marketplace entry defines its
   components without a `plugin.json` (`strict: false`) is not read that way. Managed
   (`policySettings`) `enabledPlugins`, plugins from `--add-dir` and `--plugin-dir`, and Claude
