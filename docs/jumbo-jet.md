@@ -61,3 +61,51 @@ output_limit_continuations = 3
 Not covered: with `responses.process_mode = "after_complete_response"`, Codex holds a
 response's items until it completes, so a cut-off response leaves nothing to continue from and
 the model starts that step over.
+
+## Commands that outlast their timeout
+
+With the Claude tool set on, a `Bash` command that was not started with `run_in_background`
+used to be stopped at its timeout (2 minutes, or the `timeout` the model gave, at most 10),
+and whatever it had built or downloaded by then was lost. Now it keeps running:
+
+- The call returns at the timeout with the command's id, the output it has written so far,
+  and how to read the rest (`write_stdin` with that id).
+- The command is then a background command like any other: the model is told when it ends
+  (see "Waking for finished background work"), and it is stopped with the session.
+- If the turn is interrupted while the call still waits, the command is stopped, as before.
+- `sleep` as the first word is still stopped at the timeout, as in Claude Code: there is
+  nothing to go on with while a command only waits.
+
+This needs Codex's unified exec, which keeps processes running; without it, and with
+`background_on_timeout = false`, commands are stopped at their timeout as before, and the
+model is told `Command timed out after ...` (it used to read `Exit code 124`).
+
+Codex's own `exec_command` never stopped a command at a time limit and is unchanged.
+
+## Long command output kept in a file
+
+When a command's output is longer than the model is shown, the model sees its head and its
+tail and nothing of the middle, and used to run the command again to see more. Now the output
+is written to a file and the last line of what the model reads names it:
+
+```
+[Full output saved to: /tmp/ccn-tool-output/<session>/<chunk>.txt - read or search that file
+for the part you need instead of running the command again]
+```
+
+- This holds for `exec_command`, `write_stdin` and the Claude tool set's `Bash`.
+- The files are in the system's temporary directory, in a directory of the session that only
+  the user can read. A session's directory is removed once nothing was written to it for a
+  week, the next time any session keeps an output.
+- Codex itself collects at most 1 MiB of a command's output, the first and the last half of
+  that. For a larger output the file holds those two parts, and the line says so.
+- Nothing is written for a command that runs on another machine (a remote environment): the
+  file would not be where the model's next command runs.
+
+Both are on by default and are turned off in `ccn-config.toml`:
+
+```toml
+[harness]
+background_on_timeout = false
+spill_long_output = false
+```

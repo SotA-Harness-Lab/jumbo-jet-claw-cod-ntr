@@ -149,15 +149,17 @@ impl CoreToolRuntime for BashHandler {
 
 /// The `exec_command` arguments for a Claude Code `Bash` call. Output is truncated by
 /// Codex, to the token budget its shell tool uses by default.
-fn exec_command_arguments(args: &BashArgs, background: bool) -> Value {
+fn exec_command_arguments(args: &BashArgs, run: BashRun) -> Value {
     let mut arguments = json!({
         "cmd": args.command,
         "max_output_tokens": crate::unified_exec::resolve_max_tokens(/*max_tokens*/ None),
     });
-    if background {
-        arguments["yield_time_ms"] = json!(BACKGROUND_YIELD_MS);
-    } else {
-        arguments["timeout_ms"] = json!(bash::timeout_ms(args.timeout));
+    match run {
+        BashRun::Background => arguments["yield_time_ms"] = json!(BACKGROUND_YIELD_MS),
+        BashRun::ForegroundThenBackground => {
+            arguments["foreground_wait_ms"] = json!(bash::timeout_ms(args.timeout));
+        }
+        BashRun::Foreground => arguments["timeout_ms"] = json!(bash::timeout_ms(args.timeout)),
     }
     if args.dangerously_disable_sandbox == Some(true) {
         arguments["sandbox_permissions"] = json!("require_escalated");
@@ -172,6 +174,17 @@ fn exec_command_arguments(args: &BashArgs, background: bool) -> Value {
     arguments
 }
 
+/// How a `Bash` call runs its command.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum BashRun {
+    /// Until it exits or its timeout stops it.
+    Foreground,
+    /// Until it exits; at its timeout it is left running and the call returns.
+    ForegroundThenBackground,
+    /// `run_in_background`: the call returns at once.
+    Background,
+}
+
 impl BashHandler {
     async fn handle_call(
         &self,
@@ -180,12 +193,25 @@ impl BashHandler {
         let args: BashArgs = parse_claude_arguments(BASH, &invocation)?;
         let _permission =
             check_permission(&invocation, BASH, PermissionInput::Command(&args.command)).await?;
-        let (handler, background) = match &self.background {
-            Some(background) if args.run_in_background == Some(true) => (background, true),
-            _ => (&self.foreground, false),
+        let background_on_timeout = invocation
+            .turn
+            .config
+            .mod_config
+            .harness
+            .background_on_timeout
+            .unwrap_or_else(crate::config::refinements_default)
+            && bash::backgrounds_on_timeout(&args.command);
+        let (handler, run) = match &self.background {
+            Some(background) if args.run_in_background == Some(true) => {
+                (background, BashRun::Background)
+            }
+            Some(background) if background_on_timeout => {
+                (background, BashRun::ForegroundThenBackground)
+            }
+            _ => (&self.foreground, BashRun::Foreground),
         };
         let payload = ToolPayload::Function {
-            arguments: exec_command_arguments(&args, background).to_string(),
+            arguments: exec_command_arguments(&args, run).to_string(),
         };
         let output = handler
             .handle(delegated(&invocation, payload.clone()))
@@ -213,15 +239,22 @@ impl BashHandler {
                 "isImage": false,
                 "backgroundTaskId": id,
             });
+            let message = match run {
+                BashRun::ForegroundThenBackground => bash::moved_to_background_message(
+                    &id,
+                    bash::timeout_ms(args.timeout),
+                    text,
+                ),
+                BashRun::Foreground | BashRun::Background => bash::background_message(&id),
+            };
             return Ok(boxed_tool_output(ClaudeToolOutput::new(
-                bash::background_message(&id),
+                message,
                 tool_response,
             )));
         }
 
-        // A one-shot run stopped at its timeout has neither an exit code nor a process; an
-        // `apply_patch` command Codex intercepts has neither either, but no output chunk.
-        let timed_out = !background && exit_code.is_none() && result.get("chunk_id").is_some();
+        // A one-shot run stopped at its timeout reports the exit code `timeout` itself uses.
+        let timed_out = run == BashRun::Foreground && exit_code == Some(124);
         let run = bash::CommandRun {
             output: text,
             exit_code,
@@ -247,5 +280,12 @@ impl BashHandler {
 pub(super) fn exec_command_arguments_for_test(arguments: &str, background: bool) -> Value {
     let args: BashArgs = serde_json::from_str(arguments)
         .unwrap_or_else(|err| panic!("invalid Bash arguments: {err}"));
-    exec_command_arguments(&args, background)
+    exec_command_arguments(
+        &args,
+        if background {
+            BashRun::Background
+        } else {
+            BashRun::Foreground
+        },
+    )
 }

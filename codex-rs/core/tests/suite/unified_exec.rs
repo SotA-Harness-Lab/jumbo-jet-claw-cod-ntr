@@ -1082,6 +1082,117 @@ async fn background_command_exit_wakes_the_idle_session() -> Result<()> {
     Ok(())
 }
 
+/// Runs one `exec_command` call with `args` and returns what the model was given for it.
+async fn run_one_exec_command(
+    test: &TestCodex,
+    server: &wiremock::MockServer,
+    call_id: &str,
+    args: Value,
+) -> Result<ParsedUnifiedExecOutput> {
+    let request_log = mount_sse_sequence(
+        server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-1"),
+                ev_function_call(call_id, "exec_command", &serde_json::to_string(&args)?),
+                ev_completed("resp-1"),
+            ]),
+            sse(vec![
+                ev_assistant_message("msg-1", "done"),
+                ev_completed("resp-2"),
+            ]),
+        ],
+    )
+    .await;
+    submit_unified_exec_turn(test, "run the command", PermissionProfile::Disabled).await?;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+    let bodies = request_log
+        .requests()
+        .into_iter()
+        .map(|request| request.body_json())
+        .collect::<Vec<_>>();
+    collect_tool_outputs(&bodies)?
+        .remove(call_id)
+        .context("missing exec_command output")
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn foreground_wait_leaves_the_command_running_at_its_timeout() -> Result<()> {
+    skip_if_target_windows!(Ok(()), "uses a POSIX-only command fixture");
+    skip_if_no_network!(Ok(()));
+    skip_if_sandbox!(Ok(()));
+
+    let server = start_mock_server().await;
+    let mut builder = test_codex();
+    let test = builder.build_with_auto_env(&server).await?;
+
+    // The wait is shorter than the command and far shorter than the yield the tool would
+    // otherwise clamp to, so only a wait that is honoured returns while the command runs.
+    let output = run_one_exec_command(
+        &test,
+        &server,
+        "uexec-foreground-wait",
+        json!({
+            "cmd": "echo STARTED; sleep 5; echo FINISHED",
+            "foreground_wait_ms": 1_000,
+        }),
+    )
+    .await?;
+
+    assert!(output.process_id.is_some(), "the command is left running");
+    assert_eq!(output.exit_code, None);
+    assert!(output.output.contains("STARTED"), "{:?}", output.output);
+    assert!(!output.output.contains("FINISHED"), "{:?}", output.output);
+    assert!(output.wall_time_seconds < 4.0, "{}", output.wall_time_seconds);
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn output_too_long_for_the_model_is_kept_in_a_file() -> Result<()> {
+    skip_if_target_windows!(Ok(()), "uses a POSIX-only command fixture");
+    skip_if_no_network!(Ok(()));
+    skip_if_sandbox!(Ok(()));
+
+    let server = start_mock_server().await;
+    let mut builder = test_codex().with_config(|config| {
+        config.mod_config.harness.spill_long_output = Some(true);
+    });
+    let test = builder.build_with_auto_env(&server).await?;
+
+    let output = run_one_exec_command(
+        &test,
+        &server,
+        "uexec-spill",
+        json!({
+            "cmd": "seq 1 20000",
+            "yield_time_ms": 5_000,
+            "max_output_tokens": 200,
+        }),
+    )
+    .await?;
+
+    let footer = output
+        .output
+        .lines()
+        .last()
+        .context("the output has a last line")?;
+    let path = footer
+        .strip_prefix("[Full output saved to: ")
+        .and_then(|rest| rest.split_once(" - "))
+        .map(|(path, _)| path)
+        .with_context(|| format!("the last line names the file: {footer:?}"))?;
+    let saved = std::fs::read_to_string(path)?;
+    assert_eq!(saved.lines().count(), 20_000);
+    assert!(saved.contains("\n12345\n"), "the middle the model was not shown is in the file");
+    assert!(!output.output.contains("\n12345\n"));
+
+    Ok(())
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn unified_exec_emits_exec_command_end_event() -> Result<()> {
     // TODO(anp): Remove after unified-exec fixtures use target-native commands.

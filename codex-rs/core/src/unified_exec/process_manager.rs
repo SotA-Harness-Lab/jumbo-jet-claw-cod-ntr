@@ -279,6 +279,16 @@ struct PreparedProcessHandles {
     tty: bool,
 }
 
+/// Whether long command output is kept in a file: `[harness] spill_long_output`, or on
+/// where this project's changes are on by default.
+fn spills_long_output(turn: &crate::session::turn_context::TurnContext) -> bool {
+    turn.config
+        .mod_config
+        .harness
+        .spill_long_output
+        .unwrap_or_else(crate::config::refinements_default)
+}
+
 struct InitialExecCommandGuard {
     active: Option<Arc<AtomicBool>>,
     metrics_sidecar: Option<PluginMetricsSidecar>,
@@ -663,18 +673,41 @@ impl UnifiedExecProcessManager {
         // (via start_streaming_output above) and collect a snapshot here for
         // the tool response body.
         let wait = completion.as_ref().map_or_else(
-            || Duration::from_millis(yield_time_ms),
+            // A foreground command is waited for up to its timeout, not the yield a model may
+            // ask for.
+            || {
+                prepared
+                    .foreground_wait
+                    .unwrap_or(Duration::from_millis(yield_time_ms))
+            },
             |completion| completion.timeout,
         );
         let deadline = start
             .checked_add(wait)
             .ok_or_else(|| UnifiedExecError::process_failed("timeout_ms is too large".into()))?;
-        let collected_output = Self::collect_output_until_deadline(
+        let collect = Self::collect_output_until_deadline(
             process.output_handles(),
             Some(context.session.subscribe_elicitation_pause_state()),
             deadline,
-        )
-        .await;
+        );
+        let collected_output = if prepared.foreground_wait.is_some() {
+            tokio::select! {
+                collected_output = collect => collected_output,
+                // The command is this call's own work until it is left in the background: a
+                // call that is cancelled while it waits takes the command with it.
+                () = context.cancellation_token.cancelled() => {
+                    if !process.has_exited()
+                        && let Err(err) = process.terminate_confirmed().await
+                    {
+                        process.fail_and_terminate(err.to_string());
+                    }
+                    self.process_store.lock().await.remove(request.process_id);
+                    return Err(UnifiedExecError::process_failed("command cancelled".into()));
+                }
+            }
+        } else {
+            collect.await
+        };
         if let Some(completion) = completion.as_mut()
             && !process.has_exited()
         {
@@ -862,7 +895,7 @@ impl UnifiedExecProcessManager {
             (None, exit_code)
         };
 
-        let response = ExecCommandToolOutput {
+        let mut response = ExecCommandToolOutput {
             event_call_id: context.call_id.clone(),
             chunk_id,
             wall_time,
@@ -881,6 +914,13 @@ impl UnifiedExecProcessManager {
             tool_cwd: (!prepared.turn_environment.environment().is_remote())
                 .then(|| prepared.cwd.clone()),
         };
+        // A file here is of no use to a command that runs on another machine.
+        if spills_long_output(&context.step_context.turn)
+            && !prepared.turn_environment.environment().is_remote()
+        {
+            super::output_spill::spill_long_output(&mut response, context.session.thread_id)
+                .await;
+        }
 
         Ok(response)
     }
@@ -1129,7 +1169,7 @@ impl UnifiedExecProcessManager {
             }
         };
 
-        let response = ExecCommandToolOutput {
+        let mut response = ExecCommandToolOutput {
             event_call_id,
             chunk_id,
             wall_time,
@@ -1142,6 +1182,11 @@ impl UnifiedExecProcessManager {
             hook_command: Some(hook_command),
             tool_cwd,
         };
+        // Only the output of a command on this machine: `tool_cwd` is set for those.
+        if response.tool_cwd.is_some() && spills_long_output(&context.step_context.turn) {
+            super::output_spill::spill_long_output(&mut response, context.session.thread_id)
+                .await;
+        }
 
         let should_emit_interaction = !request.input.is_empty() || response.process_id.is_some();
         if should_emit_interaction

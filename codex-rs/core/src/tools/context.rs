@@ -551,6 +551,11 @@ impl ToolOutput for ExecCommandToolOutput {
 }
 
 impl ExecCommandToolOutput {
+    /// How many bytes of the output the model is shown at most.
+    pub(crate) fn model_visible_bytes(&self) -> usize {
+        self.model_output_policy().byte_budget()
+    }
+
     fn model_output_policy(&self) -> TruncationPolicy {
         let requested_policy = TruncationPolicy::Tokens(resolve_max_tokens(self.max_output_tokens));
         if requested_policy.byte_budget() < self.truncation_policy.byte_budget() {

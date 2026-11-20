@@ -7,8 +7,10 @@ use super::CommandRun;
 use super::DEFAULT_TIMEOUT_MS;
 use super::MAX_TIMEOUT_MS;
 use super::background_message;
+use super::backgrounds_on_timeout;
 use super::description;
 use super::format_result;
+use super::moved_to_background_message;
 use super::strip_empty_lines;
 use super::timeout_ms;
 
@@ -92,4 +94,23 @@ fn description_points_only_to_offered_tools_and_has_no_attribution() {
     let without_background = description(&["Bash"], false);
     assert!(!without_background.contains("run_in_background"));
     assert!(!without_background.contains("Read files"));
+}
+
+#[test]
+fn a_command_moved_to_the_background_reports_its_id_and_what_it_wrote() {
+    assert_eq!(
+        moved_to_background_message("1000", 120_000, "\nbuilding\n\n"),
+        "Command did not complete within its 2m 0s timeout and was moved to the background with ID: 1000. It is still running. Read its further output with write_stdin, passing session_id 1000 and empty chars.\nOutput so far:\nbuilding"
+    );
+    assert!(
+        moved_to_background_message("7", 5_000, "").ends_with("It has written no output so far.")
+    );
+}
+
+#[test]
+fn sleep_is_not_left_in_the_background() {
+    assert!(backgrounds_on_timeout("cargo build --release"));
+    assert!(backgrounds_on_timeout("FOO=1 sleep 5"));
+    assert!(!backgrounds_on_timeout("sleep 600"));
+    assert!(!backgrounds_on_timeout("  sleep 1 && echo done"));
 }

@@ -53,6 +53,7 @@ mod command_sessions;
 mod errors;
 mod oneshot;
 pub(crate) mod output;
+mod output_spill;
 mod process;
 mod process_manager;
 pub(crate) use process_manager::exec_env_policy_from_shell_policy;

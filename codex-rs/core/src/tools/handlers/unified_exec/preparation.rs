@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep a command running past its timeout and its long output on disk
+
 //! Resolves exec arguments against the selected environment and effective turn permissions.
 //! The live handler emits its skill event between parsing and preparation.
 
@@ -57,6 +62,9 @@ pub(crate) struct PreparedExecCommand {
     pub(crate) yield_time_ms: u64,
     pub(crate) max_output_tokens: Option<usize>,
     pub(crate) completion_timeout: Option<Duration>,
+    /// How long the starting call waits before it leaves the command in the background, where
+    /// the caller set it in place of `yield_time_ms`.
+    pub(crate) foreground_wait: Option<Duration>,
 }
 
 impl PreparedExecCommand {
@@ -308,6 +316,12 @@ impl<'a> ParsedExecCommand<'a> {
             yield_time_ms: args.yield_time_ms,
             max_output_tokens: args.max_output_tokens,
             completion_timeout,
+            foreground_wait: match lifetime {
+                ExecCommandLifetime::Interactive => {
+                    args.foreground_wait_ms.map(Duration::from_millis)
+                }
+                ExecCommandLifetime::OneShot => None,
+            },
             cwd,
             tty: args.tty,
             permissions,

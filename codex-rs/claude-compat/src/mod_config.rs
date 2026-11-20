@@ -16,6 +16,8 @@
 //!
 //! [harness]
 //! output_limit_continuations = 3     # how often a response cut off at the output limit is continued
+//! background_on_timeout = true       # a Bash command past its timeout keeps running in the background
+//! spill_long_output = true           # command output too long for the model is kept in a file
 //! ```
 //!
 //! A missing file means the defaults. A file that does not parse is reported as a startup
@@ -51,6 +53,13 @@ pub struct HarnessModConfig {
     /// limit, are continued before the turn fails as it used to. `0` never continues; 3 when
     /// left out.
     pub output_limit_continuations: Option<u32>,
+    /// `background_on_timeout`: whether a `Bash` command that runs into its timeout is left
+    /// running in the background, where its output can still be read, in place of being
+    /// stopped. On when left out.
+    pub background_on_timeout: Option<bool>,
+    /// `spill_long_output`: whether the output of a command that is too long to show the
+    /// model whole is kept in a file whose place the model is told. On when left out.
+    pub spill_long_output: Option<bool>,
 }
 
 /// `[ui]` of `ccn-config.toml`.

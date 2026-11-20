@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep a command running past its timeout and its long output on disk
+
 /*
 Runtime: unified exec
 
@@ -864,6 +869,7 @@ mod tests {
             yield_time_ms: 10_000,
             max_output_tokens: None,
             completion_timeout: None,
+            foreground_wait: None,
         }
     }
 

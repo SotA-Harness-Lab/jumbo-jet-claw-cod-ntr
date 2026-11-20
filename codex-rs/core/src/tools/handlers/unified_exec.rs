@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep a command running past its timeout and its long output on disk
+
 use crate::function_tool::FunctionCallError;
 use crate::sandboxing::SandboxPermissions;
 use crate::session::turn_context::TurnEnvironment;
@@ -76,6 +81,12 @@ pub(crate) struct ExecCommandArgs {
     yield_time_ms: u64,
     #[serde(default)]
     timeout_ms: Option<u64>,
+    /// How long this call waits for the command before leaving it running in the
+    /// background, in place of the clamped `yield_time_ms`. Not in the tool's schema: the
+    /// Claude tool set's `Bash` passes it for a command that is not started in the
+    /// background.
+    #[serde(default)]
+    foreground_wait_ms: Option<u64>,
     #[serde(default)]
     max_output_tokens: Option<usize>,
     #[serde(default)]

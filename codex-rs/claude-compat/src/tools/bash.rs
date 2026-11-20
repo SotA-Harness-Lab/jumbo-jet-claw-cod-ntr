@@ -307,6 +307,29 @@ pub fn background_message(id: &str) -> String {
     )
 }
 
+/// The result of a command that ran into its timeout and was left running in the background,
+/// with the output it had written until then.
+pub fn moved_to_background_message(id: &str, timeout_ms: u64, output: &str) -> String {
+    let output = strip_empty_lines(output);
+    let mut text = format!(
+        "Command did not complete within its {} timeout and was moved to the background with ID: {id}. It is still running. Read its further output with write_stdin, passing session_id {id} and empty chars.",
+        format_duration(timeout_ms)
+    );
+    if output.is_empty() {
+        text.push_str(" It has written no output so far.");
+    } else {
+        text.push_str("\nOutput so far:\n");
+        text.push_str(&output);
+    }
+    text
+}
+
+/// Whether a command may be left in the background at its timeout. Not `sleep`: waiting is
+/// all it does, so there is nothing to go on with while it runs.
+pub fn backgrounds_on_timeout(command: &str) -> bool {
+    command.split_whitespace().next() != Some("sleep")
+}
+
 /// Drops the blank lines before the first and after the last line with text, and the
 /// trailing whitespace, as Claude Code does with a command's output.
 pub fn strip_empty_lines(output: &str) -> String {
