@@ -4260,6 +4260,96 @@ async fn incomplete_response_is_terminal(
     Ok(())
 }
 
+/// With `[harness] output_limit_continuations`, a response cut off at the output limit is
+/// continued that many times in a row; the next one is the error it always was.
+#[test_case::test_case(2, 1, None; "continued until the model finishes")]
+#[test_case::test_case(1, 2, Some("Incomplete response returned, reason: max_output_tokens"); "an error once the limit is used up")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn response_cut_off_at_the_output_limit_is_continued(
+    allowed: u32,
+    cut_off: usize,
+    expected_error: Option<&str>,
+) -> anyhow::Result<()> {
+    skip_if_no_network!(Ok(()));
+    let server = start_mock_server().await;
+    let incomplete = |index: usize| {
+        sse(vec![
+            ev_response_created(&format!("resp-{index}")),
+            ev_assistant_message(&format!("msg-{index}"), &format!("Part {index}.")),
+            json!({
+                "type": "response.incomplete",
+                "response": {
+                    "id": format!("resp-{index}"),
+                    "incomplete_details": {"reason": "max_output_tokens"},
+                    "usage": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}
+                }
+            }),
+        ])
+    };
+    // Every response mounted has to be asked for: where the limit is used up first, the
+    // response after the last continuation is cut off too and nothing follows it.
+    let continued = cut_off.min(allowed as usize);
+    let mut responses = (1..=cut_off.min(continued + 1))
+        .map(incomplete)
+        .collect::<Vec<_>>();
+    if cut_off <= continued {
+        responses.push(sse(vec![
+            ev_response_created("resp-final"),
+            ev_assistant_message("msg-final", "The end."),
+            ev_completed("resp-final"),
+        ]));
+    }
+    let response_mock = mount_sse_sequence(&server, responses).await;
+    let test = test_codex()
+        .with_config(move |config| {
+            config.mod_config.harness.output_limit_continuations = Some(allowed);
+            config.model_provider.stream_max_retries = Some(0);
+            config.model_provider.request_max_retries = Some(0);
+        })
+        .build_with_auto_env(&server)
+        .await?;
+    test.codex
+        .start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+            text: "write a long answer".into(),
+            text_elements: Vec::new(),
+        }]))
+        .await?;
+    let mut errors = Vec::new();
+    let mut warnings = Vec::new();
+    wait_for_event(&test.codex, |event| {
+        match event {
+            EventMsg::Error(error) => errors.push(error.message.clone()),
+            EventMsg::Warning(warning) => warnings.push(warning.message.clone()),
+            _ => {}
+        }
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+
+    assert_eq!(errors, expected_error.into_iter().collect::<Vec<_>>());
+    assert_eq!(
+        warnings,
+        (1..=continued)
+            .map(|index| format!(
+                "The model's response reached the output token limit; asking it to continue ({index}/{allowed})."
+            ))
+            .collect::<Vec<_>>()
+    );
+    let requests = response_mock.requests();
+    assert_eq!(requests.len(), continued + 1);
+    // Each continuation carries what the cut-off response had finished, and the request to go on.
+    let last = requests.last().expect("a request").body_json().to_string();
+    assert!(last.contains("Part 1."), "{last}");
+    assert!(last.contains("<output_limit_continuation>"), "{last}");
+    assert!(
+        !requests[0]
+            .body_json()
+            .to_string()
+            .contains("<output_limit_continuation>")
+    );
+    Ok(())
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn incomplete_response_without_output_does_not_compact_the_next_turn() -> anyhow::Result<()> {
     skip_if_no_network!(Ok(()));

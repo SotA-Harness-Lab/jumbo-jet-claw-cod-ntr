@@ -39,6 +39,7 @@ language = "zh-CN"
             ui: UiModConfig {
                 language: Some("zh-CN".to_string()),
             },
+            harness: Default::default(),
         }
     );
 }
@@ -62,7 +63,7 @@ fn wrong_types_are_errors() {
 #[test]
 fn unknown_keys_and_sections_are_left_out_and_named() {
     let (config, unknown) = ModConfig::parse_with_unknown_keys(
-        "[claude]\ntools = true\ntool = 1\n\n[harness]\noutput_limit_continuations = 3\n\n[claude.plugins]\nextra = []\n",
+        "[claude]\ntools = true\ntool = 1\n\n[later]\nsetting = 3\n\n[claude.plugins]\nextra = []\n",
     )
     .expect("a file with settings of another build parses");
 
@@ -76,7 +77,7 @@ fn unknown_keys_and_sections_are_left_out_and_named() {
             ..Default::default()
         }
     );
-    assert_eq!(unknown, vec!["claude.plugins.extra", "claude.tool", "harness"]);
+    assert_eq!(unknown, vec!["claude.plugins.extra", "claude.tool", "later"]);
 }
 
 #[test]
@@ -129,4 +130,14 @@ fn a_valid_file_is_read() {
 
     assert!(config.claude.tools);
     assert_eq!(warning, None);
+}
+
+#[test]
+fn harness_settings_are_read() {
+    let config = ModConfig::parse("[harness]\noutput_limit_continuations = 5\n").expect("parse");
+    assert_eq!(config.harness.output_limit_continuations, Some(5));
+    assert_eq!(
+        ModConfig::default().harness.output_limit_continuations,
+        None
+    );
 }

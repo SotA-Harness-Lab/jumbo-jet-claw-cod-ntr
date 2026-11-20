@@ -13,6 +13,9 @@
 //!
 //! [ui]
 //! language = "zh-CN"                 # the TUI's language; the system's when left out
+//!
+//! [harness]
+//! output_limit_continuations = 3     # how often a response cut off at the output limit is continued
 //! ```
 //!
 //! A missing file means the defaults. A file that does not parse is reported as a startup
@@ -36,6 +39,18 @@ pub struct ModConfig {
     pub claude: ClaudeModConfig,
     /// `[ui]`: the terminal interface.
     pub ui: UiModConfig,
+    /// `[harness]`: how the agent itself works.
+    pub harness: HarnessModConfig,
+}
+
+/// `[harness]` of `ccn-config.toml`.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(default)]
+pub struct HarnessModConfig {
+    /// `output_limit_continuations`: how many responses in a row, cut off at the output token
+    /// limit, are continued before the turn fails as it used to. `0` never continues; 3 when
+    /// left out.
+    pub output_limit_continuations: Option<u32>,
 }
 
 /// `[ui]` of `ccn-config.toml`.

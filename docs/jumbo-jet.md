@@ -35,3 +35,29 @@ wake_on_agent_messages = false
 
 or set `CCN_BACKGROUND_WAKE=0` in the environment. With it off, sessions behave as upstream's:
 no notice for commands, and an agent's notice waits for the next turn.
+
+## Continuing a response cut off at the output limit
+
+When a response ends because it reached the output token limit, the turn used to fail with
+`Incomplete response returned, reason: max_output_tokens`, although part of the work was done.
+Now the model is asked to go on:
+
+- What the response had finished stays: complete tool calls have run and their results are in
+  the history, and complete messages are kept.
+- Text the model had begun is kept as written, cut off where the limit fell. A tool call or a
+  reasoning item that was cut off cannot be replayed and is dropped.
+- A short developer message tells the model what happened and asks it to continue with a
+  shorter response, without repeating what is already there. A warning tells the user.
+
+This happens up to 3 times in a row; a response that completes resets the count. One more
+cut-off response is the error it always was. To change the number, or turn it off with `0`:
+
+```toml
+# ~/.codex/ccn-config.toml
+[harness]
+output_limit_continuations = 3
+```
+
+Not covered: with `responses.process_mode = "after_complete_response"`, Codex holds a
+response's items until it completes, so a cut-off response leaves nothing to continue from and
+the model starts that step over.

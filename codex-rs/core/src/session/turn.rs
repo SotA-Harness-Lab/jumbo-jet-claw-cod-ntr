@@ -203,6 +203,77 @@ async fn preserve_initial_input_during<T>(
     Ok(result)
 }
 
+/// The reason the Responses API gives for a response cut off at the output token limit.
+const OUTPUT_LIMIT_REASON: &str = "max_output_tokens";
+
+/// How many responses in a row may be cut off at the output limit and continued, within one
+/// sampling request, where `[harness] output_limit_continuations` does not say. One more is
+/// the error it always was: a model that keeps running into the limit is not getting
+/// anywhere.
+const DEFAULT_OUTPUT_LIMIT_CONTINUATIONS: u32 = 3;
+
+/// The limit for this turn: the configured one, or the default where this project's changes
+/// are on by default.
+fn output_limit_continuation_limit(turn_context: &TurnContext) -> u32 {
+    turn_context
+        .config
+        .mod_config
+        .harness
+        .output_limit_continuations
+        .unwrap_or(if crate::config::refinements_default() {
+            DEFAULT_OUTPUT_LIMIT_CONTINUATIONS
+        } else {
+            0
+        })
+}
+
+/// Keeps the text a cut-off response had begun, tells the model to go on, and says so to the
+/// user. Complete items of the response, and the results of its complete tool calls, were
+/// recorded as they arrived.
+async fn continue_after_output_limit(
+    sess: &Arc<Session>,
+    step_context: &Arc<StepContext>,
+    partial_output: &[serde_json::Value],
+    continuation: u32,
+    limit: u32,
+) {
+    let turn_context = &step_context.turn;
+    let model_info = &step_context.settings.model_info;
+    let mut items = Vec::new();
+    // Only text can be picked up again; a cut-off tool call or reasoning item cannot be
+    // replayed, so the model starts those over.
+    let partial_text = partial_output
+        .iter()
+        .filter(|item| item.get("type").and_then(serde_json::Value::as_str) == Some("message"))
+        .filter_map(|item| item.get("content")?.as_array())
+        .flatten()
+        .filter_map(|content| content.get("text")?.as_str())
+        .collect::<String>();
+    if !partial_text.trim().is_empty()
+        && let Ok(message) = serde_json::from_value::<ResponseItem>(serde_json::json!({
+            "type": "message",
+            "role": "assistant",
+            "content": [{ "type": "output_text", "text": partial_text }],
+        }))
+    {
+        items.push(message);
+    }
+    items.push(ContextualUserFragment::into(
+        crate::context::OutputLimitContinuation,
+    ));
+    sess.record_conversation_items(turn_context, model_info, &items)
+        .await;
+    sess.send_event(
+        turn_context,
+        EventMsg::Warning(WarningEvent {
+            message: format!(
+                "The model's response reached the output token limit; asking it to continue ({continuation}/{limit})."
+            ),
+        }),
+    )
+    .await;
+}
+
 /// How many times in a row Stop hooks may keep one turn from ending. Claude Code has no such
 /// limit and leaves it to the hook to read `stop_hook_active`; a hook that does not would
 /// otherwise run the model, and its cost, without end.
@@ -2036,6 +2107,9 @@ async fn run_sampling_request(
     let mut notify_messages = Vec::new();
     let mut executed_tool_calls_by_output = HashMap::new();
     let mut sampling_request = SamplingRequest::new(SamplingKind::Sampling);
+    // How many responses in a row were cut off at the output limit and continued.
+    let mut output_limit_continuations = 0u32;
+    let output_limit_continuations_allowed = output_limit_continuation_limit(&turn_context);
     loop {
         // Running code-mode cells can request review while this response is in flight.
         // Keep the latest received ID until response.created replaces it.
@@ -2148,6 +2222,24 @@ async fn run_sampling_request(
                     return Err(err);
                 }
                 CodexErrorDetails::Fatal(_) => return Err(err),
+                // A response cut off at the output limit is not the end of the turn: what it
+                // finished is in the history, so the model is asked to go on from there.
+                CodexErrorDetails::ResponseIncomplete(incomplete)
+                    if incomplete.reason == OUTPUT_LIMIT_REASON
+                        && output_limit_continuations
+                            < output_limit_continuations_allowed =>
+                {
+                    output_limit_continuations += 1;
+                    continue_after_output_limit(
+                        &sess,
+                        &step_context,
+                        &incomplete.partial_output,
+                        output_limit_continuations,
+                        output_limit_continuations_allowed,
+                    )
+                    .await;
+                    continue;
+                }
                 _ if is_terminal_sampling_outcome(&err) => return Err(err),
                 _ => err,
             },
