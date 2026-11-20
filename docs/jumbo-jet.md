@@ -109,3 +109,56 @@ Both are on by default and are turned off in `ccn-config.toml`:
 background_on_timeout = false
 spill_long_output = false
 ```
+
+## Monitor and scheduled prompts
+
+Four tools let the model be called back in place of polling. They are offered whether or not
+the Claude tool set is on, under the names and with the parameters Claude Code's tools have.
+
+### `Monitor`
+
+`Monitor` starts a long-running command and tells the model what it writes. Parameters:
+`command`, `description` (a few words naming what is watched), `timeout_ms` (default 300000,
+between 1000 and 1800000) and, an addition of this project, `pattern`, a regular expression
+that only lines to deliver match.
+
+- The command is started as a background command is: same approvals, same sandbox, with the
+  Claude tool set on the `Bash` permission rules first. It keeps its `session_id`, so
+  `write_stdin` still reads all its output and Ctrl-C stops it.
+- Lines arrive in `<monitor_event>` messages: those written within 200 ms of each other in
+  one, and at most one event every 2 seconds. An event carries up to 40 lines of up to 2000
+  bytes; more are counted, not sent. An event starts a turn in an idle session, by the rules
+  of "Waking for finished background work".
+- The monitor stops its command, with one last event that says why, at the timeout and after
+  100 events. When the command ends by itself, its exit is reported as any background
+  command's.
+- It needs Codex's unified exec.
+
+Not covered: lines the command writes in the instant between the end of the starting call
+and the monitor taking over are in `write_stdin`'s output but in no event, and a monitor that
+cannot keep up with a flood of output loses chunks, which an event's `omitted_lines` counts.
+Claude Code's `ws` parameter (a WebSocket to watch) is not offered.
+
+### `CronCreate`, `CronList`, `CronDelete`
+
+`CronCreate` schedules a prompt: `cron` is a 5-field expression in local time (minute, hour,
+day of month, month, day of week; `*`, numbers, ranges, steps and lists; Sunday is 0 or 7;
+day of month and day of week together match either), `prompt` the text to deliver, and
+`recurring` (default true) whether it is delivered at every match or once.
+
+- A due job is delivered as a `<scheduled_prompt>` message and starts a turn, while no turn is
+  running; one that comes due during a turn waits for it to end. Where a session may not be
+  woken (Plan mode, a subagent, just interrupted), the prompt is recorded and read at the next
+  turn.
+- Jobs live in the session and are gone when it ends: Claude Code's `durable` jobs, kept in a
+  file, are not offered, and neither is its jitter.
+- A recurring job runs one last time once it is 7 days old and is then removed. At most 50
+  jobs. A schedule without a time in the next year is refused.
+- `CronList` lists the jobs with their next time; `CronDelete` cancels one by its id.
+
+All four are on by default and are turned off together:
+
+```toml
+[harness]
+background_tools = false
+```

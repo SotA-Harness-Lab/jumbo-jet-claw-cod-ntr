@@ -11,6 +11,7 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+chrono = { workspace = true }
 futures = { workspace = true }
 htmd = { workspace = true }
 ignore = { workspace = true }

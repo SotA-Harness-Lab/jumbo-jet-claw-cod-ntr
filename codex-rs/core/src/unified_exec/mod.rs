@@ -67,6 +67,7 @@ pub(crate) fn set_deterministic_process_ids_for_tests(enabled: bool) {
 
 pub(crate) use command_sessions::command_sessions_state;
 pub(crate) use errors::UnifiedExecError;
+pub(crate) use process_manager::OutputSubscription;
 pub(crate) use process::UnifiedExecProcess;
 pub(crate) use stdin_approval::TerminalPermissions;
 pub(crate) use stdin_approval::TerminalSandboxSource;

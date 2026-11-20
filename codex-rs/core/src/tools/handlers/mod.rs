@@ -1,6 +1,13 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: add the Monitor and Cron tools
+
 pub(crate) mod apply_patch;
 pub(crate) mod apply_patch_spec;
+mod cron;
 mod current_time;
+mod monitor;
 mod dynamic;
 pub(crate) mod extension_tools;
 mod get_context_remaining;
@@ -60,7 +67,11 @@ pub(crate) use crate::tools::code_mode::CodeModeWaitHandler;
 pub use apply_patch::ApplyPatchHandler;
 use codex_protocol::models::AdditionalPermissionProfile;
 use codex_protocol::protocol::AskForApproval;
+pub use cron::CronCreateHandler;
+pub use cron::CronDeleteHandler;
+pub use cron::CronListHandler;
 pub use current_time::CurrentTimeHandler;
+pub use monitor::MonitorHandler;
 pub use dynamic::DynamicToolHandler;
 pub use get_context_remaining::GetContextRemainingHandler;
 pub use list_available_plugins_to_install::ListAvailablePluginsToInstallHandler;

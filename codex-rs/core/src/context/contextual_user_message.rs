@@ -18,6 +18,8 @@ use super::LegacyModelMismatchWarning;
 use super::LegacyUnifiedExecProcessLimitWarning;
 use super::RecommendedPluginsInstructions;
 use super::BackgroundCommandNotification;
+use super::MonitorEvent;
+use super::ScheduledPrompt;
 use super::SubagentNotification;
 use super::TurnAborted;
 use super::UnsupportedMedia;
@@ -37,6 +39,8 @@ const CONTEXTUAL_USER_FRAGMENT_MATCHERS: &[fn(&str) -> bool] = &[
     TurnAborted::matches_text,
     SubagentNotification::matches_text,
     BackgroundCommandNotification::matches_text,
+    MonitorEvent::matches_text,
+    ScheduledPrompt::matches_text,
     InternalModelContextFragment::matches_text,
     // compatibility for user-role recommendation messages in existing rollouts
     RecommendedPluginsInstructions::matches_text,

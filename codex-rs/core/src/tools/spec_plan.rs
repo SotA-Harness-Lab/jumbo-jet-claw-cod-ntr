@@ -14,6 +14,9 @@ use crate::tools::effective_tool_mode;
 use crate::tools::handlers::ApplyPatchHandler;
 use crate::tools::handlers::CodeModeExecuteHandler;
 use crate::tools::handlers::CodeModeWaitHandler;
+use crate::tools::handlers::CronCreateHandler;
+use crate::tools::handlers::CronDeleteHandler;
+use crate::tools::handlers::CronListHandler;
 use crate::tools::handlers::CurrentTimeHandler;
 use crate::tools::handlers::DynamicToolHandler;
 use crate::tools::handlers::ExecCommandHandler;
@@ -22,6 +25,7 @@ use crate::tools::handlers::GetContextRemainingHandler;
 use crate::tools::handlers::ListAvailablePluginsToInstallHandler;
 use crate::tools::handlers::ListMcpResourceTemplatesHandler;
 use crate::tools::handlers::ListMcpResourcesHandler;
+use crate::tools::handlers::MonitorHandler;
 use crate::tools::handlers::NewContextWindowHandler;
 use crate::tools::handlers::PlanHandler;
 use crate::tools::handlers::ReadMcpResourceHandler;
@@ -1323,6 +1327,13 @@ fn add_shell_tools(context: &CoreToolPlanContext<'_>, registry: &mut ToolRegistr
                 .is_some_and(|shell| shell.shell_type == crate::shell::ShellType::PowerShell)
         }),
     };
+    // A monitor watches a command that keeps running, which only unified exec has.
+    if features.enabled(Feature::UnifiedExec) && background_tools_enabled(turn_context) {
+        registry.add(MonitorHandler::new(
+            ExecCommandHandler::new(options),
+            crate::tools::claude::enabled(turn_context),
+        ));
+    }
     if crate::tools::claude::enabled(turn_context) {
         crate::tools::claude::register_bash(
             registry,
@@ -1340,6 +1351,17 @@ fn add_shell_tools(context: &CoreToolPlanContext<'_>, registry: &mut ToolRegistr
         // resumable process or write_stdin authority prohibited by policy.
         registry.add(ExecCommandHandler::one_shot(options));
     }
+}
+
+/// Whether the model is offered `Monitor` and the `Cron` tools: `[harness] background_tools`,
+/// or on where this project's changes are on by default.
+fn background_tools_enabled(turn_context: &TurnContext) -> bool {
+    turn_context
+        .config
+        .mod_config
+        .harness
+        .background_tools
+        .unwrap_or_else(crate::config::refinements_default)
 }
 
 #[instrument(level = "trace", skip_all)]
@@ -1479,6 +1501,12 @@ fn add_core_utility_tools(context: &CoreToolPlanContext<'_>, registry: &mut Tool
         }
     {
         registry.add(SleepHandler);
+    }
+
+    if background_tools_enabled(turn_context) {
+        registry.add(CronCreateHandler);
+        registry.add(CronListHandler);
+        registry.add(CronDeleteHandler);
     }
 
     if tool_suggest_enabled(turn_context)

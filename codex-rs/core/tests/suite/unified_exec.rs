@@ -1082,6 +1082,138 @@ async fn background_command_exit_wakes_the_idle_session() -> Result<()> {
     Ok(())
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn monitor_event_wakes_the_idle_session() -> Result<()> {
+    skip_if_target_windows!(Ok(()), "uses a POSIX-only command fixture");
+    skip_if_no_network!(Ok(()));
+    skip_if_sandbox!(Ok(()));
+
+    let server = start_mock_server().await;
+    let mut builder = test_codex().with_config(|config| {
+        config.mod_config.harness.background_tools = Some(true);
+        config
+            .features
+            .enable(Feature::WakeOnAgentMessages)
+            .expect("enable the wake");
+    });
+    let test = builder.build_with_auto_env(&server).await?;
+
+    let args = json!({
+        "command": "echo STARTING; sleep 3; echo quiet; echo ALERT-ONE; sleep 60",
+        "description": "alerts",
+        "timeout_ms": 30_000,
+        "pattern": "ALERT",
+    });
+    let responses = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-1"),
+                ev_function_call("monitor-call", "Monitor", &serde_json::to_string(&args)?),
+                ev_completed("resp-1"),
+            ]),
+            sse(vec![
+                ev_response_created("resp-2"),
+                ev_assistant_message("msg-1", "watching"),
+                ev_completed("resp-2"),
+            ]),
+            // Nobody types anything: this answers the turn the event starts.
+            sse(vec![
+                ev_response_created("resp-3"),
+                ev_assistant_message("msg-2", "saw the alert"),
+                ev_completed("resp-3"),
+            ]),
+        ],
+    )
+    .await;
+
+    submit_unified_exec_turn(&test, "watch for alerts", PermissionProfile::Disabled).await?;
+    for _ in 0..2 {
+        wait_for_event(&test.codex, |event| {
+            matches!(event, EventMsg::TurnComplete(_))
+        })
+        .await;
+    }
+
+    let requests = responses.requests();
+    assert_eq!(requests.len(), 3);
+    let started = requests[1]
+        .function_call_output_text("monitor-call")
+        .context("the Monitor call has an output")?;
+    assert!(started.starts_with("Monitor started for session_id "), "{started}");
+    assert!(started.contains("STARTING"), "{started}");
+    assert!(requests[2].has_content_kinds(&["unified_exec.monitor_event"]));
+    let event = requests[2].body_json().to_string();
+    assert!(event.contains("ALERT-ONE"), "{event}");
+    // Only lines that match the pattern are delivered.
+    assert!(!event.contains("quiet\\n"), "{event}");
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cron_tools_schedule_and_list_jobs() -> Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let server = start_mock_server().await;
+    let mut builder = test_codex().with_config(|config| {
+        config.mod_config.harness.background_tools = Some(true);
+    });
+    let test = builder.build_with_auto_env(&server).await?;
+
+    let create = json!({"cron": "0  0 1 1 *", "prompt": "happy new year", "recurring": false});
+    let responses = mount_sse_sequence(
+        &server,
+        vec![
+            sse(vec![
+                ev_response_created("resp-1"),
+                ev_function_call("create", "CronCreate", &serde_json::to_string(&create)?),
+                ev_function_call("bad", "CronCreate", r#"{"cron": "61 * * * *", "prompt": "x"}"#),
+                ev_completed("resp-1"),
+            ]),
+            sse(vec![
+                ev_response_created("resp-2"),
+                ev_function_call("list", "CronList", "{}"),
+                ev_function_call("delete", "CronDelete", r#"{"id": "nosuchid"}"#),
+                ev_completed("resp-2"),
+            ]),
+            sse(vec![
+                ev_response_created("resp-3"),
+                ev_assistant_message("msg-1", "done"),
+                ev_completed("resp-3"),
+            ]),
+        ],
+    )
+    .await;
+
+    submit_unified_exec_turn(&test, "schedule it", PermissionProfile::Disabled).await?;
+    wait_for_event(&test.codex, |event| {
+        matches!(event, EventMsg::TurnComplete(_))
+    })
+    .await;
+
+    let requests = responses.requests();
+    let output = |request: usize, call_id: &str| {
+        requests[request]
+            .function_call_output_text(call_id)
+            .with_context(|| format!("{call_id} has an output"))
+    };
+    let created = output(1, "create")?;
+    assert!(
+        created.starts_with("Scheduled one-shot job ") && created.contains(" (0 0 1 1 *), at "),
+        "{created}"
+    );
+    assert!(output(1, "bad")?.contains("invalid minute"), "{}", output(1, "bad")?);
+    let listed = output(2, "list")?;
+    assert!(
+        listed.contains(" - 0 0 1 1 * (one-shot), next at ") && listed.ends_with(": happy new year"),
+        "{listed}"
+    );
+    assert_eq!(output(2, "delete")?, "No scheduled job with id 'nosuchid'");
+
+    Ok(())
+}
+
 /// Runs one `exec_command` call with `args` and returns what the model was given for it.
 async fn run_one_exec_command(
     test: &TestCodex,

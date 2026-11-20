@@ -289,6 +289,14 @@ fn spills_long_output(turn: &crate::session::turn_context::TurnContext) -> bool 
         .unwrap_or_else(crate::config::refinements_default)
 }
 
+/// The output of a running command as it arrives, and the end of the command.
+pub(crate) struct OutputSubscription {
+    /// Each chunk the command writes. A reader that falls behind loses chunks.
+    pub(crate) output: tokio::sync::broadcast::Receiver<Vec<u8>>,
+    /// Cancelled when the command has ended.
+    pub(crate) exited: CancellationToken,
+}
+
 struct InitialExecCommandGuard {
     active: Option<Arc<AtomicBool>>,
     metrics_sidecar: Option<PluginMetricsSidecar>,
@@ -1905,6 +1913,18 @@ impl UnifiedExecProcessManager {
                 cwd: entry.cwd.clone(),
             })
             .collect()
+    }
+
+    /// Follows the output of the running command `process_id` from now on, beside whatever
+    /// reads it with `write_stdin`: nothing is taken away from that. `None` when there is no
+    /// such command.
+    pub(crate) async fn subscribe_output(&self, process_id: i32) -> Option<OutputSubscription> {
+        let store = self.process_store.lock().await;
+        let entry = store.processes.get(&process_id)?;
+        Some(OutputSubscription {
+            output: entry.process.output_receiver(),
+            exited: entry.process.cancellation_token(),
+        })
     }
 
     pub(crate) async fn terminate_process(&self, process_id: i32) -> bool {

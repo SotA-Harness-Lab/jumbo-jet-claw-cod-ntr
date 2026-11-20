@@ -11,6 +11,7 @@
 pub mod agent;
 pub mod ask_user_question;
 pub mod bash;
+pub mod cron;
 pub mod edit;
 pub mod glob;
 pub mod grep;

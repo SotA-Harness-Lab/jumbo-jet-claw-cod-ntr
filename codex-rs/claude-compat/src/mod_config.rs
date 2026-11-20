@@ -18,6 +18,7 @@
 //! output_limit_continuations = 3     # how often a response cut off at the output limit is continued
 //! background_on_timeout = true       # a Bash command past its timeout keeps running in the background
 //! spill_long_output = true           # command output too long for the model is kept in a file
+//! background_tools = true            # the Monitor, CronCreate, CronList and CronDelete tools
 //! ```
 //!
 //! A missing file means the defaults. A file that does not parse is reported as a startup
@@ -60,6 +61,10 @@ pub struct HarnessModConfig {
     /// `spill_long_output`: whether the output of a command that is too long to show the
     /// model whole is kept in a file whose place the model is told. On when left out.
     pub spill_long_output: Option<bool>,
+    /// `background_tools`: whether the model is offered `Monitor`, to be told what a
+    /// long-running command writes, and `CronCreate`, `CronList` and `CronDelete`, to
+    /// schedule prompts for itself. On when left out.
+    pub background_tools: Option<bool>,
 }
 
 /// `[ui]` of `ccn-config.toml`.

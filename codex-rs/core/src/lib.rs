@@ -153,6 +153,7 @@ pub(crate) mod mentions {
     pub(crate) use crate::plugins::collect_tool_mentions_from_messages;
 }
 mod sandbox_tags;
+mod scheduled_prompts;
 pub mod sandboxing;
 mod session_prefix;
 mod skills;
