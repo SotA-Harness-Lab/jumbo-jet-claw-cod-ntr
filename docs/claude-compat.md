@@ -734,7 +734,7 @@ thing Codex has, where there is one.
 | A value for a `userConfig` option that was never set | Asked for in `/plugin`, when the plugin is installed, enabled or configured | Cannot be asked for. A hook whose command names the option is skipped with a warning, and an MCP server's string that names it is left as written, with a warning in the log. Set the option in Claude Code | Not planned |
 | `sensitive` `userConfig` values on macOS | Read from the keychain | Not read: a sensitive option has no value there. On other systems they are read from `~/.claude/.credentials.json` | Not planned |
 | `userConfig` values in a plugin's skills and commands | Filled in | Not filled in | Not planned |
-| LSP servers of a plugin (`lspServers`, `.lsp.json`) | Started | The plugin is disabled whole (see "Which plugins are used") | Not planned |
+| LSP servers of a plugin (`lspServers`, `.lsp.json`) | Started | The plugin is disabled whole (see "Which plugins are used") | Not planned; Jumbo Jet: planned |
 | A plugin without a `plugin.json`, whose marketplace entry is its manifest; a marketplace entry that adds components to the `plugin.json` | Loaded | Not read: only `plugin.json` at the install path is | Not planned |
 | Managed `enabledPlugins` (`false` there blocks a plugin the user enables), plugins from `--add-dir` and `--plugin-dir`, Claude Code's built-in plugins | Applied | Not read: a plugin the managed settings block is still used | Not planned |
 | A path the manifest declares for `hooks` or `mcpServers` | Loaded beside `hooks/hooks.json` or `.mcp.json` | Replaces it. An `mcpServers` list mixing paths and objects is not read | Not planned |
@@ -764,7 +764,7 @@ a feature of its own for the purpose, configured in its own way.
 | Worktrees (`--worktree`, `.worktreeinclude`, `worktree.*`) | A session in a worktree of its own | Not read. Nearest: Codex's `/worktree` | Not planned |
 | `claude -p` and its options (`--output-format`, `--input-format`, `--json-schema`, `--max-turns`, `--system-prompt`, `--append-system-prompt`) | A run without a person, with these controls | `codex exec`, with `--json` (events of Codex's own shape) and `--output-schema`; the other options have no counterpart | Not planned |
 | Scheduled prompts and monitors (`CronCreate`, `Monitor`, `/loop`) | The model schedules prompts for itself and watches a command | Absent | Not planned; Jumbo Jet: `Monitor` and the Cron tools, done 2026-11-20 `aaa300e67a` |
-| Channels, LSP servers and the `LSP` tool | Push events into a session; code intelligence | Absent | Not planned |
+| Channels, LSP servers and the `LSP` tool | Push events into a session; code intelligence | Absent | Not planned; Jumbo Jet: LSP servers and the `LSP` tool planned |
 | `CLAUDE_CONFIG_DIR` | Moves `~/.claude` | Not read: `~/.claude` is always used. `CODEX_HOME` moves Codex's own directory | Not planned |
 | `fastMode` | A faster output mode of some models | Not read. Nearest: `service_tier` in `config.toml` | Not planned |
 | `respectGitignore`, `fileSuggestion`, `defaultShell`, `plansDirectory` | Tune file completion, the shell and where plans are kept | Not read | Not planned |
