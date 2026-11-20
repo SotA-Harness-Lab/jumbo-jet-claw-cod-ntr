@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: limit how often a Stop hook may keep a turn from ending
+
 use std::fs;
 use std::path::Path;
 
@@ -1300,6 +1305,44 @@ fn request_message_input_texts(body: &[u8], role: &str) -> Vec<String> {
         .filter(|span| span.get("type").and_then(Value::as_str) == Some("input_text"))
         .filter_map(|span| span.get("text").and_then(Value::as_str).map(str::to_owned))
         .collect()
+}
+
+#[tokio::test]
+async fn stop_hook_that_always_blocks_is_overruled_after_eight_blocks() -> Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let server = start_mock_server().await;
+    // The first answer and one more for each of the eight blocks that are honoured.
+    let responses = mount_sse_sequence(
+        &server,
+        (1..=9)
+            .map(|index| {
+                sse(vec![
+                    ev_response_created(&format!("resp-{index}")),
+                    ev_assistant_message(&format!("msg-{index}"), &format!("draft {index}")),
+                    ev_completed(&format!("resp-{index}")),
+                ])
+            })
+            .collect(),
+    )
+    .await;
+
+    let mut builder = test_codex()
+        .with_pre_build_hook(|home| {
+            write_stop_hook(home, &[FIRST_CONTINUATION_PROMPT; 20])
+                .expect("failed to write stop hook test fixture");
+        })
+        .with_config(trust_discovered_hooks);
+    let test = builder.build(&server).await?;
+
+    test.submit_turn("hello from the sea").await?;
+
+    assert_eq!(responses.requests().len(), 9);
+    let hook_inputs = read_stop_hook_inputs(test.codex_home_path())?;
+    // The ninth block is the one that is not honoured.
+    assert_eq!(hook_inputs.len(), 9);
+
+    Ok(())
 }
 
 #[tokio::test]
