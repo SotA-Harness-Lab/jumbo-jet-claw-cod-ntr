@@ -732,6 +732,33 @@ impl Session {
         )
     }
 
+    /// The metadata of a request made beside a turn's own sampling, from the turn alone: one
+    /// request to a model without tools, such as the judging of a `prompt` hook, for which no
+    /// step was prepared.
+    pub(crate) async fn responses_metadata_for_turn(
+        &self,
+        turn_context: &TurnContext,
+        request_kind: CodexResponsesRequestKind,
+    ) -> CodexResponsesMetadata {
+        let state = self.state.lock().await;
+        let (window_id, window_number, context_window_id) = self.current_window_from_state(&state);
+        drop(state);
+        let settings = &turn_context.initial_settings;
+        let mut responses_metadata = turn_context.turn_metadata_state.to_responses_metadata(
+            self.installation_id.clone(),
+            window_id,
+            request_kind,
+        );
+        ExecutionMetadata::from_settings(settings).apply_to(&mut responses_metadata);
+        responses_metadata.request_country = settings.request_country().clone();
+        self.with_window_and_fork_metadata(
+            turn_context,
+            responses_metadata,
+            window_number,
+            context_window_id,
+        )
+    }
+
     // TODO(CDXENT-454): Build the compaction request and metadata from the captured execution.
     // Remote compaction currently attaches only finalized tool inventory because the rest of the
     // request remains turn-backed; local compaction does not have a finalized request inventory.

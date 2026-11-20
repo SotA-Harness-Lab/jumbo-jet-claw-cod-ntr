@@ -39,6 +39,7 @@ language = "zh-CN"
             ui: UiModConfig {
                 language: Some("zh-CN".to_string()),
             },
+            ..Default::default()
         }
     );
 }
@@ -129,4 +130,27 @@ fn a_valid_file_is_read() {
 
     assert!(config.claude.tools);
     assert_eq!(warning, None);
+}
+
+#[test]
+fn a_hook_s_claude_model_is_mapped_by_name_or_by_part_of_it() {
+    let config = ModConfig::parse(
+        "[hooks.models]\nhaiku = \"small\"\n\"claude-sonnet-4-6\" = \"medium\"\nsonnet = \"other\"\ndefault = \"tiny\"\nopus = \" \"\n",
+    )
+    .expect("parse");
+    let hooks = &config.hooks;
+
+    // The whole name first, then the longest name it contains.
+    assert_eq!(hooks.model_for(Some("claude-sonnet-4-6")), Some("medium"));
+    assert_eq!(hooks.model_for(Some("claude-sonnet-5")), Some("other"));
+    assert_eq!(hooks.model_for(Some("Claude-Haiku-4-5")), Some("small"));
+    assert_eq!(hooks.model_for(Some("haiku")), Some("small"));
+    // A handler that names no model takes `default`, which names no part of a model.
+    assert_eq!(hooks.model_for(None), Some("tiny"));
+    assert_eq!(hooks.model_for(Some(" ")), Some("tiny"));
+    // No entry, or an empty one: the handler's model is ignored.
+    assert_eq!(hooks.model_for(Some("claude-opus-5")), None);
+    assert_eq!(hooks.model_for(Some("gemini-default-x")), None);
+    assert_eq!(ModConfig::default().hooks.model_for(Some("haiku")), None);
+    assert_eq!(ModConfig::default().hooks.model_for(None), None);
 }

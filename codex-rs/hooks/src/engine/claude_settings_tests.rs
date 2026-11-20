@@ -202,7 +202,7 @@ fn prompt_agent_and_http_handlers_keep_what_they_declare() {
             "allowedHttpHookUrls": ["https://hooks.example.com/*"],
             "hooks": {
                 "Stop": [{"hooks": [
-                    {"type": "prompt", "prompt": "Did the tests run? $ARGUMENTS", "timeout": 12},
+                    {"type": "prompt", "prompt": "Did the tests run? $ARGUMENTS", "timeout": 12, "model": "claude-haiku-4-5"},
                     {"type": "agent", "prompt": "Verify the build."},
                     {"type": "command", "command": "plain.sh"}
                 ]}],
@@ -227,7 +227,8 @@ fn prompt_agent_and_http_handlers_keep_what_they_declare() {
         (&prompt.kind, prompt.timeout_sec),
         (
             &ClaudeHandlerKind::Prompt {
-                prompt: "Did the tests run? $ARGUMENTS".to_string()
+                prompt: "Did the tests run? $ARGUMENTS".to_string(),
+                model: Some("claude-haiku-4-5".to_string()),
             },
             Some(12)
         )
@@ -235,7 +236,8 @@ fn prompt_agent_and_http_handlers_keep_what_they_declare() {
     assert_eq!(
         handlers[&("Stop".to_string(), 0, 1)].kind,
         ClaudeHandlerKind::Agent {
-            prompt: "Verify the build.".to_string()
+            prompt: "Verify the build.".to_string(),
+            model: None,
         }
     );
     let http = &handlers[&("PostToolUse".to_string(), 0, 0)];
