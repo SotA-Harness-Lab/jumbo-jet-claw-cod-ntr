@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep what a patch replaced, to put files back on a rewind
+
 use crate::function_tool::FunctionCallError;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
@@ -7,6 +12,7 @@ use codex_analytics::ArtifactOperation;
 use codex_analytics::ArtifactOperationLifecycle;
 use codex_analytics::build_track_events_context;
 use codex_apply_patch::AppliedPatchDelta;
+use codex_apply_patch::AppliedPatchFileChange;
 use codex_core_plugins::PluginCommandAttribution;
 use codex_core_plugins::recognize_artifact_operation;
 use codex_otel::ARTIFACT_OPERATION_EXPECTED_OUTPUT_COUNT_METRIC;
@@ -596,6 +602,87 @@ fn plugin_attribution_fields(
         .unzip()
 }
 
+/// Keeps what an applied patch replaced, so that rewinding the conversation to before this
+/// turn can put the files back (`codex_claude_compat::file_history`). Only for files on
+/// this machine: a remote environment's files are not where the checkpoint is read.
+async fn record_file_history(ctx: &ToolEventCtx<'_>, update: &TurnDiffTrackerUpdate<'_>) {
+    let config = &ctx.turn.config;
+    if !config
+        .mod_config
+        .harness
+        .file_checkpoints
+        .unwrap_or_else(crate::config::refinements_default)
+    {
+        return;
+    }
+    let (environment_id, delta) = match update {
+        TurnDiffTrackerUpdate::Track {
+            environment_id,
+            delta,
+        } => (environment_id.as_deref(), Some(*delta)),
+        // Something was written that could not be followed.
+        TurnDiffTrackerUpdate::Invalidate => (None, None),
+        TurnDiffTrackerUpdate::None => return,
+    };
+    let remote = ctx
+        .turn
+        .initial_environments
+        .turn_environments()
+        .find(|environment| {
+            environment_id.is_none_or(|id| environment.selection.environment_id == id)
+        })
+        .is_some_and(|environment| environment.environment().is_remote());
+    if remote {
+        return;
+    }
+    let mut before = Vec::new();
+    let mut incomplete = delta.is_none_or(|delta| !delta.is_exact());
+    for change in delta.map(AppliedPatchDelta::changes).unwrap_or_default() {
+        let mut keep = |path: &codex_utils_path_uri::PathUri, text: Option<String>| match path
+            .to_abs_path()
+        {
+            Ok(path) => before.push((path.to_path_buf(), text)),
+            Err(_) => incomplete = true,
+        };
+        match &change.change {
+            AppliedPatchFileChange::Add {
+                overwritten_content,
+                ..
+            } => keep(&change.path, overwritten_content.clone()),
+            AppliedPatchFileChange::Delete { content } => {
+                keep(&change.path, Some(content.clone()));
+            }
+            AppliedPatchFileChange::Update {
+                move_path,
+                old_content,
+                overwritten_move_content,
+                ..
+            } => {
+                keep(&change.path, Some(old_content.clone()));
+                if let Some(move_path) = move_path {
+                    keep(move_path, overwritten_move_content.clone());
+                }
+            }
+        }
+    }
+    let codex_home = config.codex_home.to_path_buf();
+    let thread_id = ctx.session.thread_id.to_string();
+    let turn_id = ctx.turn.sub_id.clone();
+    let recorded = tokio::task::spawn_blocking(move || {
+        codex_claude_compat::file_history::record(
+            &codex_home,
+            &thread_id,
+            &turn_id,
+            before,
+            incomplete,
+        )
+    })
+    .await;
+    if let Ok(Err(err)) = recorded {
+        tracing::warn!("could not keep what a patch replaced for rewinding: {err}");
+    }
+}
+
 async fn emit_patch_end(
     ctx: ToolEventCtx<'_>,
     changes: HashMap<PathBuf, FileChange>,
@@ -617,6 +704,8 @@ async fn emit_patch_end(
             }),
         )
         .await;
+
+    record_file_history(&ctx, &tracker_update).await;
 
     if let Some(tracker) = ctx.turn_diff_tracker {
         let (should_emit_turn_diff, unified_diff) = {

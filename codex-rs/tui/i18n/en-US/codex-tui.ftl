@@ -4913,3 +4913,19 @@ permissions-preset-full-access = Full Access
 ## Collaboration modes (codex-protocol's ModeKind)
 collaboration-mode-default = Default
 collaboration-mode-plan = Plan
+
+## Putting files back when reverting before a prompt (app_backtrack.rs)
+backtrack-restore-title = Put the files back too?
+backtrack-restore-files-changed = Edits after this prompt changed { $count } file(s): { $names }
+backtrack-restore-more-files = {" "}and { $count } more
+backtrack-restore-warning = Only edits made with the editing tools are known. What shell commands or you changed stays as it is.
+backtrack-restore-incomplete = Some edits since then could not be recorded in full, so the files may not end up exactly as they were.
+backtrack-restore-both = Restore code and conversation
+backtrack-restore-both-description = Put the files back, then go back to before this prompt.
+backtrack-restore-conversation = Restore conversation
+backtrack-restore-conversation-description = Go back to before this prompt. The files stay as they are.
+backtrack-restore-code = Restore code
+backtrack-restore-code-description = Put the files back. The conversation stays as it is.
+backtrack-restore-cancel = Never mind
+backtrack-restore-done = Put { $count } file(s) back to what they held before this prompt.
+backtrack-restore-failed = Could not put { $path } back: { $error }

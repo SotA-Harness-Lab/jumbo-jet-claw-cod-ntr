@@ -446,6 +446,75 @@ async fn apply_patch_cli_uses_codex_self_exe_with_linux_sandbox_helper_alias() -
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn applied_patch_leaves_a_checkpoint_to_rewind_to() -> Result<()> {
+    skip_if_no_network!(Ok(()));
+
+    let harness = apply_patch_harness_with(|builder| {
+        builder.with_model("gpt-5.5").with_config(|config| {
+            config.mod_config.harness.file_checkpoints = Some(true);
+        })
+    })
+    .await?;
+    harness.write_file("modify.txt", "line1\nline2\n").await?;
+    harness.write_file("delete.txt", "obsolete\n").await?;
+
+    let patch = "*** Begin Patch\n*** Add File: nested/new.txt\n+created\n*** Delete File: delete.txt\n*** Update File: modify.txt\n@@\n-line2\n+changed\n*** End Patch";
+    mount_apply_patch(&harness, "apply-checkpoint", patch, "done").await;
+    harness.submit("please apply the patch").await?;
+    assert_eq!(harness.read_file_text("modify.txt").await?, "line1\nchanged\n");
+
+    // One checkpoint, of the one turn: its place gives the thread and the turn.
+    let history = harness.test().codex_home_path().join("file-history");
+    let thread_dir = fs::read_dir(&history)?
+        .next()
+        .expect("a thread directory")?
+        .path();
+    let checkpoint = fs::read_dir(&thread_dir)?
+        .next()
+        .expect("a checkpoint")?
+        .path();
+    let name = |path: &std::path::Path| {
+        path.file_stem()
+            .expect("a file name")
+            .to_string_lossy()
+            .into_owned()
+    };
+    let plan = codex_claude_compat::file_history::plan_restore(
+        harness.test().codex_home_path(),
+        &name(&thread_dir),
+        &[name(&checkpoint)],
+    );
+    let mut restored = plan
+        .files
+        .iter()
+        .map(|(file, before)| (name(file), before.clone()))
+        .collect::<Vec<_>>();
+    restored.sort();
+    assert_eq!(
+        restored,
+        vec![
+            ("delete".to_string(), Some("obsolete\n".to_string())),
+            ("modify".to_string(), Some("line1\nline2\n".to_string())),
+            ("new".to_string(), None),
+        ]
+    );
+    assert_eq!(plan.incomplete, false);
+
+    assert_eq!(codex_claude_compat::file_history::restore(&plan).len(), 0);
+    assert_eq!(harness.read_file_text("modify.txt").await?, "line1\nline2\n");
+    assert_eq!(harness.read_file_text("delete.txt").await?, "obsolete\n");
+    let created = plan
+        .files
+        .iter()
+        .find(|(_, before)| before.is_none())
+        .map(|(file, _)| file.clone())
+        .expect("the created file");
+    assert!(!created.exists());
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn apply_patch_cli_multiple_operations_integration() -> Result<()> {
     skip_if_no_network!(Ok(()));
 

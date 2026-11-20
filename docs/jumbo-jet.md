@@ -162,3 +162,33 @@ All four are on by default and are turned off together:
 [harness]
 background_tools = false
 ```
+
+## Rewinding puts the files back
+
+Going back to an earlier prompt (Esc, then Esc to pick one, Enter) used to change the
+conversation only: the files stayed as the turns taken away had left them. Now the files can
+go back too.
+
+- Whenever an edit is applied (`apply_patch`, also when typed in the shell, and the Claude
+  tool set's `Write` and `Edit`), what it replaced is kept: for each file, its text before
+  the turn's first edit of it, or that the file did not exist. One checkpoint a turn, in
+  `$CODEX_HOME/file-history/<thread>/<turn>.json`, readable by the user alone.
+- On a rewind, if the turns taken away changed files that still differ from what they held,
+  a list asks what to put back: **Restore code and conversation**, **Restore conversation**
+  (what a rewind always did), **Restore code** or **Never mind**. It names the files.
+  Without such files the rewind goes on as before, unasked.
+- Putting back writes each file as it was before the earliest of those turns, and removes
+  files they created.
+
+What it does not cover, and the list says so: changes made by shell commands or by hand. Also
+not covered: files that are not text or are larger than 10 MiB, and edits in a remote
+environment (the checkpoints are on this machine); a turn with such an edit is marked, and the
+list says the files may not end up exactly as they were. Checkpoints are not removed when a
+session ends.
+
+To turn the checkpoints off:
+
+```toml
+[harness]
+file_checkpoints = false
+```

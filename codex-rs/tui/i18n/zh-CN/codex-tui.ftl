@@ -4721,3 +4721,19 @@ permissions-preset-full-access = 完全访问
 ## Collaboration modes (codex-protocol's ModeKind)
 collaboration-mode-default = 默认
 collaboration-mode-plan = 计划
+
+## Putting files back when reverting before a prompt (app_backtrack.rs)
+backtrack-restore-title = 要一并恢复文件吗？
+backtrack-restore-files-changed = 这条提示之后的编辑改动了 { $count } 个文件：{ $names }
+backtrack-restore-more-files = {" "}等另外 { $count } 个
+backtrack-restore-warning = 只记录了通过编辑工具所做的修改。shell 命令或你自己改动的内容保持不变。
+backtrack-restore-incomplete = 此后有些编辑没能完整记录，文件可能无法完全恢复原样。
+backtrack-restore-both = 恢复代码和对话
+backtrack-restore-both-description = 先恢复文件，再回到这条提示之前。
+backtrack-restore-conversation = 只恢复对话
+backtrack-restore-conversation-description = 回到这条提示之前，文件保持不变。
+backtrack-restore-code = 只恢复代码
+backtrack-restore-code-description = 恢复文件，对话保持不变。
+backtrack-restore-cancel = 算了
+backtrack-restore-done = 已将 { $count } 个文件恢复到这条提示之前的内容。
+backtrack-restore-failed = 无法恢复 { $path }：{ $error }

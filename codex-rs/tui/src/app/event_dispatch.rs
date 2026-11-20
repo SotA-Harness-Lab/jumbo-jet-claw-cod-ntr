@@ -191,6 +191,7 @@ impl App {
                         ..
                     }
                     | AppEvent::RevertSessionForPromptEdit { .. }
+                    | AppEvent::RevertSessionWithFiles { .. }
                     | AppEvent::SetThreadGoalDraft { .. }
                     | AppEvent::SetThreadGoalStatus {
                         status: ThreadGoalStatus::Active,
@@ -854,11 +855,27 @@ impl App {
                 }
                 tui.frame_requester().schedule_frame();
             }
+            AppEvent::RevertSessionWithFiles {
+                thread_id,
+                selected_cell,
+                prompt,
+                files,
+            } => {
+                // The revert below takes the choice with it.
+                self.backtrack.file_choice = Some(files);
+                self.app_event_tx.send(AppEvent::RevertSessionForPromptEdit {
+                    thread_id,
+                    selected_cell,
+                    prompt,
+                });
+            }
             AppEvent::RevertSessionForPromptEdit {
                 thread_id,
                 selected_cell,
                 mut prompt,
             } => {
+                let file_choice = self.backtrack.file_choice.take();
+                let original_prompt = prompt.clone();
                 if self.chat_widget.thread_id() != Some(thread_id) {
                     return Ok(AppRunControl::Continue);
                 }
@@ -886,7 +903,7 @@ impl App {
                     return Ok(AppRunControl::Continue);
                 };
                 let nth_user_message = crate::app_backtrack::user_count(&self.transcript_cells[..index]);
-                let selection: Result<(String, Vec<Turn>)> = async {
+                let selection: Result<(String, Vec<Turn>, Vec<String>)> = async {
                     let channel = self.thread_event_channels.get(&thread_id)
                         .ok_or_else(|| color_eyre::eyre::eyre!("the selected thread is no longer available"))?;
                     let (start_item, loaded_tail, latest_turn_id) = {
@@ -929,6 +946,11 @@ impl App {
                     // Keep the store aligned with the displayed prefix, including retained live turns.
                     let cut = thread.turns.iter().position(|turn| turn.id == before_turn_id)
                         .ok_or_else(|| color_eyre::eyre::eyre!("selected turn disappeared"))?;
+                    // The turns this revert takes away, whose edits can be undone with it.
+                    let reverted_turn_ids = thread.turns[cut..]
+                        .iter()
+                        .map(|turn| turn.id.clone())
+                        .collect::<Vec<_>>();
                     thread.turns.truncate(cut);
                     if let Some((turn_id, item_id)) = &start_item {
                         for turn in &mut thread.turns {
@@ -941,9 +963,9 @@ impl App {
                             turn.items.clear();
                         }
                     }
-                    Ok((before_turn_id, thread.turns))
+                    Ok((before_turn_id, thread.turns, reverted_turn_ids))
                 }.await;
-                let (before_turn_id, retained_turns) = match selection {
+                let (before_turn_id, retained_turns, reverted_turn_ids) = match selection {
                     Ok(selection) => selection,
                     Err(err) => {
                         self.restore_backtrack_prompt_after_revert_error(prompt, err);
@@ -951,6 +973,42 @@ impl App {
                         return Ok(AppRunControl::Continue);
                     }
                 };
+                // What the agent's edits have changed since the selected prompt can be put back
+                // with the conversation. The checkpoints are on this machine, so not for a
+                // workspace somewhere else.
+                let restore_plan = if self.app_server_target.uses_remote_workspace() {
+                    Default::default()
+                } else {
+                    codex_claude_compat::file_history::plan_restore(
+                        self.config.codex_home.as_path(),
+                        &thread_id.to_string(),
+                        &reverted_turn_ids,
+                    )
+                };
+                if !restore_plan.files.is_empty() {
+                    use crate::app_backtrack::FileRestoreChoice;
+                    match file_choice {
+                        None => {
+                            self.open_revert_file_choice(
+                                thread_id,
+                                selected_cell,
+                                original_prompt,
+                                &restore_plan,
+                            );
+                            tui.frame_requester().schedule_frame();
+                            return Ok(AppRunControl::Continue);
+                        }
+                        Some(FileRestoreChoice::Conversation) => {}
+                        Some(FileRestoreChoice::CodeAndConversation) => {
+                            self.restore_files_for_revert(&restore_plan);
+                        }
+                        Some(FileRestoreChoice::Code) => {
+                            self.restore_files_for_revert(&restore_plan);
+                            tui.frame_requester().schedule_frame();
+                            return Ok(AppRunControl::Continue);
+                        }
+                    }
+                }
                 let reverted = match app_server.revert_thread(thread_id, before_turn_id, &retained_turns).await {
                     Ok(reverted) => reverted,
                     Err(err) => {

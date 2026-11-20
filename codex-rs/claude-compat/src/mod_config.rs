@@ -19,6 +19,7 @@
 //! background_on_timeout = true       # a Bash command past its timeout keeps running in the background
 //! spill_long_output = true           # command output too long for the model is kept in a file
 //! background_tools = true            # the Monitor, CronCreate, CronList and CronDelete tools
+//! file_checkpoints = true            # keep what edits replace, to put files back on a rewind
 //! ```
 //!
 //! A missing file means the defaults. A file that does not parse is reported as a startup
@@ -65,6 +66,9 @@ pub struct HarnessModConfig {
     /// long-running command writes, and `CronCreate`, `CronList` and `CronDelete`, to
     /// schedule prompts for itself. On when left out.
     pub background_tools: Option<bool>,
+    /// `file_checkpoints`: whether what the agent's edits replace is kept, so that rewinding
+    /// the conversation can put the files back. On when left out.
+    pub file_checkpoints: Option<bool>,
 }
 
 /// `[ui]` of `ccn-config.toml`.

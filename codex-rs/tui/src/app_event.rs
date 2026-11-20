@@ -867,6 +867,14 @@ pub(crate) enum AppEvent {
         selected_cell: Arc<dyn HistoryCell>,
         prompt: UserMessage,
     },
+    /// The same, once the user has chosen what to put back: the files the agent's edits
+    /// changed since that prompt, the conversation, or both.
+    RevertSessionWithFiles {
+        thread_id: ThreadId,
+        selected_cell: Arc<dyn HistoryCell>,
+        prompt: UserMessage,
+        files: crate::app_backtrack::FileRestoreChoice,
+    },
     FinishPromptRevert {
         thread_id: ThreadId,
         nth_user_message: usize,

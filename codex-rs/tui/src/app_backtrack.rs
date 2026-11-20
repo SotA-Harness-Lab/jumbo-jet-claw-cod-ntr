@@ -87,6 +87,19 @@ pub(crate) struct BacktrackState {
     /// Preserve the initiating key while a select-and-follow copy is pending.
     pub(crate) pending_select_exit_key: Option<(u64, crate::key_hint::KeyBinding)>,
     origin: Option<browsing::BrowsingOrigin>,
+    /// What the user chose to put back for the revert that is on its way, once asked.
+    pub(crate) file_choice: Option<FileRestoreChoice>,
+}
+
+/// What a revert before a prompt puts back, where the agent's edits since then are known.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FileRestoreChoice {
+    /// The files, then the conversation.
+    CodeAndConversation,
+    /// The conversation alone, as a revert always did.
+    Conversation,
+    /// The files alone.
+    Code,
 }
 
 impl BacktrackState {
@@ -184,6 +197,122 @@ impl App {
                 selected_cell: Arc::clone(&self.transcript_cells[index]),
                 prompt: selection.prompt,
             });
+    }
+
+    /// Asks what to put back, for a revert that would leave behind files the agent's edits
+    /// have changed since the selected prompt.
+    pub(crate) fn open_revert_file_choice(
+        &mut self,
+        thread_id: ThreadId,
+        selected_cell: Arc<dyn crate::history_cell::HistoryCell>,
+        prompt: UserMessage,
+        plan: &codex_claude_compat::file_history::RestorePlan,
+    ) {
+        use crate::bottom_pane::SelectionItem;
+        use crate::bottom_pane::SelectionViewParams;
+        use ratatui::style::Stylize;
+        use ratatui::text::Line;
+        use ratatui::widgets::Paragraph;
+        use ratatui::widgets::Wrap;
+
+        const NAMED_FILES: usize = 3;
+        let mut names = plan
+            .files
+            .iter()
+            .take(NAMED_FILES)
+            .map(|(file, _)| {
+                file.file_name()
+                    .map_or_else(|| file.display().to_string(), |name| {
+                        name.to_string_lossy().into_owned()
+                    })
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        if plan.files.len() > NAMED_FILES {
+            names.push_str(&crate::i18n::tr!(
+                "backtrack-restore-more-files",
+                count = plan.files.len() - NAMED_FILES
+            ));
+        }
+        let mut lines = vec![
+            Line::from(crate::i18n::tr!("backtrack-restore-title")).bold(),
+            Line::from(crate::i18n::tr!(
+                "backtrack-restore-files-changed",
+                count = plan.files.len(),
+                names = names
+            )),
+            Line::from(crate::i18n::tr!("backtrack-restore-warning")).dim(),
+        ];
+        if plan.incomplete {
+            lines.push(Line::from(crate::i18n::tr!("backtrack-restore-incomplete")).dim());
+        }
+        let choice = |files: FileRestoreChoice, name: &str, description: &str| {
+            let selected_cell = Arc::clone(&selected_cell);
+            let prompt = prompt.clone();
+            SelectionItem {
+                name: name.to_string(),
+                description: Some(description.to_string()),
+                actions: vec![Box::new(move |tx| {
+                    tx.send(AppEvent::RevertSessionWithFiles {
+                        thread_id,
+                        selected_cell: Arc::clone(&selected_cell),
+                        prompt: prompt.clone(),
+                        files,
+                    });
+                })],
+                dismiss_on_select: true,
+                ..Default::default()
+            }
+        };
+        let items = vec![
+            choice(
+                FileRestoreChoice::CodeAndConversation,
+                crate::i18n::tr!("backtrack-restore-both"),
+                crate::i18n::tr!("backtrack-restore-both-description"),
+            ),
+            choice(
+                FileRestoreChoice::Conversation,
+                crate::i18n::tr!("backtrack-restore-conversation"),
+                crate::i18n::tr!("backtrack-restore-conversation-description"),
+            ),
+            choice(
+                FileRestoreChoice::Code,
+                crate::i18n::tr!("backtrack-restore-code"),
+                crate::i18n::tr!("backtrack-restore-code-description"),
+            ),
+            SelectionItem {
+                name: crate::i18n::tr!("backtrack-restore-cancel").to_string(),
+                dismiss_on_select: true,
+                ..Default::default()
+            },
+        ];
+        self.chat_widget.show_selection_view(SelectionViewParams {
+            items,
+            header: Box::new(Paragraph::new(lines).wrap(Wrap { trim: false })),
+            ..SelectionViewParams::confirmation()
+        });
+    }
+
+    /// Puts the files of `plan` back and says what was done.
+    pub(crate) fn restore_files_for_revert(
+        &mut self,
+        plan: &codex_claude_compat::file_history::RestorePlan,
+    ) {
+        let failed = codex_claude_compat::file_history::restore(plan);
+        for (file, err) in &failed {
+            self.chat_widget.add_error_message(crate::i18n::tr!(
+                "backtrack-restore-failed",
+                path = file.display().to_string(),
+                error = err.to_string()
+            ));
+        }
+        self.chat_widget.add_info_message(
+            crate::i18n::tr!(
+                "backtrack-restore-done",
+                count = plan.files.len() - failed.len()
+            ),
+            /*hint*/ None,
+        );
     }
 
     pub(crate) fn restore_backtrack_prompt_after_revert_error(
