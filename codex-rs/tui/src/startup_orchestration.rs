@@ -1063,7 +1063,6 @@ pub(super) async fn run_main_inner(
             (
                 "update_target",
                 match source {
-                    DaemonUpdateSource::PublicStable => "public_stable",
                     DaemonUpdateSource::ThisCli => "this_cli",
                 },
             ),

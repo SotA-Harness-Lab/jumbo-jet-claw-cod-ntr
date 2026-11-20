@@ -1,9 +1,10 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: look for updates in the fork's own releases
+
 #[cfg(any(not(debug_assertions), test))]
 use codex_install_context::InstallContext;
-#[cfg(any(not(debug_assertions), test))]
-use codex_install_context::InstallMethod;
-#[cfg(any(not(debug_assertions), test))]
-use codex_install_context::StandalonePlatform;
 
 /// Update action the CLI should perform after the TUI exits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,20 +28,14 @@ pub enum UpdateAction {
 }
 
 impl UpdateAction {
+    /// The command that updates an installation of this kind, when there is one.
+    ///
+    /// The commands below install upstream's Codex (its npm package, its Homebrew cask, its
+    /// installer), not this fork, so none is offered: a new release is announced with a link to
+    /// the fork's release page instead.
     #[cfg(any(not(debug_assertions), test))]
-    pub(crate) fn from_install_context(context: &InstallContext) -> Option<Self> {
-        match &context.method {
-            InstallMethod::Npm => Some(UpdateAction::NpmGlobalLatest),
-            InstallMethod::Bun => Some(UpdateAction::BunGlobalLatest),
-            InstallMethod::VitePlus => Some(UpdateAction::VitePlusGlobalLatest),
-            InstallMethod::Pnpm => Some(UpdateAction::PnpmGlobalLatest),
-            InstallMethod::Brew => Some(UpdateAction::BrewUpgrade),
-            InstallMethod::Standalone { platform, .. } => Some(match platform {
-                StandalonePlatform::Unix => UpdateAction::StandaloneUnix,
-                StandalonePlatform::Windows => UpdateAction::StandaloneWindows,
-            }),
-            InstallMethod::Other => None,
-        }
+    pub(crate) fn from_install_context(_context: &InstallContext) -> Option<Self> {
+        None
     }
 
     /// Returns the list of command-line arguments for invoking the update.
@@ -87,72 +82,38 @@ pub fn get_update_action() -> Option<UpdateAction> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use codex_install_context::InstallMethod;
+    use codex_install_context::StandalonePlatform;
     use codex_utils_absolute_path::AbsolutePathBuf;
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn maps_install_context_to_update_action() {
+    fn no_install_method_has_an_update_command() {
         let native_release_dir =
             AbsolutePathBuf::from_absolute_path(std::env::temp_dir().join("native-release"))
                 .expect("temp dir path should be absolute");
 
-        assert_eq!(
-            UpdateAction::from_install_context(&InstallContext {
-                method: InstallMethod::Other,
-                package_layout: None,
-            }),
-            None
-        );
-        assert_eq!(
-            UpdateAction::from_install_context(&InstallContext {
-                method: InstallMethod::Npm,
-                package_layout: None,
-            }),
-            Some(UpdateAction::NpmGlobalLatest)
-        );
-        assert_eq!(
-            UpdateAction::from_install_context(&InstallContext {
-                method: InstallMethod::Bun,
-                package_layout: None,
-            }),
-            Some(UpdateAction::BunGlobalLatest)
-        );
-        assert_eq!(
-            UpdateAction::from_install_context(&InstallContext {
-                method: InstallMethod::Pnpm,
-                package_layout: None,
-            }),
-            Some(UpdateAction::PnpmGlobalLatest)
-        );
-        assert_eq!(
-            UpdateAction::from_install_context(&InstallContext {
-                method: InstallMethod::Brew,
-                package_layout: None,
-            }),
-            Some(UpdateAction::BrewUpgrade)
-        );
-        assert_eq!(
-            UpdateAction::from_install_context(&InstallContext {
-                method: InstallMethod::Standalone {
-                    platform: StandalonePlatform::Unix,
-                    release_dir: native_release_dir.clone(),
-                    resources_dir: Some(native_release_dir.join("codex-resources")),
-                },
-                package_layout: None,
-            }),
-            Some(UpdateAction::StandaloneUnix)
-        );
-        assert_eq!(
-            UpdateAction::from_install_context(&InstallContext {
-                method: InstallMethod::Standalone {
-                    platform: StandalonePlatform::Windows,
-                    release_dir: native_release_dir.clone(),
-                    resources_dir: Some(native_release_dir.join("codex-resources")),
-                },
-                package_layout: None,
-            }),
-            Some(UpdateAction::StandaloneWindows)
-        );
+        for method in [
+            InstallMethod::Other,
+            InstallMethod::Npm,
+            InstallMethod::Bun,
+            InstallMethod::Pnpm,
+            InstallMethod::VitePlus,
+            InstallMethod::Brew,
+            InstallMethod::Standalone {
+                platform: StandalonePlatform::Unix,
+                release_dir: native_release_dir.clone(),
+                resources_dir: Some(native_release_dir.join("codex-resources")),
+            },
+        ] {
+            assert_eq!(
+                UpdateAction::from_install_context(&InstallContext {
+                    method,
+                    package_layout: None,
+                }),
+                None
+            );
+        }
     }
 
     #[test]
@@ -189,17 +150,16 @@ mod tests {
     }
 }
 
-/// Package source explicitly selected by the user in the daemon menu.
+/// Package source explicitly selected by the user in the daemon menu. Upstream's public
+/// release is not among them: its installer would put upstream's Codex in this fork's place.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DaemonUpdateSource {
-    PublicStable,
     ThisCli,
 }
 
 impl DaemonUpdateSource {
     pub fn command_args(self) -> &'static [&'static str] {
         match self {
-            Self::PublicStable => &["app-server", "daemon", "update"],
             Self::ThisCli => &["app-server", "daemon", "update", "--from-cli", "--yes"],
         }
     }

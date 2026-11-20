@@ -85,16 +85,10 @@ impl App {
             .package_layout
             .is_some()
         });
-        let mut items: Vec<SelectionItem> = [
-            (
-                DaemonUpdateSource::PublicStable,
-                crate::i18n::tr!("daemon-menu-install-stable"),
-            ),
-            (
-                DaemonUpdateSource::ThisCli,
-                crate::i18n::tr!("daemon-menu-use-this-cli"),
-            ),
-        ]
+        let mut items: Vec<SelectionItem> = [(
+            DaemonUpdateSource::ThisCli,
+            crate::i18n::tr!("daemon-menu-use-this-cli"),
+        )]
         .into_iter()
         .map(|(source, name)| SelectionItem {
             name: name.to_string(),
@@ -181,9 +175,6 @@ impl App {
             return;
         }
         let mut explanation = match source {
-            DaemonUpdateSource::PublicStable => {
-                crate::i18n::tr!("daemon-menu-stable-explanation").to_string()
-            }
             DaemonUpdateSource::ThisCli => {
                 let version = codex_install_context::InstallContext::current()
                     .package_manifest()

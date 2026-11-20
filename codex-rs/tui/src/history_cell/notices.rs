@@ -46,7 +46,7 @@ impl HistoryCell for UpdateAvailableHistoryCell {
         } else {
             line![
                 crate::i18n::tr!("notices-see"),
-                "https://github.com/openai/codex"
+                "https://github.com/lutianyu2001/cod-claw-ntr"
                     .fg(accent_color())
                     .underlined(),
                 crate::i18n::tr!("notices-for-installation-options")
@@ -65,7 +65,7 @@ impl HistoryCell for UpdateAvailableHistoryCell {
             update_instruction,
             "",
             crate::i18n::tr!("notices-see-full-release-notes"),
-            "https://github.com/openai/codex/releases/latest"
+            "https://github.com/lutianyu2001/cod-claw-ntr/releases/latest"
                 .fg(accent_color())
                 .underlined(),
         ];
@@ -95,7 +95,7 @@ impl HistoryCell for UpdateAvailableHistoryCell {
             Line::from(update_instruction),
             Line::from(""),
             Line::from(crate::i18n::tr!("notices-see-full-release-notes")),
-            Line::from("https://github.com/openai/codex/releases/latest"),
+            Line::from("https://github.com/lutianyu2001/cod-claw-ntr/releases/latest"),
         ]
     }
 

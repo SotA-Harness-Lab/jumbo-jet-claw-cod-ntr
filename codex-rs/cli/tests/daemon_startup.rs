@@ -334,7 +334,7 @@ async fn daemon_startup(command: &str) -> Result<()> {
             // thread; wait for the confirmed footer name, not the echoed command.
             steps.push_back(("GPT-5.6-Terra", b"/rename daemon-restart-test\r"));
             steps.push_back(("·daemon-restart-test", b"/daemon\r"));
-            steps.push_back(("Restartbackgroundserver", b"2"));
+            steps.push_back(("Restartbackgroundserver", b"1"));
             steps.push_back(("Restartbackgroundserver?", b"2\r"));
             // Offline editing preserves text but suppresses Enter. Observe the command
             // popup in a complete connected frame before submitting the retained draft.

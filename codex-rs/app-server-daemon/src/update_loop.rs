@@ -77,6 +77,9 @@ const RESTART_RETRY_INTERVAL: Duration = Duration::from_millis(50);
 // envelope, and the worst-case six-byte JSON escape for every captured byte.
 const INSTALLER_STDERR_TAIL_BYTES: usize = 2 * 1024;
 const INSTALLER_STDERR_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
+const NO_INSTALLER_MESSAGE: &str = "CodClaw NTR has no installer to download for its background server; update it from the installed CLI with `ccn app-server daemon update --from-cli`";
+// Upstream's installer. It is never fetched (see `InstallerHttp for RouteAwareClientPool`);
+// the address is what the update loop asks its HTTP boundary for.
 #[cfg(unix)]
 const INSTALL_URL: &str = "https://chatgpt.com/codex/install.sh";
 // WINDOWS-REMNANT
@@ -775,6 +778,8 @@ async fn fetch_installer_script(http: &impl InstallerHttp) -> Result<Vec<u8>> {
     }
 }
 
+// Only tests construct a response: the real HTTP boundary never downloads.
+#[cfg_attr(not(test), allow(dead_code))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum InstallerResponse {
     Success(Vec<u8>),
@@ -793,22 +798,11 @@ trait InstallerHttp: Send + Sync {
 }
 
 impl InstallerHttp for RouteAwareClientPool {
-    async fn get(&self, url: &str) -> Result<InstallerResponse> {
-        let response = RouteAwareClientPool::get(self, url)
-            .send()
-            .await
-            .context("failed to fetch standalone Codex updater")?;
-        if !response.status().is_success() {
-            return Ok(InstallerResponse::Unsuccessful {
-                status: response.status().as_u16(),
-            });
-        }
-        let body = response
-            .bytes()
-            .await
-            .context("failed to read standalone Codex updater")?
-            .to_vec();
-        Ok(InstallerResponse::Success(body))
+    /// Never downloads: the installer at `url` is upstream's, and running it would put
+    /// upstream's Codex in this fork's place. The background server is updated from the CLI
+    /// that is installed (`app-server daemon update --from-cli`).
+    async fn get(&self, _url: &str) -> Result<InstallerResponse> {
+        anyhow::bail!(NO_INSTALLER_MESSAGE)
     }
 }
 

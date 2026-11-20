@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: look for updates in the fork's own releases
+
 //! Confirmation for copying the invoking CLI package into a daemon installation.
 
 use std::io::IsTerminal;
@@ -23,7 +28,7 @@ pub(crate) fn confirm_install(request: &InstallRequest, yes: bool) -> Result<boo
 
 fn describe_install(request: &InstallRequest) -> String {
     let mut message = format!(
-        "Replace installed daemon version {} with CLI version {} from {}.\nThe daemon package will be installed in {}.\nThe selected package will be pinned. Run `codex app-server daemon update` to return to production updates.",
+        "Replace installed daemon version {} with CLI version {} from {}.\nThe daemon package will be installed in {}.\nThe selected package will be pinned.",
         request.installed_version.as_deref().unwrap_or("unknown"),
         request.version,
         request.source.display(),

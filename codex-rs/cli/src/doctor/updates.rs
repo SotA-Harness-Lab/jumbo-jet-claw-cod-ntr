@@ -28,8 +28,7 @@ use super::doctor_managed_by_npm;
 const MAX_VERSION_RESPONSE_BYTES: usize = 1024 * 1024;
 
 const VERSION_FILE_NAME: &str = "version.json";
-const GITHUB_LATEST_RELEASE_URL: &str = "https://api.github.com/repos/openai/codex/releases/latest";
-const HOMEBREW_CASK_API_URL: &str = "https://formulae.brew.sh/api/cask/codex.json";
+const GITHUB_LATEST_RELEASE_URL: &str = "https://api.github.com/repos/lutianyu2001/cod-claw-ntr/releases/latest";
 /// Builds the update-health row for the current installation.
 ///
 /// Network failures while fetching latest-version metadata degrade the row to a
@@ -60,7 +59,7 @@ pub(super) async fn updates_check(config: &Config) -> DoctorCheck {
         ClientRouteClass::Other,
     );
 
-    match fetch_latest_version(&client, &install_context).await {
+    match fetch_latest_github_release_version(&client).await {
         Ok(latest_version) => {
             details.push(format!("latest version: {latest_version}"));
             if is_newer(&latest_version, env!("CARGO_PKG_VERSION")) == Some(true) {
@@ -100,30 +99,17 @@ fn push_cached_version_details(details: &mut Vec<String>, version_file: &Path) {
     }
 }
 
+/// How this installation is updated. None of upstream's update commands is offered: they
+/// install upstream's Codex, not this fork.
 fn update_action_label(context: &InstallContext) -> &'static str {
     match &context.method {
-        InstallMethod::Npm => "npm install -g @openai/codex",
-        InstallMethod::Bun => "bun install -g @openai/codex",
-        InstallMethod::VitePlus => "vp install -g @openai/codex",
-        InstallMethod::Pnpm => "pnpm add -g @openai/codex",
-        InstallMethod::Brew => "brew upgrade --cask codex",
-        InstallMethod::Standalone { .. } => "standalone installer",
-        InstallMethod::Other => "manual or unknown",
-    }
-}
-
-async fn fetch_latest_version(
-    client: &RouteAwareClientPool,
-    context: &InstallContext,
-) -> Result<String, String> {
-    match &context.method {
-        InstallMethod::Brew => fetch_homebrew_cask_version(client).await,
         InstallMethod::Npm
         | InstallMethod::Bun
         | InstallMethod::VitePlus
         | InstallMethod::Pnpm
+        | InstallMethod::Brew
         | InstallMethod::Standalone { .. }
-        | InstallMethod::Other => fetch_latest_github_release_version(client).await,
+        | InstallMethod::Other => "manual, from the fork's GitHub releases",
     }
 }
 
@@ -137,20 +123,9 @@ async fn fetch_latest_github_release_version(
 
     let info = http_get_json::<ReleaseInfo>(client, GITHUB_LATEST_RELEASE_URL).await?;
     info.tag_name
-        .strip_prefix("rust-v")
+        .strip_prefix('v')
         .map(str::to_string)
         .ok_or_else(|| format!("failed to parse latest tag {}", info.tag_name))
-}
-
-async fn fetch_homebrew_cask_version(client: &RouteAwareClientPool) -> Result<String, String> {
-    #[derive(Deserialize)]
-    struct HomebrewCaskInfo {
-        version: String,
-    }
-
-    http_get_json::<HomebrewCaskInfo>(client, HOMEBREW_CASK_API_URL)
-        .await
-        .map(|info| info.version)
 }
 
 async fn http_get_json<T>(client: &RouteAwareClientPool, url: &str) -> Result<T, String>
@@ -184,10 +159,26 @@ where
 }
 
 fn is_newer(latest: &str, current: &str) -> Option<bool> {
-    match (parse_version(latest), parse_version(current)) {
+    match (parse_fork_version(latest), parse_fork_version(current)) {
         (Some(latest), Some(current)) => Some(latest > current),
         (Some(_), None) | (None, Some(_)) | (None, None) => None,
     }
+}
+
+/// A release of this fork: upstream's next version plus `-mod.X.Y`; older tags have X alone.
+fn parse_fork_version(value: &str) -> Option<[u64; 5]> {
+    let (base, fork) = value.trim().split_once("-mod.")?;
+    let mut parts = fork.split('.');
+    let breaking = parts.next()?.parse::<u64>().ok()?;
+    let release = match parts.next() {
+        Some(release) => release.parse::<u64>().ok()?,
+        None => 0,
+    };
+    if parts.next().is_some() {
+        return None;
+    }
+    let (major, minor, patch) = parse_version(base)?;
+    Some([major, minor, patch, breaking, release])
 }
 
 fn parse_version(value: &str) -> Option<(u64, u64, u64)> {
@@ -211,6 +202,15 @@ struct VersionInfo {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn only_fork_releases_are_compared() {
+        assert_eq!(is_newer("1.2.4-mod.1.2", "1.2.4-mod.1.1"), Some(true));
+        assert_eq!(is_newer("1.2.4-mod.1.1", "1.2.4-mod.2.1"), Some(false));
+        assert_eq!(is_newer("1.2.5-mod.1.1", "1.2.4-mod.9.9"), Some(true));
+        assert_eq!(is_newer("1.2.5", "1.2.4-mod.1.1"), None);
+        assert_eq!(is_newer("1.2.5-mod.1.1", "0.0.0"), None);
+    }
 
     #[tokio::test]
     async fn version_http_probe_decodes_json_and_rejects_invalid_responses() {
