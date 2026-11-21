@@ -100,6 +100,7 @@ mod claude_env;
 mod claude_memory;
 mod claude_nested_skills;
 mod claude_rules;
+mod claude_skill_paths;
 mod code_mode_host;
 mod codex_delegate;
 mod command_canonicalization;

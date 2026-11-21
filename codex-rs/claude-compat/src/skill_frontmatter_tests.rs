@@ -43,3 +43,20 @@ fn the_argument_hint_is_read_as_text() {
     );
     assert_eq!(hint("argument-hint:"), None);
 }
+
+#[test]
+fn paths_are_read_as_a_rule_reads_them() {
+    let paths =
+        |frontmatter: &str| skill_frontmatter(&format!("---\n{frontmatter}\n---\nBody\n")).paths;
+    assert_eq!(paths("name: demo"), None);
+    assert_eq!(
+        paths("paths: src/**/*.rs, docs/*.md"),
+        Some(vec!["src/**/*.rs".to_string(), "docs/*.md".to_string()])
+    );
+    assert_eq!(
+        paths("paths:\n  - \"apps/web/**\""),
+        Some(vec!["apps/web".to_string()])
+    );
+    // A skill for every file is offered from the start.
+    assert_eq!(paths("paths: \"**\""), None);
+}

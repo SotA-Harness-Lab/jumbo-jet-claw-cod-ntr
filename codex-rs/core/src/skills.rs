@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: load the Claude Code skills found below the working directory
+// Modified by Tianyu (Sky) Lu in 2026: load the Claude Code skills found below the working directory;
+// offer skills with `paths:` once a file they cover is worked on
 
 use crate::config::Config;
 use crate::environment_selection::TurnEnvironmentSnapshot;
@@ -113,18 +114,23 @@ impl Session {
         // directory since the turn started count from the next step.
         let nested_roots =
             crate::claude_nested_skills::nested_skill_roots(&self.services.session_extension_data);
-        if cached.repository == repository
-            && cached.input.nested_repository_skill_roots() == nested_roots.as_slice()
-        {
-            return Arc::clone(&cached.snapshot);
-        }
-
         let cwd = workspace
             .as_ref()
             .map_or_else(|| turn.config.cwd.clone(), |(_, cwd, _)| cwd.clone());
+        if cached.repository == repository
+            && cached.input.nested_repository_skill_roots() == nested_roots.as_slice()
+        {
+            return crate::claude_skill_paths::offered_skills(
+                &self.services.session_extension_data,
+                cwd.as_path(),
+                Arc::clone(&cached.snapshot),
+            )
+            .await;
+        }
+
         let input = cached
             .input
-            .for_cwd(cwd)
+            .for_cwd(cwd.clone())
             .with_nested_repository_skill_roots(nested_roots);
         let input = Arc::new(match &workspace {
             Some((environment, _, _)) => {
@@ -152,7 +158,12 @@ impl Session {
             repository,
             snapshot: Arc::clone(&snapshot),
         });
-        snapshot
+        crate::claude_skill_paths::offered_skills(
+            &self.services.session_extension_data,
+            cwd.as_path(),
+            snapshot,
+        )
+        .await
     }
 }
 

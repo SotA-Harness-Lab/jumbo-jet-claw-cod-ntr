@@ -7,6 +7,7 @@
 use crate::markdown::frontmatter_string;
 use crate::markdown::parse_document;
 use crate::markdown::parse_frontmatter;
+use crate::rules::rule_globs;
 
 /// What a skill's frontmatter says about how it is offered and run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +18,9 @@ pub struct SkillFrontmatter {
     pub user_invocable: bool,
     /// `argument-hint`: what to type after `/<name>`, shown while the name is typed.
     pub argument_hint: Option<String>,
+    /// `paths`: the globs of the files that bring the skill up, read as a rule's `paths:`
+    /// are. `None` for a skill offered from the start.
+    pub paths: Option<Vec<String>>,
 }
 
 impl Default for SkillFrontmatter {
@@ -24,6 +28,7 @@ impl Default for SkillFrontmatter {
         Self {
             user_invocable: true,
             argument_hint: None,
+            paths: None,
         }
     }
 }
@@ -42,6 +47,7 @@ pub fn skill_frontmatter(contents: &str) -> SkillFrontmatter {
         argument_hint: value
             .get("argument-hint")
             .and_then(|hint| text_value(hint, frontmatter, "argument-hint")),
+        paths: rule_globs(frontmatter),
     }
 }
 
