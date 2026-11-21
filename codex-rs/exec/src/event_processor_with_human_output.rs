@@ -1,8 +1,10 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: renamed the program
+// Modified by Tianyu (Sky) Lu in 2026: renamed the program; keep only text styling of what is
+// printed to a terminal
 
+use std::borrow::Cow;
 use std::io::IsTerminal;
 use std::path::PathBuf;
 
@@ -26,6 +28,13 @@ use owo_colors::Style;
 use crate::event_processor::CodexStatus;
 use crate::event_processor::EventProcessor;
 use crate::event_processor::handle_last_message;
+use crate::terminal_text::for_terminal;
+
+/// `text` as it may be printed to stderr: model and command output keep only
+/// their text styling when stderr is a terminal.
+fn for_stderr(text: &str) -> Cow<'_, str> {
+    for_terminal(text, std::io::stderr().is_terminal())
+}
 
 pub(crate) struct EventProcessorWithHumanOutput {
     bold: Style,
@@ -79,7 +88,7 @@ impl EventProcessorWithHumanOutput {
                 eprintln!(
                     "{}\n{} in {cwd}",
                     "exec".style(self.italic).style(self.magenta),
-                    command.style(self.bold),
+                    for_stderr(command).style(self.bold),
                 );
             }
             ThreadItemPayload::McpToolCall { server, tool, .. } => {
@@ -91,7 +100,11 @@ impl EventProcessorWithHumanOutput {
                 );
             }
             ThreadItemPayload::WebSearch(item) => {
-                eprintln!("{} {}", "web search:".style(self.bold), item.query);
+                eprintln!(
+                    "{} {}",
+                    "web search:".style(self.bold),
+                    for_stderr(&item.query)
+                );
             }
             ThreadItemPayload::FileChange { .. } => {
                 eprintln!("{}", "apply patch".style(self.bold));
@@ -109,7 +122,7 @@ impl EventProcessorWithHumanOutput {
                 eprintln!(
                     "{}\n{}",
                     "codex".style(self.italic).style(self.magenta),
-                    text
+                    for_stderr(&text)
                 );
                 self.final_message = Some(text);
                 self.final_message_rendered = true;
@@ -122,7 +135,7 @@ impl EventProcessorWithHumanOutput {
                         reasoning_text(&summary, &content, self.show_raw_agent_reasoning)
                     && !text.trim().is_empty()
                 {
-                    eprintln!("{}", text.style(self.dimmed));
+                    eprintln!("{}", for_stderr(&text).style(self.dimmed));
                 }
             }
             ThreadItemPayload::CommandExecution {
@@ -166,7 +179,7 @@ impl EventProcessorWithHumanOutput {
                 if let Some(output) = aggregated_output
                     && !output.trim().is_empty()
                 {
-                    eprintln!("{output}");
+                    eprintln!("{}", for_stderr(&output));
                 }
             }
             ThreadItemPayload::FileChange {
@@ -202,11 +215,15 @@ impl EventProcessorWithHumanOutput {
                     format!("({status_text})").style(self.dimmed)
                 );
                 if let Some(error) = error {
-                    eprintln!("{}", error.message.style(self.red));
+                    eprintln!("{}", for_stderr(&error.message).style(self.red));
                 }
             }
             ThreadItemPayload::WebSearch(item) => {
-                eprintln!("{} {}", "web search:".style(self.bold), item.query);
+                eprintln!(
+                    "{} {}",
+                    "web search:".style(self.bold),
+                    for_stderr(&item.query)
+                );
             }
             ThreadItemPayload::ContextCompaction { .. } => {
                 eprintln!("{}", "context compacted".style(self.dimmed));
@@ -355,7 +372,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
             ServerNotification::TurnDiffUpdated(notification) => {
                 if notification.diff != self.last_turn_diff && !notification.diff.trim().is_empty()
                 {
-                    eprintln!("{}", notification.diff);
+                    eprintln!("{}", for_stderr(&notification.diff));
                 }
                 // Remember empty updates too, so a restored diff is rendered again.
                 self.last_turn_diff = notification.diff;
@@ -363,21 +380,21 @@ impl EventProcessor for EventProcessorWithHumanOutput {
             }
             ServerNotification::TurnPlanUpdated(notification) => {
                 if let Some(explanation) = notification.explanation {
-                    eprintln!("{}", explanation.style(self.italic));
+                    eprintln!("{}", for_stderr(&explanation).style(self.italic));
                 }
                 for step in notification.plan {
                     match step.status {
                         codex_app_server_protocol::TurnPlanStepStatus::Completed => {
-                            eprintln!("  {} {}", "✓".style(self.green), step.step);
+                            eprintln!("  {} {}", "✓".style(self.green), for_stderr(&step.step));
                         }
                         codex_app_server_protocol::TurnPlanStepStatus::InProgress => {
-                            eprintln!("  {} {}", "→".style(self.cyan), step.step);
+                            eprintln!("  {} {}", "→".style(self.cyan), for_stderr(&step.step));
                         }
                         codex_app_server_protocol::TurnPlanStepStatus::Pending => {
                             eprintln!(
                                 "  {} {}",
                                 "•".style(self.dimmed),
-                                step.step.style(self.dimmed)
+                                for_stderr(&step.step).style(self.dimmed)
                             );
                         }
                     }
@@ -427,7 +444,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
 
         #[allow(clippy::print_stdout)]
         if print_to_stdout && let Some(message) = self.final_message.as_deref() {
-            println!("{message}");
+            println!("{}", for_terminal(message, std::io::stdout().is_terminal()));
         } else if should_print_final_message_to_tty(
             self.emit_final_message_on_shutdown
                 .then_some(self.final_message.as_deref())
@@ -440,7 +457,7 @@ impl EventProcessor for EventProcessorWithHumanOutput {
             eprintln!(
                 "{}\n{}",
                 "codex".style(self.italic).style(self.magenta),
-                message
+                for_stderr(message)
             );
         }
         output_result

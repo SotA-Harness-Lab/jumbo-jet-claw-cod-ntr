@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: stop waiting on an idle stdin when a prompt was given
+// Modified by Tianyu (Sky) Lu in 2026: stop waiting on an idle stdin when a prompt was given; keep only
+// text styling of what is printed to a terminal
 
 // - In the default output mode, it is paramount that the only thing written to
 //   stdout is the final message (if any).
@@ -17,6 +18,7 @@ mod event_processor_with_human_output;
 pub(crate) mod event_processor_with_jsonl_output;
 pub(crate) mod exec_events;
 mod remote;
+mod terminal_text;
 mod worktree;
 
 pub use cli::Cli;
