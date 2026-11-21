@@ -38,6 +38,7 @@ use super::check_permission;
 use super::failed;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::subagent_tools::list_entry;
 use super::subagent_tools::role_tool_list;
 use crate::agent::LocalAgentControl;
 use crate::agent::agent_resolver::resolve_agent_target;
@@ -202,6 +203,24 @@ impl AgentHandler {
                 role,
                 &self.agent_types,
             )));
+        }
+        // As Claude Code does, an agent whose `tools` names none of the tools there are is
+        // not started.
+        if let Some(role) = role
+            && let Some(agent_type) = self
+                .agent_types
+                .iter()
+                .find(|agent_type| agent_type.name == role)
+        {
+            let available = invocation
+                .step_context
+                .tool_router
+                .registered_tool_names()
+                .map(|name| list_entry(&name))
+                .collect::<Vec<_>>();
+            if let Some(entries) = agent_type.tools.unresolved_entries(&available) {
+                return Err(failed(agent::zero_tools_message(role, &entries)));
+            }
         }
 
         let control = invocation

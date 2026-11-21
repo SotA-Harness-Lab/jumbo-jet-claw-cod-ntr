@@ -98,6 +98,28 @@ impl ToolList {
         })
     }
 
+    /// The entries of `tools` when they give the agent none of the `available` tools (the
+    /// names the model sees, each with the Claude tool it serves, as for [`Self::permits`]):
+    /// Claude Code then refuses to start the agent. `None` when the agent gets a tool, when
+    /// `tools` is absent, and when it is empty once `disallowedTools` is taken off it.
+    pub fn unresolved_entries(&self, available: &[(String, Option<&str>)]) -> Option<Vec<String>> {
+        let entries = self
+            .allowed
+            .as_ref()?
+            .iter()
+            .filter(|entry| !self.disallowed.contains(*entry))
+            .cloned()
+            .collect::<Vec<_>>();
+        if entries.is_empty()
+            || available
+                .iter()
+                .any(|(name, owner)| self.permits(name, *owner))
+        {
+            return None;
+        }
+        Some(entries)
+    }
+
     /// Claude Code's summary of the list in the `Agent` description.
     pub fn summary(&self) -> String {
         match (&self.allowed, self.disallowed.is_empty()) {
@@ -225,6 +247,87 @@ pub fn unknown_agent_type_message(subagent_type: &str, agent_types: &[AgentType]
         .join(", ");
     format!("Agent type '{subagent_type}' not found. Available agents: {available}")
 }
+
+/// Claude Code's refusal of an agent type whose `tools` gives it no tool, the entries
+/// grouped as it groups them: an MCP entry or a Claude Code tool this session lacks
+/// matched no tools in this session, any other entry is unrecognized.
+pub fn zero_tools_message(agent_type: &str, entries: &[String]) -> String {
+    let (absent, unrecognized): (Vec<&str>, Vec<&str>) = entries
+        .iter()
+        .map(String::as_str)
+        .partition(|entry| entry.starts_with("mcp__") || CLAUDE_CODE_TOOLS.contains(entry));
+    let mut groups = Vec::new();
+    if !unrecognized.is_empty() {
+        groups.push(format!("unrecognized [{}]", unrecognized.join(", ")));
+    }
+    if !absent.is_empty() {
+        groups.push(format!(
+            "matched no tools in this session [{}]",
+            absent.join(", ")
+        ));
+    }
+    format!(
+        "Agent '{agent_type}' would be spawned with zero tools — refusing. Its tools list resolved to nothing: {}. Fix the agent's tools frontmatter or pass a different subagent_type.",
+        groups.join("; ")
+    )
+}
+
+/// Names of Claude Code's own tools (its tools reference), for telling an entry this
+/// session lacks from a typo.
+const CLAUDE_CODE_TOOLS: &[&str] = &[
+    "Agent",
+    "Artifact",
+    "AskUserQuestion",
+    "Bash",
+    "CronCreate",
+    "CronDelete",
+    "CronList",
+    "Edit",
+    "EndConversation",
+    "EnterPlanMode",
+    "EnterWorktree",
+    "ExitPlanMode",
+    "ExitWorktree",
+    "Glob",
+    "Grep",
+    "LSP",
+    "ListAgents",
+    "ListMcpResourcesTool",
+    "ListPlugins",
+    "ListSkills",
+    "Monitor",
+    "NotebookEdit",
+    "PowerShell",
+    "PushNotification",
+    "Read",
+    "ReadMcpResourceTool",
+    "RemoteTrigger",
+    "ReportFindings",
+    "ScheduleWakeup",
+    "SearchPlugins",
+    "SearchSkills",
+    "SendFeedback",
+    "SendMessage",
+    "SendUserFile",
+    "ShareOnboardingGuide",
+    "Skill",
+    "SubagentHandback",
+    "SuggestPluginInstall",
+    "SuggestSkills",
+    "TaskCreate",
+    "TaskGet",
+    "TaskList",
+    "TaskOutput",
+    "TaskStop",
+    "TaskUpdate",
+    "TodoWrite",
+    "ToolSearch",
+    "WaitForMcpServers",
+    "WebFetch",
+    "WebSearch",
+    "Workflow",
+    "Write",
+];
 
 /// A name for the agent's task in Codex's agent tree: the description in lower-case
 /// snake_case, made unique by the end of the call id.

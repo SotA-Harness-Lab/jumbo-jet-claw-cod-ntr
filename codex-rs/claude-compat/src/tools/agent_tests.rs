@@ -12,6 +12,7 @@ use super::owner_of;
 use super::role_for;
 use super::task_name;
 use super::unknown_agent_type_message;
+use super::zero_tools_message;
 
 fn tool_list(tools: Option<&str>, disallowed: Option<&str>) -> ToolList {
     let tools = tools.map(|text| serde_yaml::from_str(text).expect("yaml"));
@@ -94,6 +95,50 @@ fn tool_lists_name_whole_mcp_servers() {
     let no_mcp = tool_list(None, Some("mcp__*"));
     assert!(!no_mcp.permits("mcp__github__create_issue", None));
     assert!(no_mcp.permits("Read", None));
+}
+
+#[test]
+fn tool_lists_that_give_no_tool_are_refused() {
+    let available = vec![
+        ("Read".to_string(), None),
+        ("Bash".to_string(), None),
+        ("write_stdin".to_string(), owner_of("write_stdin")),
+        ("mcp__github__create_issue".to_string(), None),
+    ];
+    let unresolved = |tools: Option<&str>, disallowed: Option<&str>| {
+        tool_list(tools, disallowed).unresolved_entries(&available)
+    };
+    assert_eq!(
+        unresolved(Some("Raed, Grpe, NotebookEdit, mcp__slack__*"), None),
+        Some(vec![
+            "Raed".to_string(),
+            "Grpe".to_string(),
+            "NotebookEdit".to_string(),
+            "mcp__slack__*".to_string()
+        ])
+    );
+    // One entry that resolves is enough, and a missing or emptied list is not refused.
+    assert_eq!(unresolved(Some("Raed, Read"), None), None);
+    assert_eq!(unresolved(Some("mcp__github__*"), None), None);
+    assert_eq!(unresolved(None, None), None);
+    assert_eq!(unresolved(Some("\"\""), None), None);
+    assert_eq!(unresolved(Some("Read"), Some("Read")), None);
+
+    assert_eq!(
+        zero_tools_message(
+            "code-reviewer",
+            &[
+                "Grpe".to_string(),
+                "NotebookEdit".to_string(),
+                "mcp__slack__*".to_string()
+            ]
+        ),
+        "Agent 'code-reviewer' would be spawned with zero tools — refusing. Its tools list resolved to nothing: unrecognized [Grpe]; matched no tools in this session [NotebookEdit, mcp__slack__*]. Fix the agent's tools frontmatter or pass a different subagent_type."
+    );
+    assert_eq!(
+        zero_tools_message("code-reviewer", &["Grpe".to_string()]),
+        "Agent 'code-reviewer' would be spawned with zero tools — refusing. Its tools list resolved to nothing: unrecognized [Grpe]. Fix the agent's tools frontmatter or pass a different subagent_type."
+    );
 }
 
 #[test]
