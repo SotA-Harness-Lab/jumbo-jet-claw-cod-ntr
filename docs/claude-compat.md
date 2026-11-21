@@ -379,6 +379,7 @@ registered from `add_shell_tools`, which owns the shell options.
 | Names of MCP tools | `mcp__<server>__<tool>`, the server's name with anything but letters, digits, `_` and `-` turned into `_` | Codex's own naming of MCP tools, which permission rules and hook matchers see | Done 2026-11-17 `80c1279420` |
 | A project's own settings files approving its `.mcp.json` servers (`enabledMcpjsonServers`, `enableAllProjectMcpServers` in `.claude/settings.json` or `.claude/settings.local.json`) | Count once the folder is trusted; newer versions ignore them in a folder that is not | Count only in a project Codex trusts. Elsewhere only the user's own files approve a server; what the project's files disable is honoured either way | Done 2026-11-20 `2a011b3a43` |
 | Credential variables in a remote server's `url` and `headers` | Read as empty, a `:-default` included, so that a declaration cannot send them away; the documentation gives examples, not the full list | Read as empty for the examples Claude Code names (`ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `AWS_BEARER_TOKEN_BEDROCK`, `HTTPS_PROXY`, `NPM_TOKEN` and the like) and Codex's own (`OPENAI_API_KEY`, `CODEX_API_KEY`); another credential expands | Done 2026-11-20 `f987126bd2` |
+| An MCP tool call's time limit when the server has no `timeout` | `MCP_TOOL_TIMEOUT`, or else about 28 hours; a call that sends nothing for 5 minutes (30 for a stdio server, `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`) is ended sooner | Codex's default of 5 minutes; `MCP_TOOL_TIMEOUT` is not read (see "Not yet implemented") | Done 2026-11-21 |
 
 ### Auto memory
 
@@ -573,6 +574,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | MCP servers of a project | The `.mcp.json` files of the working directory and the directories above it, the root of the filesystem left out, the nearer winning; a server there only once approved by `enabledMcpjsonServers` or `enableAllProjectMcpServers` and not listed in `disabledMcpjsonServers`; then the servers `~/.claude.json` keeps for the project, which win; the servers turned off in `/mcp` (`disabledMcpServers` of the project's entry in `~/.claude.json`) left out | The same | Done 2026-11-20 `f987126bd2` |
 | Variables in a server's declaration | `${VAR}` and `${VAR:-default}` are expanded in `command`, `args`, `env`, `url` and `headers`; a variable that is not set and has no default stays as written | The same | Done 2026-11-17 `80c1279420` |
 | A remote server's `headers` | Sent with every request to the server | The same: they become the server's `http_headers`, in `~/.claude.json`, `.mcp.json` and a Claude Code plugin's servers | Done 2026-11-21 |
+| A server's `timeout` | The time limit of each of its tool calls, in milliseconds; a value below 1000 is ignored | The same: it becomes the server's `tool_timeout_sec`. What applies without it is under "Differences from Claude Code" | Done 2026-11-21 |
 
 ### Auto memory
 

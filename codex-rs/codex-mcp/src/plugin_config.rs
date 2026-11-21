@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables, and read
-// Claude Code's `headers`
+// Claude Code's `headers` and `timeout`
 
 use codex_config::McpServerAuth;
 use codex_config::McpServerConfig;
@@ -340,6 +340,18 @@ fn normalize_plugin_mcp_server_value(
         && let Some(headers) = object.remove("headers")
     {
         object.insert("http_headers".to_string(), headers);
+    }
+
+    // Claude Code's per-server tool timeout is `timeout`, in milliseconds; as in Claude
+    // Code, a value below a second is ignored.
+    if let Some(timeout) = object.remove("timeout")
+        && !object.contains_key("tool_timeout_sec")
+        && let Some(millis) = timeout.as_f64().filter(|millis| *millis >= 1000.0)
+    {
+        object.insert(
+            "tool_timeout_sec".to_string(),
+            JsonValue::from(millis / 1000.0),
+        );
     }
 
     if let PluginMcpSource::Host { root } = source
