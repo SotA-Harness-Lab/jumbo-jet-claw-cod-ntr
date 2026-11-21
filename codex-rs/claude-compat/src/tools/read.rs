@@ -99,10 +99,11 @@ pub fn is_notebook(path: &str) -> bool {
 }
 
 /// The pages a `pages` value selects, first and last (1-based, inclusive; no last page for
-/// `"N-"`), as Claude Code parses it; `None` when it is not a page range.
+/// `"N-"`), as Claude Code parses it; `None` when it is not one page range, such as a list
+/// (`"6,9,15"`) or a number followed by other text.
 pub fn parse_page_range(pages: &str) -> Option<(u32, Option<u32>)> {
     let trimmed = pages.trim();
-    let number = |text: &str| leading_integer(text).filter(|page| *page >= 1);
+    let number = |text: &str| page_number(text).filter(|page| *page >= 1);
     if let Some(first) = trimmed.strip_suffix('-') {
         return Some((number(first)?, None));
     }
@@ -115,19 +116,26 @@ pub fn parse_page_range(pages: &str) -> Option<(u32, Option<u32>)> {
     }
 }
 
-/// The integer at the start of `text`, as JavaScript's `parseInt` reads it.
-fn leading_integer(text: &str) -> Option<u32> {
-    let text = text.trim_start();
-    let digits: String = text.chars().take_while(char::is_ascii_digit).collect();
-    digits.parse().ok()
+/// `text` as a page number: digits only, with spaces around them.
+fn page_number(text: &str) -> Option<u32> {
+    let text = text.trim();
+    if text.is_empty() || !text.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    text.parse().ok()
 }
 
 /// Checks `pages` as Claude Code does before reading: a page range of at most
 /// [`PDF_MAX_PAGES_PER_READ`] pages (an open range counts as more).
 pub fn validate_pages(pages: &str) -> Result<(u32, Option<u32>), String> {
     let Some((first, last)) = parse_page_range(pages) else {
+        let several = if pages.contains(',') {
+            " To read several pages or ranges, read each one in a call of its own."
+        } else {
+            ""
+        };
         return Err(format!(
-            "Invalid pages parameter: \"{pages}\". Use formats like \"1-5\", \"3\", or \"10-20\". Pages are 1-indexed."
+            "Invalid pages parameter: \"{pages}\". Use formats like \"1-5\", \"3\", or \"10-20\". Pages are 1-indexed.{several}"
         ));
     };
     let count = last.map_or(PDF_MAX_PAGES_PER_READ + 1, |last| last - first + 1);

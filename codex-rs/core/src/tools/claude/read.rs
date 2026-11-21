@@ -17,19 +17,19 @@
 use std::sync::Arc;
 
 use codex_claude_compat::tools::READ;
-use codex_claude_compat::tools::read;
-use codex_tools::JsonSchema;
-use codex_tools::ResponsesApiTool;
-use codex_tools::ToolName;
-use codex_tools::ToolSpec;
 use codex_claude_compat::tools::format_file_size;
 use codex_claude_compat::tools::notebook;
 use codex_claude_compat::tools::notebook::NotebookPart;
+use codex_claude_compat::tools::read;
 use codex_exec_server::FileMetadata;
 use codex_protocol::models::DEFAULT_IMAGE_DETAIL;
 use codex_protocol::models::FunctionCallOutputContentItem;
 use codex_protocol::models::ImageReference;
 use codex_protocol::openai_models::InputModality;
+use codex_tools::JsonSchema;
+use codex_tools::ResponsesApiTool;
+use codex_tools::ToolName;
+use codex_tools::ToolSpec;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::BTreeMap;
@@ -138,9 +138,11 @@ impl ReadHandler {
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
         let args: ReadArgs = parse_claude_arguments(READ, &invocation)?;
+        // An empty `pages` is taken as left out, as Claude Code takes it.
         let pages = args
             .pages
             .as_deref()
+            .filter(|pages| !pages.trim().is_empty())
             .map(read::validate_pages)
             .transpose()
             .map_err(|message| rejected(&message))?;

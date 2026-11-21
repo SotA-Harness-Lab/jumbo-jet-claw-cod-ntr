@@ -110,6 +110,18 @@ fn page_ranges_are_parsed_as_claude_code_parses_them() {
     assert_eq!(parse_page_range("-5"), None);
     assert_eq!(parse_page_range("x"), None);
     assert_eq!(parse_page_range(""), None);
+    assert_eq!(parse_page_range(" 3 - 5 "), Some((3, Some(5))));
+}
+
+#[test]
+fn a_list_of_pages_is_refused_not_cut_to_its_first_entry() {
+    assert_eq!(parse_page_range("6,9,15"), None);
+    assert_eq!(parse_page_range("3-5,8"), None);
+    assert_eq!(parse_page_range("2abc"), None);
+    assert_eq!(
+        validate_pages("6,9,15"),
+        Err("Invalid pages parameter: \"6,9,15\". Use formats like \"1-5\", \"3\", or \"10-20\". Pages are 1-indexed. To read several pages or ranges, read each one in a call of its own.".to_string())
+    );
 }
 
 #[test]
