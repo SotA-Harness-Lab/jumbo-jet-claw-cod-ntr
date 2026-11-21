@@ -55,22 +55,46 @@ const HOOK_JUDGE: &str = "hook_judge";
 /// starts, so this is the stricter count.
 const MAX_AGENT_HOOK_TOOL_CALLS: usize = 50;
 
-const PROMPT_INSTRUCTIONS: &str = "You are evaluating a hook. The user message describes a \
-condition and gives the hook's input. Decide from that message alone whether the condition \
-is met.
+/// How both kinds of hook read the hook's text: Claude Code's hooks are written either as a
+/// condition or as a rule, and a rule read as a condition lets through what it blocks.
+macro_rules! hook_text_kinds {
+    () => {
+        "The hook's text is either a condition that must hold, such as \"All unit tests pass\", \
+or a rule about what to block or allow, such as \"Block any Bash command that reads .env \
+files\". A condition is met when it holds. A rule is met when the input is not something the \
+rule blocks, and is something it allows where it names what to allow: when the input is what \
+a rule blocks, the rule is not met. On a hook that runs when the agent is about to stop, not \
+met means the agent has to keep working."
+    };
+}
+
+const PROMPT_INSTRUCTIONS: &str = concat!(
+    "You are evaluating a hook. The user message gives the hook's text and the hook's \
+input. Decide from that message alone whether the hook's text is met.
+
+",
+    hook_text_kinds!(),
+    "
 
 Your answer must be a JSON object matching one of the following:
-1. If the condition is met: {\"ok\": true, \"reason\": null}
-2. If the condition is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}";
+1. If it is met: {\"ok\": true, \"reason\": null}
+2. If it is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}"
+);
 
-const AGENT_INSTRUCTIONS: &str = "You are verifying a stop condition for a coding agent. The \
-user message describes the condition and gives the hook's input, which names the transcript \
-of the session and the working directory. Use the tools you have to inspect the codebase and \
-check whether the condition holds. Only read: change nothing. Use as few steps as possible.
+const AGENT_INSTRUCTIONS: &str = concat!(
+    "You are verifying a hook for a coding agent. The user message gives the hook's text \
+and the hook's input, which names the transcript of the session and the working directory. \
+Use the tools you have to inspect the codebase and check whether the hook's text is met. Only \
+read: change nothing. Use as few steps as possible.
+
+",
+    hook_text_kinds!(),
+    "
 
 When you are done, your final answer must be a JSON object matching one of the following:
-1. If the condition is met: {\"ok\": true, \"reason\": null}
-2. If the condition is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}";
+1. If it is met: {\"ok\": true, \"reason\": null}
+2. If it is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}"
+);
 
 /// Cancels the child session when the hook that waits for it gives up.
 struct CancelOnDrop(CancellationToken);
@@ -269,3 +293,7 @@ async fn judge_with_tools(
     }
     bail!("the hook's session ended without an answer")
 }
+
+#[cfg(test)]
+#[path = "hook_judge_tests.rs"]
+mod tests;
