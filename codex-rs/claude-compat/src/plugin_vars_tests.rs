@@ -28,7 +28,10 @@ fn installed_plugin(tmp: &TempDir) -> (PathBuf, PathBuf) {
                 "api_url": {"type": "string", "title": "URL", "description": "d"},
                 "api-token": {"type": "string", "title": "Token", "description": "d", "sensitive": true},
                 "retries": {"type": "number", "title": "Retries", "description": "d"},
-                "unset": {"type": "string", "title": "Unset", "description": "d"}
+                "unset": {"type": "string", "title": "Unset", "description": "d"},
+                "needed": {"type": "string", "title": "Needed", "description": "d", "required": true},
+                "region": {"type": "string", "title": "Region", "description": "d", "default": "eu"},
+                "port": {"type": "number", "title": "Port", "description": "d", "default": 80}
             }
         }"#,
     )
@@ -44,7 +47,7 @@ fn installed_plugin(tmp: &TempDir) -> (PathBuf, PathBuf) {
     .expect("write");
     fs::write(
         claude_home.join("settings.json"),
-        r#"{"pluginConfigs": {"demo@market": {"options": {"api_url": "https://api.example.com", "retries": 3}}}}"#,
+        r#"{"pluginConfigs": {"demo@market": {"options": {"api_url": "https://api.example.com", "retries": 3, "port": 8080}}}}"#,
     )
     .expect("write");
     fs::write(
@@ -77,6 +80,8 @@ fn options_come_from_settings_and_the_secure_store() {
                 "CLAUDE_PLUGIN_OPTION_API_URL".to_string(),
                 "https://api.example.com".to_string()
             ),
+            ("CLAUDE_PLUGIN_OPTION_PORT".to_string(), "8080".to_string()),
+            ("CLAUDE_PLUGIN_OPTION_REGION".to_string(), "eu".to_string()),
             ("CLAUDE_PLUGIN_OPTION_RETRIES".to_string(), "3".to_string()),
         ]
     );
@@ -97,9 +102,23 @@ fn commands_get_every_value_or_name_the_missing_option() {
             root.display()
         ))
     );
+    // A default stands in for a value never stored; a stored value wins over it.
+    assert_eq!(
+        plugin.substitute("--region=${user_config.region} --port=${user_config.port}"),
+        Ok("--region=eu --port=8080".to_string())
+    );
+    // An optional option left blank reads as empty; a required or undeclared one is missing.
     assert_eq!(
         plugin.substitute("run ${user_config.unset}"),
-        Err("unset".to_string())
+        Ok("run ".to_string())
+    );
+    assert_eq!(
+        plugin.substitute("run ${user_config.needed}"),
+        Err("needed".to_string())
+    );
+    assert_eq!(
+        plugin.substitute("run ${user_config.undeclared}"),
+        Err("undeclared".to_string())
     );
 }
 

@@ -1003,8 +1003,9 @@ fn append_matcher_groups(
                     let command = source.env.iter().fold(command, |command, (key, value)| {
                         command.replace(&format!("${{{key}}}"), value)
                     });
-                    // `${user_config.KEY}` of a Claude Code plugin. A hook that names an
-                    // option without a value cannot run, as in Claude Code.
+                    // `${user_config.KEY}` of a Claude Code plugin. A hook that names a
+                    // required or undeclared option without a value cannot run, as in Claude
+                    // Code.
                     let command = match source.claude.and_then(|claude| claude.plugin.as_ref()) {
                         Some(plugin) => match plugin.substitute(&command) {
                             Ok(command) => command,

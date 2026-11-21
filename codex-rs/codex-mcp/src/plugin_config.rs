@@ -368,7 +368,7 @@ fn normalize_plugin_mcp_server_value(
 }
 
 /// Fills in a Claude Code plugin's variables in every string of a server's declaration. A
-/// string that names an option without a value is left as written.
+/// string that names a required or undeclared option without a value is left as written.
 fn substitute_plugin_variables(
     value: &mut JsonValue,
     plugin: &codex_claude_compat::PluginVariables,
