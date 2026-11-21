@@ -245,6 +245,60 @@ async fn file_instructions_follow_claude_code_phases() {
     );
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn file_instructions_see_through_symlinks_and_dot_dot() {
+    let tmp = TempDir::new().expect("temp dir");
+    let cwd = tmp.path().join("real");
+    let sub = cwd.join("src");
+    fs::create_dir_all(cwd.join(".claude/rules")).expect("create");
+    fs::create_dir_all(&sub).expect("create");
+    fs::write(
+        cwd.join(".claude/rules/rs.md"),
+        "---\npaths: src/**\n---\nsrc rule",
+    )
+    .expect("write");
+    fs::write(sub.join("CLAUDE.md"), "src doc").expect("write");
+    let link = tmp.path().join("link");
+    std::os::unix::fs::symlink(&cwd, &link).expect("symlink");
+    let expected = vec![
+        file(sub.join("CLAUDE.md"), InstructionKind::Project, "src doc"),
+        file(
+            cwd.join(".claude/rules/rs.md"),
+            InstructionKind::Project,
+            "src rule",
+        ),
+    ];
+
+    for (cwd, target) in [
+        // The file through a link to the working directory.
+        (cwd.clone(), link.join("src/main.rs")),
+        // The file through `..`.
+        (cwd.clone(), cwd.join("../real/src/main.rs")),
+        // The working directory through the link, the file by its real path.
+        (link.clone(), sub.join("main.rs")),
+    ] {
+        let files = file_instructions(
+            &LocalFiles,
+            /*user_rules_dir*/ None,
+            /*home_dir*/ None,
+            &cwd,
+            &target,
+            /*include_project*/ true,
+        )
+        .await
+        .expect("load");
+        let expected = expected
+            .iter()
+            .map(|expected| InstructionFile {
+                path: cwd.join(expected.path.strip_prefix(tmp.path().join("real")).unwrap()),
+                ..expected.clone()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(files, expected, "{}", target.display());
+    }
+}
+
 #[tokio::test]
 async fn a_rule_s_includes_follow_it_and_the_chain_stops_four_files_down() {
     let home = TempDir::new().expect("temp dir");

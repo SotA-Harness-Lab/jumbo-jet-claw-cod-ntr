@@ -244,6 +244,8 @@ pub async fn file_instructions(
     file: &Path,
     include_project: bool,
 ) -> io::Result<Vec<InstructionFile>> {
+    let file = file_seen_from(cwd, file);
+    let file = file.as_path();
     let mut files = Vec::new();
     let mut seen = HashSet::new();
     if let Some(rules_dir) = user_rules_dir {
@@ -328,6 +330,36 @@ pub async fn file_instructions(
         .await?;
     }
     Ok(files)
+}
+
+/// `file` as the instruction loaders compare it with `cwd` and its directories: `.` and
+/// `..` resolved, and, when it is then not under `cwd`, its real path written from the
+/// nearest of `cwd`'s directories it lies under, so that a file reached through a symlink
+/// (or a `cwd` that is one) still counts as inside.
+fn file_seen_from(cwd: &Path, file: &Path) -> PathBuf {
+    let file = normalize(file);
+    if file.starts_with(cwd) {
+        return file;
+    }
+    // A file about to be written does not exist yet; its directory does.
+    let real_file =
+        std::fs::canonicalize(&file).or_else(|err| match (file.parent(), file.file_name()) {
+            (Some(parent), Some(name)) => {
+                std::fs::canonicalize(parent).map(|parent| parent.join(name))
+            }
+            _ => Err(err),
+        });
+    let Ok(real_file) = real_file else {
+        return file;
+    };
+    for dir in cwd.ancestors() {
+        if let Ok(real_dir) = std::fs::canonicalize(dir)
+            && let Ok(rest) = real_file.strip_prefix(&real_dir)
+        {
+            return dir.join(rest);
+        }
+    }
+    real_file
 }
 
 async fn push_matching_rules(
