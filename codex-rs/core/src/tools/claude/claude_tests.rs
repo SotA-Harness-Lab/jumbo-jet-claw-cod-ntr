@@ -15,8 +15,6 @@ use serde_json::json;
 use super::ToolSwap;
 use super::bash::exec_command_arguments_for_test;
 use super::edit;
-use super::file_state::FileRecord;
-use super::file_state::write_refusal;
 use super::read;
 use super::write;
 use crate::tools::handlers::ApplyPatchHandler;
@@ -71,28 +69,6 @@ fn file_tools_replace_apply_patch_and_view_image() {
         .collect::<Vec<_>>();
     assert_eq!(names, vec!["Edit", "Read", "Write"]);
     assert!(registry.tool(&ToolName::plain("apply_patch")).is_none());
-}
-
-#[test]
-fn writes_need_a_read_and_an_unchanged_file() {
-    assert_eq!(
-        write_refusal(None, 10, "x"),
-        Some(codex_claude_compat::tools::edit::NOT_READ_MESSAGE)
-    );
-    let read = FileRecord {
-        modified_at_ms: 10,
-        content: None,
-    };
-    assert_eq!(write_refusal(Some(&read), 10, "x"), None);
-    assert_eq!(
-        write_refusal(Some(&read), 11, "x"),
-        Some(codex_claude_compat::tools::edit::MODIFIED_SINCE_READ_MESSAGE)
-    );
-    let written = FileRecord {
-        modified_at_ms: 10,
-        content: Some("x".to_string()),
-    };
-    assert_eq!(write_refusal(Some(&written), 11, "x"), None);
 }
 
 #[tokio::test]

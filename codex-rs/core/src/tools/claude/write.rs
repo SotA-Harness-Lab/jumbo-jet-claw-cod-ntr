@@ -23,6 +23,7 @@ use serde_json::json;
 use super::PermissionInput;
 use super::ToolSwap;
 use super::check_permission;
+use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
 use super::file_state::write_refusal;
 use super::files::FileTarget;
@@ -132,7 +133,7 @@ impl WriteHandler {
                 let record = ReadFiles::of(&invocation.session).get(&target.key());
                 if let Some(message) = write_refusal(
                     record.as_ref(),
-                    metadata.modified_at_ms,
+                    FileStamp::of(&metadata),
                     &current.replace("\r\n", "\n"),
                 ) {
                     return Err(rejected(message));

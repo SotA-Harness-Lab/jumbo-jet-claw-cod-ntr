@@ -19,7 +19,9 @@ use futures::StreamExt;
 
 use super::delegated;
 use super::failed;
+use super::file_state::ContentDigest;
 use super::file_state::FileRecord;
+use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
 use crate::function_tool::FunctionCallError;
 use crate::session::turn_context::TurnEnvironment;
@@ -142,24 +144,16 @@ impl<'a> FileTarget<'a> {
         })
     }
 
-    /// Remembers the file as the session now knows it, after a write: its modification
-    /// time and content.
+    /// Remembers the file as the session now knows it, after a write: its whole content.
     pub(crate) async fn record_written(&self, invocation: &ToolInvocation) {
         let Ok(Some(metadata)) = self.metadata().await else {
             return;
         };
-        let content = self
-            .read_text()
-            .await
-            .ok()
-            .map(|content| content.replace("\r\n", "\n"));
-        ReadFiles::of(&invocation.session).insert(
-            self.key(),
-            FileRecord {
-                modified_at_ms: metadata.modified_at_ms,
-                content,
-            },
-        );
+        let record = match self.read_text().await {
+            Ok(content) => FileRecord::Whole(ContentDigest::of(&content)),
+            Err(_) => FileRecord::Part(FileStamp::of(&metadata)),
+        };
+        ReadFiles::of(&invocation.session).insert(self.key(), record);
     }
 }
 

@@ -25,6 +25,7 @@ use serde_json::json;
 use super::PermissionInput;
 use super::ToolSwap;
 use super::check_permission;
+use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
 use super::file_state::write_refusal;
 use super::files::FileTarget;
@@ -140,7 +141,7 @@ impl EditHandler {
                 let normalized = raw.replace("\r\n", "\n");
                 let record = ReadFiles::of(&invocation.session).get(&target.key());
                 if let Some(message) =
-                    write_refusal(record.as_ref(), metadata.modified_at_ms, &normalized)
+                    write_refusal(record.as_ref(), FileStamp::of(&metadata), &normalized)
                 {
                     return Err(rejected(message));
                 }
