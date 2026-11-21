@@ -55,6 +55,14 @@ pub(crate) fn role_subagent(role: &AgentRoleConfig) -> Option<Subagent> {
     codex_claude_compat::parse_subagent_at(&contents, path)
 }
 
+/// `maxTurns` of the Claude Code subagent definition the turn's agent was started from: how
+/// many model requests a turn of it may make. `None` for any other agent.
+pub(crate) fn subagent_max_turns(turn_context: &TurnContext) -> Option<u32> {
+    let role_name = turn_context.session_source.get_agent_role()?;
+    let role = crate::agent::role::resolve_role_config(&turn_context.config, &role_name)?;
+    role_subagent(role)?.max_turns
+}
+
 /// Keeps in the registry only the tools `tools` permits.
 pub(super) fn restrict(registry: &mut ToolRegistry, tools: &ToolList) {
     let removed = registry

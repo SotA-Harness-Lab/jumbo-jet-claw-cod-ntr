@@ -30,6 +30,9 @@ pub struct Subagent {
     pub effort: Option<String>,
     /// `model`, as written: a Claude model's alias or id, or `inherit`.
     pub model: Option<String>,
+    /// `maxTurns`: how many model requests the agent may make; a value that is not a
+    /// positive whole number is left out.
+    pub max_turns: Option<u32>,
     /// `tools` and `disallowedTools`, applied when Codex offers Claude Code's tools.
     pub tools: ToolList,
 }
@@ -133,6 +136,9 @@ fn parse_with(contents: &str, plugin_agent: Option<&PluginAgent>) -> Option<Suba
         prompt,
         effort: field("effort"),
         model: field("model"),
+        max_turns: field("maxTurns")
+            .and_then(|turns| turns.parse::<u32>().ok())
+            .filter(|turns| *turns > 0),
         tools: ToolList::from_frontmatter(
             frontmatter.get("tools"),
             frontmatter.get("disallowedTools"),
@@ -159,6 +165,7 @@ mod tests {
                 prompt: "Do x.".to_string(),
                 effort: Some("high".to_string()),
                 model: Some("haiku".to_string()),
+                max_turns: None,
                 tools: ToolList {
                     allowed: Some(vec!["Read".to_string()]),
                     disallowed: Vec::new(),
@@ -167,6 +174,23 @@ mod tests {
         );
         assert_eq!(parse_subagent("---\nname: w\n---\nDo x."), None);
         assert_eq!(parse_subagent("---\nname: w\ndescription: d\n---\n"), None);
+    }
+
+    #[test]
+    fn max_turns_is_a_positive_whole_number() {
+        let max_turns = |value: &str| {
+            parse_subagent(&format!(
+                "---\nname: w\ndescription: d\nmaxTurns: {value}\n---\nDo x.\n"
+            ))
+            .expect("subagent")
+            .max_turns
+        };
+        assert_eq!(max_turns("5"), Some(5));
+        assert_eq!(max_turns("\"12\""), Some(12));
+        assert_eq!(max_turns("0"), None);
+        assert_eq!(max_turns("-3"), None);
+        assert_eq!(max_turns("2.5"), None);
+        assert_eq!(max_turns("many"), None);
     }
 
     #[test]

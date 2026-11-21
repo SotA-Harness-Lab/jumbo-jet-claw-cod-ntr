@@ -378,6 +378,7 @@ registered from `add_shell_tools`, which owns the shell options.
 | A subagent file with an empty body | Accepted | Ignored | Done 2026-11-17 `80c1279420` |
 | A subagent whose `tools` gives it no tool | Newer versions (2.1.208) refuse to start it: the `Agent` call fails with a message naming the entries, as unrecognized, not available to subagents, or matched no tools in this session; an absent `tools`, or one left empty once `disallowedTools` is taken off, is not refused | The same refusal and text, judged against the tools of the agent that calls `Agent`; an entry is matched no tools in this session when it names an MCP server or one of Claude Code's tools, unrecognized otherwise | Done 2026-11-21 |
 | Which subagent wins among those of one name | A plugin's, then the user's, then the project's, then one given with `--agents`, then a managed one, the later winning | Codex's own role, then the project's, then the user's, then a plugin's, the earlier winning | Done 2026-11-19 `4ff3147125` |
+| `maxTurns` | The subagent stops after that many turns (model requests); newer versions (2.1.246) mark its output as partial, and it can be resumed | A turn of the agent ends after that many model requests, its last answer standing as its result, without a partial mark; a later message to it (`send_input`) starts a new turn with a fresh count. A value that is not a positive whole number is left out | Done 2026-11-21 |
 | A subagent's name | Newer versions reject a name longer than 256 characters (2.1.292), and an agent file whose name has `:` in it, which is kept for the plugin's namespace (2.1.218) | Any name is taken: a file's `:` is kept, and such an agent can take the name of a plugin's agent | Done 2026-11-17 `80c1279420` |
 
 ### MCP servers
@@ -755,7 +756,7 @@ thing Codex has, where there is one.
 
 | Feature | Claude Code | Codex today, and the nearest thing it has | Status |
 | --- | --- | --- | --- |
-| Frontmatter other than `name`, `description`, `effort`, `tools` and `disallowedTools`: `permissionMode`, `mcpServers`, `hooks`, `maxTurns`, `skills`, `initialPrompt`, `memory`, `background`, `isolation`, `color`, and of newer versions `omitClaudeMd` (2.1.271) and `autoCompactWindow` (2.1.296) | Used | Left out. Nearest: a Codex role's own configuration file | Not planned |
+| Frontmatter other than `name`, `description`, `effort`, `maxTurns`, `tools` and `disallowedTools`: `permissionMode`, `mcpServers`, `hooks`, `skills`, `initialPrompt`, `memory`, `background`, `isolation`, `color`, and of newer versions `omitClaudeMd` (2.1.271) and `autoCompactWindow` (2.1.296) | Used | Left out. Nearest: a Codex role's own configuration file | Not planned |
 | `tools` and `disallowedTools` with the Claude tool set off | Applied | Ignored: the names are Claude Code's, which only the tool set gives the tools | Not planned |
 | Hosted tools and the tools code mode and tool search add, under `tools` | Not applicable | Not filtered | Not planned |
 | A subagent's own memory (`memory: user`, `project` or `local`) | A directory of its own (`~/.claude/agent-memory/<name>/` and the like), shown to that subagent | Not kept | Not planned |

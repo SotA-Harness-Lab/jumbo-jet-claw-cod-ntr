@@ -60,6 +60,7 @@ pub(crate) use permissions::remove_denied_tools;
 pub(crate) use permissions::rule_allows;
 pub(crate) use shell_cwd::take_cwd_report;
 pub(crate) use subagent_tools::restrict_to_subagent_tools;
+pub(crate) use subagent_tools::subagent_max_turns;
 
 /// Whether the model is offered Claude Code's tools instead of Codex's: `[claude] tools = true`
 /// in `$CODEX_HOME/ccn-config.toml`, and `CCN_CLAUDE_COMPAT` is not `0`.
