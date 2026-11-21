@@ -41,6 +41,24 @@ pub struct ResolvedAgentRoleFile {
     pub config: TomlValue,
 }
 
+/// The error of a Markdown file that is not a Claude Code subagent (no frontmatter, no
+/// `name` or `description`, or no body), such as notes kept beside the agents.
+#[derive(Debug)]
+struct NotASubagent(String);
+
+impl std::fmt::Display for NotASubagent {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for NotASubagent {}
+
+/// Whether `err` says a Markdown file is not a Claude Code subagent.
+pub(crate) fn is_not_a_subagent(err: &std::io::Error) -> bool {
+    matches!(err.get_ref(), Some(inner) if inner.is::<NotASubagent>())
+}
+
 pub fn parse_agent_role_file_contents(
     contents: &str,
     role_file_label: &Path,
@@ -56,10 +74,10 @@ pub fn parse_agent_role_file_contents(
         converted = claude_subagent_role_toml(contents, role_file_label).ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!(
+                NotASubagent(format!(
                     "Claude Code subagent at {} needs a `name`, a `description` and a body",
                     role_file_label.display()
-                ),
+                )),
             )
         })?;
         converted.as_str()

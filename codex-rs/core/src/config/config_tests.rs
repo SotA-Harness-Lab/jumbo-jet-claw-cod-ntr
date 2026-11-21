@@ -14489,3 +14489,33 @@ fn an_untrusted_project_supplies_no_claude_code_subagents() {
         vec![user_agents]
     );
 }
+
+#[tokio::test]
+async fn other_markdown_files_beside_claude_code_subagents_raise_no_warning() -> std::io::Result<()>
+{
+    let agents = tempdir()?;
+    tokio::fs::write(
+        agents.path().join("reviewer.md"),
+        "---\nname: reviewer\ndescription: Reviews code.\n---\nReview carefully.\n",
+    )
+    .await?;
+    tokio::fs::write(agents.path().join("README.md"), "# Our agents\n\nNotes.\n").await?;
+    tokio::fs::write(
+        agents.path().join("draft.md"),
+        "---\ntitle: draft\n---\nNot an agent yet.\n",
+    )
+    .await?;
+    let agents_dir = AbsolutePathBuf::from_absolute_path(agents.path())?;
+    let mut warnings = Vec::new();
+
+    let roles = codex_agent_roles::load_claude_code_agent_roles(
+        LOCAL_FS.as_ref(),
+        &agents_dir,
+        &mut warnings,
+    )
+    .await?;
+
+    assert_eq!(roles.keys().collect::<Vec<_>>(), vec!["reviewer"]);
+    assert_eq!(warnings, Vec::<String>::new());
+    Ok(())
+}
