@@ -58,8 +58,107 @@ pub async fn auto_memory_project_root(source: &dyn FileSource, cwd: &Path) -> io
     Ok(cwd.to_path_buf())
 }
 
-/// Cuts the index as Claude Code does, to 200 lines and 25,000 bytes, with a note when cut.
+/// Cuts the index as Claude Code does, to 200 lines and 25,000 bytes, with a note when cut,
+/// and neutralizes what could pass for the markup around it (see [`neutralize_markup`]).
 pub fn truncate_memory_index(raw: &str) -> String {
+    neutralize_markup(&cut_memory_index(raw))
+}
+
+/// Tags of the wrappers Codex and Claude Code put around what the model is shown.
+const MARKUP_TAGS: &[&str] = &[
+    // Codex's.
+    "INSTRUCTIONS",
+    "user_instructions",
+    "environment_context",
+    "environments_instructions",
+    "apps_instructions",
+    "catalog_apps_instructions",
+    "skills_instructions",
+    "plugins_instructions",
+    "permissions_instructions",
+    "developer_instructions",
+    "managed_developer_instructions",
+    "model_instructions",
+    "collaboration_mode",
+    "multi_agent_mode",
+    "realtime_conversation",
+    "context_window",
+    "context_window_guidance",
+    "codex_internal_context",
+    "project_context",
+    "startup_context",
+    "goal_context",
+    "persistent_mode",
+    "side_conversation",
+    "model_switch",
+    "tools",
+    "skill",
+    "user_shell_command",
+    "turn_aborted",
+    "subagent_notification",
+    // Claude Code's.
+    "system-reminder",
+    "command-name",
+    "command-message",
+    "command-args",
+    "local-command-stdout",
+    "local-command-stderr",
+    "local-command-caveat",
+    "user-prompt-submit-hook",
+    "task-notification",
+    "bash-input",
+    "bash-stdout",
+    "bash-stderr",
+];
+
+/// Characters that do not show: the zero-width space, the word joiner and the invisible
+/// operators, the byte-order mark, and the bidirectional controls that can make text read
+/// other than it is. The zero-width joiner and non-joiner stay, as some scripts and emoji
+/// need them.
+fn is_invisible(character: char) -> bool {
+    matches!(
+        character,
+        '\u{200B}'
+            | '\u{200E}'
+            | '\u{200F}'
+            | '\u{202A}'..='\u{202E}'
+            | '\u{2060}'..='\u{2064}'
+            | '\u{2066}'..='\u{2069}'
+            | '\u{FEFF}'
+    )
+}
+
+/// Removes invisible characters and turns the `<` of a tag that imitates the markup
+/// around the index (`</INSTRUCTIONS>`, `<system-reminder>`) into `&lt;`, as Claude Code
+/// does for `MEMORY.md`, which holds text the model wrote, possibly from what it was shown.
+fn neutralize_markup(text: &str) -> String {
+    let text = text
+        .chars()
+        .filter(|character| !is_invisible(*character))
+        .collect::<String>();
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text.as_str();
+    while let Some(at) = rest.find('<') {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 1..];
+        let name_start = after.strip_prefix('/').unwrap_or(after);
+        let name_len = name_start
+            .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '-'))
+            .unwrap_or(name_start.len());
+        let (name, tail) = name_start.split_at(name_len);
+        let is_tag = tail.starts_with(|c: char| c == '>' || c == '/' || c.is_whitespace());
+        if is_tag && MARKUP_TAGS.iter().any(|tag| tag.eq_ignore_ascii_case(name)) {
+            out.push_str("&lt;");
+        } else {
+            out.push('<');
+        }
+        rest = after;
+    }
+    out.push_str(rest);
+    out
+}
+
+fn cut_memory_index(raw: &str) -> String {
     let trimmed = raw.trim();
     let lines = trimmed.split('\n').collect::<Vec<_>>();
     let too_many_lines = lines.len() > MAX_INDEX_LINES;

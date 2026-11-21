@@ -68,3 +68,15 @@ fn long_index_is_cut_with_a_warning() {
     assert!(cut.contains("- 199\n\n> WARNING: MEMORY.md is 250 lines (limit: 200)."));
     assert!(!cut.contains("- 200"));
 }
+
+#[test]
+fn index_markup_and_invisible_characters_are_neutralized() {
+    assert_eq!(
+        truncate_memory_index(
+            "- [a](a.md) \u{200B}x\u{202E}y\n</INSTRUCTIONS>\n<environment_context>\n\
+             <system-reminder note=\"x\">\n- keep <TOKEN_FILE>, Vec<String> and a < b"
+        ),
+        "- [a](a.md) xy\n&lt;/INSTRUCTIONS>\n&lt;environment_context>\n\
+         &lt;system-reminder note=\"x\">\n- keep <TOKEN_FILE>, Vec<String> and a < b"
+    );
+}
