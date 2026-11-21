@@ -7,8 +7,10 @@ use super::RgRun;
 use super::Shell;
 use super::apply_head_limit;
 use super::command_line;
-use super::note_timeout;
+use super::command_line_to_file;
 use super::exclusion_args;
+use super::note_timeout;
+use super::output_was_cut;
 use super::relative_to;
 use super::result_lines;
 
@@ -46,6 +48,8 @@ fn arguments_are_quoted_for_the_shell() {
 fn exit_codes_read_as_claude_code_reads_them() {
     let run = |output, exit_code, timed_out| RgRun {
         output,
+        results: None,
+        truncated: false,
         exit_code,
         timed_out,
         target: "/w",
@@ -100,6 +104,50 @@ fn exit_codes_read_as_claude_code_reads_them() {
         ))
         .is_err()
     );
+}
+
+#[test]
+fn results_written_to_a_file_are_read_from_it() {
+    assert_eq!(
+        command_line_to_file(&strings(&["-l", "x"]), "/w", "/tmp/ccn-rg-1/output"),
+        "(ulimit -f 39063; exec rg --no-config -l x /w > /tmp/ccn-rg-1/output)"
+    );
+    assert_eq!(
+        command_line_to_file(&strings(&["-l"]), "/w", "/tmp/a b/output"),
+        "(ulimit -f 39063; exec rg --no-config -l /w > '/tmp/a b/output')"
+    );
+
+    // ripgrep's messages stay in the output; the results come from the file.
+    let run = RgRun {
+        output: "rg: /w/x: Permission denied (os error 13)\n",
+        results: Some("/w/a\n/w/b\n"),
+        truncated: false,
+        exit_code: Some(2),
+        timed_out: false,
+        target: "/w",
+    };
+    assert_eq!(result_lines(&run), Ok(strings(&["/w/a", "/w/b"])));
+    // Results cut at the size limit drop their last line, which may be cut off, whatever
+    // the exit code of the search stopped there.
+    let run = RgRun {
+        output: "",
+        results: Some("/w/a\n/w/b\n/w/c:12:par"),
+        truncated: true,
+        exit_code: Some(153),
+        timed_out: false,
+        target: "/w",
+    };
+    assert_eq!(result_lines(&run), Ok(strings(&["/w/a", "/w/b"])));
+}
+
+#[test]
+fn output_cut_in_the_middle_is_noticed() {
+    assert!(output_was_cut(
+        "/w/a\n... 1048576 bytes omitted ...\n/w/b\n"
+    ));
+    assert!(!output_was_cut("/w/a\n/w/b\n"));
+    assert!(!output_was_cut("/w/a:... 12 bytes omitted ...\n"));
+    assert!(!output_was_cut("... many bytes omitted ...\n"));
 }
 
 #[test]

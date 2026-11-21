@@ -27,6 +27,7 @@ mod output;
 mod permissions;
 mod read;
 mod ripgrep;
+mod scratch_file;
 mod shell_cwd;
 mod skill;
 mod subagent_tools;
