@@ -112,7 +112,8 @@ pub enum ToolInput<'a> {
     /// A `Bash` command, run in `cwd`.
     Command { command: &'a str, cwd: &'a Path },
     /// A file or directory read (`Read`, `Glob`, `Grep`): the absolute path, and the path
-    /// with symbolic links resolved if it differs; relative patterns are under `cwd`.
+    /// with symbolic links resolved if it differs; relative patterns are under `cwd`. A
+    /// deny or ask rule for any of the paths decides; an allow rule has to cover them all.
     Read { paths: &'a [PathBuf], cwd: &'a Path },
     /// A file written (`Edit`, `Write`), as for `Read`.
     Edit { paths: &'a [PathBuf], cwd: &'a Path },
@@ -390,12 +391,29 @@ impl PermissionRules {
         if let RuleVerdict::Allow { rule } = self.edit(paths, cwd) {
             return RuleVerdict::Allow { rule };
         }
-        match self.file_rule(FILE_READ_TOOL, PermissionDecision::Allow, path, cwd) {
+        match self.allow_rule_for_all(FILE_READ_TOOL, paths, cwd) {
             Some(rule) => RuleVerdict::Allow {
                 rule: rule.text.clone(),
             },
             None => RuleVerdict::NoMatch,
         }
+    }
+
+    /// The `tool` allow rule of the first of `paths`, when every one of them has one: a
+    /// path reached through a symbolic link is allowed only when the link and what it
+    /// leads to both are.
+    fn allow_rule_for_all(
+        &self,
+        tool: &str,
+        paths: &[PathBuf],
+        cwd: &Path,
+    ) -> Option<&PermissionRule> {
+        let mut first = None;
+        for path in paths {
+            let rule = self.file_rule(tool, PermissionDecision::Allow, path, cwd)?;
+            first.get_or_insert(rule);
+        }
+        first
     }
 
     fn edit(&self, paths: &[PathBuf], cwd: &Path) -> RuleVerdict {
@@ -423,7 +441,7 @@ impl PermissionRules {
         if paths.iter().any(|path| is_dangerous_to_edit(path)) {
             return RuleVerdict::NoMatch;
         }
-        match self.file_rule(FILE_EDIT_TOOL, PermissionDecision::Allow, path, cwd) {
+        match self.allow_rule_for_all(FILE_EDIT_TOOL, paths, cwd) {
             Some(rule) => RuleVerdict::Allow {
                 rule: rule.text.clone(),
             },

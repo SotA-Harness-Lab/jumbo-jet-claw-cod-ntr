@@ -235,7 +235,7 @@ pub(crate) async fn check_permission(
     .unwrap_or_else(|_| cwd.clone());
     let paths = match input {
         PermissionInput::ReadPath(path) | PermissionInput::EditPath(path) => {
-            vec![cwd.join(path)]
+            rule_paths(invocation, &cwd_uri, &cwd, path).await
         }
         _ => Vec::new(),
     };
@@ -284,6 +284,46 @@ pub(crate) async fn check_permission(
         }
     }
     Ok(guard)
+}
+
+/// The paths a file rule is checked against: `path` as given, and where its symbolic links
+/// lead when that is elsewhere, as Claude Code checks both (a deny or ask rule for either
+/// decides, an allow rule has to cover both). A path that does not exist yet is resolved
+/// through its nearest ancestor that does.
+async fn rule_paths(
+    invocation: &ToolInvocation,
+    cwd_uri: &PathUri,
+    cwd: &Path,
+    path: &str,
+) -> Vec<PathBuf> {
+    let mut paths = vec![cwd.join(path)];
+    let (Ok(environment), Ok(uri)) = (
+        selected_executor(
+            &invocation.environments,
+            &invocation.step_context.environments,
+        ),
+        cwd_uri.join(path),
+    ) else {
+        return paths;
+    };
+    let fs = environment.environment().get_filesystem();
+    for ancestor in uri.ancestors() {
+        // Resolved outside the sandbox: only where the links lead is looked at.
+        let Ok(resolved) = fs.canonicalize(&ancestor, /*sandbox*/ None).await else {
+            continue;
+        };
+        if let Some(resolved) = uri
+            .relative_path_from(&ancestor)
+            .and_then(|rest| resolved.join(&rest).ok())
+        {
+            let resolved = resolved.to_path_buf();
+            if !paths.contains(&resolved) {
+                paths.push(resolved);
+            }
+        }
+        break;
+    }
+    paths
 }
 
 /// Asks the user about a call of a tool Codex has no approval step for, with Codex's

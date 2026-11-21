@@ -625,6 +625,71 @@ fn rules_for_everything_under_an_anchor_match() {
 }
 
 #[test]
+fn a_path_through_a_symbolic_link_is_checked_where_it_leads_too() {
+    let rules = local_rules(&["Read(docs/**)", "Edit(*.txt)"], &[], &["Read(~/.ssh/**)"]);
+    let link = PathBuf::from("/work/project/docs/key");
+    let target = PathBuf::from("/home/user/.ssh/id_rsa");
+    let paths = [link.clone(), target.clone()];
+    // A deny rule for what the link leads to denies the link.
+    assert_eq!(
+        rules.evaluate(
+            "Read",
+            ToolInput::Read {
+                paths: &paths,
+                cwd: Path::new(PROJECT),
+            },
+        ),
+        RuleVerdict::Deny {
+            rule: "Read(~/.ssh/**)".to_string(),
+            message: "Permission to read /work/project/docs/key has been denied.".to_string(),
+        }
+    );
+    // An allow rule has to cover both the link and what it leads to.
+    let rules = local_rules(&["Read(docs/**)", "Edit(*.txt)"], &[], &[]);
+    let read_paths = |paths: &[PathBuf]| {
+        rules.evaluate(
+            "Read",
+            ToolInput::Read {
+                paths,
+                cwd: Path::new(PROJECT),
+            },
+        )
+    };
+    assert_eq!(read_paths(&[link.clone()]), allow("Read(docs/**)"));
+    assert_eq!(read_paths(&[link, target]), RuleVerdict::NoMatch);
+    assert_eq!(
+        read_paths(&[
+            PathBuf::from("/work/project/docs/a.md"),
+            PathBuf::from("/work/project/docs/b.md"),
+        ]),
+        allow("Read(docs/**)")
+    );
+    let edit_paths = |paths: &[PathBuf]| {
+        rules.evaluate(
+            "Edit",
+            ToolInput::Edit {
+                paths,
+                cwd: Path::new(PROJECT),
+            },
+        )
+    };
+    assert_eq!(
+        edit_paths(&[
+            PathBuf::from("/work/project/notes.txt"),
+            PathBuf::from("/work/project/src/main.rs"),
+        ]),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit_paths(&[
+            PathBuf::from("/work/project/notes.txt"),
+            PathBuf::from("/work/project/.vscode/tasks.json"),
+        ]),
+        RuleVerdict::NoMatch
+    );
+}
+
+#[test]
 fn a_pattern_that_is_no_glob_guards_the_path_it_spells() {
     let rules = local_rules(
         &["Read(docs/{draft)", "Read(*.md)"],
