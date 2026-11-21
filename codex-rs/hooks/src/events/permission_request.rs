@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks;
-// follow more of Claude Code's behaviour
+// follow more of Claude Code's behaviour; do not deny on exit code 2
 
 //! Permission-request hook execution.
 //!
@@ -284,21 +284,17 @@ fn parse_completed(
                     });
                 }
             }
-            Some(2) if handler.can_apply_control_effects() => {
-                if let Some(message) = common::trimmed_non_empty(&run_result.stderr) {
-                    status = HookRunStatus::Blocked;
-                    entries.push(HookOutputEntry {
-                        kind: HookOutputEntryKind::Feedback,
-                        text: message.clone(),
-                    });
-                    decision = Some(PermissionRequestDecision::Deny { message });
-                } else {
-                    status = HookRunStatus::Failed;
-                    entries.push(HookOutputEntry {
-                        kind: HookOutputEntryKind::Error,
-                        text: "PermissionRequest hook exited with code 2 but did not write a denial reason to stderr".to_string(),
-                    });
-                }
+            Some(2) => {
+                // As in Claude Code, exit code 2 does not deny a permission request: the
+                // approval goes on as if the hook had not decided.
+                status = HookRunStatus::Failed;
+                entries.push(HookOutputEntry {
+                    kind: HookOutputEntryKind::Error,
+                    text: format!(
+                        "{}; exit code 2 does not deny a permission request, return a deny decision instead",
+                        common::exit_code_error(2, &run_result.stderr)
+                    ),
+                });
             }
             Some(exit_code) => {
                 status = HookRunStatus::Failed;
@@ -333,8 +329,17 @@ fn parse_completed(
 mod tests {
     use pretty_assertions::assert_eq;
 
+    use codex_protocol::protocol::HookEventName;
+    use codex_protocol::protocol::HookOutputEntry;
+    use codex_protocol::protocol::HookOutputEntryKind;
+    use codex_protocol::protocol::HookRunStatus;
+    use codex_utils_absolute_path::test_support::PathBufExt;
+    use codex_utils_absolute_path::test_support::test_path_buf;
+
     use super::PermissionRequestDecision;
     use super::resolve_permission_request_decision;
+    use crate::engine::ConfiguredHandler;
+    use crate::engine::HandlerRunResult;
 
     #[test]
     fn command_input_uses_approval_cwd_path_convention() {
@@ -402,5 +407,82 @@ mod tests {
         let decisions = Vec::<PermissionRequestDecision>::new();
 
         assert_eq!(resolve_permission_request_decision(decisions.iter()), None);
+    }
+
+    #[test]
+    fn exit_code_2_does_not_deny_the_request() {
+        let parsed = super::parse_completed(
+            &handler(),
+            run_result(Some(2), "", "not on my watch\n"),
+            Some("turn-1".to_string()),
+        );
+
+        assert_eq!(parsed.data.decision, None);
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Failed);
+        assert_eq!(
+            parsed.completed.run.entries,
+            vec![HookOutputEntry {
+                kind: HookOutputEntryKind::Error,
+                text: "hook exited with code 2: not on my watch; exit code 2 does not deny a \
+                       permission request, return a deny decision instead"
+                    .to_string(),
+            }]
+        );
+    }
+
+    #[test]
+    fn a_deny_decision_still_denies_the_request() {
+        let parsed = super::parse_completed(
+            &handler(),
+            run_result(
+                Some(0),
+                r#"{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"no"}}}"#,
+                "",
+            ),
+            Some("turn-1".to_string()),
+        );
+
+        assert_eq!(
+            parsed.data.decision,
+            Some(PermissionRequestDecision::Deny {
+                message: "no".to_string(),
+            })
+        );
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
+    }
+
+    fn handler() -> ConfiguredHandler {
+        ConfiguredHandler {
+            builtin: false,
+            plugin_trust: None,
+            event_name: HookEventName::PermissionRequest,
+            matcher: None,
+            timeout_sec: 600,
+            status_message: None,
+            additional_context_limit: Default::default(),
+            source_path: test_path_buf("/tmp/hooks.json").abs().into(),
+            source: codex_protocol::protocol::HookSource::User,
+            display_order: 0,
+            kind: crate::engine::ConfiguredHandlerKind::Command {
+                command: "echo hook".to_string(),
+                r#async: false,
+                posix_sh: false,
+                env: std::collections::HashMap::new(),
+            },
+        }
+    }
+
+    fn run_result(exit_code: Option<i32>, stdout: &str, stderr: &str) -> HandlerRunResult {
+        HandlerRunResult {
+            structured_content: None,
+            context_metadata: codex_protocol::models::ContentItemMetadata::harness(),
+            started_at: 1,
+            completed_at: 2,
+            duration_ms: 1,
+            exit_code,
+            stdout: stdout.to_string(),
+            stderr: stderr.to_string(),
+            error: None,
+        }
     }
 }
