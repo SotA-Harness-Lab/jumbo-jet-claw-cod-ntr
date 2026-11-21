@@ -181,6 +181,26 @@ fn html_becomes_markdown_and_other_content_is_kept() {
 }
 
 #[test]
+fn row_headers_keep_their_column() {
+    let markdown = to_markdown(
+        "<table><thead><tr><th>Country</th><th>Population</th></tr></thead>\
+         <tbody><tr><TH scope=\"row\">France</TH><td>68M</td></tr>\
+         <tr><th>Chad</th><td></td></tr></tbody></table>",
+        "text/html",
+    );
+    assert_eq!(
+        markdown,
+        "| Country | Population |\n| ------- | ---------- |\n| France  | 68M        |\n| Chad    |            |"
+    );
+    // Without `<thead>` every row is a body row; the row headers stay in the first column.
+    let markdown = to_markdown(
+        "<table><tr><td></td><th>2025</th></tr><tr><th>Sales</th><td>9</td></tr></table>",
+        "text/html",
+    );
+    assert_eq!(markdown, "|       | 2025 |\n| Sales | 9    |");
+}
+
+#[test]
 fn deeply_nested_html_becomes_plain_text() {
     let html = format!("{}<b>deep</b> &amp; done", "<div>".repeat(100_000));
     assert_eq!(to_markdown(&html, "text/html"), "deep & done");

@@ -9,6 +9,7 @@
 //! policy and approvals decide whether it may reach the host; this module builds that
 //! command and reads its output, and holds everything else that does not depend on Codex.
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::time::Duration;
 use std::time::Instant;
@@ -314,7 +315,43 @@ pub fn to_markdown(body: &str, content_type: &str) -> String {
     let converter = htmd::HtmlToMarkdown::builder()
         .skip_tags(vec!["script", "style"])
         .build();
-    converter.convert(body).unwrap_or_else(|_| body.to_string())
+    converter
+        .convert(&header_cells_as_data_cells(body))
+        .unwrap_or_else(|_| body.to_string())
+}
+
+/// `html` with its `<th>` cells made `<td>`. The converter takes only the `<td>` cells of a
+/// body row, so a row header (`<th scope="row">`) was dropped and every value after it moved
+/// a column left; a header row of `<th>` cells is still taken as the header.
+fn header_cells_as_data_cells(html: &str) -> Cow<'_, str> {
+    let bytes = html.as_bytes();
+    let mut rewritten: Option<String> = None;
+    let mut copied = 0;
+    let mut pos = 0;
+    while let Some(offset) = html[pos..].find('<') {
+        let start = pos + offset;
+        let name = start + 1 + usize::from(bytes.get(start + 1) == Some(&b'/'));
+        let is_th = bytes
+            .get(name..name + 2)
+            .is_some_and(|tag| tag.eq_ignore_ascii_case(b"th"))
+            && bytes
+                .get(name + 2)
+                .is_none_or(|next| next.is_ascii_whitespace() || matches!(next, b'>' | b'/'));
+        if is_th {
+            let rewritten = rewritten.get_or_insert_with(|| String::with_capacity(html.len()));
+            rewritten.push_str(&html[copied..name]);
+            rewritten.push_str("td");
+            copied = name + 2;
+        }
+        pos = start + 1;
+    }
+    match rewritten {
+        Some(mut rewritten) => {
+            rewritten.push_str(&html[copied..]);
+            Cow::Owned(rewritten)
+        }
+        None => Cow::Borrowed(html),
+    }
 }
 
 /// Elements that have no content, and never nest.
