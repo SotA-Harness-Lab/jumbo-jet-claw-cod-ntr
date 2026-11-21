@@ -9,6 +9,7 @@
 //! commands, and the text is left as it is.
 
 use crate::markdown::parse_document;
+use crate::markdown::parse_frontmatter;
 
 const SKILL_DIR_PLACEHOLDER: &str = "${CLAUDE_SKILL_DIR}";
 const SESSION_ID_PLACEHOLDER: &str = "${CLAUDE_SESSION_ID}";
@@ -64,9 +65,10 @@ pub fn substitute_skill_variables(content: &str, skill_dir: &str, session_id: &s
 
 /// The names of a skill's arguments, from the `arguments` field of its frontmatter: a list,
 /// or a string of names separated by whitespace. Empty names and names made only of digits
-/// (which would clash with `$0`, `$1`) are dropped.
+/// (which would clash with `$0`, `$1`) are dropped. The frontmatter is read as Claude Code
+/// reads it, so a `description: Triggers include: X` beside it does not lose the names.
 pub fn argument_names(frontmatter: &str) -> Vec<String> {
-    let Ok(value) = serde_yaml::from_str::<serde_yaml::Value>(frontmatter) else {
+    let Some(value) = parse_frontmatter(frontmatter) else {
         return Vec::new();
     };
     let names: Vec<String> = match value.get("arguments") {

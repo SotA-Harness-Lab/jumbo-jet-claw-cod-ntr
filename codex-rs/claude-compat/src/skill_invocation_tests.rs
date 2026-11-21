@@ -67,6 +67,14 @@ fn reads_argument_names_from_frontmatter() {
 }
 
 #[test]
+fn reads_argument_names_beside_a_value_that_is_not_valid_yaml() {
+    assert_eq!(
+        argument_names("name: x\ndescription: Triggers include: X, Y\narguments: [topic]\n"),
+        names(&["topic"])
+    );
+}
+
+#[test]
 fn substitutes_every_kind_of_placeholder() {
     let content = "all=$ARGUMENTS first=$ARGUMENTS[0] second=$1 third=$2 file=$file mode=$mode";
     assert_eq!(

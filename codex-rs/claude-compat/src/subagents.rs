@@ -12,7 +12,9 @@ use std::path::Path;
 
 use serde_yaml::Value;
 
+use crate::markdown::frontmatter_string;
 use crate::markdown::parse_document;
+use crate::markdown::parse_frontmatter;
 use crate::plugin_vars::PluginVariables;
 use crate::plugin_vars::plugin_root_of;
 use crate::tools::agent::ToolList;
@@ -74,7 +76,8 @@ struct PluginAgent {
 fn parse_with(contents: &str, plugin_agent: Option<&PluginAgent>) -> Option<Subagent> {
     let document = parse_document(contents);
     let frontmatter: Value = match document.frontmatter {
-        Some(frontmatter) => serde_yaml::from_str(frontmatter).ok()?,
+        // As in Claude Code, a frontmatter that cannot be read leaves every field unset.
+        Some(frontmatter) => parse_frontmatter(frontmatter).unwrap_or(Value::Null),
         // Only a plugin's agent may go without a frontmatter.
         None => {
             plugin_agent?;
@@ -84,10 +87,9 @@ fn parse_with(contents: &str, plugin_agent: Option<&PluginAgent>) -> Option<Suba
     let field = |key: &str| {
         frontmatter
             .get(key)
-            .and_then(Value::as_str)
-            .map(str::trim)
+            .and_then(frontmatter_string)
+            .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty())
-            .map(str::to_string)
     };
     let prompt = document.body.trim();
     if prompt.is_empty() {
@@ -150,5 +152,31 @@ mod tests {
         );
         assert_eq!(parse_subagent("---\nname: w\n---\nDo x."), None);
         assert_eq!(parse_subagent("---\nname: w\ndescription: d\n---\n"), None);
+    }
+
+    #[test]
+    fn reads_frontmatter_that_is_not_valid_yaml_as_claude_code_does() {
+        let agent = parse_subagent(
+            "---\nname: reviewer\ndescription: Use this agent when: the user asks for a review\n---\nReview.\n",
+        )
+        .expect("the description is quoted and the frontmatter read again");
+        assert_eq!(
+            (agent.name.as_str(), agent.description.as_str()),
+            (
+                "reviewer",
+                "Use this agent when: the user asks for a review"
+            )
+        );
+
+        let agent = parse_subagent("---\nname: 3000\ndescription: true\n---\nDo x.\n")
+            .expect("a bare number or boolean is taken as text");
+        assert_eq!(
+            (agent.name.as_str(), agent.description.as_str()),
+            ("3000", "true")
+        );
+        assert_eq!(
+            parse_subagent("---\nname: w\ndescription: d\n- stray\n---\nDo x.\n"),
+            None
+        );
     }
 }
