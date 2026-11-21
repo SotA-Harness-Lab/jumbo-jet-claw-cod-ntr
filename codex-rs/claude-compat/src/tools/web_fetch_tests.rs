@@ -267,6 +267,30 @@ fn cache_expires_after_fifteen_minutes() {
 }
 
 #[test]
+fn expired_pages_are_dropped_without_a_fetch_of_their_own() {
+    let mut cache = FetchCache::default();
+    let start = Instant::now();
+    let page = FetchedContent {
+        bytes: 3,
+        code: 200,
+        code_text: "OK".to_string(),
+        content: "abc".to_string(),
+        content_type: "text/plain".to_string(),
+    };
+    cache.insert("http://a.com/".to_string(), page.clone(), start);
+    let later = start + Duration::from_secs(10 * 60);
+    cache.insert("http://b.com/".to_string(), page.clone(), later);
+
+    // A lookup of another page drops the expired one.
+    assert_eq!(cache.get("http://c.com/", start + CACHE_TTL), None);
+    assert_eq!(cache.entries.len(), 1);
+    assert_eq!(cache.size, 3);
+    assert_eq!(cache.get("http://b.com/", start + CACHE_TTL), Some(page));
+    cache.remove_expired(later + CACHE_TTL);
+    assert_eq!((cache.entries.len(), cache.size), (0, 0));
+}
+
+#[test]
 fn description_points_to_bash_only_when_offered() {
     assert!(description(&["Bash"]).contains("gh CLI via Bash"));
     assert!(!description(&[]).contains("gh CLI"));

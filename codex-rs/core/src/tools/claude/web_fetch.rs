@@ -106,11 +106,23 @@ impl WebFetchCache {
             .get(url, Instant::now())
     }
 
-    fn insert(&self, url: String, content: FetchedContent) {
+    /// Caches a page, and drops it once it has expired even when no fetch follows.
+    fn insert(self: &Arc<Self>, url: String, content: FetchedContent) {
         self.0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .insert(url, content, Instant::now());
+        let cache = Arc::downgrade(self);
+        tokio::spawn(async move {
+            tokio::time::sleep(web_fetch::CACHE_TTL).await;
+            if let Some(cache) = cache.upgrade() {
+                cache
+                    .0
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .remove_expired(Instant::now());
+            }
+        });
     }
 }
 

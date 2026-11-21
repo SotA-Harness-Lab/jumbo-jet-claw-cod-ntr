@@ -601,14 +601,7 @@ pub struct FetchCache {
 
 impl FetchCache {
     pub fn get(&mut self, url: &str, now: Instant) -> Option<FetchedContent> {
-        let expired = self
-            .entries
-            .get(url)
-            .is_some_and(|entry| now.duration_since(entry.stored_at) >= CACHE_TTL);
-        if expired {
-            self.remove(url);
-            return None;
-        }
+        self.remove_expired(now);
         let entry = self.entries.get_mut(url)?;
         entry.used_at = now;
         Some(entry.content.clone())
@@ -620,13 +613,7 @@ impl FetchCache {
         if size > MAX_CACHE_SIZE_BYTES {
             return;
         }
-        self.entries
-            .retain(|_, entry| now.duration_since(entry.stored_at) < CACHE_TTL);
-        self.size = self
-            .entries
-            .values()
-            .map(|entry| entry.content.content.len().max(1))
-            .sum();
+        self.remove_expired(now);
         while self.size + size > MAX_CACHE_SIZE_BYTES {
             let Some(oldest) = self
                 .entries
@@ -647,6 +634,18 @@ impl FetchCache {
                 content,
             },
         );
+    }
+
+    /// Drops every entry older than [`CACHE_TTL`], so that expired pages do not stay in
+    /// memory until the next fetch.
+    pub fn remove_expired(&mut self, now: Instant) {
+        self.entries
+            .retain(|_, entry| now.duration_since(entry.stored_at) < CACHE_TTL);
+        self.size = self
+            .entries
+            .values()
+            .map(|entry| entry.content.content.len().max(1))
+            .sum();
     }
 
     fn remove(&mut self, url: &str) {
