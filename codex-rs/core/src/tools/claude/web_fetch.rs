@@ -565,8 +565,5 @@ async fn answer_prompt(
             return Err(failed("The request was cancelled"));
         }
     };
-    if text.trim().is_empty() {
-        return Ok(web_fetch::NO_RESPONSE.to_string());
-    }
-    Ok(text)
+    web_fetch::secondary_model_answer(text).map_err(failed)
 }

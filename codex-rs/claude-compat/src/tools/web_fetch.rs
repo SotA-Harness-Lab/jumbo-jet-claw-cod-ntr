@@ -817,8 +817,17 @@ pub fn secondary_model_prompt(markdown: &str, prompt: &str, preapproved: bool) -
     )
 }
 
-/// Claude Code's result when the secondary model answered nothing.
-pub const NO_RESPONSE: &str = "No response from model";
+/// The secondary model's answer as the tool's result. An answer without text (a refusal,
+/// or reasoning only) fails the call, as in Claude Code, instead of reaching the model as
+/// what the page says.
+pub fn secondary_model_answer(text: String) -> Result<String, String> {
+    if text.trim().is_empty() {
+        return Err(format!(
+            "The page could not be summarized: the model reading it returned no text. Try again with a narrower prompt, or fetch the page with curl through {BASH}."
+        ));
+    }
+    Ok(text)
+}
 
 #[cfg(test)]
 #[path = "web_fetch_tests.rs"]

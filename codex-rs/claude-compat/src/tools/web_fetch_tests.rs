@@ -23,6 +23,7 @@ use super::is_preapproved;
 use super::parse_fetch_output;
 use super::redirect_message;
 use super::returns_content_unprocessed;
+use super::secondary_model_answer;
 use super::secondary_model_prompt;
 use super::to_markdown;
 use super::truncate_markdown;
@@ -310,4 +311,18 @@ fn expired_pages_are_dropped_without_a_fetch_of_their_own() {
 fn description_points_to_bash_only_when_offered() {
     assert!(description(&["Bash"]).contains("gh CLI via Bash"));
     assert!(!description(&[]).contains("gh CLI"));
+}
+
+#[test]
+fn an_empty_answer_fails_the_call() {
+    assert_eq!(
+        secondary_model_answer("The page says hi.".to_string()),
+        Ok("The page says hi.".to_string())
+    );
+    let error = secondary_model_answer(" \n".to_string()).unwrap_err();
+    assert!(
+        error.starts_with("The page could not be summarized"),
+        "{error}"
+    );
+    assert!(error.contains("curl through Bash"), "{error}");
 }
