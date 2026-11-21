@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable; count the background terminals
 
 //! Command execution lifecycle handlers for `ChatWidget`.
 //!
@@ -198,6 +198,11 @@ impl ChatWidget {
             });
         }
         self.sync_unified_exec_footer();
+    }
+
+    /// How many background terminals this session has left running.
+    pub(crate) fn background_terminal_count(&self) -> usize {
+        self.unified_exec_processes.len()
     }
 
     pub(super) fn clear_background_terminals(&mut self) {

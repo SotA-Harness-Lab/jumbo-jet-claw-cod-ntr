@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; quit from the prompt after asking about running work
 
 //! Application-level events used to coordinate UI actions.
 //!
@@ -889,6 +889,10 @@ pub(crate) enum AppEvent {
     Exit(ExitMode),
     /// The user accepted stopping other sessions owned by this embedded server.
     ConfirmedEmbeddedExit(ExitMode),
+
+    /// The user asked to quit from the prompt (`/exit`, `/quit`, or `exit` and the other exit
+    /// words): quit, after asking first when work is still running.
+    ExitFromPrompt,
 
     /// Apply a choice from the running-task exit menu to its originating thread.
     RunningTaskExit {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable
+// Modified by Tianyu (Sky) Lu in 2026: made the interface translatable; the running-task menu can be shown from /exit
 
 //! Keyboard input, external editor, and status-line dispatch for the TUI app.
 //!
@@ -18,6 +18,68 @@ use crate::keymap::keymap_action_ids;
 mod select_mode;
 
 impl App {
+    /// Shows the menu that asks what happens to the running task when leaving a daemon-backed
+    /// session. Returns false, showing nothing, when no turn of this session is running.
+    pub(super) async fn show_running_task_exit_picker(&mut self) -> bool {
+        let mut running_thread_id = if self.chat_widget.is_agent_turn_running() {
+            self.chat_widget.thread_id()
+        } else {
+            None
+        };
+        let mut running_side_thread_id =
+            running_thread_id.filter(|thread_id| self.side_threads.contains_key(thread_id));
+        if running_side_thread_id.is_none() {
+            running_side_thread_id = self.running_side_thread_id().await;
+        }
+        if running_thread_id.is_none() {
+            running_thread_id = running_side_thread_id;
+        }
+
+        let Some(thread_id) = running_thread_id else {
+            return false;
+        };
+        let allow_background = running_side_thread_id.is_none()
+            && !self.chat_widget.has_queued_follow_up_messages();
+        self.chat_widget.show_selection_view(SelectionViewParams {
+            title: Some(crate::i18n::tr!("input-task-running-title").to_string()),
+            subtitle: Some(crate::i18n::tr!("input-task-running-subtitle").to_string()),
+            footer_hint: Some(standard_popup_hint_line()),
+            items: [
+                (
+                    crate::i18n::tr!("input-cancel-task"),
+                    crate::i18n::tr!("input-cancel-task-desc"),
+                    RunningTaskExitAction::CancelTask,
+                ),
+                (
+                    crate::i18n::tr!("input-run-background"),
+                    crate::i18n::tr!("input-run-background-desc"),
+                    RunningTaskExitAction::RunInBackground,
+                ),
+                (
+                    crate::i18n::tr!("input-exit"),
+                    crate::i18n::tr!("input-exit-desc"),
+                    RunningTaskExitAction::Exit,
+                ),
+            ]
+            .into_iter()
+            .filter(|(_, _, action)| {
+                allow_background || *action != RunningTaskExitAction::RunInBackground
+            })
+            .map(|(name, description, action)| SelectionItem {
+                name: name.to_string(),
+                description: Some(description.to_string()),
+                actions: vec![Box::new(move |tx| {
+                    tx.send(AppEvent::RunningTaskExit { action, thread_id });
+                })],
+                dismiss_on_select: true,
+                ..Default::default()
+            })
+            .collect(),
+            ..SelectionViewParams::picker()
+        });
+        true
+    }
+
     pub(super) fn should_recover_vim_insert_escape(
         &self,
         tui: &tui::Tui,
@@ -620,60 +682,7 @@ impl App {
                 } if modifiers.contains(KeyModifiers::CONTROL) && c.eq_ignore_ascii_case(&'c')
             )
         {
-            let mut running_thread_id = if self.chat_widget.is_agent_turn_running() {
-                self.chat_widget.thread_id()
-            } else {
-                None
-            };
-            let mut running_side_thread_id =
-                running_thread_id.filter(|thread_id| self.side_threads.contains_key(thread_id));
-            if running_side_thread_id.is_none() {
-                running_side_thread_id = self.running_side_thread_id().await;
-            }
-            if running_thread_id.is_none() {
-                running_thread_id = running_side_thread_id;
-            }
-
-            if let Some(thread_id) = running_thread_id {
-                let allow_background = running_side_thread_id.is_none()
-                    && !self.chat_widget.has_queued_follow_up_messages();
-                self.chat_widget.show_selection_view(SelectionViewParams {
-                    title: Some(crate::i18n::tr!("input-task-running-title").to_string()),
-                    subtitle: Some(crate::i18n::tr!("input-task-running-subtitle").to_string()),
-                    footer_hint: Some(standard_popup_hint_line()),
-                    items: [
-                        (
-                            crate::i18n::tr!("input-cancel-task"),
-                            crate::i18n::tr!("input-cancel-task-desc"),
-                            RunningTaskExitAction::CancelTask,
-                        ),
-                        (
-                            crate::i18n::tr!("input-run-background"),
-                            crate::i18n::tr!("input-run-background-desc"),
-                            RunningTaskExitAction::RunInBackground,
-                        ),
-                        (
-                            crate::i18n::tr!("input-exit"),
-                            crate::i18n::tr!("input-exit-desc"),
-                            RunningTaskExitAction::Exit,
-                        ),
-                    ]
-                    .into_iter()
-                    .filter(|(_, _, action)| {
-                        allow_background || *action != RunningTaskExitAction::RunInBackground
-                    })
-                    .map(|(name, description, action)| SelectionItem {
-                        name: name.to_string(),
-                        description: Some(description.to_string()),
-                        actions: vec![Box::new(move |tx| {
-                            tx.send(AppEvent::RunningTaskExit { action, thread_id });
-                        })],
-                        dismiss_on_select: true,
-                        ..Default::default()
-                    })
-                    .collect(),
-                    ..SelectionViewParams::picker()
-                });
+            if self.show_running_task_exit_picker().await {
                 return;
             }
         }
