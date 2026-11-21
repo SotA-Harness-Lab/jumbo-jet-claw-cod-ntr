@@ -12,14 +12,17 @@
 //! carries over from one command to the next (see `shell_cwd`).
 
 use std::collections::BTreeMap;
+use std::collections::HashSet;
+use std::sync::Mutex;
+use std::sync::PoisonError;
 
 use codex_claude_compat::tools::BASH;
 use codex_claude_compat::tools::bash;
+use codex_claude_compat::tools::bash::BashInput as BashArgs;
 use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
-use serde::Deserialize;
 use serde_json::Value;
 use serde_json::json;
 
@@ -29,8 +32,10 @@ use super::check_permission;
 use super::delegated;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::rejected;
 use super::shell_cwd::Tracking;
 use crate::function_tool::FunctionCallError;
+use crate::session::session::Session;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
@@ -73,19 +78,6 @@ struct BashHandler {
     foreground: ExecCommandHandler,
     /// Starts a command that keeps running; `None` when Codex's unified exec is off.
     background: Option<ExecCommandHandler>,
-}
-
-#[derive(Deserialize)]
-struct BashArgs {
-    command: String,
-    #[serde(default)]
-    timeout: Option<f64>,
-    #[serde(default)]
-    description: Option<String>,
-    #[serde(default)]
-    run_in_background: Option<bool>,
-    #[serde(default, rename = "dangerouslyDisableSandbox")]
-    dangerously_disable_sandbox: Option<bool>,
 }
 
 impl ToolExecutor<ToolInvocation> for BashHandler {
@@ -196,7 +188,8 @@ impl BashHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
-        let args: BashArgs = parse_claude_arguments(BASH, &invocation)?;
+        let arguments: Value = parse_claude_arguments(BASH, &invocation)?;
+        let args = BashArgs::parse(arguments).map_err(|message| rejected(&message))?;
         let _permission =
             check_permission(&invocation, BASH, PermissionInput::Command(&args.command)).await?;
         let background_on_timeout = invocation
@@ -234,11 +227,13 @@ impl BashHandler {
             .as_ref()
             .filter(|_| run != BashRun::Background)
             .and_then(|tracking| tracking.request_report(&invocation.session, &invocation.call_id));
+        request_zsh_prelude(&invocation.session, &invocation.call_id);
         let output = handler
             .handle(delegated(&invocation, payload.clone()))
             .await;
         // The exec runtime took the request unless the command never ran.
         let _ = super::take_cwd_report(&invocation.session, &invocation.call_id);
+        let _ = take_zsh_prelude(&invocation.session, &invocation.call_id);
         let output = output?;
 
         // The structured result of `exec_command`: its truncated output, exit code, and the
@@ -263,7 +258,7 @@ impl BashHandler {
                 "isImage": false,
                 "backgroundTaskId": id,
             });
-            let message = match run {
+            let mut message = match run {
                 BashRun::ForegroundThenBackground => bash::moved_to_background_message(
                     &id,
                     bash::timeout_ms(args.timeout),
@@ -271,6 +266,13 @@ impl BashHandler {
                 ),
                 BashRun::Foreground | BashRun::Background => bash::background_message(&id),
             };
+            if bash::changes_directory(&args.command) {
+                let cwd = workdir
+                    .map(str::to_string)
+                    .unwrap_or_else(|| environment.cwd().inferred_native_path_string());
+                message.push('\n');
+                message.push_str(&bash::background_cwd_note(&cwd));
+            }
             return Ok(boxed_tool_output(ClaudeToolOutput::new(
                 message,
                 tool_response,
@@ -318,9 +320,40 @@ impl BashHandler {
     }
 }
 
+/// `Bash` calls whose command the exec runtime starts with
+/// [`bash::ZSH_PRELUDE`] when zsh runs it, by call id.
+#[derive(Default)]
+struct ZshPreludes(Mutex<HashSet<String>>);
+
+fn request_zsh_prelude(session: &Session, call_id: &str) {
+    session
+        .services
+        .session_extension_data
+        .get_or_init::<ZshPreludes>(ZshPreludes::default)
+        .0
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .insert(call_id.to_string());
+}
+
+/// Whether the command of `call_id` is a `Bash` call's, to be started with
+/// [`bash::ZSH_PRELUDE`] when zsh runs it; takes the request.
+pub(crate) fn take_zsh_prelude(session: &Session, call_id: &str) -> bool {
+    session
+        .services
+        .session_extension_data
+        .get_or_init::<ZshPreludes>(ZshPreludes::default)
+        .0
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .remove(call_id)
+}
+
 #[cfg(test)]
 pub(super) fn exec_command_arguments_for_test(arguments: &str, background: bool) -> Value {
-    let args: BashArgs = serde_json::from_str(arguments)
+    let args = serde_json::from_str(arguments)
+        .map_err(|err| err.to_string())
+        .and_then(BashArgs::parse)
         .unwrap_or_else(|err| panic!("invalid Bash arguments: {err}"));
     exec_command_arguments(
         &args,

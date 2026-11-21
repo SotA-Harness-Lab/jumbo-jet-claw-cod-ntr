@@ -13,8 +13,10 @@ pub struct Document<'a> {
 }
 
 /// Splits a leading `---` frontmatter block off a file. A file whose block is never
-/// closed is all body.
+/// closed is all body. A UTF-8 byte order mark at the start is dropped, as Claude Code
+/// drops it.
 pub fn parse_document(contents: &str) -> Document<'_> {
+    let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
     let whole = Document {
         frontmatter: None,
         body: contents,
@@ -35,6 +37,73 @@ pub fn parse_document(contents: &str) -> Document<'_> {
         offset += line.len();
     }
     whole
+}
+
+/// Parses frontmatter text as YAML the way Claude Code does: when it is not valid YAML,
+/// the values of top-level `key: value` lines that hold characters YAML reads as syntax
+/// (`: `, `#`, `*`, `[`, `{` and the like) are put in double quotes, and the text is
+/// parsed again. Unlike Claude Code, a value that is valid YAML by itself, other than as
+/// a `key: value` of its own, is not quoted (a list such as `[topic]` stays a list).
+/// `None` when the second parse fails too.
+pub fn parse_frontmatter(frontmatter: &str) -> Option<serde_yaml::Value> {
+    serde_yaml::from_str(frontmatter)
+        .ok()
+        .or_else(|| serde_yaml::from_str(&quote_problematic_values(frontmatter)).ok())
+}
+
+/// A frontmatter value as text: a string as it is, a bare number or boolean (`name: 3000`)
+/// as written, as Claude Code turns them into strings. `None` for anything else.
+pub fn frontmatter_string(value: &serde_yaml::Value) -> Option<String> {
+    match value {
+        serde_yaml::Value::String(text) => Some(text.clone()),
+        serde_yaml::Value::Number(number) => Some(number.to_string()),
+        serde_yaml::Value::Bool(flag) => Some(flag.to_string()),
+        _ => None,
+    }
+}
+
+/// Claude Code's repair of a frontmatter that is not valid YAML: an unindented
+/// `key: value` line whose value is not quoted, holds a character YAML reads as syntax and
+/// is not valid YAML by itself gets the value in double quotes.
+fn quote_problematic_values(frontmatter: &str) -> String {
+    frontmatter
+        .split('\n')
+        .map(|line| quote_problematic_value(line).unwrap_or_else(|| line.to_string()))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn quote_problematic_value(line: &str) -> Option<String> {
+    let line = line.strip_suffix('\r').unwrap_or(line);
+    let (key, rest) = line.split_once(':')?;
+    if key.is_empty()
+        || !key
+            .chars()
+            .all(|ch| ch.is_ascii_alphabetic() || ch == '_' || ch == '-')
+        || !rest.starts_with(char::is_whitespace)
+    {
+        return None;
+    }
+    let value = rest.trim_start();
+    if value.is_empty()
+        || (value.starts_with('"') && value.ends_with('"'))
+        || (value.starts_with('\'') && value.ends_with('\''))
+    {
+        return None;
+    }
+    let special = value.contains(": ") || value.contains(|ch: char| "{}[]*&#!|>%@`".contains(ch));
+    // A value YAML reads by itself, other than as a `key: value` of its own, is not what
+    // broke the frontmatter.
+    let valid_alone = match serde_yaml::from_str::<serde_yaml::Value>(value) {
+        Ok(serde_yaml::Value::Mapping(_)) => value.starts_with('{'),
+        Ok(_) => true,
+        Err(_) => false,
+    };
+    if !special || valid_alone {
+        return None;
+    }
+    let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
+    Some(format!("{key}: \"{escaped}\""))
 }
 
 /// Removes block-level `<!-- ... -->` comments: those that open at the start of a line,

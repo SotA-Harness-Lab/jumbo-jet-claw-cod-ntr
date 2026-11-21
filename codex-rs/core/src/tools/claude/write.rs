@@ -17,14 +17,16 @@ use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
-use serde::Deserialize;
+use serde_json::Value;
 use serde_json::json;
 
 use super::PermissionInput;
 use super::ToolSwap;
 use super::check_permission;
+use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
 use super::file_state::write_refusal;
+use super::files;
 use super::files::FileTarget;
 use super::files::apply_patch;
 use super::output::ClaudeToolOutput;
@@ -36,6 +38,8 @@ use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
 use crate::tools::context::boxed_tool_output;
 use crate::tools::registry::CoreToolRuntime;
+use crate::tools::registry::PostToolUsePayload;
+use crate::tools::registry::PreToolUsePayload;
 use crate::tools::registry::ToolExecutor;
 
 /// Offers `Write` in place of `apply_patch`.
@@ -58,12 +62,6 @@ pub(super) fn patch_runtime(swap: &mut ToolSwap<'_>) -> Option<Arc<dyn CoreToolR
 
 struct WriteHandler {
     apply_patch: Arc<dyn CoreToolRuntime>,
-}
-
-#[derive(Deserialize)]
-struct WriteArgs {
-    file_path: String,
-    content: String,
 }
 
 impl ToolExecutor<ToolInvocation> for WriteHandler {
@@ -108,6 +106,18 @@ impl CoreToolRuntime for WriteHandler {
     fn matches_kind(&self, payload: &ToolPayload) -> bool {
         matches!(payload, ToolPayload::Function { .. })
     }
+
+    fn pre_tool_use_payload(&self, invocation: &ToolInvocation) -> Option<PreToolUsePayload> {
+        files::pre_tool_use_payload(invocation)
+    }
+
+    fn post_tool_use_payload(
+        &self,
+        invocation: &ToolInvocation,
+        result: &dyn ToolOutput,
+    ) -> Option<PostToolUsePayload> {
+        files::post_tool_use_payload(invocation, result)
+    }
 }
 
 impl WriteHandler {
@@ -115,7 +125,8 @@ impl WriteHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
-        let args: WriteArgs = parse_claude_arguments(WRITE, &invocation)?;
+        let arguments: Value = parse_claude_arguments(WRITE, &invocation)?;
+        let args = write::WriteInput::parse(arguments).map_err(|message| rejected(&message))?;
         let target = FileTarget::resolve(&invocation, &args.file_path)?;
         let path = target.native_path();
         if !patch::is_patchable_path(&path) {
@@ -137,7 +148,7 @@ impl WriteHandler {
                 let record = ReadFiles::of(&invocation.session).get(&target.key());
                 if let Some(message) = write_refusal(
                     record.as_ref(),
-                    metadata.modified_at_ms,
+                    FileStamp::of(&metadata),
                     &current.replace("\r\n", "\n"),
                 ) {
                     return Err(rejected(message));

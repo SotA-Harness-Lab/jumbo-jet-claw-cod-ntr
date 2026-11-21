@@ -3,6 +3,7 @@
 
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use pretty_assertions::assert_eq;
 use serde_json::Value;
@@ -12,6 +13,7 @@ use super::PermissionRules;
 use super::RuleSource;
 use super::RuleVerdict;
 use super::ToolInput;
+use super::bash::compiled_wildcard;
 use super::bash::matches_wildcard;
 use super::bash::split_command;
 use super::bash::strip_output_redirections;
@@ -135,6 +137,17 @@ fn shell_wildcards_match_as_in_claude_code() {
 }
 
 #[test]
+fn wildcard_patterns_are_compiled_once() {
+    let first = compiled_wildcard("cargo test * --release");
+    let second = compiled_wildcard("cargo test * --release");
+    assert!(
+        first
+            .zip(second)
+            .is_some_and(|(first, second)| Arc::ptr_eq(&first, &second))
+    );
+}
+
+#[test]
 fn commands_are_split_into_simple_commands() {
     let split =
         |command: &str| split_command(command).map(|split| (split.subcommands, split.complex));
@@ -164,28 +177,63 @@ fn commands_are_split_into_simple_commands() {
         Some((owned(&["cat <<EOF > f", "ls"]), false))
     );
     assert_eq!(split("echo a \\\n b"), Some((owned(&["echo a  b"]), false)));
-    assert_eq!(split("echo 'open"), None);
-    assert_eq!(
-        split("echo $(rm -rf /)").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(split("echo `id`").map(|(_, complex)| complex), Some(true));
-    assert_eq!(
-        split("(cd x && make)").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(
-        split("for f in *; do rm $f; done").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(
-        split("diff <(ls a) <(ls b)").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(split("echo {a,b}").map(|(_, complex)| complex), Some(false));
     assert_eq!(
         split("# comment\nls # trailing"),
         Some((owned(&["ls"]), false))
+    );
+    assert_eq!(split("echo 'open"), None);
+    assert_eq!(split("echo $(ls"), None);
+    assert_eq!(split("ls )"), None);
+    assert_eq!(split("echo {a,b}").map(|(_, complex)| complex), Some(false));
+}
+
+#[test]
+fn nested_commands_are_taken_out() {
+    let split =
+        |command: &str| split_command(command).map(|split| (split.subcommands, split.complex));
+    let owned = |parts: &[&str]| parts.iter().map(ToString::to_string).collect::<Vec<_>>();
+    let cases: &[(&str, &[&str])] = &[
+        ("echo $(rm -rf /)", &["echo $(rm -rf /)", "rm -rf /"]),
+        ("echo `id`", &["echo `id`", "id"]),
+        ("echo \"a $(b; c) d\"", &["echo \"a $(b; c) d\"", "b", "c"]),
+        (
+            "echo $(echo $(id))",
+            &["echo $(echo $(id))", "echo $(id)", "id"],
+        ),
+        ("(cd x && make)", &["cd x", "make"]),
+        ("true && { rm -rf build; }", &["true", "rm -rf build"]),
+        ("for f in $(ls); do rm $f; done", &["rm $f", "ls"]),
+        (
+            "if test -f a; then cat a; elif true; then :; else ls; fi > out",
+            &["test -f a", "cat a", "true", ":", "ls"],
+        ),
+        (
+            "while read l; do echo $l; done < in",
+            &["read l", "echo $l"],
+        ),
+        ("case $x in a|b) rm a;; (c) ls ;; esac", &["rm a", "ls"]),
+        (
+            "diff <(ls a) <(ls b)",
+            &["diff <(ls a) <(ls b)", "ls a", "ls b"],
+        ),
+        ("a=($(ls) x y)", &["a=($(ls) x y)", "ls"]),
+        ("echo ${x:-$(id)}", &["echo ${x:-$(id)}", "id"]),
+        ("echo $((1 + $(id)))", &["echo $((1 + $(id)))", "id"]),
+        ("cat <<EOF\n$(id)\nEOF", &["cat <<EOF", "id"]),
+    ];
+    for &(command, parts) in cases {
+        assert_eq!(split(command), Some((owned(parts), true)), "{command}");
+    }
+    assert_eq!(
+        split("cat <<'EOF'\n$(id)\nEOF"),
+        Some((owned(&["cat <<'EOF'"]), false))
+    );
+    // A quoted heredoc read by `cat` is the text it holds.
+    let commit = "git commit -m \"$(cat <<'EOF'\nFix it (it's broken)\nEOF\n)\"";
+    assert_eq!(split(commit), Some((owned(&[commit]), false)));
+    assert_eq!(
+        split("echo \"$(cat <<'EOF'\n/proc/self/environ\nEOF\n)\"").map(|(_, complex)| complex),
+        Some(true)
     );
 }
 
@@ -211,6 +259,10 @@ fn redirections_and_wrappers_are_dropped_before_matching() {
         strip_safe_wrappers("timeout -k$(id) 10 ls"),
         "timeout -k$(id) 10 ls"
     );
+    assert_eq!(strip_safe_wrappers("command git status"), "git status");
+    assert_eq!(strip_safe_wrappers("builtin cd x"), "cd x");
+    assert_eq!(strip_safe_wrappers("noglob ls *"), "ls *");
+    assert_eq!(strip_safe_wrappers("command -v git"), "command -v git");
 }
 
 #[test]
@@ -315,6 +367,112 @@ fn deny_rules_see_through_assignments_wrappers_and_complex_commands() {
 }
 
 #[test]
+fn deny_and_ask_rules_meet_the_words_the_shell_runs() {
+    let rules = local_rules(&[], &["Bash(git push:*)"], &["Bash(rm:*)"]);
+    let deny = |command: &str| denied_command("Bash(rm:*)", command);
+    for command in [
+        "sudo rm -rf build",
+        "sudo -u root -E rm -rf build",
+        "doas -u root rm -rf build",
+        "env rm -rf build",
+        "env -i -- FOO=1 rm -rf build",
+        "command rm -rf build",
+        "builtin rm -rf build",
+        "exec rm -rf build",
+        "! rm -rf build",
+        "\"rm\" -rf build",
+        "'rm' -rf build",
+        "\\rm -rf build",
+        "rm\t-rf build",
+        "TZ=\"$HOME\" rm -rf build",
+        "X=$PWD rm -rf build",
+        "nice -n 5 rm -rf build",
+        "timeout --signal KILL 5 rm -rf build",
+        "watch -n 1 rm -rf build",
+        "ionice -c 3 rm -rf build",
+        "setsid -f rm -rf build",
+        "flock /tmp/lock rm -rf build",
+        "flock -w 5 /tmp/lock -c 'rm -rf build'",
+        "sudo env FOO=1 nohup rm -rf build",
+        "ls; sudo rm -rf build",
+    ] {
+        assert_eq!(bash(&rules, command), deny(command), "{command}");
+    }
+    for command in [
+        "git  push --force",
+        "git\tpush",
+        "sudo git push",
+        "\"git\" push",
+    ] {
+        assert_eq!(bash(&rules, command), ask("Bash(git push:*)"), "{command}");
+    }
+    // A lookup is not a run, and other words are other commands.
+    for command in ["command -v rm", "echo rm -rf build", "rmdir build"] {
+        assert_eq!(bash(&rules, command), RuleVerdict::NoMatch, "{command}");
+    }
+}
+
+#[test]
+fn allow_rules_meet_blanks_and_builtin_wrappers_but_not_unquoted_words() {
+    let rules = local_rules(&["Bash(git commit:*)", "Bash(npm test *)"], &[], &[]);
+    assert_eq!(
+        bash(&rules, "git  commit\t-m x"),
+        allow("Bash(git commit:*)")
+    );
+    assert_eq!(
+        bash(&rules, "npm   test --watch"),
+        allow("Bash(npm test *)")
+    );
+    assert_eq!(bash(&rules, "command npm test"), allow("Bash(npm test *)"));
+    assert_eq!(bash(&rules, "sudo npm test"), RuleVerdict::NoMatch);
+    assert_eq!(bash(&rules, "\"npm\" test"), RuleVerdict::NoMatch);
+}
+
+#[test]
+fn deny_and_ask_rules_meet_nested_commands() {
+    let rules = local_rules(&["Bash(echo:*)"], &["Bash(git push:*)"], &["Bash(rm:*)"]);
+    let deny = |command: &str| denied_command("Bash(rm:*)", command);
+    for command in [
+        "(rm -rf build)",
+        "true && { rm -rf build; }",
+        "echo $(date); rm -rf build",
+        "echo $(rm -rf build)",
+        "echo `rm -rf build`",
+        "for f in a; do rm -rf $f; done",
+        "if true; then rm -rf build; fi",
+        "git push origin \"$(rm -rf build)\"",
+    ] {
+        assert_eq!(bash(&rules, command), deny(command), "{command}");
+    }
+    assert_eq!(
+        bash(&rules, "git push origin \"$(git branch --show-current)\""),
+        ask("Bash(git push:*)")
+    );
+    assert_eq!(
+        bash(&rules, "echo \"$(git push)\""),
+        ask("Bash(git push:*)")
+    );
+    // Allow rules still cover no such command.
+    assert_eq!(bash(&rules, "echo $(date)"), RuleVerdict::NoMatch);
+    assert_eq!(bash(&rules, "(echo a)"), RuleVerdict::NoMatch);
+}
+
+#[test]
+fn a_quoted_heredoc_read_by_cat_is_an_inert_argument() {
+    let commit = "git commit -m \"$(cat <<'EOF'\nFix the parser (it's $(broken))\nEOF\n)\"";
+    let rules = local_rules(&["Bash(git commit:*)"], &[], &[]);
+    assert_eq!(bash(&rules, commit), allow("Bash(git commit:*)"));
+    let rules = local_rules(&[], &["Bash(git commit:*)"], &[]);
+    assert_eq!(bash(&rules, commit), ask("Bash(git commit:*)"));
+    // An unquoted heredoc is expanded, so it is not inert.
+    let rules = local_rules(&["Bash(git commit:*)"], &[], &[]);
+    assert_eq!(
+        bash(&rules, "git commit -m \"$(cat <<EOF\nmsg\nEOF\n)\""),
+        RuleVerdict::NoMatch
+    );
+}
+
+#[test]
 fn cd_with_git_is_never_allowed_by_rules() {
     let rules = local_rules(&["Bash(cd:*)", "Bash(git status)"], &[], &[]);
     assert_eq!(bash(&rules, "cd sub && git status"), RuleVerdict::NoMatch);
@@ -408,6 +566,217 @@ fn file_patterns_follow_gitignore_relative_to_their_anchor() {
     for (path, expected) in cases {
         assert_eq!(read(&rules, path), expected, "{path}");
     }
+}
+
+#[test]
+fn single_directory_allow_rules_cover_only_the_top_directory() {
+    let rules = local_rules(&["Edit(src/**)"], &["Edit(gen/**)"], &["Read(secrets/**)"]);
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/src/main.rs"),
+        allow("Edit(src/**)")
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/vendor/foo/src/x.rs"),
+        RuleVerdict::NoMatch
+    );
+    // Deny and ask rules still cover the directory at any depth.
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/a/gen/x.rs"),
+        ask("Edit(gen/**)")
+    );
+    assert_eq!(
+        read(&rules, "/work/project/a/secrets/key"),
+        RuleVerdict::Deny {
+            rule: "Read(secrets/**)".to_string(),
+            message: "Permission to read /work/project/a/secrets/key has been denied.".to_string(),
+        }
+    );
+}
+
+#[test]
+fn rules_for_everything_under_an_anchor_match() {
+    let rules = rules_from(&[
+        (
+            RuleSource::User,
+            json!({ "permissions": { "deny": ["Read(~/**)", "Read(/**)"] } }),
+        ),
+        (
+            RuleSource::Local,
+            json!({ "permissions": { "allow": ["Edit(/**)"], "ask": ["Read(//**)"] } }),
+        ),
+    ]);
+    let denied = |rule: &str, path: &str| RuleVerdict::Deny {
+        rule: rule.to_string(),
+        message: format!("Permission to read {path} has been denied."),
+    };
+    assert_eq!(
+        read(&rules, "/home/user/notes/a.txt"),
+        denied("Read(~/**)", "/home/user/notes/a.txt")
+    );
+    assert_eq!(read(&rules, "/etc/hosts"), ask("Read(//**)"));
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/src/main.rs"),
+        allow("Edit(/**)")
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/elsewhere/main.rs"),
+        RuleVerdict::NoMatch
+    );
+}
+
+#[test]
+fn read_deny_rules_become_globs_relative_to_the_search_directory() {
+    let rules = rules_from(&[
+        (
+            RuleSource::User,
+            json!({ "permissions": {
+                "deny": ["Read(~/.ssh/**)", "Read(//etc/shadow)", "Read(//**/*.key)"],
+                "allow": ["Read(*.pem)"]
+            } }),
+        ),
+        (
+            RuleSource::Project,
+            json!({ "permissions": {
+                "deny": ["Read(.env)", "Read(/build/**)", "Read(./src/secret/*.json)", "Read(!x)"],
+                "ask": ["Read(*.log)"]
+            } }),
+        ),
+    ]);
+    let globs = |search_dir: &str| rules.read_deny_globs(Path::new(search_dir), Path::new(PROJECT));
+    assert_eq!(
+        globs(PROJECT),
+        vec![
+            "/**/*.key".to_string(),
+            "**/.env".to_string(),
+            "/src/secret/*.json".to_string(),
+            "/build".to_string(),
+        ]
+    );
+    assert_eq!(
+        globs("/work/project/src"),
+        vec![
+            "/**/*.key".to_string(),
+            "**/.env".to_string(),
+            "/secret/*.json".to_string(),
+        ]
+    );
+    assert_eq!(
+        globs("/work"),
+        vec![
+            "/**/*.key".to_string(),
+            "/project/**/.env".to_string(),
+            "/project/src/secret/*.json".to_string(),
+            "/project/build".to_string(),
+        ]
+    );
+    assert_eq!(
+        globs(HOME),
+        vec!["/.ssh".to_string(), "/**/*.key".to_string()]
+    );
+    assert_eq!(
+        globs("/home/user/.ssh/keys"),
+        vec!["**".to_string(), "/**/*.key".to_string()]
+    );
+    assert_eq!(
+        globs("/etc"),
+        vec!["/shadow".to_string(), "/**/*.key".to_string()]
+    );
+}
+
+#[test]
+fn a_path_through_a_symbolic_link_is_checked_where_it_leads_too() {
+    let rules = local_rules(&["Read(docs/**)", "Edit(*.txt)"], &[], &["Read(~/.ssh/**)"]);
+    let link = PathBuf::from("/work/project/docs/key");
+    let target = PathBuf::from("/home/user/.ssh/id_rsa");
+    let paths = [link.clone(), target.clone()];
+    // A deny rule for what the link leads to denies the link.
+    assert_eq!(
+        rules.evaluate(
+            "Read",
+            ToolInput::Read {
+                paths: &paths,
+                cwd: Path::new(PROJECT),
+            },
+        ),
+        RuleVerdict::Deny {
+            rule: "Read(~/.ssh/**)".to_string(),
+            message: "Permission to read /work/project/docs/key has been denied.".to_string(),
+        }
+    );
+    // An allow rule has to cover both the link and what it leads to.
+    let rules = local_rules(&["Read(docs/**)", "Edit(*.txt)"], &[], &[]);
+    let read_paths = |paths: &[PathBuf]| {
+        rules.evaluate(
+            "Read",
+            ToolInput::Read {
+                paths,
+                cwd: Path::new(PROJECT),
+            },
+        )
+    };
+    assert_eq!(read_paths(&[link.clone()]), allow("Read(docs/**)"));
+    assert_eq!(read_paths(&[link, target]), RuleVerdict::NoMatch);
+    assert_eq!(
+        read_paths(&[
+            PathBuf::from("/work/project/docs/a.md"),
+            PathBuf::from("/work/project/docs/b.md"),
+        ]),
+        allow("Read(docs/**)")
+    );
+    let edit_paths = |paths: &[PathBuf]| {
+        rules.evaluate(
+            "Edit",
+            ToolInput::Edit {
+                paths,
+                cwd: Path::new(PROJECT),
+            },
+        )
+    };
+    assert_eq!(
+        edit_paths(&[
+            PathBuf::from("/work/project/notes.txt"),
+            PathBuf::from("/work/project/src/main.rs"),
+        ]),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit_paths(&[
+            PathBuf::from("/work/project/notes.txt"),
+            PathBuf::from("/work/project/.vscode/tasks.json"),
+        ]),
+        RuleVerdict::NoMatch
+    );
+}
+
+#[test]
+fn a_pattern_that_is_no_glob_guards_the_path_it_spells() {
+    let rules = local_rules(
+        &["Read(docs/{draft)", "Read(*.md)"],
+        &["Edit(out/[z-a].txt)"],
+        &["Read(data/{raw/secret.csv)"],
+    );
+    assert_eq!(
+        read(&rules, "/work/project/data/{raw/secret.csv"),
+        RuleVerdict::Deny {
+            rule: "Read(data/{raw/secret.csv)".to_string(),
+            message: "Permission to read /work/project/data/{raw/secret.csv has been denied."
+                .to_string(),
+        }
+    );
+    assert_eq!(
+        read(&rules, "/work/project/data/raw/secret.csv"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/out/[z-a].txt"),
+        ask("Edit(out/[z-a].txt)")
+    );
+    // An allow rule that is no glob allows nothing, and the other rules still work.
+    assert_eq!(
+        read(&rules, "/work/project/docs/{draft"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(read(&rules, "/work/project/README.md"), allow("Read(*.md)"));
 }
 
 #[test]
@@ -513,6 +882,62 @@ fn an_untrusted_project_keeps_its_deny_and_ask_rules_but_not_its_allow_rules() {
 }
 
 #[test]
+fn path_rules_left_after_dropping_project_allow_rules_still_match() {
+    let rules = rules_from(&[
+        (
+            RuleSource::User,
+            json!({ "permissions": { "allow": ["Read(~/notes/**)"] } }),
+        ),
+        (
+            RuleSource::Project,
+            json!({ "permissions": {
+                "allow": ["Edit(src/**)", "Read(docs/**)"],
+                "deny": ["Read(.env)"]
+            } }),
+        ),
+        (
+            RuleSource::Local,
+            json!({ "permissions": { "allow": ["Read(*.md)"], "ask": ["Edit(*.lock)"] } }),
+        ),
+    ]);
+    // The matchers are built once; reading the same path again gives the same rule.
+    for _ in 0..2 {
+        assert_eq!(
+            read(&rules, "/work/project/docs/a.txt"),
+            allow("Read(docs/**)")
+        );
+    }
+    let rules = rules.without_project_allow_rules();
+    assert_eq!(
+        read(&rules, "/work/project/app/.env"),
+        RuleVerdict::Deny {
+            rule: "Read(.env)".to_string(),
+            message: "Permission to read /work/project/app/.env has been denied.".to_string(),
+        }
+    );
+    assert_eq!(
+        read(&rules, "/work/project/docs/a.txt"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        read(&rules, "/work/project/README.md"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/src/main.rs"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/Cargo.lock"),
+        ask("Edit(*.lock)")
+    );
+    assert_eq!(
+        read(&rules, "/home/user/notes/todo.txt"),
+        allow("Read(~/notes/**)")
+    );
+}
+
+#[test]
 fn web_fetch_rules_name_the_host() {
     let rules = local_rules(
         &["WebFetch(domain:docs.rs)"],
@@ -541,6 +966,28 @@ fn web_fetch_rules_name_the_host() {
         }
     );
     assert_eq!(fetch("not a url"), RuleVerdict::NoMatch);
+}
+
+#[test]
+fn web_fetch_hosts_match_without_case_or_a_trailing_dot() {
+    let rules = local_rules(
+        &["WebFetch(domain:Docs.RS.)"],
+        &[],
+        &["WebFetch(domain:Evil.com)"],
+    );
+    let fetch = |url: &str| rules.evaluate("WebFetch", ToolInput::Url(url));
+    let denied = RuleVerdict::Deny {
+        rule: "WebFetch(domain:Evil.com)".to_string(),
+        message: "WebFetch denied access to domain:evil.com.".to_string(),
+    };
+    assert_eq!(fetch("https://evil.com/x"), denied);
+    assert_eq!(fetch("https://evil.com./x"), denied);
+    assert_eq!(fetch("https://EVIL.COM./x"), denied);
+    assert_eq!(
+        fetch("https://docs.rs/serde"),
+        allow("WebFetch(domain:Docs.RS.)")
+    );
+    assert_eq!(fetch("https://sub.evil.com/x"), RuleVerdict::NoMatch);
 }
 
 #[test]

@@ -8,11 +8,13 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::PoisonError;
 
+use codex_claude_compat::EnvAssignment;
+
 use crate::session::session::Session;
 
-/// The variables of the session's hook files, as last read.
+/// The assignments of the session's hook files, as last read.
 #[derive(Default)]
-struct HookEnv(Mutex<HashMap<String, String>>);
+struct HookEnv(Mutex<Vec<EnvAssignment>>);
 
 /// Reads what the session's `SessionStart` hooks wrote into their files.
 pub(crate) fn load_session_start_env(session: &Session) {
@@ -28,23 +30,19 @@ pub(crate) fn load_session_start_env(session: &Session) {
         .services
         .session_extension_data
         .get_or_init::<HookEnv>(HookEnv::default);
-    env.0
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner)
-        .extend(variables);
+    // The directory holds every file the session's hooks wrote, so what it holds now
+    // replaces what was read before.
+    *env.0.lock().unwrap_or_else(PoisonError::into_inner) = variables;
 }
 
 /// Adds those variables to the environment of a command, where they win, as the file's text
-/// runs before the command in Claude Code.
+/// runs before the command in Claude Code; a value naming a variable (`$PATH`) takes it from
+/// the command's environment.
 pub(crate) fn apply_session_start_env(session: &Session, env: &mut HashMap<String, String>) {
     if let Some(variables) = session.services.session_extension_data.get::<HookEnv>() {
-        env.extend(
-            variables
-                .0
-                .lock()
-                .unwrap_or_else(PoisonError::into_inner)
-                .iter()
-                .map(|(name, value)| (name.clone(), value.clone())),
+        codex_claude_compat::apply_env_assignments(
+            &variables.0.lock().unwrap_or_else(PoisonError::into_inner),
+            env,
         );
     }
 }

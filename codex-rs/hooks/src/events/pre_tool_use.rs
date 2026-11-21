@@ -85,6 +85,7 @@ pub(crate) fn preview(
         HookEventName::PreToolUse,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     )
     .into_iter()
     .map(|handler| {
@@ -103,6 +104,7 @@ pub(crate) async fn run(
         HookEventName::PreToolUse,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     );
     if matched.is_empty() {
         return PreToolUseOutcome {
@@ -276,19 +278,26 @@ fn parse_completed(
                         );
                     }
                     if handler.can_apply_control_effects() {
-                        if let Some(invalid_reason) = parsed.invalid_reason {
-                            status = HookRunStatus::Failed;
-                            entries.push(HookOutputEntry {
-                                kind: HookOutputEntryKind::Error,
-                                text: invalid_reason,
-                            });
-                        } else if let Some(reason) = parsed.block_reason {
+                        if let Some(reason) = parsed.block_reason {
+                            // A block stands even beside output Codex does not honour.
+                            if let Some(invalid_reason) = parsed.invalid_reason {
+                                entries.push(HookOutputEntry {
+                                    kind: HookOutputEntryKind::Warning,
+                                    text: invalid_reason,
+                                });
+                            }
                             status = HookRunStatus::Blocked;
                             should_block = true;
                             block_reason = Some(reason.clone());
                             entries.push(HookOutputEntry {
                                 kind: HookOutputEntryKind::Feedback,
                                 text: reason,
+                            });
+                        } else if let Some(invalid_reason) = parsed.invalid_reason {
+                            status = HookRunStatus::Failed;
+                            entries.push(HookOutputEntry {
+                                kind: HookOutputEntryKind::Error,
+                                text: invalid_reason,
                             });
                         } else {
                             updated_input = parsed.updated_input;
@@ -304,27 +313,22 @@ fn parse_completed(
                 }
             }
             Some(2) if handler.can_apply_control_effects() => {
-                if let Some(reason) = common::trimmed_non_empty(&run_result.stderr) {
-                    status = HookRunStatus::Blocked;
-                    should_block = true;
-                    block_reason = Some(reason.clone());
-                    entries.push(HookOutputEntry {
-                        kind: HookOutputEntryKind::Feedback,
-                        text: reason,
-                    });
-                } else {
-                    status = HookRunStatus::Failed;
-                    entries.push(HookOutputEntry {
-                        kind: HookOutputEntryKind::Error,
-                        text: "PreToolUse hook exited with code 2 but did not write a blocking reason to stderr".to_string(),
-                    });
-                }
+                // Exit code 2 blocks whatever stderr holds, as in Claude Code.
+                let reason = common::trimmed_non_empty(&run_result.stderr)
+                    .unwrap_or_else(|| "No stderr output".to_string());
+                status = HookRunStatus::Blocked;
+                should_block = true;
+                block_reason = Some(reason.clone());
+                entries.push(HookOutputEntry {
+                    kind: HookOutputEntryKind::Feedback,
+                    text: reason,
+                });
             }
             Some(exit_code) => {
                 status = HookRunStatus::Failed;
                 entries.push(HookOutputEntry {
                     kind: HookOutputEntryKind::Error,
-                    text: format!("hook exited with code {exit_code}"),
+                    text: common::exit_code_error(exit_code, &run_result.stderr),
                 });
             }
             None => {
@@ -782,6 +786,27 @@ mod tests {
                 text: "blocked by policy".to_string(),
             }]
         );
+    }
+
+    #[test]
+    fn exit_code_two_blocks_without_stderr() {
+        let parsed = parse_completed(
+            &handler(),
+            run_result(Some(2), "", "  \n"),
+            Some("turn-1".to_string()),
+        );
+
+        assert_eq!(
+            parsed.data,
+            PreToolUseHandlerData {
+                should_block: true,
+                block_reason: Some("No stderr output".to_string()),
+                additional_contexts_for_model: Vec::new(),
+                updated_input: None,
+                permission: None,
+            }
+        );
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
     }
 
     #[test]

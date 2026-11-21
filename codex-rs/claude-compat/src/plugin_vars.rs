@@ -10,7 +10,7 @@
 //! `sensitive` under `pluginSecrets.<plugin id>` of `~/.claude/.credentials.json`. On macOS
 //! Claude Code keeps the latter in the keychain, where they are not read, so a sensitive
 //! option has no value there. Codex has no way to ask for a value: an option the user never
-//! set in Claude Code stays unset.
+//! set in Claude Code takes the manifest's `default`, or else stays unset.
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -47,6 +47,9 @@ pub struct PluginVariables {
     options: BTreeMap<String, String>,
     /// The options the manifest marks `sensitive`.
     sensitive: BTreeSet<String>,
+    /// The options the manifest declares without marking them `required`, which read as
+    /// empty while they have no value.
+    optional: BTreeSet<String>,
 }
 
 impl PluginVariables {
@@ -88,7 +91,23 @@ impl PluginVariables {
             })
             .map(|(key, _)| key.clone())
             .collect();
-        let mut options = BTreeMap::new();
+        let optional = declared
+            .into_iter()
+            .flatten()
+            .filter(|(_, option)| {
+                !option
+                    .get("required")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false)
+            })
+            .map(|(key, _)| key.clone())
+            .collect();
+        // A declared `default` is the value while the user has stored none.
+        let mut options = declared
+            .into_iter()
+            .flatten()
+            .filter_map(|(key, option)| Some((key.clone(), option_text(option.get("default")?)?)))
+            .collect::<BTreeMap<_, _>>();
         if declared.is_some()
             && let Some(claude_home) = claude_home
             && let Some(id) = plugin_id(root, claude_home)
@@ -125,11 +144,14 @@ impl PluginVariables {
             agent_paths,
             options,
             sensitive,
+            optional,
         })
     }
 
     /// `text` with `${CLAUDE_PLUGIN_ROOT}` and every `${user_config.KEY}` filled in, for a
-    /// command or a server's configuration. `Err` names the first option that has no value.
+    /// command or a server's configuration; an option declared without `required` that has
+    /// no value reads as empty. `Err` names the first other option that has no value: one
+    /// the manifest does not declare, or a required one.
     pub fn substitute(&self, text: &str) -> Result<String, String> {
         let text = text.replace(PLUGIN_ROOT, &self.root.to_string_lossy());
         let mut missing = None;
@@ -137,6 +159,7 @@ impl PluginVariables {
             let key = &captures[1];
             match self.options.get(key) {
                 Some(value) => value.clone(),
+                None if self.optional.contains(key) => String::new(),
                 None => {
                     missing.get_or_insert_with(|| key.to_string());
                     String::new()

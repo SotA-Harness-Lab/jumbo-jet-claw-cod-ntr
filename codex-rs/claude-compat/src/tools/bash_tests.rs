@@ -6,8 +6,10 @@ use pretty_assertions::assert_eq;
 use super::CommandRun;
 use super::DEFAULT_TIMEOUT_MS;
 use super::MAX_TIMEOUT_MS;
+use super::background_cwd_note;
 use super::background_message;
 use super::backgrounds_on_timeout;
+use super::changes_directory;
 use super::cwd_trailer;
 use super::description;
 use super::format_result;
@@ -82,6 +84,29 @@ fn blank_lines_inside_the_output_stay() {
 #[test]
 fn background_result_names_the_session() {
     assert!(background_message("7").starts_with("Command running in background with ID: 7."));
+}
+
+#[test]
+fn a_background_cd_is_said_not_to_carry_over() {
+    assert!(changes_directory("cd crates/foo && cargo watch"));
+    assert!(changes_directory("(pushd /tmp; make)"));
+    assert!(changes_directory("make;popd"));
+    assert!(!changes_directory("cargo run --bin cdk"));
+    assert!(!changes_directory("echo abcd"));
+    assert_eq!(
+        background_cwd_note("/w"),
+        "Session cwd remains /w; directory changes made by the backgrounded command do not apply to subsequent commands."
+    );
+}
+
+#[test]
+fn description_says_when_the_directory_carries_over() {
+    let text = description(&["Bash"], /*background*/ true);
+    assert!(!text.contains("The working directory persists between commands"));
+    assert!(text.contains(
+        "The working directory carries over to the next command while it stays inside the project directory"
+    ));
+    assert!(text.contains("does not carry over"));
 }
 
 #[test]

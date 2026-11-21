@@ -40,6 +40,7 @@ use super::dispatcher::hook_event_name_label;
 use super::plugin_trust::PluginHookTrust;
 use crate::config_rules::hook_states_from_stack;
 use crate::engine::HookMatcher;
+use crate::events::claude_only::ClaudeOnlyEvent;
 use crate::events::claude_only::ClaudeOnlyHandler;
 use crate::events::common::matcher_pattern_for_event;
 use crate::events::session_end::SESSION_END_DEFAULT_TIMEOUT_SEC;
@@ -402,7 +403,12 @@ fn append_claude_only_handlers(
     };
     for (event, groups) in &claude_hooks.claude_only {
         for (group_index, group) in groups.iter().enumerate() {
-            let matcher = match group.matcher.as_deref().map(HookMatcher::new).transpose() {
+            let compile = if *event == ClaudeOnlyEvent::StopFailure {
+                HookMatcher::new_narrow
+            } else {
+                HookMatcher::new
+            };
+            let matcher = match group.matcher.as_deref().map(compile).transpose() {
                 Ok(matcher) => matcher,
                 Err(err) => {
                     warnings.push(format!(
@@ -1003,8 +1009,9 @@ fn append_matcher_groups(
                     let command = source.env.iter().fold(command, |command, (key, value)| {
                         command.replace(&format!("${{{key}}}"), value)
                     });
-                    // `${user_config.KEY}` of a Claude Code plugin. A hook that names an
-                    // option without a value cannot run, as in Claude Code.
+                    // `${user_config.KEY}` of a Claude Code plugin. A hook that names a
+                    // required or undeclared option without a value cannot run, as in Claude
+                    // Code.
                     let command = match source.claude.and_then(|claude| claude.plugin.as_ref()) {
                         Some(plugin) => match plugin.substitute(&command) {
                             Ok(command) => command,

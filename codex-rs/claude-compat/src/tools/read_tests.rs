@@ -3,6 +3,7 @@
 
 use pretty_assertions::assert_eq;
 
+use super::LineSlicer;
 use super::TextSlice;
 use super::binary_extension;
 use super::description;
@@ -25,13 +26,27 @@ fn whole_file_is_numbered_from_one() {
     assert_eq!(
         slice,
         TextSlice {
-            content: "fn main() {\n}\n".to_string(),
+            content: "fn main() {\n}".to_string(),
             start_line: 1,
-            num_lines: 3,
-            total_lines: 3,
+            num_lines: 2,
+            total_lines: 2,
         }
     );
-    assert_eq!(render(&slice), "1\tfn main() {\n2\t}\n3\t");
+    assert_eq!(render(&slice), "1\tfn main() {\n2\t}");
+}
+
+#[test]
+fn a_final_line_break_starts_no_line() {
+    assert_eq!(slice_text("a\nb", None, None).total_lines, 2);
+    assert_eq!(
+        render(&slice_text("a\nb\n\n", None, None)),
+        "1\ta\n2\tb\n3\t"
+    );
+    assert_eq!(render(&slice_text("\n", None, None)), "1\t");
+    assert_eq!(
+        render(&slice_text("a\nb\n", Some(3), None)),
+        "<system-reminder>Warning: the file exists but is shorter than the provided offset (3). The file has 2 lines.</system-reminder>"
+    );
 }
 
 #[test]
@@ -64,6 +79,9 @@ fn file_kinds_follow_the_extension() {
     assert_eq!(binary_extension("/a/doc.pdf"), None);
     assert_eq!(binary_extension("/a/.bashrc"), None);
     assert_eq!(binary_extension("/a/main.rs"), None);
+    for name in ["t.parquet", "m.XLSM", "b.epub", "p.heic", "w.npz", "d.pkl"] {
+        assert!(binary_extension(name).is_some(), "{name}");
+    }
 }
 
 #[test]
@@ -96,6 +114,18 @@ fn page_ranges_are_parsed_as_claude_code_parses_them() {
     assert_eq!(parse_page_range("-5"), None);
     assert_eq!(parse_page_range("x"), None);
     assert_eq!(parse_page_range(""), None);
+    assert_eq!(parse_page_range(" 3 - 5 "), Some((3, Some(5))));
+}
+
+#[test]
+fn a_list_of_pages_is_refused_not_cut_to_its_first_entry() {
+    assert_eq!(parse_page_range("6,9,15"), None);
+    assert_eq!(parse_page_range("3-5,8"), None);
+    assert_eq!(parse_page_range("2abc"), None);
+    assert_eq!(
+        validate_pages("6,9,15"),
+        Err("Invalid pages parameter: \"6,9,15\". Use formats like \"1-5\", \"3\", or \"10-20\". Pages are 1-indexed. To read several pages or ranges, read each one in a call of its own.".to_string())
+    );
 }
 
 #[test]
@@ -131,4 +161,53 @@ fn poppler_output_is_read() {
         pdftoppm_failed_message("Syntax Error: Couldn't find trailer dictionary; damaged"),
         "PDF file is corrupted or invalid."
     );
+}
+
+/// The slice a [`LineSlicer`] makes of `text` read in chunks of `chunk` bytes.
+fn sliced(text: &str, chunk: usize, offset: Option<usize>, limit: Option<usize>) -> TextSlice {
+    let mut slicer = LineSlicer::new(offset, limit);
+    for part in text.as_bytes().chunks(chunk) {
+        slicer.push(part);
+    }
+    slicer.finish().expect("within the limit")
+}
+
+#[test]
+fn a_file_read_in_chunks_is_sliced_as_a_whole_file_is() {
+    let texts = [
+        "",
+        "\n",
+        "\n\n",
+        "a",
+        "a\n",
+        "\u{feff}fn main() {\r\n}\r\n",
+        "one\ntwo\r\nthree\n\nfive",
+        "héllo\nwörld\n",
+    ];
+    let ranges = [
+        (None, None),
+        (Some(2), Some(2)),
+        (Some(0), Some(1)),
+        (Some(4), None),
+    ];
+    for text in texts {
+        for (offset, limit) in ranges {
+            for chunk in [1, 2, 3, 64] {
+                assert_eq!(
+                    sliced(text, chunk, offset, limit),
+                    slice_text(text, offset, limit),
+                    "{text:?} {offset:?} {limit:?} in chunks of {chunk}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn chunked_reads_keep_only_what_may_be_returned() {
+    let mut slicer = LineSlicer::new(Some(2), Some(1));
+    slicer.push(b"short\n");
+    slicer.push("x".repeat(100_001).as_bytes());
+    assert!(slicer.too_long());
+    assert_eq!(slicer.finish(), Err(100_001));
 }

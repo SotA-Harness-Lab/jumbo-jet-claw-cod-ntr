@@ -75,6 +75,7 @@ pub(crate) fn preview(
         HookEventName::PostToolUse,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     )
     .into_iter()
     .map(|handler| {
@@ -93,6 +94,7 @@ pub(crate) async fn run(
         HookEventName::PostToolUse,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     );
     if matched.is_empty() {
         return PostToolUseOutcome {
@@ -294,7 +296,7 @@ fn parse_completed(
                 status = HookRunStatus::Failed;
                 entries.push(HookOutputEntry {
                     kind: HookOutputEntryKind::Error,
-                    text: format!("hook exited with code {exit_code}"),
+                    text: common::exit_code_error(exit_code, &run_result.stderr),
                 });
             }
             None => {

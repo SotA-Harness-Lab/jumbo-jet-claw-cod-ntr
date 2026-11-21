@@ -49,11 +49,14 @@ use crate::tools::registry::CoreToolRuntime;
 use crate::tools::registry::ToolRegistry;
 
 pub(crate) use bash::register as register_bash;
+pub(crate) use file_state::restore as restore_read_files;
+pub(crate) use bash::take_zsh_prelude;
 pub(crate) use permissions::PermissionGuard;
 pub(crate) use permissions::PermissionInput;
 pub(crate) use permissions::apply_hook_permission;
 pub(crate) use permissions::apply_rule_decision;
 pub(crate) use permissions::check_permission;
+pub(crate) use permissions::remove_denied_tools;
 pub(crate) use permissions::rule_allows;
 pub(crate) use shell_cwd::take_cwd_report;
 pub(crate) use subagent_tools::restrict_to_subagent_tools;
@@ -161,6 +164,42 @@ impl<'a> ToolSwap<'a> {
     /// before the swap.
     pub(crate) fn offers(&self, name: &str) -> bool {
         self.registry.tool(&ToolName::plain(name)).is_some()
+    }
+}
+
+/// Remembers the file a `Write` or `Edit` call wrote as its `PostToolUse` hooks left it,
+/// once they have run: a hook that formats the file it was given (prettier, rustfmt, black)
+/// does not make the next edit of it refused as changed since read, as in Claude Code.
+pub(crate) async fn record_after_post_tool_use(invocation: &ToolInvocation) {
+    if !enabled(&invocation.turn) || !invocation.tool_name.is_default_namespace() {
+        return;
+    }
+    let ToolPayload::Function { arguments } = &invocation.payload else {
+        return;
+    };
+    let Some(file_path) = written_file_path(&invocation.tool_name.name, arguments) else {
+        return;
+    };
+    if let Ok(target) = files::FileTarget::resolve(invocation, &file_path) {
+        target.record_written(invocation).await;
+    }
+}
+
+/// The `file_path` of a `Write` or `Edit` call, from its arguments.
+fn written_file_path(tool: &str, arguments: &str) -> Option<String> {
+    let arguments = serde_json::from_str::<serde_json::Value>(arguments).ok()?;
+    match tool {
+        codex_claude_compat::tools::EDIT => {
+            codex_claude_compat::tools::edit::EditInput::parse(arguments)
+                .ok()
+                .map(|input| input.file_path)
+        }
+        codex_claude_compat::tools::WRITE => {
+            codex_claude_compat::tools::write::WriteInput::parse(arguments)
+                .ok()
+                .map(|input| input.file_path)
+        }
+        _ => None,
     }
 }
 

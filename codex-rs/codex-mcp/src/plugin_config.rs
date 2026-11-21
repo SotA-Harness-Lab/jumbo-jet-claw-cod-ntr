@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables
+// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables, and read
+// Claude Code's `headers` and `timeout`
 
 use codex_config::McpServerAuth;
 use codex_config::McpServerConfig;
@@ -333,6 +334,26 @@ fn normalize_plugin_mcp_server_value(
         }
     }
 
+    // Claude Code names a remote server's headers `headers`.
+    if object.contains_key("url")
+        && !object.contains_key("http_headers")
+        && let Some(headers) = object.remove("headers")
+    {
+        object.insert("http_headers".to_string(), headers);
+    }
+
+    // Claude Code's per-server tool timeout is `timeout`, in milliseconds; as in Claude
+    // Code, a value below a second is ignored.
+    if let Some(timeout) = object.remove("timeout")
+        && !object.contains_key("tool_timeout_sec")
+        && let Some(millis) = timeout.as_f64().filter(|millis| *millis >= 1000.0)
+    {
+        object.insert(
+            "tool_timeout_sec".to_string(),
+            JsonValue::from(millis / 1000.0),
+        );
+    }
+
     if let PluginMcpSource::Host { root } = source
         && let Some(JsonValue::String(cwd)) = object.get("cwd")
         && !Path::new(cwd).is_absolute()
@@ -347,7 +368,7 @@ fn normalize_plugin_mcp_server_value(
 }
 
 /// Fills in a Claude Code plugin's variables in every string of a server's declaration. A
-/// string that names an option without a value is left as written.
+/// string that names a required or undeclared option without a value is left as written.
 fn substitute_plugin_variables(
     value: &mut JsonValue,
     plugin: &codex_claude_compat::PluginVariables,

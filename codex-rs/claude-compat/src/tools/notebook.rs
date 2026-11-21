@@ -86,8 +86,9 @@ pub enum NotebookPart {
 }
 
 /// The cells of a notebook, processed as Claude Code reads a whole notebook. Fails when the
-/// file is not a notebook's JSON.
+/// file is not a notebook's JSON; a byte order mark before it is skipped.
 pub fn read_cells(json: &str) -> Result<Vec<NotebookCell>, String> {
+    let json = json.strip_prefix('\u{feff}').unwrap_or(json);
     let notebook: Notebook = serde_json::from_str(json).map_err(|err| err.to_string())?;
     let language = notebook
         .metadata

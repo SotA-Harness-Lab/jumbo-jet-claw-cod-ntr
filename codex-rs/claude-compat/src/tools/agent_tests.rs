@@ -12,6 +12,7 @@ use super::owner_of;
 use super::role_for;
 use super::task_name;
 use super::unknown_agent_type_message;
+use super::zero_tools_message;
 
 fn tool_list(tools: Option<&str>, disallowed: Option<&str>) -> ToolList {
     let tools = tools.map(|text| serde_yaml::from_str(text).expect("yaml"));
@@ -65,6 +66,79 @@ fn tool_lists_keep_the_listed_tools_and_their_helpers() {
     assert!(!no_writes.permits("Write", None));
     assert!(!no_writes.permits("write_stdin", owner_of("write_stdin")));
     assert!(no_writes.permits("update_plan", owner_of("update_plan")));
+}
+
+#[test]
+fn tool_lists_name_whole_mcp_servers() {
+    let github = tool_list(Some("Read, mcp__github__*"), None);
+    assert!(github.permits("mcp__github__create_issue", None));
+    assert!(!github.permits("mcp__gitlab__create_issue", None));
+    assert!(!github.permits("mcp__github_enterprise__create_issue", None));
+    assert!(tool_list(Some("mcp__github"), None).permits("mcp__github__create_issue", None));
+    // Without `__*`, `mcp__reports__v2` names the tool `v2` of the server `reports`.
+    let reports = tool_list(Some("mcp__reports__v2"), None);
+    assert!(!reports.permits("mcp__reports__v2__run_query", None));
+    assert!(
+        tool_list(Some("mcp__reports__v2__*"), None).permits("mcp__reports__v2__run_query", None)
+    );
+    // `mcp__*` gives no tool, but takes every MCP tool away.
+    assert!(!tool_list(Some("mcp__*"), None).permits("mcp__github__create_issue", None));
+
+    for denied in ["mcp__github", "mcp__github__*"] {
+        let no_github = tool_list(None, Some(denied));
+        assert!(!no_github.permits("mcp__github__create_issue", None));
+        assert!(no_github.permits("mcp__gitlab__create_issue", None));
+        assert!(no_github.permits("Read", None));
+    }
+    let no_reports = tool_list(None, Some("mcp__reports"));
+    assert!(!no_reports.permits("mcp__reports__v2__run_query", None));
+    let no_mcp = tool_list(None, Some("mcp__*"));
+    assert!(!no_mcp.permits("mcp__github__create_issue", None));
+    assert!(no_mcp.permits("Read", None));
+}
+
+#[test]
+fn tool_lists_that_give_no_tool_are_refused() {
+    let available = vec![
+        ("Read".to_string(), None),
+        ("Bash".to_string(), None),
+        ("write_stdin".to_string(), owner_of("write_stdin")),
+        ("mcp__github__create_issue".to_string(), None),
+    ];
+    let unresolved = |tools: Option<&str>, disallowed: Option<&str>| {
+        tool_list(tools, disallowed).unresolved_entries(&available)
+    };
+    assert_eq!(
+        unresolved(Some("Raed, Grpe, NotebookEdit, mcp__slack__*"), None),
+        Some(vec![
+            "Raed".to_string(),
+            "Grpe".to_string(),
+            "NotebookEdit".to_string(),
+            "mcp__slack__*".to_string()
+        ])
+    );
+    // One entry that resolves is enough, and a missing or emptied list is not refused.
+    assert_eq!(unresolved(Some("Raed, Read"), None), None);
+    assert_eq!(unresolved(Some("mcp__github__*"), None), None);
+    assert_eq!(unresolved(None, None), None);
+    assert_eq!(unresolved(Some("\"\""), None), None);
+    assert_eq!(unresolved(Some("Read"), Some("Read")), None);
+
+    assert_eq!(
+        zero_tools_message(
+            "code-reviewer",
+            &[
+                "Grpe".to_string(),
+                "NotebookEdit".to_string(),
+                "mcp__slack__*".to_string()
+            ]
+        ),
+        "Agent 'code-reviewer' would be spawned with zero tools — refusing. Its tools list resolved to nothing: unrecognized [Grpe]; matched no tools in this session [NotebookEdit, mcp__slack__*]. Fix the agent's tools frontmatter or pass a different subagent_type."
+    );
+    assert_eq!(
+        zero_tools_message("code-reviewer", &["Grpe".to_string()]),
+        "Agent 'code-reviewer' would be spawned with zero tools — refusing. Its tools list resolved to nothing: unrecognized [Grpe]. Fix the agent's tools frontmatter or pass a different subagent_type."
+    );
 }
 
 #[test]

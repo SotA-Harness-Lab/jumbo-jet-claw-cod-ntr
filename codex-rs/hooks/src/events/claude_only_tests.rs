@@ -191,7 +191,7 @@ async fn notification_and_stop_failure_hooks_run_in_the_background() {
             .select_claude_only(
                 ClaudeOnlyEvent::Notification,
                 &["idle_prompt"],
-                /*tool_input*/ None,
+                /*tool_call*/ None,
             )
             .is_empty()
     );

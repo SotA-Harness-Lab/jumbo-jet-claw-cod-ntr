@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: list the registered tools for Claude Code's Agent tool
+
 use crate::function_tool::FunctionCallError;
 use crate::responses_metadata::TurnToolNamespacesInfo;
 use crate::session::session::Session;
@@ -268,6 +273,11 @@ impl ToolRouter {
         self.registry
             .supports_parallel_tool_calls(&call.tool_name)
             .unwrap_or(false)
+    }
+
+    /// The names of every registered tool, deferred ones included.
+    pub(crate) fn registered_tool_names(&self) -> impl Iterator<Item = ToolName> + '_ {
+        self.registry.entries().map(|tool| tool.runtime.tool_name())
     }
 
     pub(crate) fn registered_tool(&self, tool_name: &ToolName) -> Option<&RegisteredTool> {

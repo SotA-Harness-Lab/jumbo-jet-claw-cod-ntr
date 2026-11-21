@@ -17,20 +17,19 @@
 use std::sync::Arc;
 
 use codex_claude_compat::tools::READ;
-use codex_claude_compat::tools::read;
-use codex_tools::JsonSchema;
-use codex_tools::ResponsesApiTool;
-use codex_tools::ToolName;
-use codex_tools::ToolSpec;
 use codex_claude_compat::tools::format_file_size;
 use codex_claude_compat::tools::notebook;
 use codex_claude_compat::tools::notebook::NotebookPart;
-use codex_exec_server::FileMetadata;
+use codex_claude_compat::tools::read;
 use codex_protocol::models::DEFAULT_IMAGE_DETAIL;
 use codex_protocol::models::FunctionCallOutputContentItem;
 use codex_protocol::models::ImageReference;
 use codex_protocol::openai_models::InputModality;
-use serde::Deserialize;
+use codex_tools::JsonSchema;
+use codex_tools::ResponsesApiTool;
+use codex_tools::ToolName;
+use codex_tools::ToolSpec;
+use serde_json::Value;
 use serde_json::json;
 use std::collections::BTreeMap;
 
@@ -39,8 +38,11 @@ use super::ToolSwap;
 use super::check_permission;
 use super::delegated;
 use super::failed;
+use super::file_state::ContentDigest;
 use super::file_state::FileRecord;
+use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
+use super::files;
 use super::files::FileTarget;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
@@ -51,6 +53,8 @@ use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
 use crate::tools::context::boxed_tool_output;
 use crate::tools::registry::CoreToolRuntime;
+use crate::tools::registry::PostToolUsePayload;
+use crate::tools::registry::PreToolUsePayload;
 use crate::tools::registry::ToolExecutor;
 
 /// Offers `Read` in place of `view_image`, whose runtime shows image files.
@@ -64,17 +68,6 @@ struct ReadHandler {
 }
 
 mod pdf;
-
-#[derive(Deserialize)]
-struct ReadArgs {
-    file_path: String,
-    #[serde(default)]
-    offset: Option<usize>,
-    #[serde(default)]
-    limit: Option<usize>,
-    #[serde(default)]
-    pages: Option<String>,
-}
 
 impl ToolExecutor<ToolInvocation> for ReadHandler {
     fn tool_name(&self) -> ToolName {
@@ -130,6 +123,18 @@ impl CoreToolRuntime for ReadHandler {
     fn matches_kind(&self, payload: &ToolPayload) -> bool {
         matches!(payload, ToolPayload::Function { .. })
     }
+
+    fn pre_tool_use_payload(&self, invocation: &ToolInvocation) -> Option<PreToolUsePayload> {
+        files::pre_tool_use_payload(invocation)
+    }
+
+    fn post_tool_use_payload(
+        &self,
+        invocation: &ToolInvocation,
+        result: &dyn ToolOutput,
+    ) -> Option<PostToolUsePayload> {
+        files::post_tool_use_payload(invocation, result)
+    }
 }
 
 impl ReadHandler {
@@ -137,10 +142,13 @@ impl ReadHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
-        let args: ReadArgs = parse_claude_arguments(READ, &invocation)?;
+        let arguments: Value = parse_claude_arguments(READ, &invocation)?;
+        let args = read::ReadInput::parse(arguments).map_err(|message| rejected(&message))?;
+        // An empty `pages` is taken as left out, as Claude Code takes it.
         let pages = args
             .pages
             .as_deref()
+            .filter(|pages| !pages.trim().is_empty())
             .map(read::validate_pages)
             .transpose()
             .map_err(|message| rejected(&message))?;
@@ -178,31 +186,41 @@ impl ReadHandler {
         if metadata.is_directory {
             return Err(rejected(&read::directory_message(&args.file_path)));
         }
+        if !metadata.is_file {
+            return Err(rejected(&read::not_a_regular_file_message(&args.file_path)));
+        }
         // A notebook's limit applies to its cells as shown, not to the file.
         if read::is_notebook(&args.file_path) {
             let bytes = target.read_bytes().await?;
             let text = String::from_utf8_lossy(&bytes);
-            return read_notebook(&invocation, &target, &args.file_path, &text, &metadata);
+            return read_notebook(&invocation, &target, &args.file_path, &text);
         }
         if args.limit.is_none() && metadata.size > read::MAX_SIZE_BYTES {
             return Err(failed(read::too_large_message(metadata.size)));
         }
-        let bytes = target.read_bytes().await?;
-        let text = String::from_utf8_lossy(&bytes);
-        let slice = read::slice_text(&text, args.offset, args.limit);
+        // A file too large to read whole is read in chunks, keeping only the lines asked for.
+        // A read of every line remembers the content, so that a later change of the
+        // modification time alone does not count as a change.
+        let (slice, digest) = if metadata.size > read::MAX_SIZE_BYTES {
+            (target.read_lines(args.offset, args.limit).await?, None)
+        } else {
+            let bytes = target.read_bytes().await?;
+            let text = String::from_utf8_lossy(&bytes);
+            let slice = read::slice_text(&text, args.offset, args.limit);
+            let whole = slice.start_line == 1 && slice.num_lines == slice.total_lines;
+            (slice, whole.then(|| ContentDigest::of(&text)))
+        };
         if read::exceeds_token_limit(&slice.content) {
             return Err(failed(read::token_limit_message(read::estimated_tokens(
                 &slice.content,
             ))));
         }
 
-        ReadFiles::of(&invocation.session).insert(
-            target.key(),
-            FileRecord {
-                modified_at_ms: metadata.modified_at_ms,
-                content: None,
-            },
-        );
+        let record = match digest {
+            Some(digest) => FileRecord::Whole(digest),
+            None => FileRecord::Part(FileStamp::of(&metadata)),
+        };
+        ReadFiles::of(&invocation.session).insert(target.key(), record);
 
         let tool_response = json!({
             "type": "text",
@@ -246,7 +264,6 @@ fn read_notebook(
     target: &FileTarget<'_>,
     file_path: &str,
     text: &str,
-    metadata: &FileMetadata,
 ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
     let cells = notebook::read_cells(text).map_err(failed)?;
     let cells_json = serde_json::to_string(&cells).unwrap_or_default();
@@ -262,13 +279,8 @@ fn read_notebook(
             &cells_json,
         ))));
     }
-    ReadFiles::of(&invocation.session).insert(
-        target.key(),
-        FileRecord {
-            modified_at_ms: metadata.modified_at_ms,
-            content: None,
-        },
-    );
+    ReadFiles::of(&invocation.session)
+        .insert(target.key(), FileRecord::Whole(ContentDigest::of(text)));
 
     let images = model_takes_images(invocation);
     let parts = notebook::render(&cells);

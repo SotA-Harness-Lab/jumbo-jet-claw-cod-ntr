@@ -150,45 +150,11 @@ pub(crate) trait CoreToolRuntime: ToolExecutor<ToolInvocation> {
         invocation: &ToolInvocation,
         result: &dyn ToolOutput,
     ) -> Option<PostToolUsePayload> {
-        let ToolPayload::Function { arguments } = &invocation.payload else {
-            return None;
-        };
-
-        Some(PostToolUsePayload {
-            tool_cwd: result.post_tool_use_cwd(),
-            tool_name: function_hook_tool_name(invocation),
-            tool_use_id: result.post_tool_use_id(&invocation.call_id),
-            tool_input: result
-                .post_tool_use_input(&invocation.payload)
-                .unwrap_or_else(|| function_hook_tool_input(arguments)),
-            tool_response: result
-                .post_tool_use_response(&invocation.call_id, &invocation.payload)
-                .or_else(|| {
-                    // Most function tools can expose their model-facing output
-                    // as the hook response. Outputs with a more stable hook
-                    // contract should override post_tool_use_response above.
-                    let ResponseInputItem::FunctionCallOutput {
-                        output: FunctionCallOutputPayload { body, .. },
-                        ..
-                    } = result.to_response_item(&invocation.call_id, &invocation.payload)
-                    else {
-                        return None;
-                    };
-
-                    serde_json::to_value(body).ok()
-                })?,
-        })
+        function_post_tool_use_payload(invocation, result)
     }
 
     fn pre_tool_use_payload(&self, invocation: &ToolInvocation) -> Option<PreToolUsePayload> {
-        let ToolPayload::Function { arguments } = &invocation.payload else {
-            return None;
-        };
-
-        Some(PreToolUsePayload {
-            tool_name: function_hook_tool_name(invocation),
-            tool_input: function_hook_tool_input(arguments),
-        })
+        function_pre_tool_use_payload(invocation)
     }
 
     /// Resolves a local execution cwd exposed in `PreToolUse` stdin, when the tool
@@ -1088,6 +1054,14 @@ impl ToolRegistry {
         } else {
             None
         };
+        if post_tool_use_outcome
+            .as_ref()
+            .is_some_and(|outcome| !outcome.hook_events.is_empty())
+        {
+            crate::tools::claude::record_after_post_tool_use(&invocation)
+                .or_cancel_tool(&cancellation_token)
+                .await?;
+        }
         if let Some(outcome) = &post_tool_use_outcome {
             record_additional_contexts(
                 &invocation.session,
@@ -1278,6 +1252,55 @@ pub(crate) async fn apply_pre_tool_use(
             }),
         None => Ok(None),
     }
+}
+
+/// The `PostToolUse` payload of a function tool, as runtimes give it by default.
+pub(crate) fn function_post_tool_use_payload(
+    invocation: &ToolInvocation,
+    result: &dyn ToolOutput,
+) -> Option<PostToolUsePayload> {
+    let ToolPayload::Function { arguments } = &invocation.payload else {
+        return None;
+    };
+
+    Some(PostToolUsePayload {
+        tool_cwd: result.post_tool_use_cwd(),
+        tool_name: function_hook_tool_name(invocation),
+        tool_use_id: result.post_tool_use_id(&invocation.call_id),
+        tool_input: result
+            .post_tool_use_input(&invocation.payload)
+            .unwrap_or_else(|| function_hook_tool_input(arguments)),
+        tool_response: result
+            .post_tool_use_response(&invocation.call_id, &invocation.payload)
+            .or_else(|| {
+                // Most function tools can expose their model-facing output
+                // as the hook response. Outputs with a more stable hook
+                // contract should override post_tool_use_response above.
+                let ResponseInputItem::FunctionCallOutput {
+                    output: FunctionCallOutputPayload { body, .. },
+                    ..
+                } = result.to_response_item(&invocation.call_id, &invocation.payload)
+                else {
+                    return None;
+                };
+
+                serde_json::to_value(body).ok()
+            })?,
+    })
+}
+
+/// The `PreToolUse` payload of a function tool, as runtimes give it by default.
+pub(crate) fn function_pre_tool_use_payload(
+    invocation: &ToolInvocation,
+) -> Option<PreToolUsePayload> {
+    let ToolPayload::Function { arguments } = &invocation.payload else {
+        return None;
+    };
+
+    Some(PreToolUsePayload {
+        tool_name: function_hook_tool_name(invocation),
+        tool_input: function_hook_tool_input(arguments),
+    })
 }
 
 fn function_hook_tool_name(invocation: &ToolInvocation) -> HookToolName {

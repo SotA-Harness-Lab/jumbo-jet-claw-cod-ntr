@@ -32,6 +32,16 @@ pub fn command_line(args: &[String], target: &str, shell: Shell) -> String {
     line
 }
 
+/// The arguments that leave out of a search what `globs` match (`Read` deny patterns,
+/// relative to the directory `rg` runs in), compared without regard to case as the
+/// permission rules are.
+pub fn exclusion_args(globs: &[String]) -> Vec<String> {
+    globs
+        .iter()
+        .flat_map(|glob| ["--iglob".to_string(), format!("!{glob}")])
+        .collect()
+}
+
 fn quote(arg: &str, shell: Shell) -> String {
     // A leading `=` stays quoted: zsh expands `=word` to the path of the command `word`.
     let plain = !arg.is_empty()
@@ -114,6 +124,17 @@ pub fn result_lines(run: &RgRun<'_>) -> Result<Vec<String>, String> {
 /// PowerShell exits with 1 when a command is not found, which is ripgrep's "no matches".
 fn is_missing_ripgrep(output: &str) -> bool {
     output.contains("'rg' is not recognized")
+}
+
+/// Adds the note that the results are partial to a `Glob` or `Grep` result whose search
+/// stopped at its timeout, so that the model does not take them for all there are.
+pub fn note_timeout(text: &mut String, timed_out: bool) {
+    if timed_out {
+        text.push_str(&format!(
+            "\n\n(The search timed out after {} seconds, so these results are partial. Try searching a more specific path or pattern.)",
+            TIMEOUT_MS / 1000
+        ));
+    }
 }
 
 fn timeout_message() -> String {

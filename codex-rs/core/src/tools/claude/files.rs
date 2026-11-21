@@ -8,23 +8,33 @@
 use std::io;
 use std::sync::Arc;
 
+use codex_claude_compat::tools::read;
 use codex_exec_server::ExecutorFileSystem;
 use codex_exec_server::FileMetadata;
 use codex_exec_server::FileSystemSandboxContext;
 use codex_exec_server::GetMetadataOptions;
 use codex_exec_server::ReadFileOptions;
 use codex_utils_path_uri::PathUri;
+use futures::StreamExt;
+use serde_json::Value;
 
 use super::delegated;
 use super::failed;
+use super::file_state::ContentDigest;
 use super::file_state::FileRecord;
+use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
 use crate::function_tool::FunctionCallError;
 use crate::session::turn_context::TurnEnvironment;
 use crate::tools::context::ToolInvocation;
+use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
 use crate::tools::handlers::selected_executor;
 use crate::tools::registry::CoreToolRuntime;
+use crate::tools::registry::PostToolUsePayload;
+use crate::tools::registry::PreToolUsePayload;
+use crate::tools::registry::function_post_tool_use_payload;
+use crate::tools::registry::function_pre_tool_use_payload;
 
 /// A file a Claude tool works on, in the environment the call runs in.
 pub(crate) struct FileTarget<'a> {
@@ -104,6 +114,32 @@ impl<'a> FileTarget<'a> {
             .map_err(|err| failed(format!("unable to read {}: {err}", self.native_path())))
     }
 
+    /// Selects lines of the file as [`read::slice_text`] does, reading it in chunks so that
+    /// only the selected lines are held, as Claude Code reads a range of a large file.
+    pub(crate) async fn read_lines(
+        &self,
+        offset: Option<usize>,
+        limit: Option<usize>,
+    ) -> Result<read::TextSlice, FunctionCallError> {
+        let unreadable =
+            |err: io::Error| failed(format!("unable to read {}: {err}", self.native_path()));
+        let mut stream = self
+            .fs
+            .read_file_stream(&self.uri, Some(&self.sandbox))
+            .await
+            .map_err(unreadable)?;
+        let mut slicer = read::LineSlicer::new(offset, limit);
+        while let Some(chunk) = stream.next().await {
+            slicer.push(&chunk.map_err(unreadable)?);
+            if slicer.too_long() {
+                break;
+            }
+        }
+        slicer
+            .finish()
+            .map_err(|bytes| failed(read::token_limit_message(bytes.div_ceil(4))))
+    }
+
     /// The file as text; a file that is not UTF-8 cannot be edited.
     pub(crate) async fn read_text(&self) -> Result<String, FunctionCallError> {
         String::from_utf8(self.read_bytes().await?).map_err(|_| {
@@ -114,25 +150,47 @@ impl<'a> FileTarget<'a> {
         })
     }
 
-    /// Remembers the file as the session now knows it, after a write: its modification
-    /// time and content.
+    /// Remembers the file as the session now knows it, after a write: its whole content.
     pub(crate) async fn record_written(&self, invocation: &ToolInvocation) {
         let Ok(Some(metadata)) = self.metadata().await else {
             return;
         };
-        let content = self
-            .read_text()
-            .await
-            .ok()
-            .map(|content| content.replace("\r\n", "\n"));
-        ReadFiles::of(&invocation.session).insert(
-            self.key(),
-            FileRecord {
-                modified_at_ms: metadata.modified_at_ms,
-                content,
-            },
-        );
+        let record = match self.read_text().await {
+            Ok(content) => FileRecord::Whole(ContentDigest::of(&content)),
+            Err(_) => FileRecord::Part(FileStamp::of(&metadata)),
+        };
+        ReadFiles::of(&invocation.session).insert(self.key(), record);
     }
+}
+
+/// The `PreToolUse` payload of `Read`, `Write` or `Edit`: Claude Code's input, with
+/// `file_path` made absolute as Claude Code gives it to hooks. A hook may answer with either
+/// form in `updatedInput`.
+pub(crate) fn pre_tool_use_payload(invocation: &ToolInvocation) -> Option<PreToolUsePayload> {
+    let mut payload = function_pre_tool_use_payload(invocation)?;
+    absolute_file_path(invocation, &mut payload.tool_input);
+    Some(payload)
+}
+
+/// The `PostToolUse` payload of `Read`, `Write` or `Edit`, with `file_path` made absolute.
+pub(crate) fn post_tool_use_payload(
+    invocation: &ToolInvocation,
+    result: &dyn ToolOutput,
+) -> Option<PostToolUsePayload> {
+    let mut payload = function_post_tool_use_payload(invocation, result)?;
+    absolute_file_path(invocation, &mut payload.tool_input);
+    Some(payload)
+}
+
+/// Replaces a relative `file_path` of a hook's input by the path the tool works on.
+fn absolute_file_path(invocation: &ToolInvocation, tool_input: &mut Value) {
+    let Some(file_path) = tool_input.get("file_path").and_then(Value::as_str) else {
+        return;
+    };
+    let Ok(target) = FileTarget::resolve(invocation, file_path) else {
+        return;
+    };
+    tool_input["file_path"] = Value::String(target.native_path());
 }
 
 /// Applies `patch` through Codex's `apply_patch` runtime, under the model's call: the patch

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: skip a byte order mark at the start of plugin.json
+
 //! Resolve plugin namespace from skill file paths by walking ancestors for `plugin.json`.
 
 use codex_exec_server::EnvironmentAccess;
@@ -109,7 +114,12 @@ pub async fn plugin_namespace_for_root_uri(
         .read_file_text(&manifest_path?, ReadFileOptions::default())
         .await
         .ok()?;
-    let RawPluginManifestName { name: raw_name } = serde_json::from_str(&contents).ok()?;
+    // A manifest saved with a UTF-8 byte order mark is read as if it had none, as Claude
+    // Code reads it.
+    let contents = contents
+        .strip_prefix('\u{feff}')
+        .unwrap_or(contents.as_str());
+    let RawPluginManifestName { name: raw_name } = serde_json::from_str(contents).ok()?;
     Some(
         plugin_root
             .basename()
@@ -181,6 +191,26 @@ mod tests {
             Some("sample".to_string())
         );
         assert_eq!(find_plugin_manifest_path(&plugin_root), Some(manifest_path));
+    }
+
+    #[tokio::test]
+    async fn uses_name_from_a_manifest_with_a_byte_order_mark() {
+        let tmp = tempdir().expect("tempdir");
+        let plugin_root = tmp.path().join("plugins/sample");
+        let manifest_path = plugin_root.join(ALTERNATE_PLUGIN_CLA_MANIFEST_RELATIVE_PATH);
+
+        fs::create_dir_all(manifest_path.parent().expect("manifest parent"))
+            .expect("mkdir manifest");
+        fs::write(&manifest_path, "\u{feff}{\"name\":\"acme\"}").expect("write manifest");
+
+        assert_eq!(
+            plugin_namespace_for_root_uri(
+                &FileSystemEnvironmentAccessor::unrestricted(&LOCAL_FS),
+                &PathUri::from_abs_path(&plugin_root.abs()),
+            )
+            .await,
+            Some("acme".to_string())
+        );
     }
 
     #[tokio::test]

@@ -3,6 +3,8 @@
 
 //! Claude Code's `Bash` tool: description, parameters and result text.
 
+use serde_json::Value;
+
 use super::AGENT;
 use super::BASH;
 use super::EDIT;
@@ -11,6 +13,7 @@ use super::GREP;
 use super::READ;
 use super::TODO_WRITE;
 use super::WRITE;
+use super::input::Input;
 
 /// Timeout of a command that does not give one, in milliseconds (Claude Code's default).
 pub const DEFAULT_TIMEOUT_MS: u64 = 120_000;
@@ -18,6 +21,40 @@ pub const DEFAULT_TIMEOUT_MS: u64 = 120_000;
 pub const MAX_TIMEOUT_MS: u64 = 600_000;
 
 pub const COMMAND_PARAM_DESCRIPTION: &str = "The command to execute";
+
+/// A `Bash` call's input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BashInput {
+    pub command: String,
+    /// Milliseconds.
+    pub timeout: Option<f64>,
+    pub description: Option<String>,
+    pub run_in_background: Option<bool>,
+    pub dangerously_disable_sandbox: Option<bool>,
+}
+
+impl BashInput {
+    /// Reads the model's arguments: numbers and booleans may come as strings (`"60000"`,
+    /// `"true"`), and `command_description` stands for `description`; `Err` is Claude
+    /// Code's input validation message.
+    pub fn parse(arguments: Value) -> Result<Self, String> {
+        let mut input =
+            Input::ignoring_unknown(BASH, arguments, &[("command_description", "description")]);
+        let command = input.required_string("command");
+        let timeout = input.number("timeout");
+        let description = input.string("description");
+        let run_in_background = input.boolean("run_in_background");
+        let dangerously_disable_sandbox = input.boolean("dangerouslyDisableSandbox");
+        input.finish()?;
+        Ok(Self {
+            command,
+            timeout,
+            description,
+            run_in_background,
+            dangerously_disable_sandbox,
+        })
+    }
+}
 
 pub const DESCRIPTION_PARAM_DESCRIPTION: &str = r#"Clear, concise description of what this command does in active voice. Never use words like "complex" or "risk" in the description - just describe what it does.
 
@@ -87,7 +124,7 @@ pub fn description(available: &[&str], background: bool) -> String {
     let mut text = String::new();
     text.push_str("Executes a given bash command and returns its output.\n\n");
     text.push_str(
-        "The working directory persists between commands, but shell state does not. The shell environment is initialized from the user's profile (bash or zsh).\n\n",
+        "The working directory carries over to the next command while it stays inside the project directory; a `cd` that leaves the project puts the next command back there, and a `cd` in a command that fails or runs in the background does not carry over. Commands of subagents always start in the project directory. Shell state does not persist. The shell environment is initialized from the user's profile (bash or zsh).\n\n",
     );
     text.push_str(&format!(
         "IMPORTANT: Avoid using this tool to run {avoid} commands, unless explicitly instructed or after you have verified that a dedicated tool cannot accomplish your task. Instead, use the appropriate dedicated tool as this will provide a much better experience for the user:\n\n"
@@ -329,6 +366,22 @@ pub fn backgrounds_on_timeout(command: &str) -> bool {
     command.split_whitespace().next() != Some("sleep")
 }
 
+/// Whether `command` changes its directory (`cd`, `pushd`, `popd`, `chdir`), which does not
+/// carry over when it runs in the background.
+pub fn changes_directory(command: &str) -> bool {
+    command
+        .split(|c: char| c.is_whitespace() || ";&|(){}`".contains(c))
+        .any(|word| matches!(word, "cd" | "pushd" | "popd" | "chdir"))
+}
+
+/// Claude Code's note after the result of a background command that changes its directory:
+/// the next command still starts in `cwd`.
+pub fn background_cwd_note(cwd: &str) -> String {
+    format!(
+        "Session cwd remains {cwd}; directory changes made by the backgrounded command do not apply to subsequent commands."
+    )
+}
+
 /// Lines added after a command, in the shell that runs it, to carry its working directory
 /// over to the next one: after a command that succeeded, its physical working directory
 /// (`pwd -P`, as Claude Code records it) is written to `file`. The command's exit status
@@ -344,6 +397,12 @@ pub fn cwd_trailer(file: &str) -> String {
 fn shell_quote(text: &str) -> String {
     format!("'{}'", text.replace('\'', "'\\''"))
 }
+
+/// Put before a command run by zsh: `EQUALS` off, so that a word starting with `=`
+/// (`[ a == b ]`, `echo ====`) is not expanded to the path of a command and does not stop
+/// the command with `= not found`, as in Claude Code. On the same line as the command, so
+/// that the line numbers of its errors stay the same.
+pub const ZSH_PRELUDE: &str = "setopt NO_EQUALS; ";
 
 /// The working directory recorded by [`cwd_trailer`]: the file's text without its line end.
 pub fn recorded_cwd(contents: &str) -> Option<&str> {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code skill frontmatter
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code skill frontmatter, also after a byte order mark
 
 use serde::Deserialize;
 use thiserror::Error;
@@ -75,6 +75,9 @@ pub fn parse_skill_frontmatter_metadata(
     contents: &str,
     default_name: impl FnOnce() -> String,
 ) -> Result<ParsedSkillFrontmatter, SkillParseError> {
+    // A file saved with a UTF-8 byte order mark still starts with its frontmatter, as
+    // Claude Code reads it.
+    let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
     let frontmatter = extract_frontmatter(contents).ok_or(SkillParseError::MissingFrontmatter)?;
 
     let parsed: SkillFrontmatter = match serde_yaml::from_str(&frontmatter) {

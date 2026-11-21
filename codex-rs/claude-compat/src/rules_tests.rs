@@ -43,6 +43,22 @@ fn reads_paths_in_every_accepted_form() {
 }
 
 #[test]
+fn too_many_brace_groups_are_left_to_the_glob_matcher() {
+    let pattern = "{a,b}".repeat(30);
+    let globs = globs(&format!("paths: \"{pattern}.rs\"\n"));
+
+    assert_eq!(globs, Some(vec![format!("{pattern}.rs")]));
+    let globs = globs.unwrap_or_default();
+    let file = format!("/repo/{}.rs", "ab".repeat(15));
+    assert!(glob_matches(&globs, Path::new("/repo"), Path::new(&file)));
+    assert!(!glob_matches(
+        &globs,
+        Path::new("/repo"),
+        Path::new("/repo/c.rs")
+    ));
+}
+
+#[test]
 fn a_rule_without_real_globs_is_unconditional() {
     assert_eq!(globs("description: x\n"), None);
     assert_eq!(globs("paths: \"**\"\n"), None);
@@ -78,6 +94,18 @@ fn matches_globs_like_gitignore_patterns() {
         base,
         Path::new("/repo/tests/main.rs")
     ));
+}
+
+#[test]
+fn a_malformed_glob_leaves_the_others_working() {
+    let base = Path::new("/repo");
+    let globs = vec![
+        "src/**/*.rs".to_string(),
+        "docs/{draft".to_string(),
+        "[z-a]".to_string(),
+    ];
+    assert!(glob_matches(&globs, base, Path::new("/repo/src/a.rs")));
+    assert!(!glob_matches(&globs, base, Path::new("/repo/docs/x.md")));
 }
 
 #[tokio::test]

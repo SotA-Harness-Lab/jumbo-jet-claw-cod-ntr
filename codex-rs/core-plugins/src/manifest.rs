@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: skip a byte order mark at the start of plugin.json
+
 use codex_config::HooksFile;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_path_uri::PathConvention;
@@ -176,9 +181,10 @@ pub(crate) fn load_plugin_command_paths(plugin_root: &Path) -> io::Result<Option
     let Some(manifest_path) = find_plugin_manifest_path(plugin_root) else {
         return Ok(None);
     };
-    let manifest =
-        serde_json::from_str::<RawPluginCommandManifest>(&fs::read_to_string(manifest_path)?)
-            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    let manifest = serde_json::from_str::<RawPluginCommandManifest>(without_bom(
+        &fs::read_to_string(manifest_path)?,
+    ))
+    .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
     let Some(commands) = manifest.commands else {
         return Ok(None);
     };
@@ -255,6 +261,8 @@ pub(crate) fn parse_resolved_plugin_manifest_uri(
     contents: &str,
     overlay: Option<(&PathUri, &str)>,
 ) -> Result<UriPluginManifest, serde_json::Error> {
+    // Claude Code reads a plugin.json saved with a UTF-8 byte order mark as if it had none.
+    let contents = without_bom(contents);
     let root_manifest_path = plugin_root
         .join(AGENT_PLUGIN_MANIFEST_RELATIVE_PATH)
         .map_err(path_uri_json_error)?;
@@ -394,6 +402,11 @@ fn resolve_raw_plugin_manifest(
         },
         interface,
     })
+}
+
+/// `contents` without a leading UTF-8 byte order mark.
+fn without_bom(contents: &str) -> &str {
+    contents.strip_prefix('\u{feff}').unwrap_or(contents)
 }
 
 fn compatibility_json_error(message: impl Into<String>) -> serde_json::Error {
@@ -881,6 +894,24 @@ mod tests {
                 .as_ref()
                 .and_then(|interface| interface.display_name.as_deref()),
             Some("Fallback Plugin")
+        );
+    }
+
+    #[test]
+    fn plugin_manifest_with_a_byte_order_mark_loads() {
+        let tmp = tempdir().expect("tempdir");
+        let plugin_root = tmp.path().join("demo-plugin");
+        write_alternate_plugin_manifest(
+            &plugin_root,
+            "\u{feff}{\"name\": \"demo-plugin\", \"version\": \"1.0.0\", \"commands\": \"./cmds\"}",
+        );
+
+        let manifest = load_manifest(&plugin_root);
+
+        assert_eq!(manifest.version, Some("1.0.0".to_string()));
+        assert_eq!(
+            super::load_plugin_command_paths(&plugin_root).expect("read command paths"),
+            Some(vec![plugin_root.join("cmds")])
         );
     }
 

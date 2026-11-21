@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; record where a
-// Claude Bash command ends up
+// Claude Bash command ends up; run a Claude Bash command under zsh without `=` expansion
 
 use std::sync::Arc;
 
@@ -180,6 +180,7 @@ impl ExecCommandHandler {
         if !prepared.turn_environment.environment().is_remote() {
             prepared.cwd_report = crate::tools::claude::take_cwd_report(&session, &call_id);
         }
+        prepared.zsh_prelude = crate::tools::claude::take_zsh_prelude(&session, &call_id);
         let max_output_tokens = prepared.max_output_tokens;
         let fs = prepared.turn_environment.environment().get_filesystem();
         let intercepted_patch = intercept_apply_patch(

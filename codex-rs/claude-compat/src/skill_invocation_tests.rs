@@ -67,11 +67,19 @@ fn reads_argument_names_from_frontmatter() {
 }
 
 #[test]
+fn reads_argument_names_beside_a_value_that_is_not_valid_yaml() {
+    assert_eq!(
+        argument_names("name: x\ndescription: Triggers include: X, Y\narguments: [topic]\n"),
+        names(&["topic"])
+    );
+}
+
+#[test]
 fn substitutes_every_kind_of_placeholder() {
     let content = "all=$ARGUMENTS first=$ARGUMENTS[0] second=$1 third=$2 file=$file mode=$mode";
     assert_eq!(
         substitute_arguments(content, r#"a.txt "b c""#, &names(&["file", "mode"])),
-        r#"all=a.txt "b c" first=a.txt second=b c third= file=a.txt mode=b c"#
+        r#"all=a.txt "b c" first=a.txt second=b c third=$2 file=a.txt mode=b c"#
     );
 }
 
@@ -87,13 +95,54 @@ fn leaves_lookalike_placeholders_alone() {
 #[test]
 fn empty_arguments_clear_placeholders() {
     assert_eq!(
-        substitute_arguments("[$ARGUMENTS] [$0] [$ARGUMENTS[3]]", "", &[]),
-        "[] [] []"
+        substitute_arguments(
+            "[$ARGUMENTS] [$0] [$ARGUMENTS[3]] [$file]",
+            "",
+            &names(&["file"])
+        ),
+        "[] [$0] [$ARGUMENTS[3]] []"
     );
     assert_eq!(
         substitute_arguments("no placeholder", "", &[]),
         "no placeholder"
     );
+}
+
+#[test]
+fn keeps_indexed_placeholders_past_the_last_argument() {
+    assert_eq!(
+        substitute_arguments("awk '{print $1; exit}' costs $0.0034", "", &[]),
+        "awk '{print $1; exit}' costs $0.0034"
+    );
+    assert_eq!(
+        substitute_arguments("cell $B$2 and $ARGUMENTS[1]", "install", &[]),
+        "cell $B$2 and $ARGUMENTS[1]\n\nARGUMENTS: install"
+    );
+    assert_eq!(
+        substitute_arguments("run $0 then awk '{print $1}'", "install", &[]),
+        "run install then awk '{print $1}'"
+    );
+}
+
+#[test]
+fn does_not_expand_argument_values_again() {
+    assert_eq!(
+        substitute_arguments(
+            "[$0] [$1] [$topic]",
+            r#""use \$1 in awk" foo"#,
+            &names(&["topic"])
+        ),
+        "[use $1 in awk] [foo] [use $1 in awk]"
+    );
+    assert_eq!(
+        substitute_arguments("[$0] [$ARGUMENTS[1]]", "'$ARGUMENTS' '$x'", &names(&["x"])),
+        "[$ARGUMENTS] [$x]"
+    );
+}
+
+#[test]
+fn a_value_equal_to_its_placeholder_still_counts_as_received() {
+    assert_eq!(substitute_arguments("Run $0.", "$0", &[]), "Run $0.");
 }
 
 #[test]

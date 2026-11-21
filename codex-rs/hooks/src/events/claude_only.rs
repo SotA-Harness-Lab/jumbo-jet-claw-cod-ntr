@@ -152,13 +152,14 @@ impl ClaudeHooksEngine {
             .any(|handler| handler.event == event)
     }
 
-    /// The handlers of `event` matching one of `matcher_inputs`. `tool_input` is the input of
-    /// the tool call the event is about; without one, handlers with an `if` condition stay out.
+    /// The handlers of `event` matching one of `matcher_inputs`. `tool_call` is the input of
+    /// the tool call the event is about and the directory it was made in; without one,
+    /// handlers with an `if` condition stay out.
     fn select_claude_only(
         &self,
         event: ClaudeOnlyEvent,
         matcher_inputs: &[&str],
-        tool_input: Option<&Value>,
+        tool_call: Option<(&Value, &Path)>,
     ) -> Vec<ConfiguredHandler> {
         self.claude_only_handlers
             .iter()
@@ -169,7 +170,7 @@ impl ClaudeHooksEngine {
                 })
             })
             .filter(|handler| {
-                dispatcher::condition_covers(&handler.handler, matcher_inputs, tool_input)
+                dispatcher::condition_covers(&handler.handler, matcher_inputs, tool_call)
             })
             .map(|handler| handler.handler.clone())
             .collect()
@@ -181,7 +182,7 @@ impl ClaudeHooksEngine {
         let handlers = self.select_claude_only(
             ClaudeOnlyEvent::Notification,
             &[request.notification_type.as_str()],
-            /*tool_input*/ None,
+            /*tool_call*/ None,
         );
         if handlers.is_empty() {
             return;
@@ -196,7 +197,7 @@ impl ClaudeHooksEngine {
         let handlers = self.select_claude_only(
             ClaudeOnlyEvent::StopFailure,
             &[request.error.as_str()],
-            /*tool_input*/ None,
+            /*tool_call*/ None,
         );
         if handlers.is_empty() {
             return;
@@ -214,7 +215,7 @@ impl ClaudeHooksEngine {
         let handlers = self.select_claude_only(
             ClaudeOnlyEvent::PostToolUseFailure,
             &matcher_inputs,
-            Some(&request.tool_input),
+            Some((&request.tool_input, request.cwd.as_path())),
         );
         if handlers.is_empty() {
             return PostToolUseFailureOutcome::default();

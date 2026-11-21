@@ -5,6 +5,7 @@
 
 use crate::AgentRoleConfig;
 use crate::ResolvedAgentRoleFile;
+use crate::agent_role_config::is_not_a_subagent;
 use crate::agent_role_config::normalize_agent_role_description;
 use crate::agent_role_config::normalize_agent_role_nickname_candidates;
 use crate::discovery::collect_agent_role_files;
@@ -132,6 +133,12 @@ pub async fn load_claude_code_agent_roles(
         let parsed_file =
             match read_resolved_agent_role_file(fs, &agent_file, /*role_name_hint*/ None).await {
                 Ok(parsed_file) => parsed_file,
+                // As in Claude Code, other Markdown files there (a README, notes) are passed
+                // over without a warning.
+                Err(err) if is_not_a_subagent(&err) => {
+                    tracing::debug!("skipping {}: {err}", agent_file.display());
+                    continue;
+                }
                 Err(err) => {
                     push_agent_role_warning(startup_warnings, err);
                     continue;

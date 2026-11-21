@@ -179,7 +179,9 @@ impl GrepInput {
 
 /// The ripgrep arguments of a search, before the path searched, as Claude Code builds
 /// them. Files with matches are listed newest first by ripgrep itself (`--sortr=modified`),
-/// where Claude Code stats each file afterwards.
+/// where Claude Code stats each file afterwards. Lines and counts are sorted by path, so
+/// that `offset` pages through the same order on every call; counts always name their
+/// file, also when the path searched is one file.
 pub fn rg_args(input: &GrepInput) -> Vec<String> {
     let mut args: Vec<String> = vec!["--hidden".to_string()];
     for directory in VCS_DIRECTORIES {
@@ -197,8 +199,13 @@ pub fn rg_args(input: &GrepInput) -> Vec<String> {
         OutputMode::FilesWithMatches => {
             args.extend(["-l".to_string(), "--sortr=modified".to_string()]);
         }
-        OutputMode::Count => args.push("-c".to_string()),
+        OutputMode::Count => args.extend([
+            "-c".to_string(),
+            "--with-filename".to_string(),
+            "--sort=path".to_string(),
+        ]),
         OutputMode::Content => {
+            args.push("--sort=path".to_string());
             if input.line_numbers {
                 args.push("-n".to_string());
             }
@@ -261,9 +268,14 @@ pub struct GrepResult {
 }
 
 /// Formats the lines ripgrep printed as Claude Code does: `head_limit` and `offset`
-/// applied, paths inside `cwd` shortened, and the summary of each output mode.
+/// applied, paths inside `cwd` shortened, and the summary of each output mode. The totals
+/// of `count` are those of the whole search, not of the page; an `offset` past the last
+/// result says so instead of reporting no matches.
 pub fn format_result(input: &GrepInput, lines: Vec<String>, cwd: &str) -> GrepResult {
+    let total = lines.len();
+    let (matches, files) = count_totals(&lines);
     let (lines, applied_limit) = apply_head_limit(lines, input.head_limit, input.offset);
+    let past_end = lines.is_empty() && total > 0;
     let lines: Vec<String> = lines.iter().map(|line| relative_to(line, cwd)).collect();
     let applied_offset = (input.offset > 0).then_some(input.offset);
     let limit_info = limit_info(applied_limit, applied_offset);
@@ -276,7 +288,9 @@ pub fn format_result(input: &GrepInput, lines: Vec<String>, cwd: &str) -> GrepRe
             tool_response["filenames"] = json!([]);
             tool_response["content"] = json!(content);
             tool_response["numLines"] = json!(lines.len());
-            let shown = if content.is_empty() {
+            let shown = if past_end {
+                past_end_message(input.offset, total, "line")
+            } else if content.is_empty() {
                 "No matches found".to_string()
             } else {
                 content
@@ -289,21 +303,13 @@ pub fn format_result(input: &GrepInput, lines: Vec<String>, cwd: &str) -> GrepRe
         }
         OutputMode::Count => {
             let content = lines.join("\n");
-            let mut matches = 0u64;
-            let mut files = 0u64;
-            for line in &lines {
-                if let Some((_, count)) = line.rsplit_once(':')
-                    && let Ok(count) = count.parse::<u64>()
-                {
-                    matches += count;
-                    files += 1;
-                }
-            }
             tool_response["numFiles"] = json!(files);
             tool_response["filenames"] = json!([]);
             tool_response["content"] = json!(content);
             tool_response["numMatches"] = json!(matches);
-            let shown = if content.is_empty() {
+            let shown = if past_end {
+                past_end_message(input.offset, total, "entry")
+            } else if content.is_empty() {
                 "No matches found".to_string()
             } else {
                 content
@@ -326,7 +332,9 @@ pub fn format_result(input: &GrepInput, lines: Vec<String>, cwd: &str) -> GrepRe
         OutputMode::FilesWithMatches => {
             tool_response["numFiles"] = json!(lines.len());
             tool_response["filenames"] = json!(lines);
-            if lines.is_empty() {
+            if past_end {
+                past_end_message(input.offset, total, "file")
+            } else if lines.is_empty() {
                 "No files found".to_string()
             } else {
                 let limit = if limit_info.is_empty() {
@@ -353,6 +361,31 @@ pub fn format_result(input: &GrepInput, lines: Vec<String>, cwd: &str) -> GrepRe
         text,
         tool_response,
     }
+}
+
+/// The matches and files of `count` lines (`path:N`).
+fn count_totals(lines: &[String]) -> (u64, u64) {
+    let mut matches = 0u64;
+    let mut files = 0u64;
+    for line in lines {
+        if let Some((_, count)) = line.rsplit_once(':')
+            && let Ok(count) = count.parse::<u64>()
+        {
+            matches += count;
+            files += 1;
+        }
+    }
+    (matches, files)
+}
+
+/// The text for an `offset` at or past the last of `total` results.
+fn past_end_message(offset: usize, total: usize, noun: &str) -> String {
+    let nouns = match (noun, total) {
+        (_, 1) => noun.to_string(),
+        ("entry", _) => "entries".to_string(),
+        _ => format!("{noun}s"),
+    };
+    format!("No results at offset {offset}: the search found {total} {nouns} in all")
 }
 
 fn limit_info(applied_limit: Option<usize>, applied_offset: Option<usize>) -> String {

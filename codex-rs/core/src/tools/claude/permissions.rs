@@ -36,6 +36,7 @@ use std::sync::PoisonError;
 use codex_claude_compat::PermissionRules;
 use codex_claude_compat::RuleVerdict;
 use codex_claude_compat::ToolInput;
+use codex_claude_compat::tools::ripgrep;
 use codex_protocol::approvals::ExecApprovalKind;
 use codex_protocol::protocol::AskForApproval;
 use codex_protocol::protocol::ReviewDecision;
@@ -47,8 +48,11 @@ use crate::function_tool::FunctionCallError;
 use crate::guardian::GuardianReviewContext;
 use crate::sandboxing::SandboxPermissions;
 use crate::session::session::Session;
+use crate::session::turn_context::TurnContext;
 use crate::tools::context::ToolInvocation;
+use crate::tools::handlers::McpHandler;
 use crate::tools::handlers::selected_executor;
+use crate::tools::registry::ToolRegistry;
 use crate::tools::sandboxing::ExecApprovalRequirement;
 
 /// Claude Code's answer to the model when the user declines a tool call.
@@ -197,6 +201,71 @@ fn call_directory(invocation: &ToolInvocation) -> (PathUri, Option<String>) {
     }
 }
 
+/// Takes out of the registry every tool a Claude Code deny rule denies as a whole
+/// (`WebSearch`, `mcp__<server>`, `mcp__<server>__<tool>`, ...), so that the model is not
+/// offered tools it may not call, as Claude Code leaves them out. Tools are matched by the
+/// names the rules use: Claude Code's names for the Claude tools, `mcp__<server>__<tool>`
+/// for MCP tools. A rule with content (`Bash(rm *)`) takes nothing away.
+pub(crate) fn remove_denied_tools(
+    session: &Session,
+    turn_context: &TurnContext,
+    registry: &mut ToolRegistry,
+) {
+    if !super::enabled(turn_context) {
+        return;
+    }
+    let rules = rules_for(
+        session,
+        turn_context.config.cwd.as_path(),
+        turn_context.config.active_project.is_trusted(),
+    );
+    remove_tools_denied_by(&rules, registry);
+}
+
+/// Takes out of the registry the tools `rules` deny as a whole.
+pub(super) fn remove_tools_denied_by(rules: &PermissionRules, registry: &mut ToolRegistry) {
+    if rules.is_empty() {
+        return;
+    }
+    let denied = registry
+        .entries()
+        .filter(|tool| {
+            let name = match tool.runtime.mcp_tool_info() {
+                Some(info) => McpHandler::hook_tool_name_for(info).name().to_string(),
+                None => crate::tools::flat_tool_name(&tool.runtime.tool_name()).into_owned(),
+            };
+            matches!(
+                rules.evaluate(&name, ToolInput::Tool),
+                RuleVerdict::Deny { .. }
+            )
+        })
+        .map(|tool| tool.runtime.tool_name())
+        .collect::<Vec<_>>();
+    for name in denied {
+        registry.remove(&name);
+    }
+}
+
+/// The ripgrep arguments that keep a `Grep` or `Glob` search of `search_dir` (a native
+/// path, which `rg` runs in) out of the files Claude Code's `Read` deny rules cover, as
+/// Claude Code's own tools add them. Empty when no such rule applies.
+pub(crate) fn read_deny_args(invocation: &ToolInvocation, search_dir: &str) -> Vec<String> {
+    if !super::enabled(&invocation.turn) {
+        return Vec::new();
+    }
+    let rules = rules_for(
+        &invocation.session,
+        invocation.turn.config.cwd.as_path(),
+        invocation.turn.config.active_project.is_trusted(),
+    );
+    if rules.is_empty() {
+        return Vec::new();
+    }
+    let (cwd_uri, _) = call_directory(invocation);
+    let cwd = PathBuf::from(cwd_uri.inferred_native_path_string());
+    ripgrep::exclusion_args(&rules.read_deny_globs(Path::new(search_dir), &cwd))
+}
+
 /// Checks a Claude tool call against Claude Code's permission rules before the tool runs.
 /// A denied call, or one the user declines, is an error with Claude Code's text for the
 /// model; otherwise the returned guard carries the decision to Codex's runtimes and must
@@ -235,7 +304,7 @@ pub(crate) async fn check_permission(
     .unwrap_or_else(|_| cwd.clone());
     let paths = match input {
         PermissionInput::ReadPath(path) | PermissionInput::EditPath(path) => {
-            vec![cwd.join(path)]
+            rule_paths(invocation, &cwd_uri, &cwd, path).await
         }
         _ => Vec::new(),
     };
@@ -284,6 +353,46 @@ pub(crate) async fn check_permission(
         }
     }
     Ok(guard)
+}
+
+/// The paths a file rule is checked against: `path` as given, and where its symbolic links
+/// lead when that is elsewhere, as Claude Code checks both (a deny or ask rule for either
+/// decides, an allow rule has to cover both). A path that does not exist yet is resolved
+/// through its nearest ancestor that does.
+async fn rule_paths(
+    invocation: &ToolInvocation,
+    cwd_uri: &PathUri,
+    cwd: &Path,
+    path: &str,
+) -> Vec<PathBuf> {
+    let mut paths = vec![cwd.join(path)];
+    let (Ok(environment), Ok(uri)) = (
+        selected_executor(
+            &invocation.environments,
+            &invocation.step_context.environments,
+        ),
+        cwd_uri.join(path),
+    ) else {
+        return paths;
+    };
+    let fs = environment.environment().get_filesystem();
+    for ancestor in uri.ancestors() {
+        // Resolved outside the sandbox: only where the links lead is looked at.
+        let Ok(resolved) = fs.canonicalize(&ancestor, /*sandbox*/ None).await else {
+            continue;
+        };
+        if let Some(resolved) = uri
+            .relative_path_from(&ancestor)
+            .and_then(|rest| resolved.join(&rest).ok())
+        {
+            let resolved = resolved.to_path_buf();
+            if !paths.contains(&resolved) {
+                paths.push(resolved);
+            }
+        }
+        break;
+    }
+    paths
 }
 
 /// Asks the user about a call of a tool Codex has no approval step for, with Codex's

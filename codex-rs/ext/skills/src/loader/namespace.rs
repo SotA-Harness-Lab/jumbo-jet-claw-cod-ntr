@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: do not prefix a skill name that has its plugin's prefix
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -173,9 +178,19 @@ pub(crate) enum ResolvedSkillNamespace {
 }
 
 impl ResolvedSkillNamespace {
+    /// The name prefixed with the plugin's namespace. A name that already starts with
+    /// `<namespace>:` (a skill whose frontmatter `name` is `acme:review` in plugin `acme`)
+    /// is left as it is, as Claude Code leaves it, rather than becoming `acme:acme:review`.
     pub(crate) fn qualify(&self, base_name: &str) -> String {
         match self {
             Self::Plain => base_name.to_string(),
+            Self::Plugin(namespace)
+                if base_name
+                    .strip_prefix(namespace.as_str())
+                    .is_some_and(|rest| rest.starts_with(':')) =>
+            {
+                base_name.to_string()
+            }
             Self::Plugin(namespace) => format!("{namespace}:{base_name}"),
         }
     }

@@ -12,6 +12,7 @@ use super::InstructionKind;
 use super::directory_instructions;
 use super::file_instructions;
 use super::render_instruction_files;
+use super::rendered_instruction_paths;
 use super::user_instructions;
 use crate::source::LocalFiles;
 
@@ -131,6 +132,32 @@ async fn directory_instructions_load_each_kind_and_keep_imports_inside_the_proje
     );
 }
 
+#[test]
+fn rendered_files_are_read_back_from_their_headings() {
+    let files = vec![
+        file("/repo/sub/CLAUDE.md".into(), InstructionKind::Project, "a"),
+        file(
+            "/repo/sub/CLAUDE.local.md".into(),
+            InstructionKind::Local,
+            "Contents of nothing\nb",
+        ),
+        file(
+            "/home/.claude/rules/r.md".into(),
+            InstructionKind::User,
+            "c",
+        ),
+    ];
+
+    assert_eq!(
+        rendered_instruction_paths(&render_instruction_files(&files)),
+        vec![
+            std::path::PathBuf::from("/repo/sub/CLAUDE.md"),
+            std::path::PathBuf::from("/repo/sub/CLAUDE.local.md"),
+            std::path::PathBuf::from("/home/.claude/rules/r.md"),
+        ]
+    );
+}
+
 #[tokio::test]
 async fn file_instructions_follow_claude_code_phases() {
     let tmp = TempDir::new().expect("temp dir");
@@ -243,6 +270,60 @@ async fn file_instructions_follow_claude_code_phases() {
             "user rs"
         )]
     );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn file_instructions_see_through_symlinks_and_dot_dot() {
+    let tmp = TempDir::new().expect("temp dir");
+    let cwd = tmp.path().join("real");
+    let sub = cwd.join("src");
+    fs::create_dir_all(cwd.join(".claude/rules")).expect("create");
+    fs::create_dir_all(&sub).expect("create");
+    fs::write(
+        cwd.join(".claude/rules/rs.md"),
+        "---\npaths: src/**\n---\nsrc rule",
+    )
+    .expect("write");
+    fs::write(sub.join("CLAUDE.md"), "src doc").expect("write");
+    let link = tmp.path().join("link");
+    std::os::unix::fs::symlink(&cwd, &link).expect("symlink");
+    let expected = vec![
+        file(sub.join("CLAUDE.md"), InstructionKind::Project, "src doc"),
+        file(
+            cwd.join(".claude/rules/rs.md"),
+            InstructionKind::Project,
+            "src rule",
+        ),
+    ];
+
+    for (cwd, target) in [
+        // The file through a link to the working directory.
+        (cwd.clone(), link.join("src/main.rs")),
+        // The file through `..`.
+        (cwd.clone(), cwd.join("../real/src/main.rs")),
+        // The working directory through the link, the file by its real path.
+        (link.clone(), sub.join("main.rs")),
+    ] {
+        let files = file_instructions(
+            &LocalFiles,
+            /*user_rules_dir*/ None,
+            /*home_dir*/ None,
+            &cwd,
+            &target,
+            /*include_project*/ true,
+        )
+        .await
+        .expect("load");
+        let expected = expected
+            .iter()
+            .map(|expected| InstructionFile {
+                path: cwd.join(expected.path.strip_prefix(tmp.path().join("real")).unwrap()),
+                ..expected.clone()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(files, expected, "{}", target.display());
+    }
 }
 
 #[tokio::test]

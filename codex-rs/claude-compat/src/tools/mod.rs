@@ -20,6 +20,7 @@ pub mod notebook;
 pub mod patch;
 pub mod read;
 pub mod ripgrep;
+pub mod seen_files;
 pub mod skill;
 pub mod todo_write;
 pub mod web_fetch;

@@ -14,6 +14,7 @@ use std::time::Instant;
 
 use codex_claude_compat::tools::GLOB;
 use codex_claude_compat::tools::glob;
+use codex_claude_compat::tools::ripgrep::note_timeout;
 use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
@@ -27,6 +28,7 @@ use super::check_permission;
 use super::files::FileTarget;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::permissions::read_deny_args;
 use super::rejected;
 use super::ripgrep::Ripgrep;
 use crate::function_tool::FunctionCallError;
@@ -135,17 +137,25 @@ impl GlobHandler {
             PermissionInput::ReadPath(&target.native_path()),
         )
         .await?;
-        let paths = self
+        // Files a `Read` deny rule covers are left out, as Claude Code leaves them out; the
+        // search then runs in its directory, which the exclusions are relative to.
+        let search_dir = target.native_path();
+        let exclusions = read_deny_args(&invocation, &search_dir);
+        let mut args = glob::rg_args(&pattern);
+        args.extend(exclusions.iter().cloned());
+        let (paths, timed_out) = self
             .ripgrep
             .run(
                 &invocation,
                 target.environment,
-                &glob::rg_args(&pattern),
-                &target.native_path(),
+                &args,
+                &search_dir,
+                (!exclusions.is_empty()).then_some(search_dir.as_str()),
             )
             .await?;
         let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
-        let result = glob::format_result(paths, &target.cwd_display(), duration_ms);
+        let mut result = glob::format_result(paths, &target.cwd_display(), duration_ms);
+        note_timeout(&mut result.text, timed_out);
         Ok(boxed_tool_output(ClaudeToolOutput::new(
             result.text,
             result.tool_response,

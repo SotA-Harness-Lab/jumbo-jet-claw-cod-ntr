@@ -9,6 +9,7 @@
 
 use codex_claude_compat::tools::agent::ToolList;
 use codex_claude_compat::tools::agent::owner_of;
+use codex_tools::ToolName;
 
 use crate::config::AgentRoleConfig;
 use crate::session::turn_context::TurnContext;
@@ -53,18 +54,25 @@ pub(super) fn restrict(registry: &mut ToolRegistry, tools: &ToolList) {
         .entries()
         .map(|tool| tool.runtime.tool_name())
         .filter(|name| {
-            let model_name = name.to_string();
-            let owner = if model_name.starts_with("mcp__") {
-                None
-            } else {
-                owner_of(&name.name)
-            };
+            let (model_name, owner) = list_entry(name);
             !tools.permits(&model_name, owner)
         })
         .collect::<Vec<_>>();
     for name in removed {
         registry.remove(&name);
     }
+}
+
+/// A tool as a subagent's tool list sees it: the name the model sees, and the Claude tool it
+/// serves, if any.
+pub(super) fn list_entry(name: &ToolName) -> (String, Option<&'static str>) {
+    let model_name = name.to_string();
+    let owner = if model_name.starts_with("mcp__") {
+        None
+    } else {
+        owner_of(&name.name)
+    };
+    (model_name, owner)
 }
 
 #[cfg(test)]

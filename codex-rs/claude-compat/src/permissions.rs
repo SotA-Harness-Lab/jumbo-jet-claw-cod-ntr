@@ -30,6 +30,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use ignore::Match;
+use ignore::gitignore::Gitignore;
 use ignore::gitignore::GitignoreBuilder;
 use serde_json::Value;
 
@@ -43,8 +44,9 @@ pub(crate) mod bash;
 use bash::ShellDecision;
 use bash::ShellRules;
 
-/// Rules grouped by the directory their patterns are relative to.
-type RulesByRoot<'a> = (Option<PathBuf>, Vec<(String, &'a PermissionRule)>);
+/// Patterns grouped by the directory they are relative to, each with the index of its
+/// rule.
+type PatternsByRoot = (Option<PathBuf>, Vec<(String, usize)>);
 
 /// The tool whose rules govern every file read (`Read`, `Glob`, `Grep`).
 const FILE_READ_TOOL: &str = "Read";
@@ -110,7 +112,8 @@ pub enum ToolInput<'a> {
     /// A `Bash` command, run in `cwd`.
     Command { command: &'a str, cwd: &'a Path },
     /// A file or directory read (`Read`, `Glob`, `Grep`): the absolute path, and the path
-    /// with symbolic links resolved if it differs; relative patterns are under `cwd`.
+    /// with symbolic links resolved if it differs; relative patterns are under `cwd`. A
+    /// deny or ask rule for any of the paths decides; an allow rule has to cover them all.
     Read { paths: &'a [PathBuf], cwd: &'a Path },
     /// A file written (`Edit`, `Write`), as for `Read`.
     Edit { paths: &'a [PathBuf], cwd: &'a Path },
@@ -139,6 +142,21 @@ pub struct PermissionRules {
     rules: Vec<PermissionRule>,
     home_dir: Option<PathBuf>,
     project_dir: Option<PathBuf>,
+    /// The matchers of the `Read` and `Edit` rules, built once from `rules`.
+    file_matchers: Vec<FileMatcher>,
+}
+
+/// The `Read` or `Edit` rules of one decision anchored at one place, as one gitignore
+/// matcher.
+#[derive(Clone, Debug)]
+struct FileMatcher {
+    tool: &'static str,
+    decision: PermissionDecision,
+    /// Where the patterns are anchored; `None` for the working directory of the call.
+    root: Option<PathBuf>,
+    matcher: Gitignore,
+    /// Each line of the matcher, with the index of the rule it was made from.
+    lines: Vec<(String, usize)>,
 }
 
 impl PermissionRules {
@@ -205,11 +223,14 @@ impl PermissionRules {
                 }
             }
         }
-        Self {
+        let mut this = Self {
             rules,
             home_dir: home_dir.map(Path::to_path_buf),
             project_dir: project_dir.map(Path::to_path_buf),
-        }
+            file_matchers: Vec::new(),
+        };
+        this.file_matchers = this.build_file_matchers(/*warn*/ true);
+        this
     }
 
     pub fn is_empty(&self) -> bool {
@@ -227,6 +248,8 @@ impl PermissionRules {
         self.rules.retain(|rule| {
             rule.decision != PermissionDecision::Allow || rule.source == RuleSource::User
         });
+        // What was wrong with the rules left was said when they were first built.
+        self.file_matchers = self.build_file_matchers(/*warn*/ false);
         self
     }
 
@@ -368,12 +391,57 @@ impl PermissionRules {
         if let RuleVerdict::Allow { rule } = self.edit(paths, cwd) {
             return RuleVerdict::Allow { rule };
         }
-        match self.file_rule(FILE_READ_TOOL, PermissionDecision::Allow, path, cwd) {
+        match self.allow_rule_for_all(FILE_READ_TOOL, paths, cwd) {
             Some(rule) => RuleVerdict::Allow {
                 rule: rule.text.clone(),
             },
             None => RuleVerdict::NoMatch,
         }
+    }
+
+    /// The patterns of the `Read` deny rules as ripgrep globs for a search of `search_dir`,
+    /// relative to it (`getFileReadIgnorePatterns`, `normalizePatternsToPath`), so that
+    /// `Grep` and `Glob` leave out the files those rules cover, as in Claude Code. A glob
+    /// that starts with `/` is anchored at `search_dir`; one that starts with `**/`
+    /// matches at any depth. Patterns that cannot reach into `search_dir`, and negations,
+    /// are left out. Relative patterns are under `cwd`.
+    pub fn read_deny_globs(&self, search_dir: &Path, cwd: &Path) -> Vec<String> {
+        let search_dir = normalize_path(search_dir);
+        let cwd = normalize_path(cwd);
+        let mut globs = Vec::new();
+        for matcher in self.file_matchers.iter().filter(|matcher| {
+            matcher.tool == FILE_READ_TOOL && matcher.decision == PermissionDecision::Deny
+        }) {
+            let root = matcher.root.as_deref().unwrap_or(&cwd);
+            for (line, _) in &matcher.lines {
+                if line.starts_with('!') {
+                    continue;
+                }
+                if let Some(glob) = search_glob(root, line, &search_dir)
+                    && !globs.contains(&glob)
+                {
+                    globs.push(glob);
+                }
+            }
+        }
+        globs
+    }
+
+    /// The `tool` allow rule of the first of `paths`, when every one of them has one: a
+    /// path reached through a symbolic link is allowed only when the link and what it
+    /// leads to both are.
+    fn allow_rule_for_all(
+        &self,
+        tool: &str,
+        paths: &[PathBuf],
+        cwd: &Path,
+    ) -> Option<&PermissionRule> {
+        let mut first = None;
+        for path in paths {
+            let rule = self.file_rule(tool, PermissionDecision::Allow, path, cwd)?;
+            first.get_or_insert(rule);
+        }
+        first
     }
 
     fn edit(&self, paths: &[PathBuf], cwd: &Path) -> RuleVerdict {
@@ -401,7 +469,7 @@ impl PermissionRules {
         if paths.iter().any(|path| is_dangerous_to_edit(path)) {
             return RuleVerdict::NoMatch;
         }
-        match self.file_rule(FILE_EDIT_TOOL, PermissionDecision::Allow, path, cwd) {
+        match self.allow_rule_for_all(FILE_EDIT_TOOL, paths, cwd) {
             Some(rule) => RuleVerdict::Allow {
                 rule: rule.text.clone(),
             },
@@ -419,14 +487,37 @@ impl PermissionRules {
         else {
             return RuleVerdict::NoMatch;
         };
+        let host = normalize_host(&host);
         let content = format!("domain:{host}");
-        if let Some(rule) = self.exact_content(WEB_FETCH_TOOL, PermissionDecision::Deny, &content) {
+        // The rule's host and the URL's are compared without regard to case or to one
+        // trailing dot (`evil.com.` is `evil.com`); later rules win, as in `exact_content`.
+        let rule_for = |decision| {
+            self.with_content(WEB_FETCH_TOOL, decision)
+                .filter(|rule| {
+                    rule.content
+                        .as_deref()
+                        .and_then(|rule_content| rule_content.strip_prefix("domain:"))
+                        .is_some_and(|rule_host| normalize_host(rule_host) == host)
+                })
+                .last()
+        };
+        if let Some(rule) = rule_for(PermissionDecision::Deny) {
             return RuleVerdict::Deny {
                 rule: rule.text.clone(),
                 message: format!("{tool} denied access to {content}."),
             };
         }
-        self.content(tool, WEB_FETCH_TOOL, &content)
+        if let Some(rule) = rule_for(PermissionDecision::Ask) {
+            return RuleVerdict::Ask {
+                rule: rule.text.clone(),
+            };
+        }
+        match rule_for(PermissionDecision::Allow) {
+            Some(rule) => RuleVerdict::Allow {
+                rule: rule.text.clone(),
+            },
+            None => RuleVerdict::NoMatch,
+        }
     }
 
     fn content(&self, tool: &str, tool_name: &str, content: &str) -> RuleVerdict {
@@ -474,6 +565,100 @@ impl PermissionRules {
         Some((relative.to_string(), None))
     }
 
+    /// The gitignore matchers of the `Read` and `Edit` rules, one for each tool, decision
+    /// and place the patterns are anchored at. A pattern that is no usable glob guards the
+    /// path it spells in a deny or ask rule, and allows nothing in an allow rule, as in
+    /// Claude Code; with `warn`, each such rule is logged.
+    fn build_file_matchers(&self, warn: bool) -> Vec<FileMatcher> {
+        let mut matchers = Vec::new();
+        for tool in [FILE_READ_TOOL, FILE_EDIT_TOOL] {
+            for decision in [
+                PermissionDecision::Deny,
+                PermissionDecision::Ask,
+                PermissionDecision::Allow,
+            ] {
+                // Patterns by the place they are anchored at, each pattern once (the last
+                // rule with it), in the order Claude Code builds its maps.
+                let mut roots: Vec<PatternsByRoot> = Vec::new();
+                for (index, rule) in self.rules.iter().enumerate() {
+                    if rule.decision != decision || rule.tool != tool {
+                        continue;
+                    }
+                    let Some(content) = rule.content.as_deref() else {
+                        continue;
+                    };
+                    let Some((pattern, root)) = self.pattern_root(content, rule.source) else {
+                        continue;
+                    };
+                    let position = match roots.iter().position(|(seen, _)| *seen == root) {
+                        Some(position) => position,
+                        None => {
+                            roots.push((root, Vec::new()));
+                            roots.len() - 1
+                        }
+                    };
+                    let patterns = &mut roots[position].1;
+                    match patterns.iter_mut().find(|(seen, _)| *seen == pattern) {
+                        Some(entry) => entry.1 = index,
+                        None => patterns.push((pattern, index)),
+                    }
+                }
+                for (root, patterns) in roots {
+                    let root = root.as_deref().map(normalize_path);
+                    // Paths are matched relative to the root, so the matcher's own root only
+                    // has to be one that no relative path starts with.
+                    let mut builder =
+                        GitignoreBuilder::new(root.as_deref().unwrap_or(Path::new("/")));
+                    // Claude Code's `ignore` library compares case-insensitively.
+                    if builder.case_insensitive(true).is_err() {
+                        continue;
+                    }
+                    let mut lines = Vec::new();
+                    for (pattern, index) in patterns {
+                        let line = gitignore_line(&pattern, decision);
+                        let error = match builder.add_line(None, &line) {
+                            Ok(_) => {
+                                lines.push((line, index));
+                                continue;
+                            }
+                            Err(error) => error,
+                        };
+                        let rule = self.rules.get(index).map_or("", |rule| rule.text.as_str());
+                        if decision == PermissionDecision::Allow {
+                            if warn {
+                                tracing::warn!(
+                                    "Claude Code permission rule `{rule}` allows nothing: {error}"
+                                );
+                            }
+                            continue;
+                        }
+                        if warn {
+                            tracing::warn!(
+                                "Claude Code permission rule `{rule}` guards only the path it \
+                                 spells: {error}"
+                            );
+                        }
+                        let literal = escape_glob(&line);
+                        if builder.add_line(None, &literal).is_ok() {
+                            lines.push((literal, index));
+                        }
+                    }
+                    let Ok(matcher) = builder.build() else {
+                        continue;
+                    };
+                    matchers.push(FileMatcher {
+                        tool,
+                        decision,
+                        root,
+                        matcher,
+                        lines,
+                    });
+                }
+            }
+        }
+        matchers
+    }
+
     /// The `tool` rule (`Read` or `Edit`) of `decision` whose pattern matches `path`
     /// (`matchingRuleForInput`).
     fn file_rule(
@@ -483,64 +668,31 @@ impl PermissionRules {
         path: &Path,
         cwd: &Path,
     ) -> Option<&PermissionRule> {
-        // Patterns by the place they are anchored at, each pattern once (the last rule
-        // with it), in the order Claude Code builds its maps.
-        let mut roots: Vec<RulesByRoot<'_>> = Vec::new();
-        for rule in self.with_content(tool, decision) {
-            let content = rule.content.as_deref().unwrap_or_default();
-            let Some((pattern, root)) = self.pattern_root(content, rule.source) else {
-                continue;
-            };
-            let index = match roots.iter().position(|(seen, _)| *seen == root) {
-                Some(index) => index,
-                None => {
-                    roots.push((root, Vec::new()));
-                    roots.len() - 1
-                }
-            };
-            let patterns = &mut roots[index].1;
-            match patterns.iter_mut().find(|(seen, _)| *seen == pattern) {
-                Some(entry) => entry.1 = rule,
-                None => patterns.push((pattern, rule)),
-            }
-        }
-
         let path = normalize_path(path);
-        for (root, patterns) in &roots {
-            let root = normalize_path(root.as_deref().unwrap_or(cwd));
-            let Ok(relative) = path.strip_prefix(&root) else {
+        let cwd = normalize_path(cwd);
+        for matcher in self
+            .file_matchers
+            .iter()
+            .filter(|matcher| matcher.tool == tool && matcher.decision == decision)
+        {
+            let root = matcher.root.as_deref().unwrap_or(&cwd);
+            let Ok(relative) = path.strip_prefix(root) else {
                 continue;
             };
             if relative.as_os_str().is_empty() {
                 continue;
             }
-            let mut builder = GitignoreBuilder::new(&root);
-            // Claude Code's `ignore` library compares case-insensitively.
-            if builder.case_insensitive(true).is_err() {
-                continue;
-            }
-            for (pattern, _) in patterns {
-                // `dir/**` is `dir`: the directory and everything in it.
-                let pattern = pattern.strip_suffix("/**").unwrap_or(pattern);
-                let _ = builder.add_line(None, pattern);
-            }
-            let Ok(matcher) = builder.build() else {
-                continue;
-            };
-            if let Match::Ignore(glob) =
-                matcher.matched_path_or_any_parents(relative, /*is_dir*/ false)
+            if let Match::Ignore(glob) = matcher
+                .matcher
+                .matched_path_or_any_parents(relative, /*is_dir*/ false)
             {
                 let original = glob.original();
-                let with_wildcard = format!("{original}/**");
-                return patterns
+                return matcher
+                    .lines
                     .iter()
-                    .find(|(pattern, _)| *pattern == with_wildcard)
-                    .or_else(|| {
-                        patterns
-                            .iter()
-                            .find(|(pattern, _)| pattern.as_str() == original)
-                    })
-                    .map(|(_, rule)| *rule);
+                    // The matcher keeps a line without its trailing spaces.
+                    .find(|(line, _)| line == original || line.trim_end() == original)
+                    .and_then(|(_, index)| self.rules.get(*index));
             }
         }
         None
@@ -629,8 +781,151 @@ fn tool_matches(rule: &PermissionRule, tool: &str) -> bool {
     }
 }
 
+/// Whether `pattern`, the content of a `Read(...)`, `Edit(...)` or `Write(...)` rule as a
+/// hook's `if` writes it, covers `path` (relative paths are under `cwd`). It is matched as
+/// an allow rule of the project's settings is: gitignore patterns without regard to case,
+/// `//path` absolute, `~/path` in `home_dir`, `/path` and anything else under `cwd`, and a
+/// single directory (`src/**`) only at the top. A pattern that is no usable glob covers
+/// every path, so that a guard does not silently stop firing.
+pub(crate) fn file_pattern_matches(
+    pattern: &str,
+    path: &Path,
+    cwd: &Path,
+    home_dir: Option<&Path>,
+) -> bool {
+    let anchors = PermissionRules {
+        home_dir: home_dir.map(Path::to_path_buf),
+        project_dir: Some(cwd.to_path_buf()),
+        ..PermissionRules::default()
+    };
+    let Some((pattern, root)) = anchors.pattern_root(pattern, RuleSource::Project) else {
+        return false;
+    };
+    let root = normalize_path(root.as_deref().unwrap_or(cwd));
+    let path = normalize_path(&cwd.join(path));
+    let Ok(relative) = path.strip_prefix(&root) else {
+        return false;
+    };
+    if relative.as_os_str().is_empty() {
+        return false;
+    }
+    let mut builder = GitignoreBuilder::new(&root);
+    if builder.case_insensitive(true).is_err() {
+        return true;
+    }
+    let line = gitignore_line(&pattern, PermissionDecision::Allow);
+    if builder.add_line(None, &line).is_err() {
+        return true;
+    }
+    let Ok(matcher) = builder.build() else {
+        return true;
+    };
+    matcher
+        .matched_path_or_any_parents(relative, /*is_dir*/ false)
+        .is_ignore()
+}
+
+/// The gitignore line for a file pattern of a rule of `decision`, the pattern relative to
+/// its anchor. `dir/**` is `dir`, the directory and everything in it; in an allow rule a
+/// single directory (`src/**`) is anchored, so that it covers `<anchor>/src` only, while
+/// a deny or ask rule covers a directory of that name at any depth, as in Claude Code.
+/// Nothing left (`/**`, `~/**`, `//**`) is everything under the anchor.
+fn gitignore_line(pattern: &str, decision: PermissionDecision) -> String {
+    let Some(directory) = pattern.strip_suffix("/**") else {
+        return pattern.to_string();
+    };
+    if directory.is_empty() {
+        return "**".to_string();
+    }
+    if decision == PermissionDecision::Allow && !directory.contains('/') {
+        return format!("/{directory}");
+    }
+    directory.to_string()
+}
+
+/// The gitignore `line` of a pattern anchored at `root` as a ripgrep glob relative to
+/// `search_dir`: `/<path>` from `search_dir`, or `**/<name>` at any depth; `None` when
+/// the pattern names nothing in `search_dir`. A directory of `search_dir` that a
+/// wildcard of the pattern stands for is taken as matching it.
+fn search_glob(root: &Path, line: &str, search_dir: &Path) -> Option<String> {
+    let body = line.strip_prefix('/').unwrap_or(line);
+    // As in gitignore, a line with a slash only at its end matches at any depth.
+    let anchored = line.starts_with('/') || line.trim_end_matches('/').contains('/');
+    if let Ok(rest) = root.strip_prefix(search_dir) {
+        // The pattern's root is `search_dir` or a directory in it.
+        let prefix = slash_path(rest);
+        return Some(match (anchored, prefix.is_empty()) {
+            (false, true) => format!("**/{body}"),
+            (false, false) => format!("/{prefix}/**/{body}"),
+            (true, true) => format!("/{body}"),
+            (true, false) => format!("/{prefix}/{body}"),
+        });
+    }
+    // `search_dir` is inside the pattern's root: the directories between them have to be
+    // the pattern's first components.
+    let rest = search_dir.strip_prefix(root).ok()?;
+    if !anchored {
+        return Some(format!("**/{body}"));
+    }
+    let components = body.split('/').collect::<Vec<_>>();
+    let mut index = 0;
+    for directory in rest.components() {
+        let directory = directory.as_os_str().to_string_lossy();
+        match components.get(index) {
+            // The pattern covers a directory `search_dir` is in: all of it.
+            None => return Some("**".to_string()),
+            Some(&"**") => break,
+            Some(component) if is_literal(component) => {
+                if !component.eq_ignore_ascii_case(&directory) {
+                    return None;
+                }
+                index += 1;
+            }
+            Some(_) => index += 1,
+        }
+    }
+    let remaining = components[index..].join("/");
+    Some(if remaining.is_empty() {
+        "**".to_string()
+    } else {
+        format!("/{remaining}")
+    })
+}
+
+/// Whether a component of a glob has no wildcard in it.
+fn is_literal(component: &str) -> bool {
+    !component.contains(['*', '?', '[', '{', '\\'])
+}
+
+/// The components of a relative path joined with `/`.
+fn slash_path(path: &Path) -> String {
+    path.components()
+        .map(|component| component.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// `line` with every character a glob gives a meaning to escaped, so that it matches the
+/// path it spells; `/` keeps its meaning in gitignore.
+fn escape_glob(line: &str) -> String {
+    let mut escaped = String::with_capacity(line.len());
+    for c in line.chars() {
+        if matches!(c, '\\' | '*' | '?' | '[' | ']' | '{' | '}') {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
+}
+
+/// A host name as `WebFetch(domain:...)` rules compare it: in lower case, without one
+/// trailing dot.
+fn normalize_host(host: &str) -> String {
+    host.strip_suffix('.').unwrap_or(host).to_ascii_lowercase()
+}
+
 /// The path with `.` and `..` resolved, without touching the filesystem.
-fn normalize_path(path: &Path) -> PathBuf {
+pub(crate) fn normalize_path(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
     for component in path.components() {
         match component {

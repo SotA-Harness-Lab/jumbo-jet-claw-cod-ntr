@@ -4,8 +4,12 @@
 //! Claude Code's `Read` tool: description, line selection and numbering, PDF page ranges,
 //! messages.
 
+use serde_json::Value;
+
 use super::BASH;
+use super::READ;
 use super::format_file_size;
+use super::input::Input;
 
 /// Without `limit`, a file larger than this is refused (Claude Code's default).
 pub const MAX_SIZE_BYTES: u64 = 256 * 1024;
@@ -37,7 +41,9 @@ pub fn pages_param_description() -> String {
 const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp"];
 
 /// Extensions Claude Code refuses to read as text (its `BINARY_EXTENSIONS`, less `pdf`, which
-/// is rendered). Images are read as images.
+/// is rendered, with the formats newer versions refuse too: macro-enabled Office files,
+/// columnar and array data, e-books, HEIC and other images it does not show, model weights).
+/// Images are read as images.
 const BINARY_EXTENSIONS: &[&str] = &[
     "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "tiff", "tif", "mp4", "mov", "avi", "mkv",
     "webm", "wmv", "flv", "m4v", "mpeg", "mpg", "mp3", "wav", "ogg", "flac", "aac", "m4a", "wma",
@@ -46,8 +52,38 @@ const BINARY_EXTENSIONS: &[&str] = &[
     "xlsx", "ppt", "pptx", "odt", "ods", "odp", "ttf", "otf", "woff", "woff2", "eot", "pyc", "pyo",
     "class", "jar", "war", "ear", "node", "wasm", "rlib", "sqlite", "sqlite3", "db", "mdb", "idx",
     "psd", "ai", "eps", "sketch", "fig", "xd", "blend", "3ds", "max", "swf", "fla", "lockb", "dat",
-    "data",
+    "data", "xlsm", "xlsb", "xltm", "docm", "pptm", "parquet", "avro", "orc", "feather", "arrow",
+    "npy", "npz", "pkl", "pickle", "h5", "hdf5", "epub", "mobi", "azw3", "heic", "heif", "avif",
+    "jxl", "dmg", "apk", "ipa", "onnx", "gguf", "ckpt", "pt", "pth",
 ];
+
+/// A `Read` call's input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadInput {
+    pub file_path: String,
+    pub offset: Option<usize>,
+    pub limit: Option<usize>,
+    pub pages: Option<String>,
+}
+
+impl ReadInput {
+    /// Reads the model's arguments: numbers may come as strings (`"120"`, `" +5 "`), and
+    /// `path` stands for `file_path`; `Err` is Claude Code's input validation message.
+    pub fn parse(arguments: Value) -> Result<Self, String> {
+        let mut input = Input::ignoring_unknown(READ, arguments, &[("path", "file_path")]);
+        let file_path = input.required_string("file_path");
+        let offset = input.count("offset");
+        let limit = input.count("limit");
+        let pages = input.string("pages");
+        input.finish()?;
+        Ok(Self {
+            file_path,
+            offset,
+            limit,
+            pages,
+        })
+    }
+}
 
 /// The tool description, after Claude Code's. `images` says whether image files are shown
 /// to the model.
@@ -99,10 +135,11 @@ pub fn is_notebook(path: &str) -> bool {
 }
 
 /// The pages a `pages` value selects, first and last (1-based, inclusive; no last page for
-/// `"N-"`), as Claude Code parses it; `None` when it is not a page range.
+/// `"N-"`), as Claude Code parses it; `None` when it is not one page range, such as a list
+/// (`"6,9,15"`) or a number followed by other text.
 pub fn parse_page_range(pages: &str) -> Option<(u32, Option<u32>)> {
     let trimmed = pages.trim();
-    let number = |text: &str| leading_integer(text).filter(|page| *page >= 1);
+    let number = |text: &str| page_number(text).filter(|page| *page >= 1);
     if let Some(first) = trimmed.strip_suffix('-') {
         return Some((number(first)?, None));
     }
@@ -115,19 +152,26 @@ pub fn parse_page_range(pages: &str) -> Option<(u32, Option<u32>)> {
     }
 }
 
-/// The integer at the start of `text`, as JavaScript's `parseInt` reads it.
-fn leading_integer(text: &str) -> Option<u32> {
-    let text = text.trim_start();
-    let digits: String = text.chars().take_while(char::is_ascii_digit).collect();
-    digits.parse().ok()
+/// `text` as a page number: digits only, with spaces around them.
+fn page_number(text: &str) -> Option<u32> {
+    let text = text.trim();
+    if text.is_empty() || !text.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    text.parse().ok()
 }
 
 /// Checks `pages` as Claude Code does before reading: a page range of at most
 /// [`PDF_MAX_PAGES_PER_READ`] pages (an open range counts as more).
 pub fn validate_pages(pages: &str) -> Result<(u32, Option<u32>), String> {
     let Some((first, last)) = parse_page_range(pages) else {
+        let several = if pages.contains(',') {
+            " To read several pages or ranges, read each one in a call of its own."
+        } else {
+            ""
+        };
         return Err(format!(
-            "Invalid pages parameter: \"{pages}\". Use formats like \"1-5\", \"3\", or \"10-20\". Pages are 1-indexed."
+            "Invalid pages parameter: \"{pages}\". Use formats like \"1-5\", \"3\", or \"10-20\". Pages are 1-indexed.{several}"
         ));
     };
     let count = last.map_or(PDF_MAX_PAGES_PER_READ + 1, |last| last - first + 1);
@@ -224,8 +268,9 @@ pub struct TextSlice {
 }
 
 /// Selects lines as Claude Code does: the byte order mark is dropped, lines end at `\n`
-/// (a `\r` before it is dropped), the text after the last `\n` is a line too, `offset` is
-/// 1-based (0 reads from the start) and `limit` counts lines.
+/// (a `\r` before it is dropped), text after the last `\n` is a line too while a `\n` that
+/// ends the file starts no line of its own, `offset` is 1-based (0 reads from the start) and
+/// `limit` counts lines.
 pub fn slice_text(text: &str, offset: Option<usize>, limit: Option<usize>) -> TextSlice {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let offset = offset.unwrap_or(1);
@@ -241,6 +286,7 @@ pub fn slice_text(text: &str, offset: Option<usize>, limit: Option<usize>) -> Te
     }
     let mut selected = Vec::new();
     let mut total_lines = 0;
+    let text = text.strip_suffix('\n').unwrap_or(text);
     for (index, line) in text.split('\n').enumerate() {
         total_lines = index + 1;
         if index >= first && index < end {
@@ -252,6 +298,134 @@ pub fn slice_text(text: &str, offset: Option<usize>, limit: Option<usize>) -> Te
         start_line: offset.max(1),
         num_lines: selected.len(),
         total_lines,
+    }
+}
+
+/// [`slice_text`] over a file read in chunks, as Claude Code streams a ranged read of a
+/// large file: only the selected lines are kept, the others are counted. Each line is decoded
+/// as UTF-8 on its own, with a replacement character for what is not.
+#[derive(Debug)]
+pub struct LineSlicer {
+    start_line: usize,
+    first: usize,
+    end: usize,
+    /// Index of the line being read.
+    index: usize,
+    /// The bytes of the line being read so far, when it is selected.
+    line: Vec<u8>,
+    /// Whether the line being read has any byte yet.
+    line_started: bool,
+    selected: Vec<String>,
+    /// Bytes of the selected lines, with the line breaks that join them.
+    selected_bytes: usize,
+    /// Bytes of a byte order mark matched at the start of the file, while it may be one.
+    bom: Option<usize>,
+}
+
+const UTF8_BOM: &[u8] = b"\xef\xbb\xbf";
+
+impl LineSlicer {
+    pub fn new(offset: Option<usize>, limit: Option<usize>) -> Self {
+        let offset = offset.unwrap_or(1);
+        let first = offset.saturating_sub(1);
+        Self {
+            start_line: offset.max(1),
+            first,
+            end: limit.map_or(usize::MAX, |limit| first.saturating_add(limit)),
+            index: 0,
+            line: Vec::new(),
+            line_started: false,
+            selected: Vec::new(),
+            selected_bytes: 0,
+            bom: Some(0),
+        }
+    }
+
+    fn selecting(&self) -> bool {
+        self.index >= self.first && self.index < self.end
+    }
+
+    /// Takes the next chunk of the file.
+    pub fn push(&mut self, chunk: &[u8]) {
+        let mut chunk = chunk;
+        while let Some(matched) = self.bom {
+            if matched == UTF8_BOM.len() {
+                self.bom = None;
+                break;
+            }
+            let Some((&byte, rest)) = chunk.split_first() else {
+                return;
+            };
+            if byte == UTF8_BOM[matched] {
+                self.bom = Some(matched + 1);
+                chunk = rest;
+            } else {
+                self.bom = None;
+                self.feed(&UTF8_BOM[..matched]);
+            }
+        }
+        self.feed(chunk);
+    }
+
+    fn feed(&mut self, chunk: &[u8]) {
+        for (position, part) in chunk.split(|byte| *byte == b'\n').enumerate() {
+            if position > 0 {
+                self.end_line();
+            }
+            if !part.is_empty() {
+                self.line_started = true;
+                if self.selecting() {
+                    self.selected_bytes += part.len();
+                    if !self.too_long() {
+                        self.line.extend_from_slice(part);
+                    }
+                }
+            }
+        }
+    }
+
+    fn end_line(&mut self) {
+        if self.selecting() {
+            if !self.selected.is_empty() {
+                self.selected_bytes += 1;
+            }
+            let line = self
+                .line
+                .strip_suffix(b"\r")
+                .unwrap_or(self.line.as_slice());
+            self.selected
+                .push(String::from_utf8_lossy(line).into_owned());
+        }
+        self.line.clear();
+        self.line_started = false;
+        self.index += 1;
+    }
+
+    /// Whether the selected lines are already past what a read may return
+    /// ([`exceeds_token_limit`]), so that the rest of the file need not be read.
+    pub fn too_long(&self) -> bool {
+        self.selected_bytes > MAX_TOKENS * 4
+    }
+
+    /// The selected lines; `Err` with their size in bytes when they are too long to return.
+    pub fn finish(mut self) -> Result<TextSlice, usize> {
+        if let Some(matched) = self.bom.take()
+            && matched < UTF8_BOM.len()
+        {
+            self.feed(&UTF8_BOM[..matched]);
+        }
+        if self.line_started {
+            self.end_line();
+        }
+        if self.too_long() {
+            return Err(self.selected_bytes);
+        }
+        Ok(TextSlice {
+            num_lines: self.selected.len(),
+            content: self.selected.join("\n"),
+            start_line: self.start_line,
+            total_lines: self.index,
+        })
     }
 }
 
@@ -267,7 +441,7 @@ pub fn number_lines(content: &str, start_line: usize) -> String {
 
 /// The text the model receives for a read of a text file.
 pub fn render(slice: &TextSlice) -> String {
-    if !slice.content.is_empty() {
+    if slice.num_lines > 0 {
         return number_lines(&slice.content, slice.start_line);
     }
     if slice.total_lines == 0 {
@@ -308,6 +482,12 @@ pub fn too_large_message(size: u64) -> String {
 pub fn directory_message(file_path: &str) -> String {
     format!(
         "Cannot read '{file_path}': the specified path is an existing directory. Use {BASH} ls to list files in this directory, or specify a filename path to read a specific file."
+    )
+}
+
+pub fn not_a_regular_file_message(file_path: &str) -> String {
+    format!(
+        "Cannot read '{file_path}': it is not a regular file but a pipe, socket or device, which would block or produce infinite output."
     )
 }
 

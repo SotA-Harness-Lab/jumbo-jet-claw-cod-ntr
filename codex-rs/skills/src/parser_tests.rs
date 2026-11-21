@@ -176,6 +176,26 @@ fn takes_a_missing_description_from_the_body() {
 }
 
 #[test]
+fn reads_frontmatter_after_a_byte_order_mark() {
+    let parsed = parse_skill_frontmatter_metadata(
+        "\u{feff}---\nname: demo\ndescription: Demo\n---\nBody.\n",
+        || "fallback".to_string(),
+    )
+    .expect("the byte order mark should be skipped");
+    assert_eq!(
+        (parsed.name.as_str(), parsed.description.as_str()),
+        ("demo", "Demo")
+    );
+
+    let parsed =
+        parse_skill_frontmatter_metadata("\u{feff}---\nname: demo\n---\nFrom the body\n", || {
+            "fallback".to_string()
+        })
+        .expect("the body should supply the description");
+    assert_eq!(parsed.description, "From the body");
+}
+
+#[test]
 fn frontmatter_flag_hides_a_skill_unless_its_policy_says_otherwise() {
     use crate::model::SkillPolicy;
 

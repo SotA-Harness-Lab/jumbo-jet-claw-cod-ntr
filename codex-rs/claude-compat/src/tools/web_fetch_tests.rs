@@ -16,11 +16,14 @@ use super::MAX_MARKDOWN_LENGTH;
 use super::command_error_message;
 use super::description;
 use super::fetch_command;
+use super::fetch_command_to_file;
+use super::html_text;
 use super::is_permitted_redirect;
 use super::is_preapproved;
 use super::parse_fetch_output;
 use super::redirect_message;
 use super::returns_content_unprocessed;
+use super::secondary_model_answer;
 use super::secondary_model_prompt;
 use super::to_markdown;
 use super::truncate_markdown;
@@ -111,6 +114,21 @@ fn fetch_command_quotes_for_each_shell() {
 }
 
 #[test]
+fn fetch_command_can_write_the_body_to_a_file() {
+    let target = url("https://example.com/");
+    let posix = fetch_command_to_file(&target, CommandShell::Posix, "/tmp/ccn webfetch");
+    assert!(
+        posix.ends_with(" --output '/tmp/ccn webfetch' 'https://example.com/'"),
+        "{posix}"
+    );
+    let cmd = fetch_command_to_file(&target, CommandShell::Cmd, r"C:\Temp\body");
+    assert!(
+        cmd.ends_with(r#" --output "C:\Temp\body" "https://example.com/""#),
+        "{cmd}"
+    );
+}
+
+#[test]
 fn output_is_split_into_body_and_fields() {
     let output = "<p>hi</p>\n__CODEX_WEBFETCH__\t200\t9\t\ttext/html; charset=utf-8";
     assert_eq!(
@@ -160,6 +178,64 @@ fn html_becomes_markdown_and_other_content_is_kept() {
     );
     assert!(!markdown.contains("x()"), "{markdown}");
     assert_eq!(to_markdown("<b>raw</b>", "text/plain"), "<b>raw</b>");
+}
+
+#[test]
+fn row_headers_keep_their_column() {
+    let markdown = to_markdown(
+        "<table><thead><tr><th>Country</th><th>Population</th></tr></thead>\
+         <tbody><tr><TH scope=\"row\">France</TH><td>68M</td></tr>\
+         <tr><th>Chad</th><td></td></tr></tbody></table>",
+        "text/html",
+    );
+    assert_eq!(
+        markdown,
+        "| Country | Population |\n| ------- | ---------- |\n| France  | 68M        |\n| Chad    |            |"
+    );
+    // Without `<thead>` every row is a body row; the row headers stay in the first column.
+    let markdown = to_markdown(
+        "<table><tr><td></td><th>2025</th></tr><tr><th>Sales</th><td>9</td></tr></table>",
+        "text/html",
+    );
+    assert_eq!(markdown, "|       | 2025 |\n| Sales | 9    |");
+}
+
+#[test]
+fn deeply_nested_html_becomes_plain_text() {
+    let html = format!("{}<b>deep</b> &amp; done", "<div>".repeat(100_000));
+    assert_eq!(to_markdown(&html, "text/html"), "deep & done");
+
+    // End tags of elements that are not open close nothing.
+    let html = format!("{}<b>deep</b>", "<div></span>".repeat(2_000));
+    assert_eq!(to_markdown(&html, "text/html"), "deep");
+}
+
+#[test]
+fn nesting_the_parser_undoes_is_converted() {
+    // Paragraphs and list items without end tags, closed elements, `<br>` and the shapes
+    // inside an SVG do not nest.
+    let html = format!(
+        "{}{}{}<svg>{}</svg><b>bold</b>",
+        "<p>a".repeat(2_000),
+        "<ul><li>b</ul>".repeat(2_000),
+        "<span>c<br></span>".repeat(2_000),
+        "<path d=\"M0 0\"/>".repeat(2_000),
+    );
+    assert!(to_markdown(&html, "text/html").ends_with("**bold**"));
+
+    let html = format!("{}<b>bold</b>", "<div>".repeat(200));
+    assert_eq!(to_markdown(&html, "text/html"), "**bold**");
+}
+
+#[test]
+fn plain_text_of_html_keeps_blocks_and_skips_scripts() {
+    assert_eq!(
+        html_text(
+            "<!DOCTYPE html><title>T</title><script>if (a < b) x()</script><!-- <div> -->\
+             <div>a &lt; b&nbsp;&#x41;</div><p class=\"x>y\">c  d</p>1 < 2"
+        ),
+        "T\na < b A\nc d\n1 < 2"
+    );
 }
 
 #[test]
@@ -228,7 +304,45 @@ fn cache_expires_after_fifteen_minutes() {
 }
 
 #[test]
+fn expired_pages_are_dropped_without_a_fetch_of_their_own() {
+    let mut cache = FetchCache::default();
+    let start = Instant::now();
+    let page = FetchedContent {
+        bytes: 3,
+        code: 200,
+        code_text: "OK".to_string(),
+        content: "abc".to_string(),
+        content_type: "text/plain".to_string(),
+    };
+    cache.insert("http://a.com/".to_string(), page.clone(), start);
+    let later = start + Duration::from_secs(10 * 60);
+    cache.insert("http://b.com/".to_string(), page.clone(), later);
+
+    // A lookup of another page drops the expired one.
+    assert_eq!(cache.get("http://c.com/", start + CACHE_TTL), None);
+    assert_eq!(cache.entries.len(), 1);
+    assert_eq!(cache.size, 3);
+    assert_eq!(cache.get("http://b.com/", start + CACHE_TTL), Some(page));
+    cache.remove_expired(later + CACHE_TTL);
+    assert_eq!((cache.entries.len(), cache.size), (0, 0));
+}
+
+#[test]
 fn description_points_to_bash_only_when_offered() {
     assert!(description(&["Bash"]).contains("gh CLI via Bash"));
     assert!(!description(&[]).contains("gh CLI"));
+}
+
+#[test]
+fn an_empty_answer_fails_the_call() {
+    assert_eq!(
+        secondary_model_answer("The page says hi.".to_string()),
+        Ok("The page says hi.".to_string())
+    );
+    let error = secondary_model_answer(" \n".to_string()).unwrap_err();
+    assert!(
+        error.starts_with("The page could not be summarized"),
+        "{error}"
+    );
+    assert!(error.contains("curl through Bash"), "{error}");
 }

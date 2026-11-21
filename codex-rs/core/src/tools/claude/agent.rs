@@ -38,13 +38,14 @@ use super::check_permission;
 use super::failed;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::subagent_tools::list_entry;
 use super::subagent_tools::role_tool_list;
+use crate::agent::LocalAgentControl;
 use crate::agent::agent_resolver::resolve_agent_target;
 use crate::agent::role::DEFAULT_ROLE_NAME;
 use crate::agent::status::is_final;
 use crate::config::Config;
 use crate::function_tool::FunctionCallError;
-use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::tools::context::ToolCallSource;
 use crate::tools::context::ToolInvocation;
@@ -203,9 +204,35 @@ impl AgentHandler {
                 &self.agent_types,
             )));
         }
+        // As Claude Code does, an agent whose `tools` names none of the tools there are is
+        // not started.
+        if let Some(role) = role
+            && let Some(agent_type) = self
+                .agent_types
+                .iter()
+                .find(|agent_type| agent_type.name == role)
+        {
+            let available = invocation
+                .step_context
+                .tool_router
+                .registered_tool_names()
+                .map(|name| list_entry(&name))
+                .collect::<Vec<_>>();
+            if let Some(entries) = agent_type.tools.unresolved_entries(&available) {
+                return Err(failed(agent::zero_tools_message(role, &entries)));
+            }
+        }
 
+        let control = invocation
+            .session
+            .services
+            .local_agent_runtime
+            .control(invocation.session.session_id());
         let (agent_id, thread_id) = self.spawn(&invocation, &args, role).await?;
         if args.run_in_background {
+            if self.version == MultiAgentVersion::V1 {
+                close_when_finished(control, thread_id);
+            }
             return Ok(boxed_tool_output(ClaudeToolOutput::new(
                 agent::async_launched_text(&agent_id),
                 json!({
@@ -217,17 +244,15 @@ impl AgentHandler {
             )));
         }
 
-        let status = final_status(&invocation.session, thread_id).await;
-        if self.version == MultiAgentVersion::V1 {
-            // A finished V1 agent keeps its thread slot until it is closed; Claude Code's
-            // subagent ends with its answer.
-            let _ = invocation
-                .session
-                .services
-                .local_agent_runtime
-                .control(invocation.session.session_id())
-                .close_agent(thread_id)
-                .await;
+        // A finished V1 agent keeps its thread slot until it is closed; Claude Code's
+        // subagent ends with its answer, or when the call is interrupted.
+        let close = (self.version == MultiAgentVersion::V1).then(|| CloseOnDrop {
+            control: Some(control.clone()),
+            thread_id,
+        });
+        let status = final_status(&control, thread_id).await;
+        if let Some(close) = close {
+            close.close().await;
         }
         match status {
             AgentStatus::Completed(message) => {
@@ -312,11 +337,7 @@ impl AgentHandler {
 
 /// The agent's status once it is final, followed through Codex's status subscription as
 /// `wait_agent` follows it.
-async fn final_status(session: &Arc<Session>, thread_id: ThreadId) -> AgentStatus {
-    let control = session
-        .services
-        .local_agent_runtime
-        .control(session.session_id());
+async fn final_status(control: &LocalAgentControl, thread_id: ThreadId) -> AgentStatus {
     if let Ok(mut updates) = control.subscribe_status(thread_id).await {
         while let Some(Ok(snapshot)) = updates.next().await {
             if let Some(status) = snapshot.status()
@@ -328,3 +349,62 @@ async fn final_status(session: &Arc<Session>, thread_id: ThreadId) -> AgentStatu
     }
     control.get_status(thread_id).await
 }
+
+/// Closes a background V1 agent once it has finished, so that it gives back its thread slot
+/// as a foreground one does. Its result still reaches the conversation through Codex's
+/// completion notice, which has read the final status by then.
+fn close_when_finished(control: LocalAgentControl, thread_id: ThreadId) {
+    let Ok(membership) = control.runtime.admit_start() else {
+        return;
+    };
+    let teardown = membership.into_teardown_guard("claude_agent_close", Some(thread_id));
+    tokio::spawn(async move {
+        let status = tokio::select! {
+            biased;
+            _ = control.runtime.shutdown.cancelled() => None,
+            status = final_status(&control, thread_id) => Some(status),
+        };
+        if matches!(
+            status,
+            Some(AgentStatus::Completed(_) | AgentStatus::Errored(_))
+        ) {
+            // Closing turns the status into `Shutdown`; let the completion notice, woken by
+            // the same change, take the final status first.
+            tokio::task::yield_now().await;
+            let _ = control.close_agent(thread_id).await;
+        }
+        teardown.complete();
+    });
+}
+
+/// Closes a foreground V1 agent: awaited once its result is in, or, when the call is
+/// dropped before (an interrupted turn), started in the background.
+struct CloseOnDrop {
+    control: Option<LocalAgentControl>,
+    thread_id: ThreadId,
+}
+
+impl CloseOnDrop {
+    async fn close(mut self) {
+        if let Some(control) = self.control.take() {
+            let _ = control.close_agent(self.thread_id).await;
+        }
+    }
+}
+
+impl Drop for CloseOnDrop {
+    fn drop(&mut self) {
+        if let Some(control) = self.control.take()
+            && let Ok(runtime) = tokio::runtime::Handle::try_current()
+        {
+            let thread_id = self.thread_id;
+            runtime.spawn(async move {
+                let _ = control.close_agent(thread_id).await;
+            });
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "agent_tests.rs"]
+mod tests;

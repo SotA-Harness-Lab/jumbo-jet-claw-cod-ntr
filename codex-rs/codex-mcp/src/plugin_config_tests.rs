@@ -21,6 +21,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 
 fn plugin_root() -> PathBuf {
     std::env::current_dir()
@@ -991,5 +992,68 @@ fn local_environment_placement_rejects_remote_env_vars() {
                     .to_string(),
             }],
         }
+    );
+}
+
+#[test]
+fn claude_code_headers_become_http_headers() {
+    let outcome = parse_plugin_mcp_config(
+        &plugin_root(),
+        r#"{"mcpServers":{
+            "remote":{"type":"http","url":"https://example.com/mcp","headers":{"Authorization":"Bearer token"}},
+            "both":{"type":"http","url":"https://example.com/mcp","headers":{"X-Old":"a"},"http_headers":{"X-New":"b"}}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty());
+    let headers = |name: &str| {
+        let McpServerTransportConfig::StreamableHttp { http_headers, .. } =
+            &outcome.servers[name].transport
+        else {
+            panic!("expected HTTP transport");
+        };
+        http_headers.clone()
+    };
+    assert_eq!(
+        headers("remote"),
+        Some(HashMap::from([(
+            "Authorization".to_string(),
+            "Bearer token".to_string()
+        )]))
+    );
+    assert_eq!(
+        headers("both"),
+        Some(HashMap::from([("X-New".to_string(), "b".to_string())]))
+    );
+}
+
+#[test]
+fn claude_code_timeout_becomes_tool_timeout() {
+    let outcome = parse_plugin_mcp_config(
+        &plugin_root(),
+        r#"{"mcpServers":{
+            "long":{"type":"http","url":"https://example.com/mcp","timeout":1800000},
+            "local":{"command":"demo-mcp","timeout":1500},
+            "short":{"command":"demo-mcp","timeout":999},
+            "codex":{"command":"demo-mcp","timeout":60000,"tool_timeout_sec":5}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty());
+    let timeouts = outcome
+        .servers
+        .iter()
+        .map(|(name, server)| (name.as_str(), server.tool_timeout_sec))
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(
+        timeouts,
+        BTreeMap::from([
+            ("codex", Some(Duration::from_secs(5))),
+            ("local", Some(Duration::from_millis(1500))),
+            ("long", Some(Duration::from_secs(1800))),
+            ("short", None),
+        ])
     );
 }

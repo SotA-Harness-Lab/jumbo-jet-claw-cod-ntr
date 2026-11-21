@@ -18,6 +18,10 @@ use crate::source::FileSource;
 /// Bounds the walk through nested rule folders.
 const MAX_RULES_DEPTH: usize = 16;
 
+/// The most globs one pattern of `paths:` is expanded into. A pattern whose brace groups
+/// would give more is kept as written, and the glob matcher reads its groups itself.
+const MAX_BRACE_EXPANSIONS: usize = 1024;
+
 /// One rule file, ready to be shown to the model.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuleFile {
@@ -80,7 +84,9 @@ pub fn rule_globs(frontmatter: &str) -> Option<Vec<String>> {
     };
     let globs = raw
         .iter()
-        .flat_map(|pattern| expand_braces(pattern))
+        .flat_map(|pattern| {
+            expand_braces(pattern, MAX_BRACE_EXPANSIONS).unwrap_or_else(|| vec![pattern.clone()])
+        })
         .map(|pattern| {
             pattern
                 .strip_suffix("/**")
@@ -150,10 +156,11 @@ fn split_outside_braces(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// Expands `a/{b,c}/d` into `a/b/d` and `a/c/d`, nested groups included.
-fn expand_braces(pattern: &str) -> Vec<String> {
+/// Expands `a/{b,c}/d` into `a/b/d` and `a/c/d`, nested groups included. `None` when
+/// that would give more than `limit` patterns; the work stops as soon as it would.
+fn expand_braces(pattern: &str, limit: usize) -> Option<Vec<String>> {
     let Some(open) = pattern.find('{') else {
-        return vec![pattern.to_string()];
+        return Some(vec![pattern.to_string()]);
     };
     let mut depth = 0usize;
     let mut close = None;
@@ -171,7 +178,7 @@ fn expand_braces(pattern: &str) -> Vec<String> {
         }
     }
     let Some(close) = close else {
-        return vec![pattern.to_string()];
+        return Some(vec![pattern.to_string()]);
     };
     let (head, tail) = (&pattern[..open], &pattern[close + 1..]);
     let inner = &pattern[open + 1..close];
@@ -193,19 +200,30 @@ fn expand_braces(pattern: &str) -> Vec<String> {
     alternatives.push(current);
     if alternatives.len() < 2 {
         // `{x}` is not a group: leave it for the glob matcher.
-        return expand_braces(tail)
-            .into_iter()
-            .map(|rest| format!("{head}{{{inner}}}{rest}"))
-            .collect();
+        return Some(
+            expand_braces(tail, limit)?
+                .into_iter()
+                .map(|rest| format!("{head}{{{inner}}}{rest}"))
+                .collect(),
+        );
     }
-    alternatives
-        .iter()
-        .flat_map(|alternative| expand_braces(&format!("{head}{alternative}{tail}")))
-        .collect()
+    let mut expanded = Vec::new();
+    for alternative in alternatives {
+        let remaining = limit.checked_sub(expanded.len())?;
+        expanded.extend(expand_braces(
+            &format!("{head}{alternative}{tail}"),
+            remaining,
+        )?);
+        if expanded.len() > limit {
+            return None;
+        }
+    }
+    Some(expanded)
 }
 
 /// Whether `file` matches one of `globs`, read as gitignore patterns relative to `base`.
-/// A file outside `base` never matches.
+/// A file outside `base` never matches. A glob the matcher cannot read is skipped, and
+/// the others still apply.
 pub fn glob_matches(globs: &[String], base: &Path, file: &Path) -> bool {
     let Ok(relative) = file.strip_prefix(base) else {
         return false;
@@ -215,8 +233,8 @@ pub fn glob_matches(globs: &[String], base: &Path, file: &Path) -> bool {
     }
     let mut builder = GitignoreBuilder::new(base);
     for glob in globs {
-        if builder.add_line(None, glob).is_err() {
-            return false;
+        if let Err(err) = builder.add_line(None, glob) {
+            tracing::debug!("skipping the rule glob `{glob}`: {err}");
         }
     }
     let Ok(matcher) = builder.build() else {

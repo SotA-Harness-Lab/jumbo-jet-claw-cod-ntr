@@ -12,7 +12,7 @@
 //! A handler names a Claude model, or none, for which Claude Code takes its small, fast one.
 //! `[hooks.models]` of `ccn-config.toml` says which Codex model judges in the place of each;
 //! where it has no entry, the handler's `model` is ignored and the session's own model
-//! judges.
+//! judges, as it does when the model of the entry cannot be used.
 
 use std::sync::Arc;
 
@@ -55,22 +55,46 @@ const HOOK_JUDGE: &str = "hook_judge";
 /// starts, so this is the stricter count.
 const MAX_AGENT_HOOK_TOOL_CALLS: usize = 50;
 
-const PROMPT_INSTRUCTIONS: &str = "You are evaluating a hook. The user message describes a \
-condition and gives the hook's input. Decide from that message alone whether the condition \
-is met.
+/// How both kinds of hook read the hook's text: Claude Code's hooks are written either as a
+/// condition or as a rule, and a rule read as a condition lets through what it blocks.
+macro_rules! hook_text_kinds {
+    () => {
+        "The hook's text is either a condition that must hold, such as \"All unit tests pass\", \
+or a rule about what to block or allow, such as \"Block any Bash command that reads .env \
+files\". A condition is met when it holds. A rule is met when the input is not something the \
+rule blocks, and is something it allows where it names what to allow: when the input is what \
+a rule blocks, the rule is not met. On a hook that runs when the agent is about to stop, not \
+met means the agent has to keep working."
+    };
+}
+
+const PROMPT_INSTRUCTIONS: &str = concat!(
+    "You are evaluating a hook. The user message gives the hook's text and the hook's \
+input. Decide from that message alone whether the hook's text is met.
+
+",
+    hook_text_kinds!(),
+    "
 
 Your answer must be a JSON object matching one of the following:
-1. If the condition is met: {\"ok\": true, \"reason\": null}
-2. If the condition is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}";
+1. If it is met: {\"ok\": true, \"reason\": null}
+2. If it is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}"
+);
 
-const AGENT_INSTRUCTIONS: &str = "You are verifying a stop condition for a coding agent. The \
-user message describes the condition and gives the hook's input, which names the transcript \
-of the session and the working directory. Use the tools you have to inspect the codebase and \
-check whether the condition holds. Only read: change nothing. Use as few steps as possible.
+const AGENT_INSTRUCTIONS: &str = concat!(
+    "You are verifying a hook for a coding agent. The user message gives the hook's text \
+and the hook's input, which names the transcript of the session and the working directory. \
+Use the tools you have to inspect the codebase and check whether the hook's text is met. Only \
+read: change nothing. Use as few steps as possible.
+
+",
+    hook_text_kinds!(),
+    "
 
 When you are done, your final answer must be a JSON object matching one of the following:
-1. If the condition is met: {\"ok\": true, \"reason\": null}
-2. If the condition is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}";
+1. If it is met: {\"ok\": true, \"reason\": null}
+2. If it is not met: {\"ok\": false, \"reason\": \"Reason for why it is not met\"}"
+);
 
 /// Cancels the child session when the hook that waits for it gives up.
 struct CancelOnDrop(CancellationToken);
@@ -111,10 +135,51 @@ pub(crate) async fn judge(
         .mod_config
         .hooks
         .model_for(request.model.as_deref());
+    let answer = judge_with(session, turn, &request, model).await;
+    // A model of `[hooks.models]` that cannot be used (a misspelt name, one the account
+    // lacks) must not turn the guard off: as in Claude Code, the session's own model judges.
+    match (answer, model) {
+        (Err(err), Some(mapped))
+            if falls_back_to_session_model(&err, mapped, &turn.model_info().slug) =>
+        {
+            tracing::warn!(
+                "the {mapped} model of [hooks.models] failed to judge a hook ({err:#}); \
+                 the session's model judges it instead"
+            );
+            judge_with(session, turn, &request, /*model*/ None).await
+        }
+        (answer, _) => answer,
+    }
+}
+
+/// Whether `err`, from judging with the model `mapped` of `[hooks.models]`, is the model's
+/// failure, which the session's model `session_model` may judge in its place.
+fn falls_back_to_session_model(err: &anyhow::Error, mapped: &str, session_model: &str) -> bool {
+    err.downcast_ref::<ModelFailed>().is_some() && mapped != session_model
+}
+
+/// The model could not be used: the hook's session would not start with it, its request failed,
+/// or it gave no answer. Such a failure of a model of `[hooks.models]` is tried again with the
+/// session's model.
+#[derive(Debug)]
+struct ModelFailed(&'static str);
+
+impl std::fmt::Display for ModelFailed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0)
+    }
+}
+
+async fn judge_with(
+    session: &Arc<Session>,
+    turn: &Arc<TurnContext>,
+    request: &HookJudgeRequest,
+    model: Option<&str>,
+) -> anyhow::Result<String> {
     if request.agentic {
-        judge_with_tools(session, turn, request.prompt, model).await
+        judge_with_tools(session, turn, request.prompt.clone(), model).await
     } else {
-        judge_once(session, turn, request.prompt, model).await
+        judge_once(session, turn, request.prompt.clone(), model).await
     }
 }
 
@@ -174,10 +239,10 @@ async fn judge_once(
             &InferenceTraceContext::disabled(),
         )
         .await
-        .context("the request to the model failed")?;
+        .context(ModelFailed("the request to the model failed"))?;
     let mut text = String::new();
     while let Some(event) = stream.next().await {
-        match event.context("the model's answer was cut short")? {
+        match event.context(ModelFailed("the model's answer was cut short"))? {
             ResponseEvent::OutputTextDelta(delta) => text.push_str(&delta),
             ResponseEvent::OutputItemDone(ResponseItem::Message { role, content, .. })
                 if text.is_empty() && role == "assistant" =>
@@ -191,7 +256,7 @@ async fn judge_once(
         }
     }
     if text.trim().is_empty() {
-        bail!("the model gave no answer");
+        return Err(anyhow::Error::msg(ModelFailed("the model gave no answer")));
     }
     Ok(text)
 }
@@ -234,7 +299,7 @@ async fn judge_with_tools(
         /*initial_history*/ None,
     )
     .await
-    .context("failed to start the hook's session")?;
+    .context(ModelFailed("failed to start the hook's session"))?;
 
     let mut tool_calls = 0usize;
     while let Ok(event) = io.rx_event.recv().await {
@@ -242,7 +307,7 @@ async fn judge_with_tools(
             EventMsg::TurnComplete(turn_complete) => {
                 return turn_complete
                     .last_agent_message
-                    .context("the model gave no answer");
+                    .context(ModelFailed("the model gave no answer"));
             }
             EventMsg::TurnAborted(_) => bail!("the hook's session was interrupted"),
             // Each step of the verifier shows as the tool calls it starts. Leaving here
@@ -269,3 +334,7 @@ async fn judge_with_tools(
     }
     bail!("the hook's session ended without an answer")
 }
+
+#[cfg(test)]
+#[path = "hook_judge_tests.rs"]
+mod tests;

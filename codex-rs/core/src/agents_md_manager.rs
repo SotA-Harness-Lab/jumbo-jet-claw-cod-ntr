@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: reload the repository instructions after a compaction
+
 //! Resolves global, thread, and repository instructions into one validated snapshot.
 //! Refreshes are serialized; the state lock is never held while calling providers.
 //! Isolated reviewers can pin a captured repository snapshot without executor discovery.
@@ -160,6 +165,13 @@ impl AgentsMdManager {
         (result, warnings)
     }
 
+    /// Drops the cached repository instructions, so that the next refresh reads them from
+    /// disk again. Claude Code does this after a compaction: a `CLAUDE.md` or `MEMORY.md`
+    /// edited during the session is then seen as it is now.
+    pub(crate) async fn forget_repository(&self) {
+        self.state.lock().await.cache = AgentsMdCache::default();
+    }
+
     pub(crate) async fn get_loaded(&self) -> Option<Arc<LoadedAgentsMd>> {
         self.state.lock().await.cache.loaded.clone()
     }
@@ -214,4 +226,28 @@ fn validate_thread_instruction_size(bytes: usize) -> CodexResult<()> {
 
 fn normalize_instructions(instructions: Option<Instructions>) -> Option<Instructions> {
     instructions.filter(|instructions| !instructions.text.trim().is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AgentsMdManager;
+    use super::SessionInstructions;
+    use crate::agents_md::LoadedAgentsMd;
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn forgetting_the_repository_drops_the_cached_instructions() {
+        let manager = AgentsMdManager::new(SessionInstructions::default());
+        {
+            let mut state = manager.state.lock().await;
+            state.cache.selections = Some(Vec::new());
+            state.cache.loaded = Some(Arc::new(LoadedAgentsMd::default()));
+        }
+        assert!(manager.get_loaded().await.is_some());
+
+        manager.forget_repository().await;
+
+        assert!(manager.get_loaded().await.is_none());
+        assert!(manager.state.lock().await.cache.selections.is_none());
+    }
 }

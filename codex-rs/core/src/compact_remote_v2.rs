@@ -262,7 +262,7 @@ async fn run_remote_compact_task_inner(
     let status = compaction_status_from_result(&result);
     let codex_error = result.as_ref().err();
     if result.is_ok() && !interrupted {
-        crate::claude_rules::forget_shown_files(sess);
+        crate::claude_rules::forget_shown_files(sess).await;
         let post_compact_outcome = run_post_compact_hooks(sess, turn_context, trigger).await;
         if let PostCompactHookOutcome::Stopped = post_compact_outcome {
             attempt

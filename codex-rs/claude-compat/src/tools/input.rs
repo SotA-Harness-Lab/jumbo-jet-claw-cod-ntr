@@ -40,6 +40,32 @@ impl<'a> Input<'a> {
         }
     }
 
+    /// Starts reading `value`, the input of `tool`, as a tool that has always taken any
+    /// parameter: unknown parameters and parameters set to `null` are left out, and each
+    /// `(alias, name)` of `aliases` gives `name` the alias's value when `name` itself is not
+    /// given, as Claude Code takes the names models sometimes send in place of its own.
+    pub fn ignoring_unknown(tool: &'a str, value: Value, aliases: &[(&str, &str)]) -> Self {
+        let mut input = Self::new(tool, Value::Object(Map::new()), &[]);
+        match value {
+            Value::Object(mut object) => {
+                object.retain(|_, value| !value.is_null());
+                for (alias, name) in aliases {
+                    if !object.contains_key(*name)
+                        && let Some(value) = object.remove(*alias)
+                    {
+                        object.insert((*name).to_string(), value);
+                    }
+                }
+                input.object = object;
+            }
+            other => input.issues.push(format!(
+                "The input is expected as `object` but provided as `{}`",
+                type_name(&other)
+            )),
+        }
+        input
+    }
+
     fn mismatch(&mut self, name: &str, expected: &str, value: &Value) {
         self.issues.push(format!(
             "The parameter `{name}` type is expected as `{expected}` but provided as `{}`",
@@ -91,12 +117,27 @@ impl<'a> Input<'a> {
         }
     }
 
+    /// A number, or a string that holds one (`"60000"`, `" +5 "`).
+    pub fn number(&mut self, name: &str) -> Option<f64> {
+        let value = self.object.get(name)?.clone();
+        let number = match &value {
+            Value::Number(number) => number.as_f64(),
+            Value::String(text) => text.trim().parse::<f64>().ok(),
+            _ => None,
+        }
+        .filter(|number| number.is_finite());
+        if number.is_none() {
+            self.mismatch(name, "number", &value);
+        }
+        number
+    }
+
     /// A boolean, or the string `"true"` or `"false"`.
     pub fn boolean(&mut self, name: &str) -> Option<bool> {
         match self.object.get(name)? {
             Value::Bool(value) => Some(*value),
-            Value::String(text) if text == "true" => Some(true),
-            Value::String(text) if text == "false" => Some(false),
+            Value::String(text) if text.trim() == "true" => Some(true),
+            Value::String(text) if text.trim() == "false" => Some(false),
             other => {
                 let other = other.clone();
                 self.mismatch(name, "boolean", &other);
@@ -133,3 +174,7 @@ fn type_name(value: &Value) -> &'static str {
         Value::Object(_) => "object",
     }
 }
+
+#[cfg(test)]
+#[path = "input_tests.rs"]
+mod tests;

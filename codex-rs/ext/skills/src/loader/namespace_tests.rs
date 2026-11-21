@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: do not prefix a skill name that has its plugin's prefix
+
 use codex_exec_server::FileSystemEnvironmentAccessor;
 use codex_exec_server::LOCAL_FS;
 #[cfg(unix)]
@@ -16,6 +21,7 @@ use crate::loader::HostSkillRoot;
 #[cfg(unix)]
 use crate::loader::load_host_skill_root;
 
+use super::ResolvedSkillNamespace;
 use super::SkillNamespaceResolver;
 
 fn canonical_uri(path: &Path) -> PathUri {
@@ -168,5 +174,18 @@ async fn ancestor_symlink_roots_preserve_inherited_plugin_namespace() {
             .map(|skill| skill.name)
             .collect::<Vec<_>>(),
         vec!["outer:skill"]
+    );
+}
+
+#[test]
+fn a_name_that_already_has_the_plugin_prefix_keeps_it_once() {
+    let namespace = ResolvedSkillNamespace::Plugin("acme".to_string());
+    assert_eq!(namespace.qualify("acme:review"), "acme:review");
+    assert_eq!(namespace.qualify("review"), "acme:review");
+    assert_eq!(namespace.qualify("acmereview"), "acme:acmereview");
+    assert_eq!(namespace.qualify("other:review"), "acme:other:review");
+    assert_eq!(
+        ResolvedSkillNamespace::Plain.qualify("acme:review"),
+        "acme:review"
     );
 }

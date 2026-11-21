@@ -4,8 +4,10 @@
 use pretty_assertions::assert_eq;
 
 use super::Document;
+use super::frontmatter_string;
 use super::import_paths;
 use super::parse_document;
+use super::parse_frontmatter;
 use super::strip_block_comments;
 
 #[test]
@@ -25,6 +27,52 @@ fn splits_frontmatter_from_body() {
         }
     );
     assert_eq!(parse_document("plain").frontmatter, None);
+}
+
+#[test]
+fn drops_a_byte_order_mark_before_the_frontmatter() {
+    assert_eq!(
+        parse_document("\u{feff}---\npaths: a\n---\nbody\n"),
+        Document {
+            frontmatter: Some("paths: a\n"),
+            body: "body\n",
+        }
+    );
+    assert_eq!(parse_document("\u{feff}plain").body, "plain");
+}
+
+#[test]
+fn quotes_values_that_break_the_frontmatter_and_parses_again() {
+    let value = parse_frontmatter(
+        "name: x\ndescription: Triggers include: X, Y\nglob: **/*.rs\narguments: [topic]\nhint: \"keep\"\n",
+    )
+    .expect("parsed after quoting");
+    assert_eq!(
+        value.get("description").and_then(serde_yaml::Value::as_str),
+        Some("Triggers include: X, Y")
+    );
+    assert_eq!(
+        value.get("glob").and_then(serde_yaml::Value::as_str),
+        Some("**/*.rs")
+    );
+    assert_eq!(
+        value.get("arguments"),
+        Some(&serde_yaml::Value::Sequence(vec!["topic".into()]))
+    );
+    assert_eq!(
+        value.get("hint").and_then(serde_yaml::Value::as_str),
+        Some("keep")
+    );
+    assert_eq!(parse_frontmatter("name: x\n- stray\n"), None);
+}
+
+#[test]
+fn takes_bare_numbers_and_booleans_as_text() {
+    let value = parse_frontmatter("name: 3000\nflag: true\nlist: [a]\n").expect("valid YAML");
+    let text = |key: &str| value.get(key).and_then(frontmatter_string);
+    assert_eq!(text("name"), Some("3000".to_string()));
+    assert_eq!(text("flag"), Some("true".to_string()));
+    assert_eq!(text("list"), None);
 }
 
 #[test]

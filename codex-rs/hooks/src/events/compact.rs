@@ -25,6 +25,22 @@ use crate::schema::PostCompactCommandInput;
 use crate::schema::PreCompactCommandInput;
 use crate::schema::SubagentCommandInputFields;
 
+/// How much of one hook's plain stdout goes into the summary's instructions, as in Claude
+/// Code: a hook that prints a whole log would otherwise push the request past the context
+/// window, so that compaction fails and is tried again.
+const INSTRUCTIONS_LIMIT_CHARS: usize = 10_000;
+
+/// `text` cut at [`INSTRUCTIONS_LIMIT_CHARS`], with a marker where it was cut.
+fn capped_instructions(text: &str) -> String {
+    match text.char_indices().nth(INSTRUCTIONS_LIMIT_CHARS) {
+        Some((end, _)) => format!(
+            "{}\n[hook output cut at {INSTRUCTIONS_LIMIT_CHARS} characters]",
+            &text[..end]
+        ),
+        None => text.to_string(),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct PreCompactRequest {
     pub session_id: ThreadId,
@@ -329,7 +345,7 @@ fn parse_completed(
                         text: format!("hook returned invalid {event_label} hook JSON output"),
                     });
                 } else {
-                    plain_text = Some(trimmed_stdout.to_string());
+                    plain_text = Some(capped_instructions(trimmed_stdout));
                 }
             }
             Some(code) => {
@@ -500,6 +516,24 @@ mod tests {
         assert_eq!(
             parsed.data.plain_text.as_deref(),
             Some("keep the test results")
+        );
+    }
+
+    #[test]
+    fn pre_compact_cuts_long_stdout_at_ten_thousand_characters() {
+        let stdout = "é".repeat(10_000) + "past the cap";
+        let parsed = parse_pre_completed(
+            &handler(HookEventName::PreCompact),
+            run_result(Some(0), &stdout, ""),
+            Some("turn-1".to_string()),
+        );
+
+        assert_eq!(
+            parsed.data.plain_text,
+            Some(format!(
+                "{}\n[hook output cut at 10000 characters]",
+                "é".repeat(10_000)
+            ))
         );
     }
 

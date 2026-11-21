@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 
 use codex_claude_compat::tools::GREP;
 use codex_claude_compat::tools::grep;
+use codex_claude_compat::tools::ripgrep::note_timeout;
 use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
@@ -25,6 +26,7 @@ use super::check_permission;
 use super::files::FileTarget;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::permissions::read_deny_args;
 use super::rejected;
 use super::ripgrep::Ripgrep;
 use crate::function_tool::FunctionCallError;
@@ -156,16 +158,32 @@ impl GrepHandler {
             PermissionInput::ReadPath(&target.native_path()),
         )
         .await?;
-        let lines = self
+        // Files a `Read` deny rule covers are left out, as Claude Code leaves them out; the
+        // search then runs in the directory searched (the file's own for a file), which the
+        // exclusions are relative to.
+        let search_dir = match target.metadata().await {
+            Ok(Some(metadata)) if !metadata.is_directory => target
+                .uri
+                .parent()
+                .map(|parent| parent.inferred_native_path_string())
+                .unwrap_or_else(|| target.native_path()),
+            _ => target.native_path(),
+        };
+        let exclusions = read_deny_args(&invocation, &search_dir);
+        let mut args = grep::rg_args(&input);
+        args.extend(exclusions.iter().cloned());
+        let (lines, timed_out) = self
             .ripgrep
             .run(
                 &invocation,
                 target.environment,
-                &grep::rg_args(&input),
+                &args,
                 &target.native_path(),
+                (!exclusions.is_empty()).then_some(search_dir.as_str()),
             )
             .await?;
-        let result = grep::format_result(&input, lines, &target.cwd_display());
+        let mut result = grep::format_result(&input, lines, &target.cwd_display());
+        note_timeout(&mut result.text, timed_out);
         Ok(boxed_tool_output(ClaudeToolOutput::new(
             result.text,
             result.tool_response,

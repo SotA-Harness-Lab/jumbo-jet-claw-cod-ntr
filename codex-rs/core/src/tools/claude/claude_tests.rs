@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use codex_claude_compat::PermissionRules;
+use codex_claude_compat::RuleSource;
 use codex_claude_compat::tools::edit::apply_edit;
 use codex_claude_compat::tools::patch::add_file_patch;
 use codex_claude_compat::tools::patch::update_file_patch;
@@ -15,10 +17,17 @@ use serde_json::json;
 use super::ToolSwap;
 use super::bash::exec_command_arguments_for_test;
 use super::edit;
-use super::file_state::FileRecord;
-use super::file_state::write_refusal;
+use super::files;
+use super::permissions::remove_tools_denied_by;
 use super::read;
+use super::shell_cwd::NextCwd;
+use super::shell_cwd::next_cwd;
 use super::write;
+use super::written_file_path;
+use crate::session::step_context::StepContext;
+use crate::session::tests::make_session_and_context;
+use crate::tools::context::ToolInvocation;
+use crate::tools::context::ToolPayload;
 use crate::tools::handlers::ApplyPatchHandler;
 use crate::tools::handlers::ViewImageHandler;
 use crate::tools::registry::CoreToolRuntime;
@@ -74,25 +83,30 @@ fn file_tools_replace_apply_patch_and_view_image() {
 }
 
 #[test]
-fn writes_need_a_read_and_an_unchanged_file() {
-    assert_eq!(
-        write_refusal(None, 10, "x"),
-        Some(codex_claude_compat::tools::edit::NOT_READ_MESSAGE)
+fn tools_denied_as_a_whole_are_not_offered() {
+    let mut registry = ToolRegistry::from_tools([
+        Arc::new(ApplyPatchHandler::default()) as Arc<dyn CoreToolRuntime>,
+        Arc::new(ViewImageHandler::default()) as Arc<dyn CoreToolRuntime>,
+    ]);
+    let mut swap = ToolSwap::new(&mut registry);
+    read::install(&mut swap);
+    write::install(&mut swap);
+    edit::install(&mut swap);
+    let rules = PermissionRules::new(
+        &[(
+            RuleSource::Local,
+            json!({ "permissions": { "deny": ["Write", "Edit(src/**)"], "ask": ["Read"] } }),
+        )],
+        None,
+        None,
     );
-    let read = FileRecord {
-        modified_at_ms: 10,
-        content: None,
-    };
-    assert_eq!(write_refusal(Some(&read), 10, "x"), None);
-    assert_eq!(
-        write_refusal(Some(&read), 11, "x"),
-        Some(codex_claude_compat::tools::edit::MODIFIED_SINCE_READ_MESSAGE)
-    );
-    let written = FileRecord {
-        modified_at_ms: 10,
-        content: Some("x".to_string()),
-    };
-    assert_eq!(write_refusal(Some(&written), 11, "x"), None);
+    remove_tools_denied_by(&rules, &mut registry);
+    let names = registry
+        .tool_names_for_test()
+        .into_iter()
+        .map(|name| name.name)
+        .collect::<Vec<_>>();
+    assert_eq!(names, vec!["Edit", "Read"]);
 }
 
 #[tokio::test]
@@ -138,4 +152,98 @@ async fn edits_reach_the_file_through_apply_patch() {
         std::fs::read_to_string(&created).expect("read file"),
         "a\nb\n"
     );
+}
+
+#[test]
+fn the_file_a_write_or_edit_wrote_is_found_for_its_post_tool_use_hooks() {
+    assert_eq!(
+        written_file_path("Write", r#"{"file_path":"/a.rs","content":"x"}"#),
+        Some("/a.rs".to_string())
+    );
+    assert_eq!(
+        written_file_path(
+            "Edit",
+            r#"{"file_path":"/b.rs","old_string":"x","new_string":"y"}"#
+        ),
+        Some("/b.rs".to_string())
+    );
+    assert_eq!(written_file_path("Read", r#"{"file_path":"/a.rs"}"#), None);
+}
+
+#[test]
+fn a_bash_call_that_did_not_move_keeps_the_directory_carried_over() {
+    let project = std::path::Path::new("/w/link");
+    let physical = Some(std::path::Path::new("/w/real"));
+    let sub = std::path::Path::new("/w/real/crates/foo");
+    // `cd crates/foo && cargo check` and `git log` sent together: `git log` ends where it
+    // started, after the `cd` was recorded, and leaves it in place.
+    assert_eq!(
+        next_cwd(None, project, physical, std::path::Path::new("/w/real")),
+        NextCwd::Unchanged
+    );
+    assert_eq!(
+        next_cwd(Some(sub), project, physical, sub),
+        NextCwd::Unchanged
+    );
+    assert_eq!(
+        next_cwd(None, project, physical, sub),
+        NextCwd::Carry(sub.to_path_buf())
+    );
+    assert_eq!(
+        next_cwd(
+            Some(sub),
+            project,
+            physical,
+            std::path::Path::new("/w/link")
+        ),
+        NextCwd::Project
+    );
+    assert_eq!(
+        next_cwd(Some(sub), project, physical, std::path::Path::new("/tmp")),
+        NextCwd::Reset
+    );
+}
+
+#[tokio::test]
+async fn file_tool_hooks_get_an_absolute_file_path() {
+    let (session, turn) = make_session_and_context().await;
+    let session = Arc::new(session);
+    let turn = Arc::new(turn);
+    let invocation = |file_path: &str| ToolInvocation {
+        session: Arc::clone(&session),
+        step_context: StepContext::for_test(Arc::clone(&turn)),
+        turn: Arc::clone(&turn),
+        cancellation_token: tokio_util::sync::CancellationToken::new(),
+        tracker: Arc::new(tokio::sync::Mutex::new(
+            crate::turn_diff_tracker::TurnDiffTracker::new(),
+        )),
+        call_id: "call-read".to_string(),
+        tool_name: ToolName::plain("Read"),
+        source: crate::tools::context::ToolCallSource::Direct,
+        payload: ToolPayload::Function {
+            arguments: json!({ "file_path": file_path, "limit": 5 }).to_string(),
+        },
+        native_call: None,
+        environments: Default::default(),
+    };
+
+    let payload = files::pre_tool_use_payload(&invocation("secrets/.env")).expect("payload");
+    let file_path = payload.tool_input["file_path"]
+        .as_str()
+        .expect("file_path")
+        .to_string();
+    assert!(
+        std::path::Path::new(&file_path).is_absolute(),
+        "{file_path}"
+    );
+    assert!(file_path.ends_with("secrets/.env"), "{file_path}");
+    assert_eq!(payload.tool_input["limit"], json!(5));
+    assert_eq!(payload.tool_name.name(), "Read");
+
+    let absolute = std::env::temp_dir()
+        .join("a.txt")
+        .to_string_lossy()
+        .to_string();
+    let payload = files::pre_tool_use_payload(&invocation(&absolute)).expect("payload");
+    assert_eq!(payload.tool_input["file_path"], json!(absolute));
 }

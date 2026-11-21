@@ -255,3 +255,61 @@ fn prompt_agent_and_http_handlers_keep_what_they_declare() {
     // The `http` handler is parsed in the place of a `prompt` one.
     assert_eq!(loaded[0].events.post_tool_use[0].hooks.len(), 1);
 }
+
+#[test]
+fn a_malformed_entry_is_left_out_and_the_rest_of_the_file_kept() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{"hooks": {
+            "PreToolUse": [
+                {"matcher": "Bash", "hooks": [
+                    {"type": "command"},
+                    {"type": "command", "command": "guard.sh", "timeout": 1.5, "if": "Bash(rm *)"}
+                ]},
+                {"matcher": 5, "hooks": [{"type": "command", "command": "other.sh"}]}
+            ],
+            "Stop": {"hooks": []},
+            "SessionStart": [{"hooks": [{"type": "command", "command": "start.sh", "timeout": "30"}]}],
+            "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "prompt.sh"}]}]
+        }}"#,
+    )
+    .expect("write");
+
+    let mut warnings = Vec::new();
+    let loaded = load(&settings(&tmp), &mut warnings);
+
+    assert_eq!(warnings.len(), 4, "{warnings:?}");
+    assert_eq!(loaded.len(), 1);
+    let events = &loaded[0].events;
+    assert_eq!(
+        (
+            events.pre_tool_use.len(),
+            events.session_start.len(),
+            events.user_prompt_submit.len()
+        ),
+        (1, 1, 1)
+    );
+    assert_eq!(events.session_start[0].hooks.len(), 0);
+    assert_eq!(
+        events.pre_tool_use[0].hooks,
+        vec![codex_config::HookHandlerConfig::Command {
+            command: "guard.sh".to_string(),
+            command_windows: None,
+            timeout_sec: Some(2),
+            r#async: false,
+            status_message: None,
+            additional_context_limit: None,
+        }]
+    );
+    // The condition stays with its handler, now the first of its group.
+    assert_eq!(
+        loaded[0]
+            .extras
+            .conditions
+            .get(&("PreToolUse".to_string(), 0, 0))
+            .map(String::as_str),
+        Some("Bash(rm *)")
+    );
+}

@@ -84,6 +84,7 @@ pub(crate) fn preview(
         HookEventName::PermissionRequest,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     )
     .into_iter()
     .map(|handler| {
@@ -105,6 +106,7 @@ pub(crate) async fn run(
         HookEventName::PermissionRequest,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     );
     if matched.is_empty() {
         return PermissionRequestOutcome {
@@ -230,11 +232,28 @@ fn parse_completed(
                     }
                     if handler.can_apply_control_effects() {
                         if let Some(invalid_reason) = parsed.invalid_reason {
-                            status = HookRunStatus::Failed;
-                            entries.push(HookOutputEntry {
-                                kind: HookOutputEntryKind::Error,
-                                text: invalid_reason,
-                            });
+                            if let Some(output_parser::PermissionRequestDecision::Deny {
+                                message,
+                            }) = parsed.decision
+                            {
+                                // A denial stands even beside output Codex does not honour.
+                                entries.push(HookOutputEntry {
+                                    kind: HookOutputEntryKind::Warning,
+                                    text: invalid_reason,
+                                });
+                                status = HookRunStatus::Blocked;
+                                entries.push(HookOutputEntry {
+                                    kind: HookOutputEntryKind::Feedback,
+                                    text: message.clone(),
+                                });
+                                decision = Some(PermissionRequestDecision::Deny { message });
+                            } else {
+                                status = HookRunStatus::Failed;
+                                entries.push(HookOutputEntry {
+                                    kind: HookOutputEntryKind::Error,
+                                    text: invalid_reason,
+                                });
+                            }
                         } else if let Some(parsed_decision) = parsed.decision {
                             match parsed_decision {
                                 output_parser::PermissionRequestDecision::Allow => {
@@ -285,7 +304,7 @@ fn parse_completed(
                 status = HookRunStatus::Failed;
                 entries.push(HookOutputEntry {
                     kind: HookOutputEntryKind::Error,
-                    text: format!("hook exited with code {exit_code}"),
+                    text: common::exit_code_error(exit_code, &run_result.stderr),
                 });
             }
             None => {
