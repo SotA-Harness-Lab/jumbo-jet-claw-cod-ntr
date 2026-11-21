@@ -405,6 +405,59 @@ async fn hook_ends_when_its_process_exits_though_a_background_child_holds_the_pi
     );
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn hook_runs_in_the_project_directory_once_its_cwd_is_removed() {
+    let temp = tempdir().expect("create temp dir");
+    let project = temp.path().join("project");
+    let removed = temp.path().join("removed-worktree");
+    std::fs::create_dir_all(&project).expect("create project dir");
+    let source_path = AbsolutePathBuf::try_from(temp.path().join("hooks.json"))
+        .expect("absolute hook configuration path");
+    let command = "pwd";
+    let env = HashMap::from([(
+        "CLAUDE_PROJECT_DIR".to_string(),
+        project.display().to_string(),
+    )]);
+    let handler = ConfiguredHandler {
+        builtin: false,
+        plugin_trust: None,
+        event_name: HookEventName::PreToolUse,
+        matcher: None,
+        timeout_sec: 10,
+        status_message: None,
+        additional_context_limit: Default::default(),
+        source_path: source_path.into(),
+        source: HookSource::User,
+        display_order: 0,
+        kind: ConfiguredHandlerKind::Command {
+            command: command.to_string(),
+            r#async: false,
+            posix_sh: true,
+            env: env.clone(),
+        },
+    };
+    let (runtime, _result_receiver) = runtime();
+    let runtime = runtime.reconfigured(CommandShell {
+        program: "/bin/sh".to_string(),
+        args: vec!["-c".to_string()],
+    });
+
+    let result = run_command(&runtime, &handler, command, &env, "{}", &removed).await;
+
+    assert_eq!(
+        (result.exit_code, result.error),
+        (Some(0), None),
+        "stderr: {}",
+        result.stderr
+    );
+    assert!(
+        result.stdout.trim().ends_with("/project"),
+        "stdout: {}",
+        result.stdout
+    );
+}
+
 #[tokio::test]
 async fn command_hook_does_not_expose_configured_noise_auth_token() {
     let temp = tempdir().expect("create temp dir");

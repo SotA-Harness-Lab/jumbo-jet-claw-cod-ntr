@@ -307,7 +307,7 @@ pub(crate) async fn run_command(
     }
 
     let mut command = build_command(&runtime.shell, command_line, &runtime.environment, env);
-    command.current_dir(cwd);
+    command.current_dir(hook_dir(cwd, env, &runtime.environment));
 
     // WINDOWS-REMNANT
     #[cfg(windows)]
@@ -445,6 +445,29 @@ pub(crate) async fn run_command(
             },
         ),
     }
+}
+
+/// The directory a hook runs in: `cwd`, or, once that has been removed (a deleted worktree or
+/// temporary directory), the project directory and then the home directory, as in Claude Code,
+/// so that the hooks, guards among them, still start.
+fn hook_dir(
+    cwd: &Path,
+    env: &HashMap<String, String>,
+    environment: &[(OsString, OsString)],
+) -> std::path::PathBuf {
+    if cwd.is_dir() {
+        return cwd.to_path_buf();
+    }
+    let home = environment
+        .iter()
+        .find(|(name, _)| name == "HOME" || name == "USERPROFILE")
+        .map(|(_, value)| std::path::PathBuf::from(value));
+    env.get("CLAUDE_PROJECT_DIR")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(home)
+        .find(|dir| dir.is_dir())
+        .unwrap_or_else(|| cwd.to_path_buf())
 }
 
 /// Appends what `pipe` yields to `buf` until end of file. What was read stays in `buf` when
