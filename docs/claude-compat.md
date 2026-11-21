@@ -81,7 +81,8 @@ enable = []
 
 [hooks.models]
 # Which Codex model judges a `prompt` or `agent` hook in the place of the Claude model its
-# handler names (see "Hooks"). `default` is for a handler that names none.
+# handler names (see "Hooks"), and runs a subagent in the place of the Claude model its file
+# or the `Agent` call names (see "Subagents"). `default` is for a hook handler that names none.
 # default = "gpt-5.5-mini"
 # haiku = "gpt-5.5-mini"
 # "claude-sonnet-4-6" = "gpt-5.5"
@@ -95,7 +96,7 @@ enable = []
 | --- | --- | --- | --- |
 | `claude.tools` | boolean | `false` | The Claude tool set in place of Codex's tools |
 | `claude.plugins.enable` | list of strings | `[]` | Claude Code plugins used even when found incompatible |
-| `hooks.models` | table of strings | empty | Claude model name, or part of one, to the Codex model that judges `prompt` and `agent` hooks naming it; `default` for hooks naming none |
+| `hooks.models` | table of strings | empty | Claude model name, or part of one, to the Codex model that judges `prompt` and `agent` hooks naming it and runs subagents naming it; `default` for hooks naming none |
 | `ui.language` | string | the system's | The TUI's language: Simplified Chinese (`zh-CN`) or English; a language without a translation is English |
 
 The TUI reads `ui.language` once, when it starts; the environment variable `CCN_LANGUAGE`, when set, comes before it
@@ -370,7 +371,7 @@ registered from `add_shell_tools`, which owns the shell options.
 
 | Behaviour | Claude Code | Codex | Status |
 | --- | --- | --- | --- |
-| What a subagent is | An agent type of its own | An agent role of the same name: its `description` is the role's description, its body the role's developer instructions, and its `effort` the reasoning effort (`low`, `medium`, `high`, `xhigh`, and `max` as `xhigh`; a number is left out) | Done 2026-11-20 `f987126bd2` |
+| What a subagent is | An agent type of its own | An agent role of the same name: its `description` is the role's description, its body the role's developer instructions, and its `effort` the reasoning effort (`low`, `medium`, `high`, `xhigh`, and `max` as `xhigh`; a number is left out). Its `model`, with the Claude tool set on, is the Codex model `[hooks.models]` of `ccn-config.toml` maps it to, after the `Agent` call's own `model`; one the table does not map is left out (see "Incompatible") | Done 2026-11-20 `f987126bd2`; `model` done 2026-11-21 |
 | A subagent and a Codex role of the same name | Not applicable | Codex's own role wins | Done 2026-11-17 `80c1279420` |
 | `tools` and `disallowedTools` | Applied | Applied only with the Claude tool set on; ignored without it. With it, the names are the ones the model sees: Claude Code's names, `mcp__<server>__<tool>` for MCP tools, Codex's own name for a Codex tool with no Claude counterpart; a Codex tool that serves a Claude tool goes with it (`write_stdin` with `Bash`, Codex's other agent tools with `Agent`). Hosted tools (Codex's built-in web search) and the tools code mode and tool search add are not filtered | Done 2026-11-18 `bf914e9b33` |
 | A subagent starting agents of its own | Newer versions allow it, 3 layers deep (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`); the reference source does not | Allowed within Codex's depth limit | Done 2026-11-18 `bf914e9b33` |
@@ -847,7 +848,7 @@ Codex does in its place.
 
 | Feature | Claude Code | What stands in the way | What Codex does in its place | Status |
 | --- | --- | --- | --- | --- |
-| Claude models: the `model` of a `prompt` or `agent` hook, of a subagent or of a skill, the `Agent` tool's `model` (`sonnet`, `opus`, `haiku`), `inherit`, the `model`, `availableModels` and `fallbackModel` settings, `opusplan`, `[1m]`, `CLAUDE_CODE_SUBAGENT_MODEL`, and of newer versions `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, `CLAUDE_CODE_WORKFLOW_SUBAGENT_MODEL`, `deniedModels`, `availableModelsMatch`, `enforceAvailableModels`, and the `ANTHROPIC_*` variables | The named model runs | Codex runs the models of its own provider, not Claude's | A hook's model is mapped by `[hooks.models]` of `ccn-config.toml`, or else ignored; a subagent's and a skill's `model` are left out; the `Agent` tool takes a model name Codex knows; the settings are not read | Not planned |
+| Claude models: the `model` of a `prompt` or `agent` hook, of a subagent or of a skill, the `Agent` tool's `model` (`sonnet`, `opus`, `haiku`), `inherit`, the `model`, `availableModels` and `fallbackModel` settings, `opusplan`, `[1m]`, `CLAUDE_CODE_SUBAGENT_MODEL`, and of newer versions `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`, `CLAUDE_CODE_WORKFLOW_SUBAGENT_MODEL`, `deniedModels`, `availableModelsMatch`, `enforceAvailableModels`, and the `ANTHROPIC_*` variables | The named model runs | Codex runs the models of its own provider, not Claude's | A hook's model is mapped by `[hooks.models]` of `ccn-config.toml`, or else ignored. With the Claude tool set on, a subagent's `model` is mapped the same way, or else left out (`inherit` too), so that the agent runs on the parent's model; the `Agent` tool's `model` comes first, mapped the same way or else taken as a model name Codex knows. A skill's `model` is left out; the settings are not read | Not planned |
 | The permission mode: `defaultMode`, `--permission-mode`, and `permission_mode` in a hook's input (`default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`); `disableBypassPermissionsMode`; a subagent's `permissionMode`; newer versions start an interactive session in auto mode when none is set (2.1.283) and add `CLAUDE_CODE_AUTO_MODE_SERVER` (2.1.281) and `CLAUDE_CODE_DISABLE_DANGEROUS_RM_TIMEOUT` (2.1.281) | One mode decides what is asked | Codex has two settings where Claude Code has one, the approval policy and the sandbox mode, and none of Claude Code's modes is one of their combinations | `defaultMode` is not applied. A hook is told `default`, or `bypassPermissions` when Codex never asks | Not planned |
 | An `allow` rule, or `dangerouslyDisableSandbox`, as the last word | The call runs, outside the sandbox where it asks to | The sandbox is not part of the approval: Codex's orchestrator decides what may leave it, and a rule in a file the model can write must not | An allowed call runs without asking, still in the sandbox. Leaving the sandbox goes through Codex's approval, and a command Codex forbids, or a managed rule that wants a person, stays as it is | Not planned |
 | `additionalDirectories`, `--add-dir`, `/add-dir` | The model reads there without asking; edits follow the permission mode | Codex reads without asking anyway, and its only way to let edits in is a writable root of the sandbox, which a project's settings could then open by themselves | Not applied. Add a directory to `[sandbox_workspace_write] writable_roots` in `config.toml` yourself | Not planned |

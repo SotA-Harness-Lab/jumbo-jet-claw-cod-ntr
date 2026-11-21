@@ -7,6 +7,7 @@
 //! Claude tools, `mcp__<server>__<tool>` for MCP tools). Codex tools that only serve a
 //! Claude tool (`write_stdin` for `Bash`, the other agent tools for `Agent`) go with it.
 
+use codex_claude_compat::Subagent;
 use codex_claude_compat::tools::agent::ToolList;
 use codex_claude_compat::tools::agent::owner_of;
 use codex_tools::ToolName;
@@ -36,6 +37,12 @@ pub(crate) fn restrict_to_subagent_tools(turn_context: &TurnContext, registry: &
 /// The tool list of a role read from a Claude Code subagent file (`agents/*.md`); `None`
 /// for any other role.
 pub(super) fn role_tool_list(role: &AgentRoleConfig) -> Option<ToolList> {
+    Some(role_subagent(role)?.tools)
+}
+
+/// The Claude Code subagent definition a role was read from (`agents/*.md`), read again from
+/// its file; `None` for any other role.
+pub(crate) fn role_subagent(role: &AgentRoleConfig) -> Option<Subagent> {
     let path = role.config_file.as_ref()?;
     if path.extension().is_none_or(|extension| extension != "md") {
         return None;
@@ -45,7 +52,7 @@ pub(super) fn role_tool_list(role: &AgentRoleConfig) -> Option<ToolList> {
             tracing::warn!("cannot read the subagent file {}: {err}", path.display());
         })
         .ok()?;
-    Some(codex_claude_compat::parse_subagent_at(&contents, path)?.tools)
+    codex_claude_compat::parse_subagent_at(&contents, path)
 }
 
 /// Keeps in the registry only the tools `tools` permits.

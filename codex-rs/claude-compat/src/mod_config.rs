@@ -11,8 +11,8 @@
 //! [claude.plugins]
 //! enable = ["claude-hud@claude-hud"] # Claude Code plugins used even when found incompatible
 //!
-//! [hooks.models]                     # Claude models named by `prompt` and `agent` hooks,
-//! haiku = "gpt-5.5-mini"             # and the Codex model that judges in their place
+//! [hooks.models]                     # Claude models named by `prompt` and `agent` hooks
+//! haiku = "gpt-5.5-mini"             # and by subagents, and the Codex model in their place
 //!
 //! [ui]
 //! language = "zh-CN"                 # the TUI's language; the system's when left out
@@ -49,7 +49,7 @@ pub struct ModConfig {
 #[serde(default)]
 pub struct HooksModConfig {
     /// `[hooks.models]`: which Codex model judges a `prompt` or `agent` hook that names a
-    /// Claude model. See [`HooksModConfig::model_for`].
+    /// Claude model, and runs a subagent that names one. See [`HooksModConfig::model_for`].
     pub models: BTreeMap<String, String>,
 }
 

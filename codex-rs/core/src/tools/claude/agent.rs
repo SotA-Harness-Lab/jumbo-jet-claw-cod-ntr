@@ -15,6 +15,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 use std::time::Duration;
 
+use codex_claude_compat::HooksModConfig;
 use codex_claude_compat::tools::AGENT;
 use codex_claude_compat::tools::agent;
 use codex_claude_compat::tools::agent::AgentType;
@@ -40,6 +41,7 @@ use super::failed;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
 use super::subagent_tools::list_entry;
+use super::subagent_tools::role_subagent;
 use super::subagent_tools::role_tool_list;
 use crate::agent::LocalAgentControl;
 use crate::agent::agent_resolver::resolve_agent_target;
@@ -288,7 +290,15 @@ impl AgentHandler {
         if let Some(role) = role {
             arguments.insert("agent_type".to_string(), json!(role));
         }
-        if let Some(model) = args.model.as_deref().filter(|model| !model.is_empty()) {
+        let subagent_model = role
+            .and_then(|role| crate::agent::role::resolve_role_config(&invocation.turn.config, role))
+            .and_then(role_subagent)
+            .and_then(|subagent| subagent.model);
+        if let Some(model) = spawn_model(
+            &invocation.turn.config.mod_config.hooks,
+            args.model.as_deref(),
+            subagent_model.as_deref(),
+        ) {
             arguments.insert("model".to_string(), json!(model));
         }
         let source = if self.version == MultiAgentVersion::V2 {
@@ -334,6 +344,31 @@ impl AgentHandler {
             Ok((agent_id, thread_id))
         }
     }
+}
+
+/// The model to start the agent on, as Claude Code picks it: the call's `model`, then the
+/// subagent's own, then (`None`) the parent's. A Claude model name is mapped to a Codex model
+/// by `[hooks.models]` of `ccn-config.toml`; the call's `model` is otherwise passed on as a
+/// model name Codex knows, while a subagent's that the table does not map, or `inherit`, is
+/// left out.
+fn spawn_model(
+    hooks: &HooksModConfig,
+    requested: Option<&str>,
+    subagent: Option<&str>,
+) -> Option<String> {
+    let mapped = |model: &str| {
+        (!model.eq_ignore_ascii_case("inherit"))
+            .then(|| hooks.model_for(Some(model)))
+            .flatten()
+            .map(str::to_string)
+    };
+    if let Some(requested) = requested.map(str::trim).filter(|model| !model.is_empty()) {
+        return Some(mapped(requested).unwrap_or_else(|| requested.to_string()));
+    }
+    subagent
+        .map(str::trim)
+        .filter(|model| !model.is_empty())
+        .and_then(mapped)
 }
 
 /// The agent's status once it is final, followed through Codex's status subscription as

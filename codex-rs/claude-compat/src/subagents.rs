@@ -28,6 +28,8 @@ pub struct Subagent {
     pub prompt: String,
     /// `effort`, as written.
     pub effort: Option<String>,
+    /// `model`, as written: a Claude model's alias or id, or `inherit`.
+    pub model: Option<String>,
     /// `tools` and `disallowedTools`, applied when Codex offers Claude Code's tools.
     pub tools: ToolList,
 }
@@ -130,6 +132,7 @@ fn parse_with(contents: &str, plugin_agent: Option<&PluginAgent>) -> Option<Suba
         description,
         prompt,
         effort: field("effort"),
+        model: field("model"),
         tools: ToolList::from_frontmatter(
             frontmatter.get("tools"),
             frontmatter.get("disallowedTools"),
@@ -148,13 +151,14 @@ mod tests {
     fn subagent_needs_name_description_and_body() {
         assert_eq!(
             parse_subagent(
-                "---\nname: w\ndescription: does x\ntools: Read\neffort: high\n---\n\nDo x.\n"
+                "---\nname: w\ndescription: does x\ntools: Read\neffort: high\nmodel: haiku\n---\n\nDo x.\n"
             ),
             Some(Subagent {
                 name: "w".to_string(),
                 description: "does x".to_string(),
                 prompt: "Do x.".to_string(),
                 effort: Some("high".to_string()),
+                model: Some("haiku".to_string()),
                 tools: ToolList {
                     allowed: Some(vec!["Read".to_string()]),
                     disallowed: Vec::new(),

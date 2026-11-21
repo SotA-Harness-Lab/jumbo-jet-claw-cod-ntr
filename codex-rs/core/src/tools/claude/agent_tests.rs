@@ -3,6 +3,7 @@
 
 use std::time::Duration;
 
+use codex_claude_compat::HooksModConfig;
 use codex_login::CodexAuth;
 use codex_model_provider_info::built_in_model_providers;
 use codex_protocol::protocol::AgentStatus;
@@ -12,6 +13,7 @@ use codex_protocol::protocol::TurnCompleteEvent;
 use pretty_assertions::assert_eq;
 
 use super::close_when_finished;
+use super::spawn_model;
 use crate::StartThreadOptions;
 use crate::ThreadManager;
 use crate::session::tests::make_session_and_context;
@@ -84,4 +86,39 @@ async fn a_finished_background_agent_gives_back_its_thread() {
     );
     // `wait_agent` still finds the result.
     assert_eq!(control.closed_result(thread_id), Some(done));
+}
+
+#[test]
+fn the_model_comes_from_the_call_then_the_subagent_mapped_by_hooks_models() {
+    let hooks = HooksModConfig {
+        models: [
+            ("haiku".to_string(), "gpt-5.5-mini".to_string()),
+            ("claude-opus".to_string(), "gpt-5.5".to_string()),
+            ("default".to_string(), "gpt-5.5-nano".to_string()),
+        ]
+        .into(),
+    };
+    // The call's model first, mapped when the table knows it, else as given.
+    assert_eq!(
+        spawn_model(&hooks, Some("haiku"), Some("claude-opus-5-5")),
+        Some("gpt-5.5-mini".to_string())
+    );
+    assert_eq!(
+        spawn_model(&hooks, Some("gpt-5.5"), Some("haiku")),
+        Some("gpt-5.5".to_string())
+    );
+    // Then the subagent's, by the longest entry it contains.
+    assert_eq!(
+        spawn_model(&hooks, None, Some("claude-opus-5-5")),
+        Some("gpt-5.5".to_string())
+    );
+    assert_eq!(
+        spawn_model(&hooks, Some(" "), Some("haiku")),
+        Some("gpt-5.5-mini".to_string())
+    );
+    // A subagent's model the table does not map, `inherit`, or none: the parent's model;
+    // `default` is for hooks, not for subagents that name no model.
+    assert_eq!(spawn_model(&hooks, None, Some("sonnet")), None);
+    assert_eq!(spawn_model(&hooks, None, Some("inherit")), None);
+    assert_eq!(spawn_model(&hooks, None, None), None);
 }
