@@ -127,6 +127,10 @@ struct AgentArgs {
     model: Option<String>,
     #[serde(default)]
     run_in_background: bool,
+    /// Not offered to the model: the effort level of a `context: fork` skill run through
+    /// this tool, as Codex's reasoning effort.
+    #[serde(default)]
+    effort: Option<String>,
 }
 
 impl ToolExecutor<ToolInvocation> for AgentHandler {
@@ -313,6 +317,9 @@ impl AgentHandler {
                 .and_then(|subagent| subagent.model.as_deref()),
         ) {
             arguments.insert("model".to_string(), json!(model));
+        }
+        if let Some(effort) = args.effort.as_deref() {
+            arguments.insert("reasoning_effort".to_string(), json!(effort));
         }
         let source = if self.version == MultiAgentVersion::V2 {
             arguments.insert(

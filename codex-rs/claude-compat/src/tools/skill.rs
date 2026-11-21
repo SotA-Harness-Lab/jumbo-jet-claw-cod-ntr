@@ -74,6 +74,11 @@ pub fn model_invocation_disabled_message(name: &str) -> String {
     format!("Skill {name} cannot be used with Skill tool due to disable-model-invocation")
 }
 
+/// The tool's result for a `context: fork` skill, which ran in a subagent.
+pub fn forked_result_text(name: &str, result: &str) -> String {
+    format!("Skill \"{name}\" completed (forked execution).\n\nResult:\n{result}")
+}
+
 /// The tool's result: Claude Code's line, then the expanded skill, which Claude Code adds to
 /// the conversation as a message of its own.
 pub fn result_text(name: &str, expanded: &str) -> String {
@@ -114,5 +119,13 @@ mod tests {
     fn a_leading_slash_is_dropped() {
         assert_eq!(normalize_name(" /commit "), "commit");
         assert_eq!(normalize_name("demo:pdf"), "demo:pdf");
+    }
+
+    #[test]
+    fn a_forked_skill_reports_its_subagent_s_answer() {
+        assert_eq!(
+            forked_result_text("review", "All good."),
+            "Skill \"review\" completed (forked execution).\n\nResult:\nAll good."
+        );
     }
 }

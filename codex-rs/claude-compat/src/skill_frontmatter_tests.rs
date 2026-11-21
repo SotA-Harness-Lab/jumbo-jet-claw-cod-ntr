@@ -62,6 +62,36 @@ fn paths_are_read_as_a_rule_reads_them() {
 }
 
 #[test]
+fn a_forked_skill_names_its_agent_model_and_effort() {
+    let read = |frontmatter: &str| skill_frontmatter(&format!("---\n{frontmatter}\n---\nBody\n"));
+    let forked = read("context: fork\nagent: Explore\nmodel: sonnet\neffort: high");
+    assert_eq!(
+        (
+            forked.context_fork,
+            forked.agent,
+            forked.model,
+            forked.effort
+        ),
+        (
+            true,
+            Some("Explore".to_string()),
+            Some("sonnet".to_string()),
+            Some("high".to_string())
+        )
+    );
+    let inline = read("context: inline\nmodel: inherit\neffort: extreme");
+    assert_eq!(
+        (
+            inline.context_fork,
+            inline.agent,
+            inline.model,
+            inline.effort
+        ),
+        (false, None, None, None)
+    );
+}
+
+#[test]
 fn allowed_tools_are_split_as_claude_code_splits_them() {
     let allowed = |frontmatter: &str| {
         skill_frontmatter(&format!("---\n{frontmatter}\n---\nBody\n")).allowed_tools

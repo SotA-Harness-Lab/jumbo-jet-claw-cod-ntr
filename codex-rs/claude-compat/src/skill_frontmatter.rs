@@ -25,6 +25,15 @@ pub struct SkillFrontmatter {
     /// `allowed-tools`: permission rules (`Read`, `Bash(git add *)`) the turn that invokes
     /// the skill runs without asking, as written.
     pub allowed_tools: Vec<String>,
+    /// `context: fork`: the skill runs in a subagent, whose answer is its result.
+    pub context_fork: bool,
+    /// `agent`: the subagent type a `context: fork` skill runs in.
+    pub agent: Option<String>,
+    /// `model`: the Claude model the skill runs with; `inherit` is none.
+    pub model: Option<String>,
+    /// `effort`: the effort level the skill runs with (`low`, `medium`, `high`, `xhigh`,
+    /// `max`); another value is none.
+    pub effort: Option<String>,
 }
 
 impl Default for SkillFrontmatter {
@@ -34,6 +43,10 @@ impl Default for SkillFrontmatter {
             argument_hint: None,
             paths: None,
             allowed_tools: Vec::new(),
+            context_fork: false,
+            agent: None,
+            model: None,
+            effort: None,
         }
     }
 }
@@ -57,7 +70,22 @@ pub fn skill_frontmatter(contents: &str) -> SkillFrontmatter {
             .get("allowed-tools")
             .map(tool_list_entries)
             .unwrap_or_default(),
+        context_fork: value.get("context").and_then(serde_yaml::Value::as_str) == Some("fork"),
+        agent: string_field(&value, "agent"),
+        model: string_field(&value, "model").filter(|model| model != "inherit"),
+        effort: string_field(&value, "effort").filter(|effort| {
+            matches!(effort.as_str(), "low" | "medium" | "high" | "xhigh" | "max")
+        }),
     }
+}
+
+/// A field's value as text, trimmed; none when it is missing, empty or not a scalar.
+fn string_field(value: &serde_yaml::Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(frontmatter_string)
+        .map(|text| text.trim().to_string())
+        .filter(|text| !text.is_empty())
 }
 
 /// A field's value as text. A scalar is taken as Claude Code turns it into a string; a

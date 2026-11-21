@@ -3,13 +3,19 @@
 
 //! `Skill`: Claude Code's tool for invoking a skill by name, with arguments.
 //!
-//! Nothing is delegated: the skill is one of those Codex lists for the turn, read from this
-//! machine and expanded as `/<name> <arguments>` expands it (frontmatter left out, headed by
+//! The skill is one of those Codex lists for the turn, read from this machine and expanded
+//! as `/<name> <arguments>` expands it (frontmatter left out, headed by its directory,
+//! arguments and `${CLAUDE_SKILL_DIR}` filled in). A `context: fork` skill is delegated to
+//! the `Agent` tool, which runs the expanded text in a subagent. Added: Claude Code's
+//! parameters, description, refusals and result texts.
 //! its directory, arguments, `${CLAUDE_SKILL_DIR}` and a plugin's variables filled in).
 //! Added: Claude Code's parameters, description, refusals and result text.
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
+use codex_claude_compat::SkillFrontmatter;
+use codex_claude_compat::tools::AGENT;
 use codex_claude_compat::tools::SKILL;
 use codex_claude_compat::tools::skill;
 use codex_tools::JsonSchema;
@@ -17,6 +23,8 @@ use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
 use serde::Deserialize;
+use serde_json::Map;
+use serde_json::Value;
 use serde_json::json;
 
 use super::PermissionInput;
@@ -212,11 +220,6 @@ async fn handle_call(invocation: ToolInvocation) -> Result<Box<dyn ToolOutput>, 
         .parent()
         .map(|dir| dir.to_string_lossy().into_owned())
         .unwrap_or_default();
-    // The skill's `allowed-tools` run without asking for the rest of this turn.
-    codex_skills_extension::grant_skill_tools(
-        &invocation.turn.extension_data,
-        codex_skills_extension::skill_tool_grants(&contents, &path.as_path().to_string_lossy()),
-    );
     let session_id = invocation.session.session_id().to_string();
     let expanded = codex_claude_compat::render_invoked_skill(
         &contents,
@@ -225,8 +228,78 @@ async fn handle_call(invocation: ToolInvocation) -> Result<Box<dyn ToolOutput>, 
         args.args.as_deref().unwrap_or_default(),
     );
     let expanded = codex_claude_compat::substitute_in_plugin_content(expanded, path.as_path());
+    let frontmatter = codex_claude_compat::skill_frontmatter(&contents);
+    if frontmatter.context_fork
+        && let Some(agent) = invocation
+            .step_context
+            .tool_router
+            .registered_tool(&ToolName::plain(AGENT))
+            .map(|tool| Arc::clone(&tool.runtime))
+    {
+        return run_forked(&invocation, agent, &name, &expanded, &frontmatter).await;
+    }
+    // The skill's `allowed-tools` run without asking for the rest of this turn.
+    codex_skills_extension::grant_skill_tools(
+        &invocation.turn.extension_data,
+        codex_skills_extension::skill_tool_grants(&contents, &path.as_path().to_string_lossy()),
+    );
     Ok(boxed_tool_output(ClaudeToolOutput::new(
         skill::result_text(&name, &expanded),
         json!({ "success": true, "commandName": name }),
+    )))
+}
+
+/// Runs a `context: fork` skill as Claude Code runs it: its expanded text is the prompt of
+/// a subagent of the type `agent` names (`general-purpose` when it names none), with the
+/// skill's `model` (through `[hooks.models]` of `ccn-config.toml`) and `effort`, started and
+/// waited for by the `Agent` tool; the subagent's answer is the result.
+async fn run_forked(
+    invocation: &ToolInvocation,
+    agent: Arc<dyn CoreToolRuntime>,
+    name: &str,
+    prompt: &str,
+    frontmatter: &SkillFrontmatter,
+) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
+    let mut arguments = Map::new();
+    arguments.insert("description".to_string(), json!(format!("Skill {name}")));
+    arguments.insert("prompt".to_string(), json!(prompt));
+    if let Some(agent_type) = &frontmatter.agent {
+        arguments.insert("subagent_type".to_string(), json!(agent_type));
+    }
+    if let Some(model) = frontmatter.model.as_deref().and_then(|model| {
+        invocation
+            .turn
+            .config
+            .mod_config
+            .hooks
+            .model_for(Some(model))
+    }) {
+        arguments.insert("model".to_string(), json!(model));
+    }
+    if let Some(effort) = &frontmatter.effort {
+        arguments.insert("effort".to_string(), json!(effort));
+    }
+    let payload = ToolPayload::Function {
+        arguments: Value::Object(arguments).to_string(),
+    };
+    let output = agent
+        .handle(ToolInvocation {
+            tool_name: ToolName::plain(AGENT),
+            payload: payload.clone(),
+            ..invocation.clone()
+        })
+        .await?;
+    let result = match output.code_mode_result(&payload) {
+        Value::String(text) => text,
+        other => other.to_string(),
+    };
+    Ok(boxed_tool_output(ClaudeToolOutput::new(
+        skill::forked_result_text(name, &result),
+        json!({
+            "success": true,
+            "commandName": name,
+            "status": "forked",
+            "result": result,
+        }),
     )))
 }
