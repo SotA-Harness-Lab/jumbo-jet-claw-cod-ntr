@@ -304,21 +304,16 @@ fn parse_completed(
                 }
             }
             Some(2) if handler.can_apply_control_effects() => {
-                if let Some(reason) = common::trimmed_non_empty(&run_result.stderr) {
-                    status = HookRunStatus::Blocked;
-                    should_block = true;
-                    block_reason = Some(reason.clone());
-                    entries.push(HookOutputEntry {
-                        kind: HookOutputEntryKind::Feedback,
-                        text: reason,
-                    });
-                } else {
-                    status = HookRunStatus::Failed;
-                    entries.push(HookOutputEntry {
-                        kind: HookOutputEntryKind::Error,
-                        text: "PreToolUse hook exited with code 2 but did not write a blocking reason to stderr".to_string(),
-                    });
-                }
+                // Exit code 2 blocks whatever stderr holds, as in Claude Code.
+                let reason = common::trimmed_non_empty(&run_result.stderr)
+                    .unwrap_or_else(|| "No stderr output".to_string());
+                status = HookRunStatus::Blocked;
+                should_block = true;
+                block_reason = Some(reason.clone());
+                entries.push(HookOutputEntry {
+                    kind: HookOutputEntryKind::Feedback,
+                    text: reason,
+                });
             }
             Some(exit_code) => {
                 status = HookRunStatus::Failed;
@@ -782,6 +777,27 @@ mod tests {
                 text: "blocked by policy".to_string(),
             }]
         );
+    }
+
+    #[test]
+    fn exit_code_two_blocks_without_stderr() {
+        let parsed = parse_completed(
+            &handler(),
+            run_result(Some(2), "", "  \n"),
+            Some("turn-1".to_string()),
+        );
+
+        assert_eq!(
+            parsed.data,
+            PreToolUseHandlerData {
+                should_block: true,
+                block_reason: Some("No stderr output".to_string()),
+                additional_contexts_for_model: Vec::new(),
+                updated_input: None,
+                permission: None,
+            }
+        );
+        assert_eq!(parsed.completed.run.status, HookRunStatus::Blocked);
     }
 
     #[test]
