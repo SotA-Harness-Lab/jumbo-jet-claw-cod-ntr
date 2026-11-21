@@ -23,6 +23,7 @@ convert or migrate.
 ## Table of Contents
 
 - [Overview](#overview)
+- [Scope](#scope)
 - [Features](#features)
 - [What Is Not Compatible](#what-is-not-compatible)
 - [Installation](#installation)
@@ -41,6 +42,25 @@ already has a mechanism, the layer hands the work to it; it only adds what Codex
 item by item, are in [Claude Code compatibility](./docs/claude-compat.md).
 
 The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `config.toml`.
+
+## Scope
+
+CodClaw NTR is Codex made to read Claude Code's configuration files as completely as it can. What that
+means for the code:
+
+- **Claude Code compatibility comes first.** Where Codex conflicts with Claude Code's configuration,
+  Codex is changed to follow Claude Code, even when the change is large.
+- **Otherwise Codex stays as it is.** Codex's own features that do not conflict are kept, though keeping
+  them is not a goal in itself. Codex's code is changed no more than compatibility needs, so that upstream
+  Codex's updates keep coming in: the fork may drift from upstream, but never so far that a merge can't be
+  resolved by hand.
+- **Plugins and settings stay Codex's.** The plugin system and the program's settings are core parts of
+  Codex and hard to change much, and rebuilding Claude Code's plugin system here would serve no purpose.
+  Claude Code's plugins are supported where that is easy; the settings are Codex's `config.toml` and this
+  fork's `ccn-config.toml`, and of Claude Code's settings only what the compatibility needs is read.
+
+For a harness that goes all the way to Claude Code's ecosystem, see
+[jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr), which is built on this one.
 
 ## Features
 
