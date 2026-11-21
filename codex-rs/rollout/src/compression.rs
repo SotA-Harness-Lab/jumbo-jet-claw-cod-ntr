@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: read past a rollout line that is not valid UTF-8
+
 use std::fs::File;
 use std::io;
 use std::io::Read;
@@ -333,7 +338,46 @@ impl RolloutLineReader {
     }
 }
 
-type BlockingLineReader = std::io::Lines<std::io::BufReader<Box<dyn Read + Send>>>;
+type BlockingLineReader = LossyLines<std::io::BufReader<Box<dyn Read + Send>>>;
+
+/// The lines of a rollout, as `BufRead::lines` gives them, except that a line
+/// that is not valid UTF-8 is decoded lossily instead of failing the whole read.
+/// A crash while a line is written can cut it inside a multi-byte character;
+/// such a line then fails to parse as JSON and is skipped like any other
+/// unparseable line, and the lines after it are still read.
+struct LossyLines<B> {
+    reader: B,
+}
+
+impl<B: io::BufRead> LossyLines<B> {
+    fn new(reader: B) -> Self {
+        Self { reader }
+    }
+}
+
+impl<B: io::BufRead> Iterator for LossyLines<B> {
+    type Item = io::Result<String>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut line = Vec::new();
+        match self.reader.read_until(b'\n', &mut line) {
+            Ok(0) => None,
+            Ok(_) => {
+                if line.last() == Some(&b'\n') {
+                    line.pop();
+                    if line.last() == Some(&b'\r') {
+                        line.pop();
+                    }
+                }
+                Some(Ok(match String::from_utf8(line) {
+                    Ok(line) => line,
+                    Err(err) => String::from_utf8_lossy(err.as_bytes()).into_owned(),
+                }))
+            }
+            Err(err) => Some(Err(err)),
+        }
+    }
+}
 
 mod worker {
     use std::ffi::OsStr;
@@ -1369,7 +1413,6 @@ mod file_name {
 mod reader {
     use std::fs::File;
     use std::io;
-    use std::io::BufRead;
     use std::io::Read;
     use std::path::Path;
 
@@ -1391,9 +1434,9 @@ mod reader {
             let reader = tokio::task::spawn_blocking(move || {
                 let input = File::open(path.as_path())?;
                 let decoder = super::read_diagnostics::DiagnosticDecoder::new(input)?;
-                Ok::<_, io::Error>(
-                    io::BufReader::new(Box::new(decoder) as Box<dyn Read + Send>).lines(),
-                )
+                Ok::<_, io::Error>(super::LossyLines::new(io::BufReader::new(
+                    Box::new(decoder) as Box<dyn Read + Send>,
+                )))
             })
             .await
             .map_err(io::Error::other)

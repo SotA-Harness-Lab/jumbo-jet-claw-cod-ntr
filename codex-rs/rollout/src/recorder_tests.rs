@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; test resuming past
+// a line that is not valid UTF-8
 
 #![allow(warnings, clippy::all)]
 
@@ -373,6 +374,38 @@ async fn load_rollout_items_defaults_legacy_session_id() -> std::io::Result<()> 
         })
     ));
 
+    Ok(())
+}
+
+#[tokio::test]
+async fn load_rollout_items_skips_a_line_that_is_not_valid_utf8() -> std::io::Result<()> {
+    let home = TempDir::new().expect("temp dir");
+    let uuid = Uuid::new_v4();
+    let thread_id = ThreadId::from_string(&uuid.to_string()).expect("thread id");
+    let rollout_path = write_session_file(home.path(), "2025-01-03T12-00-00", uuid)?;
+    let mut file = fs::OpenOptions::new().append(true).open(&rollout_path)?;
+    // A line cut inside a multi-byte character, as a crash while writing it
+    // leaves it, ended by the newline added when the rollout is reopened.
+    file.write_all(
+        b"{\"timestamp\":\"2025-01-03T12:00:01Z\",\"type\":\"event_msg\",\"payload\":{\"type\":\"user_message\",\"message\":\"\xe4\xbd\n",
+    )?;
+    let user_event = serde_json::json!({
+        "timestamp": "2025-01-03T12:00:02Z",
+        "type": "event_msg",
+        "payload": {
+            "type": "user_message",
+            "message": "After the torn line",
+            "kind": "plain",
+        },
+    });
+    writeln!(file, "{user_event}")?;
+
+    let (items, loaded_thread_id, parse_errors) =
+        RolloutRecorder::load_rollout_items(&rollout_path).await?;
+
+    assert_eq!(loaded_thread_id, Some(thread_id));
+    assert_eq!(parse_errors, 1);
+    assert_eq!(items.len(), 3);
     Ok(())
 }
 

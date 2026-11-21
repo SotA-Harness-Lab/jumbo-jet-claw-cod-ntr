@@ -1,8 +1,12 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: read past a rollout line that is not valid UTF-8
+
 //! Runs a rollout scan on one blocking worker, with cancellation and one reader observation.
 //! Consumers may stop early; canceled reads do not contribute an EOF, failure, or duration.
 
 use std::io;
-use std::io::BufRead;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -11,6 +15,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use super::BlockingLineReader;
+use super::LossyLines;
 use super::ReadFailureSource;
 use super::ReadMetrics;
 use super::RolloutLineReaderInner;
@@ -27,7 +32,9 @@ where
         RolloutLineReaderInner::Plain(lines) => {
             // The fresh reader has no buffered data to preserve when converting the file.
             let file = lines.into_inner().into_inner().into_std().await;
-            io::BufReader::new(Box::new(file) as Box<dyn io::Read + Send>).lines()
+            LossyLines::new(io::BufReader::new(
+                Box::new(file) as Box<dyn io::Read + Send>
+            ))
         }
         RolloutLineReaderInner::Blocking(Some(lines)) => lines,
         RolloutLineReaderInner::Blocking(None) => {

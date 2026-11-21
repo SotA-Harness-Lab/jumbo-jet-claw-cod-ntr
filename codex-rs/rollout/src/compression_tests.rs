@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: test reading a rollout line that is not valid UTF-8
+
 use codex_utils_absolute_path::test_support::PathExt;
 use std::collections::HashMap;
 use std::fs;
@@ -78,7 +83,19 @@ async fn full_history_load_preserves_records_and_errors_across_representations()
         serde_json::to_value(&expected)?
     );
 
-    for bytes in [b" \r\n\n".as_slice(), b"valid utf8\n\xff".as_slice()] {
+    // Lines that are not valid UTF-8 are read lossily and skipped as bad JSON, alike in both
+    // representations.
+    fs::write(&path, b"valid utf8\n\xff")?;
+    let plain = RolloutRecorder::load_rollout_items(&path).await?;
+    compress_now(&path)?;
+    let compressed = RolloutRecorder::load_rollout_items(&path).await?;
+    assert_eq!(
+        serde_json::to_value(&compressed)?,
+        serde_json::to_value(&plain)?
+    );
+    assert_eq!((plain.0.len(), plain.2), (0, 2));
+
+    for bytes in [b" \r\n\n".as_slice()] {
         fs::write(&path, bytes)?;
         let plain = RolloutRecorder::load_rollout_items(&path)
             .await
@@ -226,6 +243,24 @@ async fn read_session_meta_line_preserves_pre_header_and_error_semantics() -> an
 }
 
 #[test]
+fn lossy_lines_reads_past_a_line_that_is_not_valid_utf8() {
+    let input: &[u8] = b"first\r\ncut \xe4\xbd\nlast";
+
+    let lines = LossyLines::new(std::io::Cursor::new(input))
+        .collect::<io::Result<Vec<String>>>()
+        .expect("read lines");
+
+    assert_eq!(
+        lines,
+        vec![
+            "first".to_string(),
+            "cut \u{fffd}".to_string(),
+            "last".to_string()
+        ]
+    );
+}
+
+#[test]
 fn rollout_file_from_path_normalizes_compressed_file_names() -> anyhow::Result<()> {
     let home = TempDir::new()?;
     let uuid = Uuid::from_u128(7);
@@ -354,7 +389,7 @@ async fn compressed_search_preserves_first_visible_snippet_and_no_match() -> any
 }
 
 #[tokio::test]
-async fn compressed_search_only_reports_stream_errors_before_a_match() -> anyhow::Result<()> {
+async fn compressed_search_reads_past_a_line_that_is_not_utf8() -> anyhow::Result<()> {
     let home = TempDir::new()?;
     let uuid = Uuid::from_u128(23);
     let thread_id = ThreadId::from_string(&uuid.to_string())?;
@@ -369,11 +404,8 @@ async fn compressed_search_only_reports_stream_errors_before_a_match() -> anyhow
         Some("needle before unreadable tail".to_owned())
     );
     assert_eq!(
-        first_rollout_content_match_snippet(&path, "absent")
-            .await
-            .unwrap_err()
-            .kind(),
-        io::ErrorKind::InvalidData
+        first_rollout_content_match_snippet(&path, "absent").await?,
+        None
     );
     Ok(())
 }

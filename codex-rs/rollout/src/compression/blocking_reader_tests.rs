@@ -1,7 +1,11 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: read past a rollout line that is not valid UTF-8
+
 //! Exercises cancellation during reads and between records.
 
 use std::io;
-use std::io::BufRead;
 use std::io::Read;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
@@ -10,6 +14,7 @@ use std::sync::atomic::Ordering;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
+use super::LossyLines;
 use super::ReadMetrics;
 use super::read_rollout_lines;
 use super::scan_lines;
@@ -53,7 +58,7 @@ async fn cancellation_during_read_does_not_deliver_the_record() -> anyhow::Resul
     let calls = Arc::new(AtomicUsize::new(0));
     let seen = Arc::clone(&calls);
     let task = tokio::spawn(scan_lines(
-        io::BufReader::new(reader).lines(),
+        LossyLines::new(io::BufReader::new(reader)),
         ReadMetrics::default(),
         move |lines| {
             for line in lines {
