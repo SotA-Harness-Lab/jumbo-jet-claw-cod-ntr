@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: test the time limit on diffing an updated file
+
 use super::*;
 use crate::Hunk;
 use crate::apply_patch;
@@ -274,5 +279,48 @@ E
 f
 g
 "#
+    );
+}
+
+#[tokio::test]
+async fn test_unified_diff_of_files_sharing_no_lines_is_time_bounded() {
+    // Replacing a large file with content that shares no line with it is
+    // Myers' worst case; without a deadline this takes minutes.
+    const LINES: usize = 30_000;
+    let original: String = (0..LINES).map(|i| format!("old line {i}\n")).collect();
+    let dir = tempdir().unwrap();
+    let path = dir.path().join("large.txt");
+    fs::write(&path, &original).unwrap();
+    let chunk = UpdateFileChunk {
+        old_lines: (0..LINES).map(|i| format!("old line {i}")).collect(),
+        new_lines: (0..LINES).map(|i| format!("new line {i}")).collect(),
+        ..Default::default()
+    };
+    let path_uri = PathUri::from_host_native_path(&path).expect("absolute test path");
+
+    let started = std::time::Instant::now();
+    let update = unified_diff_from_chunks(
+        &path_uri,
+        std::slice::from_ref(&chunk),
+        LOCAL_FS.as_ref(),
+        /*sandbox*/ None,
+    )
+    .await
+    .unwrap();
+    let elapsed = started.elapsed();
+
+    assert!(
+        elapsed < std::time::Duration::from_secs(15),
+        "diff took {elapsed:?}"
+    );
+    let expected: String = (0..LINES).map(|i| format!("new line {i}\n")).collect();
+    assert_eq!(update.content, expected);
+    assert_eq!(
+        update
+            .unified_diff
+            .lines()
+            .filter(|line| line.starts_with('-') || line.starts_with('+'))
+            .count(),
+        2 * LINES
     );
 }

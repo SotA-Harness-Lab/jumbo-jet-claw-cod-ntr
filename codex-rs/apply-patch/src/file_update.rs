@@ -1,8 +1,14 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: bound the time spent diffing an updated file
+
 use codex_exec_server::ExecutorFileSystem;
 use codex_exec_server::FileSystemSandboxContext;
 use codex_exec_server::ReadFileOptions;
 use codex_utils_path_uri::PathUri;
 use similar::TextDiff;
+use std::time::Duration;
 
 use crate::ApplyPatchError;
 use crate::IoError;
@@ -14,6 +20,11 @@ use crate::text_file::SourceFile;
 #[cfg(test)]
 #[path = "file_update_tests.rs"]
 mod tests;
+
+/// Longest time spent looking for a minimal diff of an updated file. Myers'
+/// algorithm is quadratic on files that share few lines; past this deadline
+/// the diff falls back to a coarser, still correct, one.
+const DIFF_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub(crate) struct AppliedPatch {
     pub(crate) original_contents: String,
@@ -194,7 +205,9 @@ pub async fn unified_diff_from_chunks_with_context(
         new_contents,
     } = derive_new_contents_from_chunks(path, chunks, fs, /*follow_symlinks*/ true, sandbox)
         .await?;
-    let text_diff = TextDiff::from_lines(&original_contents, &new_contents);
+    let text_diff = TextDiff::configure()
+        .timeout(DIFF_TIMEOUT)
+        .diff_lines(&original_contents, &new_contents);
     let unified_diff = text_diff.unified_diff().context_radius(context).to_string();
     Ok(ApplyPatchFileUpdate {
         unified_diff,
