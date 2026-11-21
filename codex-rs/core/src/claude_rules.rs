@@ -139,6 +139,14 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
         .as_ref()
         .map(|home| home.join(codex_claude_compat::CLAUDE_DIR).join("rules"));
     let include_project = !invocation.turn.config.active_project.is_untrusted();
+    if include_project {
+        crate::claude_nested_skills::discover(
+            &invocation.session.services.session_extension_data,
+            cwd.as_path(),
+            &files,
+        )
+        .await;
+    }
     let mut found = Vec::new();
     for file in files {
         match file_instructions(

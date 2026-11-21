@@ -98,6 +98,7 @@ pub use agent_communication::PendingAgentMessage;
 mod attestation;
 mod claude_env;
 mod claude_memory;
+mod claude_nested_skills;
 mod claude_rules;
 mod code_mode_host;
 mod codex_delegate;

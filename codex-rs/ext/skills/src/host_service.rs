@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: load the Claude Code skills found below the working directory
+
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -55,6 +60,9 @@ pub struct HostSkillsLoadInput {
     effective_skill_roots: Vec<PluginSkillRoot>,
     config_layer_stack: ConfigLayerStack,
     plugin_skill_snapshots: Option<SkillRootSnapshots<PluginSkillRoot>>,
+    /// Claude Code compatibility: `.claude/skills` folders below the working directory,
+    /// found once a file in their directory was worked on, loaded as repository skills.
+    nested_repository_skill_roots: Vec<AbsolutePathBuf>,
 }
 
 impl HostSkillsLoadInput {
@@ -69,7 +77,19 @@ impl HostSkillsLoadInput {
             effective_skill_roots,
             config_layer_stack,
             plugin_skill_snapshots: None,
+            nested_repository_skill_roots: Vec::new(),
         }
+    }
+
+    /// Adds the `.claude/skills` folders found below the working directory during a
+    /// session, deepest first, as Claude Code loads them.
+    pub fn with_nested_repository_skill_roots(mut self, roots: Vec<AbsolutePathBuf>) -> Self {
+        self.nested_repository_skill_roots = roots;
+        self
+    }
+
+    pub fn nested_repository_skill_roots(&self) -> &[AbsolutePathBuf] {
+        &self.nested_repository_skill_roots
     }
 
     /// Retains the turn's configuration and plugin selection for a new repository location.
@@ -307,6 +327,7 @@ impl HostSkillsService {
         if !bundled_skills_enabled {
             roots.retain(|root| root.scope != SkillScope::System);
         }
+        push_nested_repository_roots(&mut roots, input, repository);
         roots
     }
 
@@ -351,6 +372,7 @@ impl HostSkillsService {
         if !bundled_skills_enabled {
             roots.retain(|root| root.scope != SkillScope::System);
         }
+        push_nested_repository_roots(&mut roots, input, repository);
         let skill_config_rules = skill_config_rules_from_stack(&input.config_layer_stack);
         let snapshot = if use_cwd_cache {
             let cache_key = config_skills_cache_key(&roots, &skill_config_rules, input);
@@ -548,6 +570,27 @@ pub(crate) struct ConfigSkillRootCacheKey {
     plugin_identity: Option<PluginIdentity>,
     plugin_namespace: Option<String>,
     access: EnvironmentAccessKey,
+}
+
+/// Appends the nested `.claude/skills` folders of `input` that are not roots already, as
+/// repository roots read through the repository's filesystem.
+fn push_nested_repository_roots<'a>(
+    roots: &mut Vec<HostSkillRoot<'a>>,
+    input: &HostSkillsLoadInput,
+    repository: Option<&'a dyn EnvironmentAccess>,
+) {
+    let Some(repository) = repository else {
+        return;
+    };
+    for path in &input.nested_repository_skill_roots {
+        if roots.iter().all(|root| root.path != *path) {
+            roots.push(HostSkillRoot::host(
+                path.clone(),
+                SkillScope::Repo,
+                repository,
+            ));
+        }
+    }
 }
 
 fn config_skills_cache_key(
