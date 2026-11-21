@@ -33,8 +33,10 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::PoisonError;
 
+use codex_claude_compat::CLAUDE_DIR;
 use codex_claude_compat::PermissionRules;
 use codex_claude_compat::RuleVerdict;
+use codex_claude_compat::SettingsStamp;
 use codex_claude_compat::ToolInput;
 use codex_claude_compat::tools::ripgrep;
 use codex_protocol::approvals::ExecApprovalKind;
@@ -95,9 +97,17 @@ enum RuleDecision {
     Approved,
 }
 
-/// The rules of each project directory of the session, read once.
+/// The rules of each project directory of the session, with what the settings files looked
+/// like and whether the project was trusted when they were read. They are read again once a
+/// file changes, as Claude Code applies an edit to its settings in the running session.
 #[derive(Default)]
-struct SessionRules(Mutex<HashMap<PathBuf, Arc<PermissionRules>>>);
+struct SessionRules(Mutex<HashMap<PathBuf, CachedRules>>);
+
+struct CachedRules {
+    stamp: SettingsStamp,
+    project_trusted: bool,
+    rules: Arc<PermissionRules>,
+}
 
 /// Decisions of the calls in flight, by call id.
 #[derive(Default)]
@@ -157,33 +167,49 @@ impl Drop for PermissionGuard {
     }
 }
 
-/// The rules for the session's project directory.
+/// The rules for the session's project directory, as its settings files are now.
 fn rules_for(session: &Session, project_dir: &Path, project_trusted: bool) -> Arc<PermissionRules> {
+    // Unit tests never read the real home directory's Claude Code settings.
+    if cfg!(test) {
+        return Arc::new(PermissionRules::default());
+    }
+    let home = dirs::home_dir();
+    let claude_home = home.as_ref().map(|home| home.join(CLAUDE_DIR));
+    // The files `PermissionRules::load` reads.
+    let paths = codex_claude_compat::settings_paths(claude_home.as_deref(), Some(project_dir));
+    let stamp = codex_claude_compat::settings_stamp(&paths);
     let cache = session
         .services
         .session_extension_data
         .get_or_init::<SessionRules>(SessionRules::default);
     let mut cache = cache.0.lock().unwrap_or_else(PoisonError::into_inner);
-    let rules = cache.entry(project_dir.to_path_buf()).or_insert_with(|| {
-        // Unit tests never read the real home directory's Claude Code settings.
-        if cfg!(test) {
-            return Arc::new(PermissionRules::default());
-        }
-        let home = dirs::home_dir();
-        let (rules, errors) = PermissionRules::load(home.as_deref(), Some(project_dir));
-        for (path, err) in errors {
-            tracing::warn!(
-                "failed to read Claude Code settings {}: {err}",
-                path.display()
-            );
-        }
-        Arc::new(if project_trusted {
-            rules
-        } else {
-            rules.without_project_allow_rules()
-        })
+    if let Some(cached) = cache.get(project_dir)
+        && cached.stamp == stamp
+        && cached.project_trusted == project_trusted
+    {
+        return Arc::clone(&cached.rules);
+    }
+    let (rules, errors) = PermissionRules::load(home.as_deref(), Some(project_dir));
+    for (path, err) in errors {
+        tracing::warn!(
+            "failed to read Claude Code settings {}: {err}",
+            path.display()
+        );
+    }
+    let rules = Arc::new(if project_trusted {
+        rules
+    } else {
+        rules.without_project_allow_rules()
     });
-    Arc::clone(rules)
+    cache.insert(
+        project_dir.to_path_buf(),
+        CachedRules {
+            stamp,
+            project_trusted,
+            rules: Arc::clone(&rules),
+        },
+    );
+    rules
 }
 
 /// The working directory of the call: its executor's, or the session's when the call has

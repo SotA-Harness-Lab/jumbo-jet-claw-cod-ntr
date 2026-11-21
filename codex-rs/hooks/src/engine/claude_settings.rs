@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::path::PathBuf;
 
 use codex_config::HookEventsToml;
 use codex_config::HookHandlerConfig;
@@ -243,6 +244,31 @@ pub(crate) fn disables_all_hooks(settings: &ClaudeHookSettings) -> bool {
                 .unwrap_or(false)
         })
     })
+}
+
+/// What the settings files looked like when hooks were read from them, to tell when one of
+/// them changed: Claude Code applies an edit to its settings files in the running session.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ClaudeSettingsStamp {
+    paths: Vec<PathBuf>,
+    stamp: codex_claude_compat::SettingsStamp,
+}
+
+impl ClaudeSettingsStamp {
+    /// The stamp of the files `settings` names, taken now.
+    pub(crate) fn of(settings: &ClaudeHookSettings) -> Self {
+        let paths = settings_files(settings)
+            .into_iter()
+            .map(|(path, _)| path.into_path_buf())
+            .collect::<Vec<_>>();
+        let stamp = codex_claude_compat::settings_stamp(&paths);
+        Self { paths, stamp }
+    }
+
+    /// Whether one of the files was written, created or removed since the stamp was taken.
+    pub(crate) fn changed(&self) -> bool {
+        codex_claude_compat::settings_stamp(&self.paths) != self.stamp
+    }
 }
 
 /// The settings files, user's first, each with whether it is the user's own.

@@ -15,6 +15,7 @@ use super::read_settings;
 use super::settings_effort_level;
 use super::settings_env;
 use super::settings_paths;
+use super::settings_stamp;
 
 fn rule(prefix: &[&str], decision: PermissionDecision) -> BashPrefixRule {
     BashPrefixRule {
@@ -207,4 +208,26 @@ fn a_linked_worktree_reads_the_local_file_of_its_main_checkout() {
             main.join(".claude").join("settings.local.json"),
         ]
     );
+}
+
+#[test]
+fn a_stamp_changes_when_a_settings_file_is_written_created_or_removed() {
+    let dir = tempfile::tempdir().unwrap();
+    let written = dir.path().join("settings.json");
+    let created = dir.path().join("settings.local.json");
+    std::fs::write(&written, "{}").unwrap();
+    let paths = vec![written.clone(), created.clone()];
+    let before = settings_stamp(&paths);
+    assert_eq!(settings_stamp(&paths), before);
+
+    std::fs::write(&written, "{\"env\": {}}").unwrap();
+    let after_write = settings_stamp(&paths);
+    assert!(after_write != before);
+
+    std::fs::write(&created, "{}").unwrap();
+    let after_create = settings_stamp(&paths);
+    assert!(after_create != after_write);
+
+    std::fs::remove_file(&created).unwrap();
+    assert!(settings_stamp(&paths) != after_create);
 }

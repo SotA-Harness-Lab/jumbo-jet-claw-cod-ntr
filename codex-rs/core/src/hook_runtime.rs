@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks;
-// follow more of Claude Code's behaviour
+// follow more of Claude Code's behaviour; read Claude Code's hooks again when its settings change
 
 mod executor;
 pub(crate) mod sampling;
@@ -203,6 +203,15 @@ pub(crate) async fn run_pending_session_start_hooks(
     false
 }
 
+/// Reads the hooks again when one of Claude Code's settings files they come from was
+/// written, created or removed since, as Claude Code applies such an edit in the running
+/// session. Checked before each prompt and each tool call.
+async fn refresh_hooks_if_claude_settings_changed(sess: &Session) {
+    if sess.hooks().claude_settings_changed() {
+        sess.refresh_hooks(sess.get_config().await).await;
+    }
+}
+
 /// Runs matching `PreToolUse` hooks before a tool executes.
 ///
 /// `tool_name` is the canonical name serialized to hook stdin. Matcher aliases
@@ -217,6 +226,7 @@ pub(crate) async fn run_pre_tool_use_hooks(
     tool_cwd: Option<codex_utils_path_uri::PathUri>,
     target_environments: &[&str],
 ) -> PreToolUseHookResult {
+    refresh_hooks_if_claude_settings_changed(sess).await;
     let turn_context = &step_context.turn;
     let request = PreToolUseRequest {
         session_id: sess.session_id().into(),
@@ -822,6 +832,7 @@ pub(crate) async fn inspect_pending_input(
 ) -> HookRuntimeOutcome {
     match pending_input_item {
         TurnInput::UserInput { content, .. } => {
+            refresh_hooks_if_claude_settings_changed(sess).await;
             let request = UserPromptSubmitRequest {
                 session_id: sess.session_id().into(),
                 turn_id: turn_context.sub_id.clone(),

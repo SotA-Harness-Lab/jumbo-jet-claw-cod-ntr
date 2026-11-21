@@ -7,6 +7,7 @@
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 use serde_json::Value;
 
@@ -99,6 +100,27 @@ fn owned_by_user(path: &Path) -> bool {
 #[cfg(not(unix))]
 fn owned_by_user(_path: &Path) -> bool {
     true
+}
+
+/// What a list of settings files looked like at one moment: for each, its length and its
+/// modification time, or nothing when it did not exist. Two stamps of the same files differ
+/// once one of them was written, created or removed, which is when Claude Code applies an
+/// edit to its settings in the running session.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SettingsStamp(Vec<Option<(u64, Option<SystemTime>)>>);
+
+/// The [`SettingsStamp`] of `paths` now.
+pub fn settings_stamp(paths: &[PathBuf]) -> SettingsStamp {
+    SettingsStamp(
+        paths
+            .iter()
+            .map(|path| {
+                std::fs::metadata(path)
+                    .ok()
+                    .map(|metadata| (metadata.len(), metadata.modified().ok()))
+            })
+            .collect(),
+    )
 }
 
 /// The largest settings or `.mcp.json` file read; a larger one is an error.

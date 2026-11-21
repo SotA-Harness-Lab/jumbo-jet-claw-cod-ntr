@@ -9,6 +9,7 @@ use tempfile::TempDir;
 
 use super::ClaudeHandlerKind;
 use super::ClaudeHookSettings;
+use super::ClaudeSettingsStamp;
 use super::hook_conditions;
 use super::load;
 
@@ -312,4 +313,33 @@ fn a_malformed_entry_is_left_out_and_the_rest_of_the_file_kept() {
             .map(String::as_str),
         Some("Bash(rm *)")
     );
+}
+
+#[test]
+fn a_stamp_tells_when_a_settings_file_changed() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::create_dir_all(tmp.path().join("project")).expect("create");
+    fs::write(tmp.path().join("home/.claude/settings.json"), "{}").expect("write");
+    let settings = settings(&tmp);
+
+    let stamp = ClaudeSettingsStamp::of(&settings);
+    assert!(!stamp.changed());
+
+    // A project file created during the session, its `.claude` folder with it.
+    fs::create_dir_all(tmp.path().join("project/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("project/.claude/settings.local.json"),
+        r#"{"hooks": {}}"#,
+    )
+    .expect("write");
+    assert!(stamp.changed());
+
+    let stamp = ClaudeSettingsStamp::of(&settings);
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{"disableAllHooks": true}"#,
+    )
+    .expect("write");
+    assert!(stamp.changed());
 }
