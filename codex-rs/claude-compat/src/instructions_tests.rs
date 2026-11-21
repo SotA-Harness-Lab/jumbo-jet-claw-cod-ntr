@@ -12,6 +12,7 @@ use super::InstructionKind;
 use super::directory_instructions;
 use super::file_instructions;
 use super::render_instruction_files;
+use super::rendered_instruction_paths;
 use super::user_instructions;
 use crate::source::LocalFiles;
 
@@ -128,6 +129,32 @@ async fn directory_instructions_load_each_kind_and_keep_imports_inside_the_proje
             project.join(".claude/rules/r.md").display(),
             project.join("CLAUDE.local.md").display(),
         )
+    );
+}
+
+#[test]
+fn rendered_files_are_read_back_from_their_headings() {
+    let files = vec![
+        file("/repo/sub/CLAUDE.md".into(), InstructionKind::Project, "a"),
+        file(
+            "/repo/sub/CLAUDE.local.md".into(),
+            InstructionKind::Local,
+            "Contents of nothing\nb",
+        ),
+        file(
+            "/home/.claude/rules/r.md".into(),
+            InstructionKind::User,
+            "c",
+        ),
+    ];
+
+    assert_eq!(
+        rendered_instruction_paths(&render_instruction_files(&files)),
+        vec![
+            std::path::PathBuf::from("/repo/sub/CLAUDE.md"),
+            std::path::PathBuf::from("/repo/sub/CLAUDE.local.md"),
+            std::path::PathBuf::from("/home/.claude/rules/r.md"),
+        ]
     );
 }
 

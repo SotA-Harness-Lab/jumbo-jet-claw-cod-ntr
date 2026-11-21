@@ -37,6 +37,7 @@ pub use instructions::directory_instructions;
 pub use instructions::file_instructions;
 pub use instructions::load_instruction_file;
 pub use instructions::render_instruction_files;
+pub use instructions::rendered_instruction_paths;
 pub use instructions::user_instructions;
 pub use markdown::Document;
 pub use markdown::import_paths;

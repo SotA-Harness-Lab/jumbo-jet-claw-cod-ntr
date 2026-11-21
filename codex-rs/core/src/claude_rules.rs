@@ -18,6 +18,9 @@ use codex_claude_compat::InstructionFile;
 use codex_claude_compat::LocalFiles;
 use codex_claude_compat::file_instructions;
 use codex_claude_compat::render_instruction_files;
+use codex_claude_compat::rendered_instruction_paths;
+use codex_protocol::models::ContentItem;
+use codex_protocol::models::ResponseItem;
 use codex_protocol::parse_command::ParsedCommand;
 use codex_shell_command::parse_command::parse_command;
 use serde::Deserialize;
@@ -111,11 +114,16 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
         }
     }
 
-    let shown = invocation
-        .session
-        .services
-        .session_extension_data
-        .get_or_init::<ShownFiles>(ShownFiles::default);
+    let extension_data = &invocation.session.services.session_extension_data;
+    let shown = match extension_data.get::<ShownFiles>() {
+        Some(shown) => shown,
+        None => {
+            // A resumed or forked session already holds the files shown before.
+            let history = invocation.session.clone_history().await;
+            let seed = shown_in_history(history.raw_items());
+            extension_data.get_or_init::<ShownFiles>(|| ShownFiles(Mutex::new(seed)))
+        }
+    };
     let new = {
         let mut shown = shown
             .0
@@ -138,6 +146,23 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
         ))],
     )
     .await;
+}
+
+/// The instruction files the developer messages of `history` show, read back from their
+/// headings. After a compaction the history holds only what was shown since.
+fn shown_in_history<'a>(history: impl Iterator<Item = &'a ResponseItem>) -> HashSet<PathBuf> {
+    history
+        .filter_map(|item| match item {
+            ResponseItem::Message { role, content, .. } if role == "developer" => Some(content),
+            _ => None,
+        })
+        .flatten()
+        .filter_map(|content| match content {
+            ContentItem::InputText { text } => Some(text),
+            _ => None,
+        })
+        .flat_map(|text| rendered_instruction_paths(text))
+        .collect()
 }
 
 /// Keeps the start of a file over Claude Code's size limit for an instruction file, so
@@ -294,9 +319,33 @@ mod tests {
     use super::patch_files;
     use super::searched_file;
     use super::shell_command_files;
+    use super::shown_in_history;
+    use crate::context::ContextualUserFragment;
+    use crate::context::HookAdditionalContext;
     use codex_claude_compat::InstructionFile;
     use codex_claude_compat::InstructionKind;
+    use codex_claude_compat::render_instruction_files;
+    use codex_protocol::models::ResponseItem;
     use pretty_assertions::assert_eq;
+    use std::collections::HashSet;
+    use std::path::PathBuf;
+
+    #[test]
+    fn files_shown_before_a_resume_are_read_back_from_the_history() {
+        let shown = InstructionFile {
+            path: "/repo/sub/CLAUDE.md".into(),
+            kind: InstructionKind::Project,
+            content: "sub doc".to_string(),
+        };
+        let message: ResponseItem = ContextualUserFragment::into(HookAdditionalContext::new(
+            codex_hooks::HookContext::harness(render_instruction_files(&[shown])),
+        ));
+
+        assert_eq!(
+            shown_in_history([message].iter()),
+            HashSet::from([PathBuf::from("/repo/sub/CLAUDE.md")])
+        );
+    }
 
     #[test]
     fn a_file_over_the_size_limit_is_cut_to_its_start() {

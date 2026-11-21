@@ -141,6 +141,27 @@ pub fn render_instruction_files(files: &[InstructionFile]) -> String {
         .join("\n\n")
 }
 
+/// The paths of the files a text rendered by [`render_instruction_files`] shows, read back
+/// from their headings.
+pub fn rendered_instruction_paths(text: &str) -> Vec<PathBuf> {
+    const KINDS: [InstructionKind; 4] = [
+        InstructionKind::User,
+        InstructionKind::Project,
+        InstructionKind::Local,
+        InstructionKind::AutoMemory,
+    ];
+    text.lines()
+        .filter_map(|line| {
+            let heading = line.strip_prefix("Contents of ")?.strip_suffix(':')?;
+            KINDS
+                .iter()
+                .find_map(|kind| heading.strip_suffix(kind.description()))
+        })
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .collect()
+}
+
 /// The user's global instructions: `<claude_home>/CLAUDE.md`, then the rules under
 /// `<claude_home>/rules` that are not limited to some files.
 pub async fn user_instructions(
