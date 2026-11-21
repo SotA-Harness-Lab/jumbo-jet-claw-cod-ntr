@@ -231,8 +231,16 @@ impl BashHandler {
                 "isImage": false,
                 "backgroundTaskId": id,
             });
+            let mut message = bash::background_message(&id);
+            if bash::changes_directory(&args.command) {
+                let cwd = workdir
+                    .map(str::to_string)
+                    .unwrap_or_else(|| environment.cwd().inferred_native_path_string());
+                message.push('\n');
+                message.push_str(&bash::background_cwd_note(&cwd));
+            }
             return Ok(boxed_tool_output(ClaudeToolOutput::new(
-                bash::background_message(&id),
+                message,
                 tool_response,
             )));
         }

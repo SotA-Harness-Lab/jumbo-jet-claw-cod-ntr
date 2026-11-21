@@ -124,7 +124,7 @@ pub fn description(available: &[&str], background: bool) -> String {
     let mut text = String::new();
     text.push_str("Executes a given bash command and returns its output.\n\n");
     text.push_str(
-        "The working directory persists between commands, but shell state does not. The shell environment is initialized from the user's profile (bash or zsh).\n\n",
+        "The working directory carries over to the next command while it stays inside the project directory; a `cd` that leaves the project puts the next command back there, and a `cd` in a command that fails or runs in the background does not carry over. Commands of subagents always start in the project directory. Shell state does not persist. The shell environment is initialized from the user's profile (bash or zsh).\n\n",
     );
     text.push_str(&format!(
         "IMPORTANT: Avoid using this tool to run {avoid} commands, unless explicitly instructed or after you have verified that a dedicated tool cannot accomplish your task. Instead, use the appropriate dedicated tool as this will provide a much better experience for the user:\n\n"
@@ -340,6 +340,22 @@ pub fn format_result(run: &CommandRun<'_>) -> (String, bool) {
 pub fn background_message(id: &str) -> String {
     format!(
         "Command running in background with ID: {id}. Read its output with write_stdin, passing session_id {id} and empty chars."
+    )
+}
+
+/// Whether `command` changes its directory (`cd`, `pushd`, `popd`, `chdir`), which does not
+/// carry over when it runs in the background.
+pub fn changes_directory(command: &str) -> bool {
+    command
+        .split(|c: char| c.is_whitespace() || ";&|(){}`".contains(c))
+        .any(|word| matches!(word, "cd" | "pushd" | "popd" | "chdir"))
+}
+
+/// Claude Code's note after the result of a background command that changes its directory:
+/// the next command still starts in `cwd`.
+pub fn background_cwd_note(cwd: &str) -> String {
+    format!(
+        "Session cwd remains {cwd}; directory changes made by the backgrounded command do not apply to subsequent commands."
     )
 }
 
