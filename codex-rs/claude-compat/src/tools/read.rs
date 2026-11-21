@@ -37,7 +37,9 @@ pub fn pages_param_description() -> String {
 const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp"];
 
 /// Extensions Claude Code refuses to read as text (its `BINARY_EXTENSIONS`, less `pdf`, which
-/// is rendered). Images are read as images.
+/// is rendered, with the formats newer versions refuse too: macro-enabled Office files,
+/// columnar and array data, e-books, HEIC and other images it does not show, model weights).
+/// Images are read as images.
 const BINARY_EXTENSIONS: &[&str] = &[
     "png", "jpg", "jpeg", "gif", "bmp", "ico", "webp", "tiff", "tif", "mp4", "mov", "avi", "mkv",
     "webm", "wmv", "flv", "m4v", "mpeg", "mpg", "mp3", "wav", "ogg", "flac", "aac", "m4a", "wma",
@@ -46,7 +48,9 @@ const BINARY_EXTENSIONS: &[&str] = &[
     "xlsx", "ppt", "pptx", "odt", "ods", "odp", "ttf", "otf", "woff", "woff2", "eot", "pyc", "pyo",
     "class", "jar", "war", "ear", "node", "wasm", "rlib", "sqlite", "sqlite3", "db", "mdb", "idx",
     "psd", "ai", "eps", "sketch", "fig", "xd", "blend", "3ds", "max", "swf", "fla", "lockb", "dat",
-    "data",
+    "data", "xlsm", "xlsb", "xltm", "docm", "pptm", "parquet", "avro", "orc", "feather", "arrow",
+    "npy", "npz", "pkl", "pickle", "h5", "hdf5", "epub", "mobi", "azw3", "heic", "heif", "avif",
+    "jxl", "dmg", "apk", "ipa", "onnx", "gguf", "ckpt", "pt", "pth",
 ];
 
 /// The tool description, after Claude Code's. `images` says whether image files are shown

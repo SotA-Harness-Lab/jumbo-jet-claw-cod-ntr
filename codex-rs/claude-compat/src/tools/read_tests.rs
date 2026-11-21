@@ -78,6 +78,9 @@ fn file_kinds_follow_the_extension() {
     assert_eq!(binary_extension("/a/doc.pdf"), None);
     assert_eq!(binary_extension("/a/.bashrc"), None);
     assert_eq!(binary_extension("/a/main.rs"), None);
+    for name in ["t.parquet", "m.XLSM", "b.epub", "p.heic", "w.npz", "d.pkl"] {
+        assert!(binary_extension(name).is_some(), "{name}");
+    }
 }
 
 #[test]
