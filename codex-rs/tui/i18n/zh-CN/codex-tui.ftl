@@ -3691,6 +3691,17 @@ input-exit-desc = 停止当前任务并退出 Codex
 input-switch-side-failed = 切换侧边对话失败：{ $err }
 input-clear-ui-failed = 清除终端界面失败：{ $err }
 
+## app/exit_from_prompt.rs
+exit-running-work-title = 后台仍有工作在运行
+exit-running-work-subtitle = 退出将停止{ $work }。
+exit-running-work-separator = 、
+exit-running-work-turn = 正在进行的这一轮
+exit-running-work-sessions = { $count } 个其他会话或子代理
+exit-running-work-side = { $count } 个侧边对话
+exit-running-work-terminals = { $count } 个后台终端
+exit-running-work-stay = 留下
+exit-running-work-exit = 退出并停止任务
+
 ## app/platform_actions.rs
 
 platform-sandbox-mixed = 本地和远程执行器同时配置时，无法设置 Windows 沙箱。

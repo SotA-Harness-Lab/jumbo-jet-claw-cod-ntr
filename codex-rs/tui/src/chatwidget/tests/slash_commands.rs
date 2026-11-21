@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; /exit asks the app to check for running work
 
 use super::helpers::drain_insert_history_transcript;
 use super::*;
@@ -1603,7 +1603,7 @@ async fn slash_exit_aliases_request_exit() {
     for command in [SlashCommand::Quit, SlashCommand::Exit] {
         let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
         chat.dispatch_command(command);
-        assert_matches!(rx.try_recv(), Ok(AppEvent::Exit(ExitMode::ShutdownFirst)));
+        assert_matches!(rx.try_recv(), Ok(AppEvent::ExitFromPrompt));
     }
 }
 

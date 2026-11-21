@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable; quit on exit, quit, :q and /exit at once
 
 //! The chat composer is the bottom-pane text input state machine.
 //! Rich registers retain original payloads across draft clears and composer replacement;
@@ -426,6 +426,7 @@ mod attachment_state;
 mod completion_target;
 pub(super) mod composer_layout;
 mod draft_state;
+mod exit_words;
 mod footer_state;
 mod history_search;
 mod inline_input;
@@ -3373,6 +3374,10 @@ impl ChatComposer {
 
         if !should_queue && self.handle_paste_enter(now) {
             return (InputResult::None, true);
+        }
+
+        if let Some(command) = self.take_exit_word(should_queue) {
+            return (InputResult::Command(command), true);
         }
 
         if let Some(result) = self.handle_parent_owned_submission() {

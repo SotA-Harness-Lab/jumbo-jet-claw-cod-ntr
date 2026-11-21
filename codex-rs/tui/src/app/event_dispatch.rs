@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; made the interface translatable
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; made the interface translatable; ask before quitting from the prompt while work runs
 
 //! AppEvent dispatch for the TUI app.
 //!
@@ -61,7 +61,12 @@ impl App {
         if matches!(event, AppEvent::ForkCurrentSession { .. }) {
             self.chat_widget.fork_in_progress = false;
         }
-        if self.reconnect.offline && matches!(event, AppEvent::Exit(ExitMode::ShutdownFirst)) {
+        if self.reconnect.offline
+            && matches!(
+                event,
+                AppEvent::Exit(ExitMode::ShutdownFirst) | AppEvent::ExitFromPrompt
+            )
+        {
             return Ok(AppRunControl::Exit(ExitReason::UserRequested));
         }
         if self.reconnect.offline
@@ -1311,6 +1316,9 @@ impl App {
                     self.show_shutdown_feedback(tui)?;
                 }
                 return Ok(self.handle_exit_mode(app_server, mode).await);
+            }
+            AppEvent::ExitFromPrompt => {
+                self.exit_from_prompt().await;
             }
             AppEvent::RunningTaskExit { action, thread_id } => match action {
                 RunningTaskExitAction::RunInBackground => {

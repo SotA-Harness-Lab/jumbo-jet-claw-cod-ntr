@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable; ask before /exit stops running work
 
 //! Slash-command dispatch and local-recall handoff for `ChatWidget`.
 //!
@@ -484,7 +484,7 @@ impl ChatWidget {
                 self.open_memories_popup();
             }
             SlashCommand::Quit | SlashCommand::Exit => {
-                self.request_quit_without_confirmation();
+                self.app_event_tx.send(AppEvent::ExitFromPrompt);
             }
             SlashCommand::Logout => {
                 self.app_event_tx.send(AppEvent::Logout);

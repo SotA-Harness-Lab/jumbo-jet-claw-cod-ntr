@@ -3856,6 +3856,26 @@ input-exit-desc = Stop the current task and exit Codex
 input-switch-side-failed = Failed to switch side conversation: { $err }
 input-clear-ui-failed = Failed to clear terminal UI: { $err }
 
+## app/exit_from_prompt.rs
+exit-running-work-title = Background work is running
+exit-running-work-subtitle = Quitting stops { $work }.
+exit-running-work-separator = {", "}
+exit-running-work-turn = the turn in progress
+exit-running-work-sessions = { $count ->
+    [one] 1 other session or subagent
+   *[other] { $count } other sessions or subagents
+}
+exit-running-work-side = { $count ->
+    [one] 1 side conversation
+   *[other] { $count } side conversations
+}
+exit-running-work-terminals = { $count ->
+    [one] 1 background terminal
+   *[other] { $count } background terminals
+}
+exit-running-work-stay = Stay
+exit-running-work-exit = Exit and stop tasks
+
 ## app/platform_actions.rs
 
 platform-sandbox-mixed = Windows sandbox setup is unavailable when local and remote executors are configured together.

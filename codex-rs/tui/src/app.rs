@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; made the interface translatable
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; made the interface translatable; ask before quitting from the prompt while work runs
 
 //! Top-level TUI application state and runtime wiring.
 //!
@@ -241,6 +241,7 @@ mod daemon_menu;
 mod daybreak;
 mod empty_state_policy;
 mod event_dispatch;
+mod exit_from_prompt;
 mod exit_summary;
 mod experimental_features;
 mod feedback_upload;
