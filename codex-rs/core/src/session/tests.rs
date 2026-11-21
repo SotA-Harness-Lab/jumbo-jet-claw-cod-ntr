@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; run more of
+// Claude Code's hooks
 
 use crate::McpRefreshReason;
 use crate::agent::LocalAgentControl;
@@ -11,6 +12,9 @@ use codex_protocol::RequestCountry;
 use codex_thread_store::ThreadPersistenceMetadata;
 #[path = "compaction_replay_tests.rs"]
 mod compaction_replay_tests;
+
+#[path = "idle_prompt_tests.rs"]
+mod idle_prompt_tests;
 
 #[path = "mailbox_prewarm_tests.rs"]
 mod mailbox_prewarm_tests;

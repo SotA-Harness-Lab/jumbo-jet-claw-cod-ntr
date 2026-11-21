@@ -324,6 +324,8 @@ impl Session {
         input: Vec<TurnInput>,
         task: T,
     ) -> TurnInputSubmission {
+        // The user is not left waiting once another turn starts.
+        self.cancel_idle_prompt_wait().await;
         // Replace the cache; in-flight acquisitions retain their previous Arc.
         self.services
             .thread_extension_data
@@ -1045,6 +1047,8 @@ impl Session {
         } else {
             ThreadIdleCause::Completed
         };
+        // Claude Code tells the user it is waiting only after a turn that ended on its own.
+        let waits_for_user = !sampling_interrupted && idle_cause != ThreadIdleCause::Interrupted;
         let event = if let Some((reason, error)) = abort {
             if reason == TurnAbortReason::Interrupted {
                 run_turn_interrupt_hooks(self, &turn_context, &turn_state).await;
@@ -1114,6 +1118,10 @@ impl Session {
         }
         if cleared_active_turn {
             self.maybe_start_turn_for_pending_work().await;
+            let idle = waits_for_user && self.active_turn.lock().await.is_none();
+            if idle {
+                self.start_idle_prompt_wait(Arc::clone(&turn_context)).await;
+            }
         }
         None
     }

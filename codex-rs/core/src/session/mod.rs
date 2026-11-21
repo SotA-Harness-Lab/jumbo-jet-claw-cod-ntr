@@ -267,6 +267,7 @@ mod extension_interruption;
 pub(crate) mod extension_metrics;
 mod guardian_checkpoint;
 mod handlers;
+mod idle_prompt;
 pub(crate) mod inject;
 mod reasoning_effort;
 pub(crate) mod submission;

@@ -419,7 +419,7 @@ pub(crate) async fn run_post_tool_use_failure_hooks(
 
 /// Starts Claude Code's `Notification` hooks while Codex waits for the user, without
 /// holding up the prompt. `notification_type` is Claude Code's: `permission_prompt`,
-/// `elicitation_dialog` or `elicitation_url_dialog`.
+/// `elicitation_dialog`, `elicitation_url_dialog` or `idle_prompt`.
 pub(crate) async fn run_notification_hooks(
     sess: &Session,
     turn_context: &TurnContext,
@@ -430,16 +430,38 @@ pub(crate) async fn run_notification_hooks(
     if !hooks.has_notification_hooks() {
         return;
     }
+    let (notification_type, title) =
+        notification_for_source(&turn_context.session_source, notification_type);
     hooks.spawn_notification(NotificationRequest {
         session_id: sess.session_id().into(),
         #[allow(deprecated)]
         cwd: turn_context.cwd.clone(),
         transcript_path: sess.hook_transcript_path().await,
         permission_mode: hook_permission_mode(turn_context.approval_policy()),
-        notification_type: notification_type.to_string(),
+        notification_type,
         message,
-        title: None,
+        title,
     });
+}
+
+/// The notification type and title for a session of `source`. A subagent works in the
+/// background, so its prompts are Claude Code's `agent_needs_input`, sent when a
+/// background session starts waiting on the user, titled with the agent's name.
+fn notification_for_source(
+    source: &SessionSource,
+    notification_type: &str,
+) -> (String, Option<String>) {
+    match source {
+        SessionSource::SubAgent(SubAgentSource::ThreadSpawn {
+            agent_nickname,
+            agent_role,
+            ..
+        }) => (
+            "agent_needs_input".to_string(),
+            agent_nickname.clone().or_else(|| agent_role.clone()),
+        ),
+        _ => (notification_type.to_string(), None),
+    }
 }
 
 /// Starts Claude Code's `StopFailure` hooks after a turn ended on `error` instead of an
@@ -1288,12 +1310,52 @@ mod tests {
     use super::emit_hook_started_events;
     use super::hook_run_analytics_payload;
     use super::hook_run_metric_tags;
+    use super::notification_for_source;
     use crate::session::tests::make_session_and_context;
     use crate::session::tests::make_session_and_context_with_rx;
     use codex_protocol::protocol::HookCompletedEvent;
     use codex_protocol::protocol::HookRunSummary;
     use codex_utils_absolute_path::test_support::PathBufExt;
     use codex_utils_absolute_path::test_support::test_path_buf;
+
+    #[test]
+    fn subagent_prompts_are_agent_needs_input() {
+        use codex_protocol::ThreadId;
+        use codex_protocol::protocol::SessionSource;
+        use codex_protocol::protocol::SubAgentSource;
+
+        assert_eq!(
+            notification_for_source(&SessionSource::Cli, "permission_prompt"),
+            ("permission_prompt".to_string(), None)
+        );
+        let subagent = |agent_nickname: Option<&str>| {
+            SessionSource::SubAgent(SubAgentSource::ThreadSpawn {
+                parent_thread_id: ThreadId::new(),
+                depth: 1,
+                agent_path: None,
+                agent_nickname: agent_nickname.map(str::to_string),
+                agent_role: Some("explorer".to_string()),
+            })
+        };
+        assert_eq!(
+            notification_for_source(&subagent(Some("Ada")), "permission_prompt"),
+            ("agent_needs_input".to_string(), Some("Ada".to_string()))
+        );
+        assert_eq!(
+            notification_for_source(&subagent(/*agent_nickname*/ None), "elicitation_dialog"),
+            (
+                "agent_needs_input".to_string(),
+                Some("explorer".to_string())
+            )
+        );
+        assert_eq!(
+            notification_for_source(
+                &SessionSource::SubAgent(SubAgentSource::Review),
+                "permission_prompt"
+            ),
+            ("permission_prompt".to_string(), None)
+        );
+    }
 
     #[test]
     fn additional_context_messages_stay_separate_and_ordered() {
