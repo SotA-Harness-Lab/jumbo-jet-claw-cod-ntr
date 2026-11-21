@@ -143,3 +143,30 @@ fn a_linked_worktree_is_known_by_its_main_checkout() {
     assert_eq!(super::claude_json_project_root(&worktree.join("sub")), main);
     assert_eq!(super::claude_json_project_root(&forged), forged);
 }
+
+#[test]
+fn mcp_timeouts_read_milliseconds_as_parse_int_does() {
+    use std::time::Duration;
+
+    let env = |name: &str| match name {
+        "MCP_TIMEOUT" => Some(" 45000ms".to_string()),
+        "MCP_TOOL_TIMEOUT" => Some("600000".to_string()),
+        _ => None,
+    };
+    assert_eq!(
+        super::mcp_timeouts(&env),
+        super::McpTimeouts {
+            startup: Some(Duration::from_secs(45)),
+            tool: Some(Duration::from_secs(600)),
+        }
+    );
+
+    for unset in ["", "0", "abc", "-5"] {
+        let env = |_: &str| Some(unset.to_string());
+        assert_eq!(super::mcp_timeouts(&env), super::McpTimeouts::default());
+    }
+    assert_eq!(
+        super::mcp_timeouts(&|_| None),
+        super::McpTimeouts::default()
+    );
+}

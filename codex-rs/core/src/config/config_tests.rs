@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; test
+// Claude Code's MCP time limits
 
 use crate::config::edit::ConfigEdit;
 use crate::config::edit::ConfigEditsBuilder;
@@ -454,6 +455,39 @@ async fn goal_max_token_budget_requires_positive_integer() {
             "invalid goal token budget should be rejected: {invalid}"
         );
     }
+}
+
+#[test]
+fn claude_code_mcp_timeouts_fill_only_what_a_server_leaves_unset() {
+    let timeouts = codex_claude_compat::McpTimeouts {
+        startup: Some(Duration::from_secs(45)),
+        tool: Some(Duration::from_secs(600)),
+    };
+    let mut bare = stdio_mcp("bare");
+    apply_claude_code_mcp_timeouts(&mut bare, timeouts);
+    assert_eq!(
+        (bare.startup_timeout_sec, bare.tool_timeout_sec),
+        (
+            Some(Duration::from_secs(45)),
+            Some(Duration::from_secs(600))
+        )
+    );
+
+    // A server's own `timeout` became its `tool_timeout_sec`, which wins.
+    let mut own = stdio_mcp("own");
+    own.tool_timeout_sec = Some(Duration::from_secs(5));
+    apply_claude_code_mcp_timeouts(&mut own, timeouts);
+    assert_eq!(
+        (own.startup_timeout_sec, own.tool_timeout_sec),
+        (Some(Duration::from_secs(45)), Some(Duration::from_secs(5)))
+    );
+
+    let mut unset = stdio_mcp("unset");
+    apply_claude_code_mcp_timeouts(&mut unset, codex_claude_compat::McpTimeouts::default());
+    assert_eq!(
+        (unset.startup_timeout_sec, unset.tool_timeout_sec),
+        (None, None)
+    );
 }
 
 #[test]

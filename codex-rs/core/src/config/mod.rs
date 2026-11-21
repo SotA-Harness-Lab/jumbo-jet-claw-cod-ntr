@@ -2008,6 +2008,12 @@ impl Config {
         }
         let use_launch_cwds = self.features.enabled(Feature::McpSharedReplCwd)
             && self.features.enabled(Feature::McpConnectionSharing);
+        let claude_compat = !cfg!(test) && codex_claude_compat::enabled();
+        let claude_mcp_timeouts = if claude_compat {
+            claude_code_mcp_timeouts(&self.cwd, self.active_project.is_trusted())
+        } else {
+            codex_claude_compat::McpTimeouts::default()
+        };
         for (plugin_order, plugin) in loaded_plugins
             .plugins()
             .iter()
@@ -2015,6 +2021,17 @@ impl Config {
             .enumerate()
         {
             let mut plugin_mcp_servers = plugin.mcp_servers.clone();
+            // A Claude Code plugin's servers take Claude Code's MCP time limits.
+            if plugin
+                .root
+                .as_path()
+                .join(".claude-plugin/plugin.json")
+                .is_file()
+            {
+                for server in plugin_mcp_servers.values_mut() {
+                    apply_claude_code_mcp_timeouts(server, claude_mcp_timeouts);
+                }
+            }
             self.apply_plugin_mcp_server_requirements(&plugin.config_name, &mut plugin_mcp_servers);
             let attribution = if plugin.is_agent_plugin() {
                 McpPluginAttribution::agent_plugin(
@@ -2052,9 +2069,10 @@ impl Config {
             catalog.register(registration);
         }
         // Claude Code's MCP servers, below Codex's own servers of the same name.
-        if !cfg!(test) && codex_claude_compat::enabled() {
+        if claude_compat {
             let project_trusted = self.active_project.is_trusted();
-            for (name, server) in claude_code_mcp_servers(&self.cwd, project_trusted) {
+            for (name, mut server) in claude_code_mcp_servers(&self.cwd, project_trusted) {
+                apply_claude_code_mcp_timeouts(&mut server, claude_mcp_timeouts);
                 if !self.mcp_servers.get().contains_key(&name) {
                     catalog.register(McpServerRegistration::from_config(name, server));
                 }
@@ -5612,6 +5630,17 @@ fn add_claude_code_env(
     if cfg!(test) || !codex_claude_compat::enabled() {
         return;
     }
+    for (name, value) in claude_code_settings_env(cwd, project_trusted) {
+        policy.r#set.entry(name).or_insert(value);
+    }
+}
+
+/// The `env` entries of Claude Code's settings files (the user's, then the project's, later
+/// files winning); a project's files only once the project is trusted.
+fn claude_code_settings_env(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) -> std::collections::HashMap<String, String> {
     let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
     let mut env = std::collections::HashMap::new();
     let project_dir = project_trusted.then_some(cwd.as_path());
@@ -5627,8 +5656,35 @@ fn add_claude_code_env(
             }
         }
     }
-    for (name, value) in env {
-        policy.r#set.entry(name).or_insert(value);
+    env
+}
+
+/// The time limits Claude Code's `MCP_TIMEOUT` and `MCP_TOOL_TIMEOUT` give its MCP servers,
+/// read from the `env` of its settings files and then from Codex's own environment.
+fn claude_code_mcp_timeouts(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) -> codex_claude_compat::McpTimeouts {
+    let settings_env = claude_code_settings_env(cwd, project_trusted);
+    codex_claude_compat::mcp_timeouts(&|name| {
+        settings_env
+            .get(name)
+            .cloned()
+            .or_else(|| std::env::var(name).ok())
+    })
+}
+
+/// Gives a server of Claude Code's the time limits of Claude Code's environment where its
+/// declaration sets none; its own `timeout` (already its `tool_timeout_sec`) wins.
+fn apply_claude_code_mcp_timeouts(
+    server: &mut McpServerConfig,
+    timeouts: codex_claude_compat::McpTimeouts,
+) {
+    if server.startup_timeout_sec.is_none() {
+        server.startup_timeout_sec = timeouts.startup;
+    }
+    if server.tool_timeout_sec.is_none() {
+        server.tool_timeout_sec = timeouts.tool;
     }
 }
 

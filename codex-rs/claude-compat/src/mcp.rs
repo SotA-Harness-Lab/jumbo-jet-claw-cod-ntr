@@ -7,6 +7,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use serde_json::Map;
 use serde_json::Value;
@@ -103,6 +104,42 @@ fn expand_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
             })
             .collect(),
     )
+}
+
+/// The time limits Claude Code's environment sets for its MCP servers: `MCP_TIMEOUT`, how
+/// long a server may take to start, and `MCP_TOOL_TIMEOUT`, how long a tool call may take,
+/// both in milliseconds. A variable that is unset, not a number or zero gives `None`, as
+/// Claude Code then uses its default; a server's own `timeout` wins over `tool`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct McpTimeouts {
+    pub startup: Option<Duration>,
+    pub tool: Option<Duration>,
+}
+
+/// Reads [`McpTimeouts`] through `env`, which should see the `env` of Claude Code's settings
+/// files before the process environment, as Claude Code puts the former into its own.
+pub fn mcp_timeouts(env: &dyn Fn(&str) -> Option<String>) -> McpTimeouts {
+    let millis = |name: &str| {
+        env(name)
+            .and_then(|value| parse_int_millis(&value))
+            .map(Duration::from_millis)
+    };
+    McpTimeouts {
+        startup: millis("MCP_TIMEOUT"),
+        tool: millis("MCP_TOOL_TIMEOUT"),
+    }
+}
+
+/// The leading decimal digits of `value` after leading whitespace (JavaScript's `parseInt`,
+/// which Claude Code uses), or `None` when there are none or they read as zero. A negative
+/// value is taken as unset.
+fn parse_int_millis(value: &str) -> Option<u64> {
+    let value = value.trim_start();
+    let value = value.strip_prefix('+').unwrap_or(value);
+    let digits = value
+        .find(|c: char| !c.is_ascii_digit())
+        .map_or(value, |end| &value[..end]);
+    digits.parse::<u64>().ok().filter(|millis| *millis > 0)
 }
 
 /// The key of the project `cwd` is in, in `projects` of `~/.claude.json`: the main checkout
