@@ -625,6 +625,37 @@ fn rules_for_everything_under_an_anchor_match() {
 }
 
 #[test]
+fn a_pattern_that_is_no_glob_guards_the_path_it_spells() {
+    let rules = local_rules(
+        &["Read(docs/{draft)", "Read(*.md)"],
+        &["Edit(out/[z-a].txt)"],
+        &["Read(data/{raw/secret.csv)"],
+    );
+    assert_eq!(
+        read(&rules, "/work/project/data/{raw/secret.csv"),
+        RuleVerdict::Deny {
+            rule: "Read(data/{raw/secret.csv)".to_string(),
+            message: "Permission to read /work/project/data/{raw/secret.csv has been denied."
+                .to_string(),
+        }
+    );
+    assert_eq!(
+        read(&rules, "/work/project/data/raw/secret.csv"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/out/[z-a].txt"),
+        ask("Edit(out/[z-a].txt)")
+    );
+    // An allow rule that is no glob allows nothing, and the other rules still work.
+    assert_eq!(
+        read(&rules, "/work/project/docs/{draft"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(read(&rules, "/work/project/README.md"), allow("Read(*.md)"));
+}
+
+#[test]
 fn edit_rules_cover_write_and_allow_reading() {
     let rules = local_rules(
         &["Edit(src/**)"],

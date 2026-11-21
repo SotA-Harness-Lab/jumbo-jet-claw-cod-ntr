@@ -228,7 +228,7 @@ impl PermissionRules {
             project_dir: project_dir.map(Path::to_path_buf),
             file_matchers: Vec::new(),
         };
-        this.file_matchers = this.build_file_matchers();
+        this.file_matchers = this.build_file_matchers(/*warn*/ true);
         this
     }
 
@@ -247,7 +247,8 @@ impl PermissionRules {
         self.rules.retain(|rule| {
             rule.decision != PermissionDecision::Allow || rule.source == RuleSource::User
         });
-        self.file_matchers = self.build_file_matchers();
+        // What was wrong with the rules left was said when they were first built.
+        self.file_matchers = self.build_file_matchers(/*warn*/ false);
         self
     }
 
@@ -519,8 +520,10 @@ impl PermissionRules {
     }
 
     /// The gitignore matchers of the `Read` and `Edit` rules, one for each tool, decision
-    /// and place the patterns are anchored at.
-    fn build_file_matchers(&self) -> Vec<FileMatcher> {
+    /// and place the patterns are anchored at. A pattern that is no usable glob guards the
+    /// path it spells in a deny or ask rule, and allows nothing in an allow rule, as in
+    /// Claude Code; with `warn`, each such rule is logged.
+    fn build_file_matchers(&self, warn: bool) -> Vec<FileMatcher> {
         let mut matchers = Vec::new();
         for tool in [FILE_READ_TOOL, FILE_EDIT_TOOL] {
             for decision in [
@@ -564,12 +567,35 @@ impl PermissionRules {
                     if builder.case_insensitive(true).is_err() {
                         continue;
                     }
-                    let lines = patterns
-                        .into_iter()
-                        .map(|(pattern, index)| (gitignore_line(&pattern, decision), index))
-                        .collect::<Vec<_>>();
-                    for (line, _) in &lines {
-                        let _ = builder.add_line(None, line);
+                    let mut lines = Vec::new();
+                    for (pattern, index) in patterns {
+                        let line = gitignore_line(&pattern, decision);
+                        let error = match builder.add_line(None, &line) {
+                            Ok(_) => {
+                                lines.push((line, index));
+                                continue;
+                            }
+                            Err(error) => error,
+                        };
+                        let rule = self.rules.get(index).map_or("", |rule| rule.text.as_str());
+                        if decision == PermissionDecision::Allow {
+                            if warn {
+                                tracing::warn!(
+                                    "Claude Code permission rule `{rule}` allows nothing: {error}"
+                                );
+                            }
+                            continue;
+                        }
+                        if warn {
+                            tracing::warn!(
+                                "Claude Code permission rule `{rule}` guards only the path it \
+                                 spells: {error}"
+                            );
+                        }
+                        let literal = escape_glob(&line);
+                        if builder.add_line(None, &literal).is_ok() {
+                            lines.push((literal, index));
+                        }
                     }
                     let Ok(matcher) = builder.build() else {
                         continue;
@@ -725,6 +751,19 @@ fn gitignore_line(pattern: &str, decision: PermissionDecision) -> String {
         return format!("/{directory}");
     }
     directory.to_string()
+}
+
+/// `line` with every character a glob gives a meaning to escaped, so that it matches the
+/// path it spells; `/` keeps its meaning in gitignore.
+fn escape_glob(line: &str) -> String {
+    let mut escaped = String::with_capacity(line.len());
+    for c in line.chars() {
+        if matches!(c, '\\' | '*' | '?' | '[' | ']' | '{' | '}') {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
 }
 
 /// A host name as `WebFetch(domain:...)` rules compare it: in lower case, without one
