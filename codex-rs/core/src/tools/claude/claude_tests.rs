@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use codex_claude_compat::PermissionRules;
+use codex_claude_compat::RuleSource;
 use codex_claude_compat::tools::edit::apply_edit;
 use codex_claude_compat::tools::patch::add_file_patch;
 use codex_claude_compat::tools::patch::update_file_patch;
@@ -15,6 +17,7 @@ use serde_json::json;
 use super::ToolSwap;
 use super::bash::exec_command_arguments_for_test;
 use super::edit;
+use super::permissions::remove_tools_denied_by;
 use super::read;
 use super::shell_cwd::NextCwd;
 use super::shell_cwd::next_cwd;
@@ -72,6 +75,33 @@ fn file_tools_replace_apply_patch_and_view_image() {
         .collect::<Vec<_>>();
     assert_eq!(names, vec!["Edit", "Read", "Write"]);
     assert!(registry.tool(&ToolName::plain("apply_patch")).is_none());
+}
+
+#[test]
+fn tools_denied_as_a_whole_are_not_offered() {
+    let mut registry = ToolRegistry::from_tools([
+        Arc::new(ApplyPatchHandler::default()) as Arc<dyn CoreToolRuntime>,
+        Arc::new(ViewImageHandler::default()) as Arc<dyn CoreToolRuntime>,
+    ]);
+    let mut swap = ToolSwap::new(&mut registry);
+    read::install(&mut swap);
+    write::install(&mut swap);
+    edit::install(&mut swap);
+    let rules = PermissionRules::new(
+        &[(
+            RuleSource::Local,
+            json!({ "permissions": { "deny": ["Write", "Edit(src/**)"], "ask": ["Read"] } }),
+        )],
+        None,
+        None,
+    );
+    remove_tools_denied_by(&rules, &mut registry);
+    let names = registry
+        .tool_names_for_test()
+        .into_iter()
+        .map(|name| name.name)
+        .collect::<Vec<_>>();
+    assert_eq!(names, vec!["Edit", "Read"]);
 }
 
 #[tokio::test]

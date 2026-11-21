@@ -48,8 +48,11 @@ use crate::function_tool::FunctionCallError;
 use crate::guardian::GuardianReviewContext;
 use crate::sandboxing::SandboxPermissions;
 use crate::session::session::Session;
+use crate::session::turn_context::TurnContext;
 use crate::tools::context::ToolInvocation;
+use crate::tools::handlers::McpHandler;
 use crate::tools::handlers::selected_executor;
+use crate::tools::registry::ToolRegistry;
 use crate::tools::sandboxing::ExecApprovalRequirement;
 
 /// Claude Code's answer to the model when the user declines a tool call.
@@ -195,6 +198,51 @@ fn call_directory(invocation: &ToolInvocation) -> (PathUri, Option<String>) {
             Some(environment.selection.environment_id.clone()),
         ),
         Err(_) => (PathUri::from_abs_path(&invocation.turn.config.cwd), None),
+    }
+}
+
+/// Takes out of the registry every tool a Claude Code deny rule denies as a whole
+/// (`WebSearch`, `mcp__<server>`, `mcp__<server>__<tool>`, ...), so that the model is not
+/// offered tools it may not call, as Claude Code leaves them out. Tools are matched by the
+/// names the rules use: Claude Code's names for the Claude tools, `mcp__<server>__<tool>`
+/// for MCP tools. A rule with content (`Bash(rm *)`) takes nothing away.
+pub(crate) fn remove_denied_tools(
+    session: &Session,
+    turn_context: &TurnContext,
+    registry: &mut ToolRegistry,
+) {
+    if !super::enabled(turn_context) {
+        return;
+    }
+    let rules = rules_for(
+        session,
+        turn_context.config.cwd.as_path(),
+        turn_context.config.active_project.is_trusted(),
+    );
+    remove_tools_denied_by(&rules, registry);
+}
+
+/// Takes out of the registry the tools `rules` deny as a whole.
+pub(super) fn remove_tools_denied_by(rules: &PermissionRules, registry: &mut ToolRegistry) {
+    if rules.is_empty() {
+        return;
+    }
+    let denied = registry
+        .entries()
+        .filter(|tool| {
+            let name = match tool.runtime.mcp_tool_info() {
+                Some(info) => McpHandler::hook_tool_name_for(info).name().to_string(),
+                None => crate::tools::flat_tool_name(&tool.runtime.tool_name()).into_owned(),
+            };
+            matches!(
+                rules.evaluate(&name, ToolInput::Tool),
+                RuleVerdict::Deny { .. }
+            )
+        })
+        .map(|tool| tool.runtime.tool_name())
+        .collect::<Vec<_>>();
+    for name in denied {
+        registry.remove(&name);
     }
 }
 
