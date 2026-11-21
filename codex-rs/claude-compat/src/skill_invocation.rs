@@ -12,7 +12,7 @@ use crate::markdown::parse_document;
 
 const SKILL_DIR_PLACEHOLDER: &str = "${CLAUDE_SKILL_DIR}";
 const SESSION_ID_PLACEHOLDER: &str = "${CLAUDE_SESSION_ID}";
-const ARGUMENTS_PLACEHOLDER: &str = "$ARGUMENTS";
+const ARGUMENTS_WORD: &str = "ARGUMENTS";
 
 /// The arguments of a skill invoked as `/<name> <arguments>`: the rest of `text` when it
 /// starts with `/<name>` followed by whitespace or by nothing, trimmed. `None` when `text`
@@ -147,158 +147,117 @@ pub fn parse_arguments(arguments: &str) -> Vec<String> {
     words
 }
 
-/// Substitutes argument placeholders as Claude Code does, in this order: named arguments
-/// (`$<name>` not followed by `[` or a word character), `$ARGUMENTS[N]`, `$N` (not followed
-/// by a word character), then `$ARGUMENTS`. A named argument past the last argument
-/// becomes empty; `$ARGUMENTS[N]` and `$N` past the last argument stay as written, as in
-/// newer versions of Claude Code, so that the `$1` of an `awk` program is not lost. When
-/// nothing was replaced and `arguments` is not empty, `ARGUMENTS: <arguments>` is appended
-/// after a blank line.
+/// Substitutes argument placeholders as Claude Code does, in one pass from left to right,
+/// so that a value put in is never read again for placeholders. At each `$`, in this
+/// order: a named argument (`$<name>` not followed by `[` or a word character),
+/// `$ARGUMENTS[N]`, `$N` (not followed by a word character), then `$ARGUMENTS`. A named
+/// argument past the last argument becomes empty; `$ARGUMENTS[N]` and `$N` past the last
+/// argument stay as written, as in newer versions of Claude Code, so that the `$1` of an
+/// `awk` program is not lost. When no placeholder received an argument (one kept as
+/// written does not count) and `arguments` is not empty, `ARGUMENTS: <arguments>` is
+/// appended after a blank line.
 pub fn substitute_arguments(content: &str, arguments: &str, names: &[String]) -> String {
     let parsed = parse_arguments(arguments);
-    let argument = |index: usize| parsed.get(index).map(String::as_str);
+    let mut out = String::with_capacity(content.len());
+    let mut received = false;
+    let mut rest = content;
+    while let Some(start) = rest.find('$') {
+        out.push_str(&rest[..start]);
+        let after_sigil = &rest[start + 1..];
+        let (len, value) = match placeholder_at(after_sigil, names) {
+            Some(Placeholder::Named { index, len }) => {
+                (len, Some(parsed.get(index).map_or("", String::as_str)))
+            }
+            Some(Placeholder::Indexed { index, len }) => (
+                len,
+                index
+                    .and_then(|index| parsed.get(index))
+                    .map(String::as_str),
+            ),
+            Some(Placeholder::All { len }) => (len, Some(arguments)),
+            None => (0, None),
+        };
+        match value {
+            Some(value) => {
+                out.push_str(value);
+                received = true;
+            }
+            None => out.push_str(&rest[start..start + 1 + len]),
+        }
+        rest = &after_sigil[len..];
+    }
+    out.push_str(rest);
 
-    let mut result = content.to_string();
+    if !received && !arguments.is_empty() {
+        out.push_str("\n\nARGUMENTS: ");
+        out.push_str(arguments);
+    }
+    out
+}
+
+/// A placeholder found after a `$`, with the length of its text after the `$`.
+enum Placeholder {
+    /// The `index`-th name of the `arguments` frontmatter.
+    Named { index: usize, len: usize },
+    /// `$ARGUMENTS[N]` or `$N`; `index` is `None` when `N` is too large to be one.
+    Indexed { index: Option<usize>, len: usize },
+    /// `$ARGUMENTS`.
+    All { len: usize },
+}
+
+/// The placeholder that `after_sigil`, the text after a `$`, starts with.
+fn placeholder_at(after_sigil: &str, names: &[String]) -> Option<Placeholder> {
     for (index, name) in names.iter().enumerate() {
-        result = replace_named(&result, name, argument(index).unwrap_or(""));
+        if name.is_empty() {
+            continue;
+        }
+        if let Some(tail) = after_sigil.strip_prefix(name.as_str())
+            && !tail
+                .chars()
+                .next()
+                .is_some_and(|next| next == '[' || is_word_char(next))
+        {
+            return Some(Placeholder::Named {
+                index,
+                len: name.len(),
+            });
+        }
     }
-    result = replace_indexed(
-        &result,
-        &format!("{ARGUMENTS_PLACEHOLDER}["),
-        "]",
-        &argument,
-    );
-    result = replace_shorthand(&result, &argument);
-    result = replace_whole_arguments(&result, arguments);
+    if let Some(tail) = after_sigil.strip_prefix(ARGUMENTS_WORD) {
+        if let Some(inner) = tail.strip_prefix('[') {
+            let digits = leading_digits(inner);
+            if digits > 0 && inner[digits..].starts_with(']') {
+                return Some(Placeholder::Indexed {
+                    index: inner[..digits].parse().ok(),
+                    len: ARGUMENTS_WORD.len() + digits + "[]".len(),
+                });
+            }
+        }
+        return Some(Placeholder::All {
+            len: ARGUMENTS_WORD.len(),
+        });
+    }
+    let digits = leading_digits(after_sigil);
+    let followed_by_word = after_sigil[digits..]
+        .chars()
+        .next()
+        .is_some_and(is_word_char);
+    (digits > 0 && !followed_by_word).then(|| Placeholder::Indexed {
+        index: after_sigil[..digits].parse().ok(),
+        len: digits,
+    })
+}
 
-    if result == content && !arguments.is_empty() {
-        result.push_str("\n\nARGUMENTS: ");
-        result.push_str(arguments);
-    }
-    result
+/// The length of the ASCII digits `text` starts with.
+fn leading_digits(text: &str) -> usize {
+    text.len()
+        - text
+            .trim_start_matches(|ch: char| ch.is_ascii_digit())
+            .len()
 }
 
 fn is_word_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
-}
-
-/// Replaces `$<name>` where it is not followed by `[` or a word character.
-fn replace_named(content: &str, name: &str, value: &str) -> String {
-    if name.is_empty() {
-        return content.to_string();
-    }
-    let pattern = format!("${name}");
-    let mut out = String::with_capacity(content.len());
-    let mut rest = content;
-    while let Some(start) = rest.find(&pattern) {
-        let after = &rest[start + pattern.len()..];
-        out.push_str(&rest[..start]);
-        if after
-            .chars()
-            .next()
-            .is_some_and(|next| next == '[' || is_word_char(next))
-        {
-            out.push_str(&pattern);
-        } else {
-            out.push_str(value);
-        }
-        rest = after;
-    }
-    out.push_str(rest);
-    out
-}
-
-/// Replaces `<open><digits><close>` with the argument at that index.
-fn replace_indexed<'a>(
-    content: &str,
-    open: &str,
-    close: &str,
-    argument: &impl Fn(usize) -> Option<&'a str>,
-) -> String {
-    let mut out = String::with_capacity(content.len());
-    let mut rest = content;
-    while let Some(start) = rest.find(open) {
-        let after_open = &rest[start + open.len()..];
-        let digits = after_open.len()
-            - after_open
-                .trim_start_matches(|ch: char| ch.is_ascii_digit())
-                .len();
-        out.push_str(&rest[..start]);
-        if digits > 0 && after_open[digits..].starts_with(close) {
-            let end = digits + close.len();
-            match index_value(&after_open[..digits], argument) {
-                Some(value) => out.push_str(value),
-                None => {
-                    out.push_str(open);
-                    out.push_str(&after_open[..end]);
-                }
-            }
-            rest = &after_open[end..];
-        } else {
-            out.push_str(open);
-            rest = after_open;
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
-/// Replaces `$<digits>` not followed by a word character with the argument at that index.
-fn replace_shorthand<'a>(content: &str, argument: &impl Fn(usize) -> Option<&'a str>) -> String {
-    let mut out = String::with_capacity(content.len());
-    let mut rest = content;
-    while let Some(start) = rest.find('$') {
-        let after_sigil = &rest[start + 1..];
-        let digits = after_sigil.len()
-            - after_sigil
-                .trim_start_matches(|ch: char| ch.is_ascii_digit())
-                .len();
-        out.push_str(&rest[..start]);
-        let followed_by_word = after_sigil[digits..]
-            .chars()
-            .next()
-            .is_some_and(is_word_char);
-        if digits > 0 && !followed_by_word {
-            match index_value(&after_sigil[..digits], argument) {
-                Some(value) => out.push_str(value),
-                None => out.push_str(&rest[start..start + 1 + digits]),
-            }
-            rest = &after_sigil[digits..];
-        } else {
-            out.push('$');
-            rest = after_sigil;
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
-/// The argument at the index `digits` names; `None` when there is none.
-fn index_value<'a>(digits: &str, argument: &impl Fn(usize) -> Option<&'a str>) -> Option<&'a str> {
-    digits.parse::<usize>().ok().and_then(argument)
-}
-
-/// Replaces `$ARGUMENTS` with the whole argument string, except where it begins an
-/// `$ARGUMENTS[N]` that was kept as written.
-fn replace_whole_arguments(content: &str, arguments: &str) -> String {
-    let mut out = String::with_capacity(content.len());
-    let mut rest = content;
-    while let Some(start) = rest.find(ARGUMENTS_PLACEHOLDER) {
-        let after = &rest[start + ARGUMENTS_PLACEHOLDER.len()..];
-        out.push_str(&rest[..start]);
-        let kept_index = after.strip_prefix('[').is_some_and(|inner| {
-            let index = inner.trim_start_matches(|ch: char| ch.is_ascii_digit());
-            index.len() < inner.len() && index.starts_with(']')
-        });
-        if kept_index {
-            out.push_str(ARGUMENTS_PLACEHOLDER);
-        } else {
-            out.push_str(arguments);
-        }
-        rest = after;
-    }
-    out.push_str(rest);
-    out
 }
 
 #[cfg(test)]

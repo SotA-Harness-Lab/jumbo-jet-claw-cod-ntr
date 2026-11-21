@@ -117,6 +117,27 @@ fn keeps_indexed_placeholders_past_the_last_argument() {
 }
 
 #[test]
+fn does_not_expand_argument_values_again() {
+    assert_eq!(
+        substitute_arguments(
+            "[$0] [$1] [$topic]",
+            r#""use \$1 in awk" foo"#,
+            &names(&["topic"])
+        ),
+        "[use $1 in awk] [foo] [use $1 in awk]"
+    );
+    assert_eq!(
+        substitute_arguments("[$0] [$ARGUMENTS[1]]", "'$ARGUMENTS' '$x'", &names(&["x"])),
+        "[$ARGUMENTS] [$x]"
+    );
+}
+
+#[test]
+fn a_value_equal_to_its_placeholder_still_counts_as_received() {
+    assert_eq!(substitute_arguments("Run $0.", "$0", &[]), "Run $0.");
+}
+
+#[test]
 fn appends_arguments_when_there_is_no_placeholder() {
     assert_eq!(
         substitute_arguments("Do the thing.", "now please", &[]),
