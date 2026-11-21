@@ -1,3 +1,11 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: reload skills only for changes that can change them
+
+use std::collections::HashSet;
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -30,6 +38,8 @@ const WATCHER_THROTTLE_INTERVAL: Duration = Duration::from_millis(50);
 pub(crate) struct SkillsWatcher {
     subscriber: FileWatcherSubscriber,
     runtime_extra_roots_registration: Mutex<WatchRegistration>,
+    /// Every skill root ever watched, to tell where a changed path lies within its root.
+    watched_roots: Arc<Mutex<HashSet<PathBuf>>>,
     shutdown_token: CancellationToken,
     _shutdown_drop_guard: DropGuard,
 }
@@ -51,16 +61,19 @@ impl SkillsWatcher {
         let shutdown_token = CancellationToken::new();
         let shutdown_drop_guard = shutdown_token.clone().drop_guard();
         let system_skills_root = system_cache_root_dir(codex_home);
+        let watched_roots = Arc::new(Mutex::new(HashSet::new()));
         Self::spawn_event_loop(
             rx,
             skills_service,
             system_skills_root,
+            Arc::clone(&watched_roots),
             outgoing,
             shutdown_token.child_token(),
         );
         Arc::new(Self {
             subscriber,
             runtime_extra_roots_registration: Mutex::new(WatchRegistration::default()),
+            watched_roots,
             shutdown_token,
             _shutdown_drop_guard: shutdown_drop_guard,
         })
@@ -78,7 +91,7 @@ impl SkillsWatcher {
                 recursive: true,
             })
             .collect();
-        let registration = self.subscriber.register_paths(roots);
+        let registration = self.register_roots(roots);
         let mut guard = self
             .runtime_extra_roots_registration
             .lock()
@@ -127,6 +140,14 @@ impl SkillsWatcher {
                 recursive: true,
             })
             .collect();
+        self.register_roots(roots)
+    }
+
+    fn register_roots(&self, roots: Vec<WatchPath>) -> WatchRegistration {
+        self.watched_roots
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .extend(roots.iter().map(|root| root.path.clone()));
         self.subscriber.register_paths(roots)
     }
 
@@ -134,6 +155,7 @@ impl SkillsWatcher {
         rx: Receiver,
         skills_service: Arc<HostSkillsService>,
         system_skills_root: AbsolutePathBuf,
+        watched_roots: Arc<Mutex<HashSet<PathBuf>>>,
         outgoing: Arc<OutgoingMessageSender>,
         shutdown_token: CancellationToken,
     ) {
@@ -151,12 +173,16 @@ impl SkillsWatcher {
                 let Some(event) = event else {
                     break;
                 };
-                // The legacy user-skills root contains `.system` and is watched recursively.
-                if event
-                    .paths
-                    .iter()
-                    .all(|path| path.starts_with(system_skills_root.as_path()))
-                {
+                let changed = {
+                    let roots = watched_roots
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    event
+                        .paths
+                        .iter()
+                        .any(|path| is_skill_change(path, &roots, system_skills_root.as_path()))
+                };
+                if !changed {
                     continue;
                 }
                 skills_service.clear_cache();
@@ -169,3 +195,41 @@ impl SkillsWatcher {
         });
     }
 }
+
+/// Whether a changed path can change the skills: a watched root itself, a Markdown file
+/// (a `SKILL.md`, a command), or a directory (a skill folder added, moved or removed). The
+/// system skills, which the legacy user-skills root holds in `.system`, other files, and
+/// anything in a hidden folder, `__pycache__` or `node_modules` below the root do not
+/// count, as in Claude Code, so that a script or a build run inside a skill's folder does
+/// not reload the skills. A path under no known root counts.
+fn is_skill_change(path: &Path, roots: &HashSet<PathBuf>, system_skills_root: &Path) -> bool {
+    if path.starts_with(system_skills_root) {
+        return false;
+    }
+    if roots.contains(path) {
+        return true;
+    }
+    let Some(relative) = roots
+        .iter()
+        .filter_map(|root| path.strip_prefix(root).ok())
+        .min_by_key(|relative| relative.components().count())
+    else {
+        return true;
+    };
+    let ignored = relative.components().any(|component| {
+        let name = component.as_os_str().to_string_lossy();
+        name.starts_with('.') || name == "__pycache__" || name == "node_modules"
+    });
+    if ignored {
+        return false;
+    }
+    let extension = path.extension();
+    extension.is_some_and(|extension| extension.eq_ignore_ascii_case("md"))
+        || path.is_dir()
+        // A directory that went away: its contents may have been skills.
+        || (extension.is_none() && !path.exists())
+}
+
+#[cfg(test)]
+#[path = "skills_watcher_tests.rs"]
+mod tests;
