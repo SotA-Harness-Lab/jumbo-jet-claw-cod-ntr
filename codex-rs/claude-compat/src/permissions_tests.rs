@@ -569,6 +569,62 @@ fn file_patterns_follow_gitignore_relative_to_their_anchor() {
 }
 
 #[test]
+fn single_directory_allow_rules_cover_only_the_top_directory() {
+    let rules = local_rules(&["Edit(src/**)"], &["Edit(gen/**)"], &["Read(secrets/**)"]);
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/src/main.rs"),
+        allow("Edit(src/**)")
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/vendor/foo/src/x.rs"),
+        RuleVerdict::NoMatch
+    );
+    // Deny and ask rules still cover the directory at any depth.
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/a/gen/x.rs"),
+        ask("Edit(gen/**)")
+    );
+    assert_eq!(
+        read(&rules, "/work/project/a/secrets/key"),
+        RuleVerdict::Deny {
+            rule: "Read(secrets/**)".to_string(),
+            message: "Permission to read /work/project/a/secrets/key has been denied.".to_string(),
+        }
+    );
+}
+
+#[test]
+fn rules_for_everything_under_an_anchor_match() {
+    let rules = rules_from(&[
+        (
+            RuleSource::User,
+            json!({ "permissions": { "deny": ["Read(~/**)", "Read(/**)"] } }),
+        ),
+        (
+            RuleSource::Local,
+            json!({ "permissions": { "allow": ["Edit(/**)"], "ask": ["Read(//**)"] } }),
+        ),
+    ]);
+    let denied = |rule: &str, path: &str| RuleVerdict::Deny {
+        rule: rule.to_string(),
+        message: format!("Permission to read {path} has been denied."),
+    };
+    assert_eq!(
+        read(&rules, "/home/user/notes/a.txt"),
+        denied("Read(~/**)", "/home/user/notes/a.txt")
+    );
+    assert_eq!(read(&rules, "/etc/hosts"), ask("Read(//**)"));
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/src/main.rs"),
+        allow("Edit(/**)")
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/elsewhere/main.rs"),
+        RuleVerdict::NoMatch
+    );
+}
+
+#[test]
 fn edit_rules_cover_write_and_allow_reading() {
     let rules = local_rules(
         &["Edit(src/**)"],

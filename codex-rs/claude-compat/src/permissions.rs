@@ -542,10 +542,12 @@ impl PermissionRules {
             if builder.case_insensitive(true).is_err() {
                 continue;
             }
-            for (pattern, _) in patterns {
-                // `dir/**` is `dir`: the directory and everything in it.
-                let pattern = pattern.strip_suffix("/**").unwrap_or(pattern);
-                let _ = builder.add_line(None, pattern);
+            let lines = patterns
+                .iter()
+                .map(|(pattern, rule)| (gitignore_line(pattern, decision), *rule))
+                .collect::<Vec<_>>();
+            for (line, _) in &lines {
+                let _ = builder.add_line(None, line);
             }
             let Ok(matcher) = builder.build() else {
                 continue;
@@ -554,15 +556,10 @@ impl PermissionRules {
                 matcher.matched_path_or_any_parents(relative, /*is_dir*/ false)
             {
                 let original = glob.original();
-                let with_wildcard = format!("{original}/**");
-                return patterns
+                return lines
                     .iter()
-                    .find(|(pattern, _)| *pattern == with_wildcard)
-                    .or_else(|| {
-                        patterns
-                            .iter()
-                            .find(|(pattern, _)| pattern.as_str() == original)
-                    })
+                    // The matcher keeps a line without its trailing spaces.
+                    .find(|(line, _)| line == original || line.trim_end() == original)
                     .map(|(_, rule)| *rule);
             }
         }
@@ -650,6 +647,24 @@ fn tool_matches(rule: &PermissionRule, tool: &str) -> bool {
         }
         _ => false,
     }
+}
+
+/// The gitignore line for a file pattern of a rule of `decision`, the pattern relative to
+/// its anchor. `dir/**` is `dir`, the directory and everything in it; in an allow rule a
+/// single directory (`src/**`) is anchored, so that it covers `<anchor>/src` only, while
+/// a deny or ask rule covers a directory of that name at any depth, as in Claude Code.
+/// Nothing left (`/**`, `~/**`, `//**`) is everything under the anchor.
+fn gitignore_line(pattern: &str, decision: PermissionDecision) -> String {
+    let Some(directory) = pattern.strip_suffix("/**") else {
+        return pattern.to_string();
+    };
+    if directory.is_empty() {
+        return "**".to_string();
+    }
+    if decision == PermissionDecision::Allow && !directory.contains('/') {
+        return format!("/{directory}");
+    }
+    directory.to_string()
 }
 
 /// A host name as `WebFetch(domain:...)` rules compare it: in lower case, without one
