@@ -1332,3 +1332,106 @@ async fn external_plugins_load_in_place_unless_codex_has_one_of_that_name() {
         vec!["review"]
     );
 }
+
+/// A plugin in Claude Code's format, with `manifest` as its `.claude-plugin/plugin.json`.
+fn claude_plugin_root(manifest: &str) -> (tempfile::TempDir, AbsolutePathBuf) {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let plugin_root =
+        AbsolutePathBuf::try_from(tmp.path().join("demo-plugin")).expect("plugin root");
+    write_file(
+        plugin_root.join(".claude-plugin/plugin.json").as_path(),
+        manifest,
+    );
+    (tmp, plugin_root)
+}
+
+#[test]
+fn claude_manifest_hooks_load_after_the_default_hooks_file() {
+    let (_tmp, plugin_root) = claude_plugin_root(
+        r#"{
+  "name": "demo-plugin",
+  "hooks": [
+    "./hooks/hooks.json",
+    "./config/extra.json",
+    {
+      "PostToolUse": [
+        {
+          "matcher": "Write",
+          "hooks": [{ "type": "command", "command": "echo inline" }]
+        }
+      ]
+    }
+  ]
+}"#,
+    );
+    fs::create_dir_all(plugin_root.join("hooks")).expect("create hooks dir");
+    fs::create_dir_all(plugin_root.join("config")).expect("create config dir");
+    write_hook_file(
+        &plugin_root,
+        "hooks/hooks.json",
+        "PreToolUse",
+        "echo default",
+    );
+    write_hook_file(&plugin_root, "config/extra.json", "Stop", "echo extra");
+
+    let (sources, warnings) = load_sources(&plugin_root);
+
+    assert_eq!(warnings, Vec::<String>::new());
+    // The default file, listed again, is loaded once.
+    assert_sources(
+        &sources,
+        &[
+            "hooks/hooks.json",
+            "config/extra.json",
+            "plugin.json#hooks[2]",
+        ],
+    );
+}
+
+#[tokio::test]
+async fn claude_manifest_mcp_servers_merge_with_mcp_json() {
+    let (_tmp, plugin_root) = claude_plugin_root(
+        r#"{
+  "name": "demo-plugin",
+  "mcpServers": [
+    "./mcp/extra.json",
+    { "shared": { "command": "shared-inline" } },
+    "./bundle.mcpb"
+  ]
+}"#,
+    );
+    write_file(
+        plugin_root.join(".mcp.json").as_path(),
+        r#"{"mcpServers":{"default":{"command":"default-server"},"shared":{"command":"shared-default"}}}"#,
+    );
+    write_file(
+        plugin_root.join("mcp/extra.json").as_path(),
+        r#"{"mcpServers":{"extra":{"command":"extra-server"}}}"#,
+    );
+    let manifest = load_plugin_manifest(plugin_root.as_path()).expect("load manifest");
+
+    let discovered = load_plugin_mcp_servers_from_manifest_with_format(
+        plugin_root.as_path(),
+        &manifest.paths,
+        /*plugin_policy*/ None,
+        /*plugin_data_root*/ None,
+        PluginManifestFormat::Legacy,
+    )
+    .await;
+
+    let commands = discovered
+        .iter()
+        .map(|(name, server)| match &server.transport {
+            McpServerTransportConfig::Stdio { command, .. } => (name.as_str(), command.as_str()),
+            _ => panic!("expected stdio transport"),
+        })
+        .collect::<std::collections::BTreeMap<_, _>>();
+    assert_eq!(
+        commands,
+        std::collections::BTreeMap::from([
+            ("default", "default-server"),
+            ("extra", "extra-server"),
+            ("shared", "shared-inline"),
+        ])
+    );
+}

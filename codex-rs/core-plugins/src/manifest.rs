@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: skip a byte order mark at the start of plugin.json
+// Modified by Tianyu (Sky) Lu in 2026: skip a byte order mark at the start of plugin.json;
+// read a manifest's values as written
 
 use codex_config::HooksFile;
 use codex_utils_absolute_path::AbsolutePathBuf;
@@ -194,6 +195,28 @@ pub(crate) fn load_plugin_command_paths(plugin_root: &Path) -> io::Result<Option
         .map(|path| Ok(path.to_abs_path()?.into_path_buf()))
         .collect::<io::Result<Vec<_>>>()
         .map(Some)
+}
+
+/// The value the plugin's manifest gives `key`, as written. `None` when there is no manifest,
+/// it cannot be read, or it leaves `key` out.
+pub(crate) fn load_plugin_manifest_value(plugin_root: &Path, key: &str) -> Option<JsonValue> {
+    let manifest_path = find_plugin_manifest_path(plugin_root)?;
+    let contents = fs::read_to_string(manifest_path).ok()?;
+    let mut manifest = serde_json::from_str::<JsonValue>(without_bom(&contents)).ok()?;
+    manifest.get_mut(key).map(JsonValue::take)
+}
+
+/// A manifest path given for `field`, resolved under the plugin root on this machine with the
+/// rules of the manifest's other paths (`./` first, no `..`, inside the root).
+pub(crate) fn resolve_host_manifest_path(
+    plugin_root: &Path,
+    field: &'static str,
+    path: &str,
+) -> Option<AbsolutePathBuf> {
+    let plugin_root = PathUri::from_host_native_path(plugin_root).ok()?;
+    resolve_manifest_path(&plugin_root, field, Some(path))?
+        .to_abs_path()
+        .ok()
 }
 
 // TODO: share an owner-provided cache if inline fallback manifests are parsed repeatedly.
