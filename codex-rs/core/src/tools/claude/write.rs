@@ -26,6 +26,7 @@ use super::check_permission;
 use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
 use super::file_state::write_refusal;
+use super::files;
 use super::files::FileTarget;
 use super::files::apply_patch;
 use super::output::ClaudeToolOutput;
@@ -37,6 +38,8 @@ use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
 use crate::tools::context::boxed_tool_output;
 use crate::tools::registry::CoreToolRuntime;
+use crate::tools::registry::PostToolUsePayload;
+use crate::tools::registry::PreToolUsePayload;
 use crate::tools::registry::ToolExecutor;
 
 /// Offers `Write` in place of `apply_patch`.
@@ -102,6 +105,18 @@ impl ToolExecutor<ToolInvocation> for WriteHandler {
 impl CoreToolRuntime for WriteHandler {
     fn matches_kind(&self, payload: &ToolPayload) -> bool {
         matches!(payload, ToolPayload::Function { .. })
+    }
+
+    fn pre_tool_use_payload(&self, invocation: &ToolInvocation) -> Option<PreToolUsePayload> {
+        files::pre_tool_use_payload(invocation)
+    }
+
+    fn post_tool_use_payload(
+        &self,
+        invocation: &ToolInvocation,
+        result: &dyn ToolOutput,
+    ) -> Option<PostToolUsePayload> {
+        files::post_tool_use_payload(invocation, result)
     }
 }
 

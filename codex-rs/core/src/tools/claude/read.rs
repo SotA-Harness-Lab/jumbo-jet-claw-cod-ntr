@@ -42,6 +42,7 @@ use super::file_state::ContentDigest;
 use super::file_state::FileRecord;
 use super::file_state::FileStamp;
 use super::file_state::ReadFiles;
+use super::files;
 use super::files::FileTarget;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
@@ -52,6 +53,8 @@ use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
 use crate::tools::context::boxed_tool_output;
 use crate::tools::registry::CoreToolRuntime;
+use crate::tools::registry::PostToolUsePayload;
+use crate::tools::registry::PreToolUsePayload;
 use crate::tools::registry::ToolExecutor;
 
 /// Offers `Read` in place of `view_image`, whose runtime shows image files.
@@ -119,6 +122,18 @@ impl ToolExecutor<ToolInvocation> for ReadHandler {
 impl CoreToolRuntime for ReadHandler {
     fn matches_kind(&self, payload: &ToolPayload) -> bool {
         matches!(payload, ToolPayload::Function { .. })
+    }
+
+    fn pre_tool_use_payload(&self, invocation: &ToolInvocation) -> Option<PreToolUsePayload> {
+        files::pre_tool_use_payload(invocation)
+    }
+
+    fn post_tool_use_payload(
+        &self,
+        invocation: &ToolInvocation,
+        result: &dyn ToolOutput,
+    ) -> Option<PostToolUsePayload> {
+        files::post_tool_use_payload(invocation, result)
     }
 }
 

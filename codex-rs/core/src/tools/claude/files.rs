@@ -16,6 +16,7 @@ use codex_exec_server::GetMetadataOptions;
 use codex_exec_server::ReadFileOptions;
 use codex_utils_path_uri::PathUri;
 use futures::StreamExt;
+use serde_json::Value;
 
 use super::delegated;
 use super::failed;
@@ -26,9 +27,14 @@ use super::file_state::ReadFiles;
 use crate::function_tool::FunctionCallError;
 use crate::session::turn_context::TurnEnvironment;
 use crate::tools::context::ToolInvocation;
+use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
 use crate::tools::handlers::selected_executor;
 use crate::tools::registry::CoreToolRuntime;
+use crate::tools::registry::PostToolUsePayload;
+use crate::tools::registry::PreToolUsePayload;
+use crate::tools::registry::function_post_tool_use_payload;
+use crate::tools::registry::function_pre_tool_use_payload;
 
 /// A file a Claude tool works on, in the environment the call runs in.
 pub(crate) struct FileTarget<'a> {
@@ -155,6 +161,36 @@ impl<'a> FileTarget<'a> {
         };
         ReadFiles::of(&invocation.session).insert(self.key(), record);
     }
+}
+
+/// The `PreToolUse` payload of `Read`, `Write` or `Edit`: Claude Code's input, with
+/// `file_path` made absolute as Claude Code gives it to hooks. A hook may answer with either
+/// form in `updatedInput`.
+pub(crate) fn pre_tool_use_payload(invocation: &ToolInvocation) -> Option<PreToolUsePayload> {
+    let mut payload = function_pre_tool_use_payload(invocation)?;
+    absolute_file_path(invocation, &mut payload.tool_input);
+    Some(payload)
+}
+
+/// The `PostToolUse` payload of `Read`, `Write` or `Edit`, with `file_path` made absolute.
+pub(crate) fn post_tool_use_payload(
+    invocation: &ToolInvocation,
+    result: &dyn ToolOutput,
+) -> Option<PostToolUsePayload> {
+    let mut payload = function_post_tool_use_payload(invocation, result)?;
+    absolute_file_path(invocation, &mut payload.tool_input);
+    Some(payload)
+}
+
+/// Replaces a relative `file_path` of a hook's input by the path the tool works on.
+fn absolute_file_path(invocation: &ToolInvocation, tool_input: &mut Value) {
+    let Some(file_path) = tool_input.get("file_path").and_then(Value::as_str) else {
+        return;
+    };
+    let Ok(target) = FileTarget::resolve(invocation, file_path) else {
+        return;
+    };
+    tool_input["file_path"] = Value::String(target.native_path());
 }
 
 /// Applies `patch` through Codex's `apply_patch` runtime, under the model's call: the patch
