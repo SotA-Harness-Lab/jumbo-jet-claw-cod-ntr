@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: stop waiting on an idle stdin when a prompt was given
+
 // - In the default output mode, it is paramount that the only thing written to
 //   stdout is the final message (if any).
 // - In --json mode, stdout must be valid JSONL, one event per line.
@@ -169,6 +174,7 @@ use std::io::IsTerminal;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 use supports_color::Stream;
 use tokio::sync::mpsc;
 use tracing::Instrument;
@@ -2537,11 +2543,30 @@ fn read_prompt_from_stdin(behavior: StdinPromptBehavior) -> Option<String> {
         }
     }
 
-    let mut bytes = Vec::new();
-    if let Err(e) = std::io::stdin().read_to_end(&mut bytes) {
-        eprintln!("Failed to read prompt from stdin: {e}");
-        std::process::exit(1);
-    }
+    let bytes = if matches!(behavior, StdinPromptBehavior::OptionalAppend) {
+        match read_stdin_if_it_sends_data(std::io::stdin(), OPTIONAL_STDIN_WAIT) {
+            Ok(Some(bytes)) => bytes,
+            Ok(None) => {
+                eprintln!(
+                    "Warning: no stdin data received in {}s, proceeding without it. \
+                     To skip stdin, redirect it explicitly: < /dev/null.",
+                    OPTIONAL_STDIN_WAIT.as_secs()
+                );
+                return None;
+            }
+            Err(e) => {
+                eprintln!("Failed to read prompt from stdin: {e}");
+                std::process::exit(1);
+            }
+        }
+    } else {
+        let mut bytes = Vec::new();
+        if let Err(e) = std::io::stdin().read_to_end(&mut bytes) {
+            eprintln!("Failed to read prompt from stdin: {e}");
+            std::process::exit(1);
+        }
+        bytes
+    };
 
     let buffer = match decode_prompt_bytes(&bytes) {
         Ok(s) => s,
@@ -2562,6 +2587,50 @@ fn read_prompt_from_stdin(behavior: StdinPromptBehavior) -> Option<String> {
     } else {
         Some(buffer)
     }
+}
+
+/// How long `exec` with a prompt waits for stdin to send data or close before
+/// going on without it, as Claude Code's `-p` does.
+const OPTIONAL_STDIN_WAIT: Duration = Duration::from_secs(3);
+
+/// Reads `reader` to its end, unless it neither sends data nor closes within
+/// `wait`: then returns `Ok(None)` and leaves it to a detached thread. A stdin
+/// inherited from a parent that never writes to it nor closes it (a service, a
+/// CI runner, a subprocess started without its own stdin) would otherwise keep
+/// the turn from ever starting. Once data arrives, it waits for the end.
+fn read_stdin_if_it_sends_data<R>(mut reader: R, wait: Duration) -> std::io::Result<Option<Vec<u8>>>
+where
+    R: Read + Send + 'static,
+{
+    let (tx, rx) = std::sync::mpsc::channel::<std::io::Result<Vec<u8>>>();
+    std::thread::spawn(move || {
+        let mut buf = vec![0u8; 64 * 1024];
+        loop {
+            match reader.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    if tx.send(Ok(buf[..n].to_vec())).is_err() {
+                        break;
+                    }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                Err(e) => {
+                    let _ = tx.send(Err(e));
+                    break;
+                }
+            }
+        }
+    });
+
+    let mut bytes = match rx.recv_timeout(wait) {
+        Ok(chunk) => chunk?,
+        Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => return Ok(Some(Vec::new())),
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => return Ok(None),
+    };
+    for chunk in rx {
+        bytes.extend_from_slice(&chunk?);
+    }
+    Ok(Some(bytes))
 }
 
 fn prompt_with_stdin_context(prompt: &str, stdin_text: &str) -> String {

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: test the wait on an idle stdin
+
 use super::*;
 use codex_app_server_protocol::AuthRecoveryNotification;
 use codex_app_server_protocol::ThreadItem;
@@ -235,6 +240,60 @@ fn decode_prompt_bytes_rejects_invalid_utf8() {
     let err = decode_prompt_bytes(&input).expect_err("invalid utf-8 should fail");
 
     assert_eq!(err, PromptDecodeError::InvalidUtf8 { valid_up_to: 0 });
+}
+
+/// A stdin stand-in that hands out what its sender sends, blocks while the
+/// sender is idle and ends when the sender is dropped.
+struct ChannelReader(std::sync::mpsc::Receiver<Vec<u8>>);
+
+impl Read for ChannelReader {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self.0.recv() {
+            Ok(chunk) => {
+                buf[..chunk.len()].copy_from_slice(&chunk);
+                Ok(chunk.len())
+            }
+            Err(_) => Ok(0),
+        }
+    }
+}
+
+#[test]
+fn optional_stdin_that_stays_idle_is_skipped() {
+    let (_tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
+
+    let read = read_stdin_if_it_sends_data(ChannelReader(rx), Duration::from_millis(50))
+        .expect("read stdin");
+
+    assert_eq!(read, None);
+}
+
+#[test]
+fn optional_stdin_that_closes_without_data_is_empty() {
+    let (tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    drop(tx);
+
+    let read =
+        read_stdin_if_it_sends_data(ChannelReader(rx), Duration::from_secs(5)).expect("read stdin");
+
+    assert_eq!(read, Some(Vec::new()));
+}
+
+#[test]
+fn optional_stdin_that_sends_data_is_read_to_its_end() {
+    let (tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
+    tx.send(b"first ".to_vec()).expect("send");
+    let producer = std::thread::spawn(move || {
+        // The rest arrives after the wait for the first data has run out.
+        std::thread::sleep(Duration::from_millis(200));
+        tx.send(b"second".to_vec()).expect("send");
+    });
+
+    let read = read_stdin_if_it_sends_data(ChannelReader(rx), Duration::from_millis(50))
+        .expect("read stdin");
+    producer.join().expect("producer");
+
+    assert_eq!(read, Some(b"first second".to_vec()));
 }
 
 #[test]
