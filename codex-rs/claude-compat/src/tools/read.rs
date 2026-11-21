@@ -224,8 +224,9 @@ pub struct TextSlice {
 }
 
 /// Selects lines as Claude Code does: the byte order mark is dropped, lines end at `\n`
-/// (a `\r` before it is dropped), the text after the last `\n` is a line too, `offset` is
-/// 1-based (0 reads from the start) and `limit` counts lines.
+/// (a `\r` before it is dropped), text after the last `\n` is a line too while a `\n` that
+/// ends the file starts no line of its own, `offset` is 1-based (0 reads from the start) and
+/// `limit` counts lines.
 pub fn slice_text(text: &str, offset: Option<usize>, limit: Option<usize>) -> TextSlice {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let offset = offset.unwrap_or(1);
@@ -241,6 +242,7 @@ pub fn slice_text(text: &str, offset: Option<usize>, limit: Option<usize>) -> Te
     }
     let mut selected = Vec::new();
     let mut total_lines = 0;
+    let text = text.strip_suffix('\n').unwrap_or(text);
     for (index, line) in text.split('\n').enumerate() {
         total_lines = index + 1;
         if index >= first && index < end {
@@ -267,7 +269,7 @@ pub fn number_lines(content: &str, start_line: usize) -> String {
 
 /// The text the model receives for a read of a text file.
 pub fn render(slice: &TextSlice) -> String {
-    if !slice.content.is_empty() {
+    if slice.num_lines > 0 {
         return number_lines(&slice.content, slice.start_line);
     }
     if slice.total_lines == 0 {

@@ -25,13 +25,27 @@ fn whole_file_is_numbered_from_one() {
     assert_eq!(
         slice,
         TextSlice {
-            content: "fn main() {\n}\n".to_string(),
+            content: "fn main() {\n}".to_string(),
             start_line: 1,
-            num_lines: 3,
-            total_lines: 3,
+            num_lines: 2,
+            total_lines: 2,
         }
     );
-    assert_eq!(render(&slice), "1\tfn main() {\n2\t}\n3\t");
+    assert_eq!(render(&slice), "1\tfn main() {\n2\t}");
+}
+
+#[test]
+fn a_final_line_break_starts_no_line() {
+    assert_eq!(slice_text("a\nb", None, None).total_lines, 2);
+    assert_eq!(
+        render(&slice_text("a\nb\n\n", None, None)),
+        "1\ta\n2\tb\n3\t"
+    );
+    assert_eq!(render(&slice_text("\n", None, None)), "1\t");
+    assert_eq!(
+        render(&slice_text("a\nb\n", Some(3), None)),
+        "<system-reminder>Warning: the file exists but is shorter than the provided offset (3). The file has 2 lines.</system-reminder>"
+    );
 }
 
 #[test]
