@@ -150,12 +150,7 @@ fn touched_files(invocation: &ToolInvocation, cwd: &Path) -> Vec<PathBuf> {
                 .workdir
                 .map(|workdir| cwd.join(workdir))
                 .unwrap_or_else(|| cwd.to_path_buf());
-            let command = ["bash".to_string(), "-lc".to_string(), args.cmd];
-            for parsed in parse_command(&command) {
-                if let ParsedCommand::Read { path, .. } = parsed {
-                    files.push(base.join(path));
-                }
-            }
+            files.extend(shell_command_files(args.cmd, &base));
         }
         ("apply_patch", ToolPayload::Custom { input }) => {
             files.extend(patch_files(input).map(|path| cwd.join(path)));
@@ -165,12 +160,7 @@ fn touched_files(invocation: &ToolInvocation, cwd: &Path) -> Vec<PathBuf> {
             let Ok(args) = serde_json::from_str::<BashPaths>(arguments) else {
                 return Vec::new();
             };
-            let command = ["bash".to_string(), "-lc".to_string(), args.command];
-            for parsed in parse_command(&command) {
-                if let ParsedCommand::Read { path, .. } = parsed {
-                    files.push(cwd.join(path));
-                }
-            }
+            files.extend(shell_command_files(args.command, cwd));
         }
         ("Read" | "Edit" | "Write", ToolPayload::Function { arguments }) => {
             if let Ok(args) = serde_json::from_str::<FilePathArgs>(arguments) {
@@ -182,6 +172,87 @@ fn touched_files(invocation: &ToolInvocation, cwd: &Path) -> Vec<PathBuf> {
     let mut seen = HashSet::new();
     files.retain(|file| seen.insert(file.clone()));
     files
+}
+
+/// The files a shell script reads, as Codex's command parser recognises them (`cat`,
+/// `sed -n`, `head` and the like), and the one file a `grep` or `rg` of a single file
+/// searches, which Claude Code counts as viewing it.
+fn shell_command_files(script: String, base: &Path) -> Vec<PathBuf> {
+    // The parser follows `cd` for the files it reads, not for those it searches.
+    let has_cd = shlex::split(&script).is_some_and(|words| words.iter().any(|word| word == "cd"));
+    let command = ["bash".to_string(), "-lc".to_string(), script];
+    let mut files = Vec::new();
+    for parsed in parse_command(&command) {
+        match parsed {
+            ParsedCommand::Read { path, .. } => files.push(base.join(path)),
+            // The parser shortens a search's path for display, so it is read from `cmd`.
+            ParsedCommand::Search { cmd, .. } if !has_cd => {
+                files.extend(
+                    searched_file(&cmd)
+                        .map(|path| base.join(path))
+                        .filter(|path| path.is_file()),
+                );
+            }
+            _ => {}
+        }
+    }
+    files
+}
+
+/// The path operand of `grep`, `egrep`, `fgrep` or `rg` when there is exactly one.
+fn searched_file(cmd: &str) -> Option<String> {
+    const VALUE_FLAGS: &[&str] = &[
+        "-m",
+        "--max-count",
+        "-A",
+        "--after-context",
+        "-B",
+        "--before-context",
+        "-C",
+        "--context",
+        "-g",
+        "--glob",
+        "--iglob",
+        "-t",
+        "--type",
+        "--type-add",
+        "--type-not",
+        "--max-depth",
+    ];
+    let words = shlex::split(cmd)?;
+    let (program, args) = words.split_first()?;
+    if !matches!(program.as_str(), "grep" | "egrep" | "fgrep" | "rg") {
+        return None;
+    }
+    let mut has_pattern = false;
+    let mut operands = Vec::new();
+    let mut after_double_dash = false;
+    let mut args = args.iter();
+    while let Some(arg) = args.next() {
+        if after_double_dash {
+            operands.push(arg);
+        } else if matches!(arg.as_str(), "|" | "||" | "&&" | ";" | "&") {
+            break;
+        } else if arg == "--" {
+            after_double_dash = true;
+        } else if matches!(arg.as_str(), "-e" | "--regexp" | "-f" | "--file") {
+            has_pattern = true;
+            args.next();
+        } else if VALUE_FLAGS.contains(&arg.as_str()) {
+            args.next();
+        } else if !arg.starts_with('-') {
+            operands.push(arg);
+        }
+    }
+    let paths = if has_pattern {
+        &operands[..]
+    } else {
+        operands.get(1..)?
+    };
+    match paths {
+        [path] => Some(path.to_string()),
+        _ => None,
+    }
 }
 
 fn patch_files(patch: &str) -> impl Iterator<Item = &str> {
@@ -197,7 +268,37 @@ fn patch_files(patch: &str) -> impl Iterator<Item = &str> {
 #[cfg(test)]
 mod tests {
     use super::patch_files;
+    use super::searched_file;
+    use super::shell_command_files;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn a_search_of_one_file_counts_as_reading_it() {
+        assert_eq!(
+            searched_file("grep -n TODO core/src/spawn.rs"),
+            Some("core/src/spawn.rs".to_string())
+        );
+        assert_eq!(
+            searched_file("rg -e TODO -g '*.rs' src/a.rs"),
+            Some("src/a.rs".to_string())
+        );
+        assert_eq!(searched_file("grep -R TODO src lib"), None);
+        assert_eq!(searched_file("grep TODO"), None);
+        assert_eq!(searched_file("cat a.rs"), None);
+
+        let dir = tempfile::tempdir().expect("temp dir");
+        std::fs::create_dir(dir.path().join("src")).expect("create");
+        std::fs::write(dir.path().join("src/a.rs"), "x").expect("write");
+        assert_eq!(
+            shell_command_files("grep -n x src/a.rs".to_string(), dir.path()),
+            vec![dir.path().join("src/a.rs")]
+        );
+        // A directory is searched, not viewed.
+        assert_eq!(
+            shell_command_files("grep -rn x src".to_string(), dir.path()),
+            Vec::<std::path::PathBuf>::new()
+        );
+    }
 
     #[test]
     fn patch_files_lists_added_updated_and_moved_files() {
