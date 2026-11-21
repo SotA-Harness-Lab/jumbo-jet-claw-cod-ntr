@@ -187,7 +187,9 @@ pub(crate) fn parse_pre_tool_use(stdout: &str) -> Option<PreToolUseOutput> {
         };
         (block_reason, permission, updated_input)
     } else {
-        (None, None, None)
+        // `continue: false` and `stopReason` are not honoured here, but a block given with
+        // them still refuses the call, as in Claude Code.
+        (block_reason, None, None)
     };
 
     Some(PreToolUseOutput {
@@ -213,7 +215,10 @@ pub(crate) fn parse_permission_request(stdout: &str) -> Option<PermissionRequest
     let decision = if invalid_reason.is_none() {
         decision.map(permission_request_decision)
     } else {
-        None
+        // What Codex does not honour beside it does not undo a denial.
+        decision
+            .filter(|decision| matches!(decision.behavior, PermissionRequestBehaviorWire::Deny))
+            .map(permission_request_decision)
     };
 
     Some(PermissionRequestOutput {
@@ -438,6 +443,7 @@ mod tests {
     use serde_json::json;
 
     use super::parse_permission_request;
+    use super::parse_pre_tool_use;
     use super::parse_user_prompt_submit;
 
     #[test]
@@ -522,6 +528,65 @@ mod tests {
         assert_eq!(
             parsed.invalid_reason,
             Some("PermissionRequest hook returned unsupported interrupt:true".to_string())
+        );
+    }
+
+    #[test]
+    fn a_pre_tool_use_block_stands_beside_continue_false() {
+        for output in [
+            json!({
+                "continue": false,
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": "no secrets"
+                }
+            }),
+            json!({"continue": false, "decision": "block", "reason": "no secrets"}),
+        ] {
+            let parsed = parse_pre_tool_use(&output.to_string()).expect("output should parse");
+            assert_eq!(
+                (parsed.block_reason, parsed.invalid_reason),
+                (
+                    Some("no secrets".to_string()),
+                    Some("PreToolUse hook returned unsupported continue:false".to_string())
+                ),
+                "{output}"
+            );
+        }
+
+        let allowed = parse_pre_tool_use(
+            &json!({
+                "stopReason": "done",
+                "hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow"}
+            })
+            .to_string(),
+        )
+        .expect("output should parse");
+        assert_eq!(
+            (allowed.block_reason, allowed.permission.is_none()),
+            (None, true)
+        );
+    }
+
+    #[test]
+    fn a_permission_request_denial_stands_beside_interrupt() {
+        let parsed = parse_permission_request(
+            &json!({
+                "hookSpecificOutput": {
+                    "hookEventName": "PermissionRequest",
+                    "decision": {"behavior": "deny", "message": "no", "interrupt": true}
+                }
+            })
+            .to_string(),
+        )
+        .expect("permission request hook output should parse");
+
+        assert_eq!(
+            parsed.decision,
+            Some(super::PermissionRequestDecision::Deny {
+                message: "no".to_string()
+            })
         );
     }
 }

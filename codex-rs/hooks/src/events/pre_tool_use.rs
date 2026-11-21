@@ -276,19 +276,26 @@ fn parse_completed(
                         );
                     }
                     if handler.can_apply_control_effects() {
-                        if let Some(invalid_reason) = parsed.invalid_reason {
-                            status = HookRunStatus::Failed;
-                            entries.push(HookOutputEntry {
-                                kind: HookOutputEntryKind::Error,
-                                text: invalid_reason,
-                            });
-                        } else if let Some(reason) = parsed.block_reason {
+                        if let Some(reason) = parsed.block_reason {
+                            // A block stands even beside output Codex does not honour.
+                            if let Some(invalid_reason) = parsed.invalid_reason {
+                                entries.push(HookOutputEntry {
+                                    kind: HookOutputEntryKind::Warning,
+                                    text: invalid_reason,
+                                });
+                            }
                             status = HookRunStatus::Blocked;
                             should_block = true;
                             block_reason = Some(reason.clone());
                             entries.push(HookOutputEntry {
                                 kind: HookOutputEntryKind::Feedback,
                                 text: reason,
+                            });
+                        } else if let Some(invalid_reason) = parsed.invalid_reason {
+                            status = HookRunStatus::Failed;
+                            entries.push(HookOutputEntry {
+                                kind: HookOutputEntryKind::Error,
+                                text: invalid_reason,
                             });
                         } else {
                             updated_input = parsed.updated_input;
