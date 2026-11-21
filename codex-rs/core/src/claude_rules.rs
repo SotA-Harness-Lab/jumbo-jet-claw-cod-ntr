@@ -40,14 +40,19 @@ struct ShownFiles(Mutex<HashSet<PathBuf>>);
 
 /// Forgets which instruction files were shown, after the conversation was compacted: their
 /// text is gone from it, so Claude Code shows them again the next time a file they cover
-/// is worked on.
-pub(crate) fn forget_shown_files(session: &crate::session::session::Session) {
+/// is worked on. The project's instructions, `MEMORY.md` included, are read again at the
+/// next request, as Claude Code reads them after a compaction, so that edits made during
+/// the session are seen.
+pub(crate) async fn forget_shown_files(session: &crate::session::session::Session) {
     if let Some(shown) = session.services.session_extension_data.get::<ShownFiles>() {
         shown
             .0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clear();
+    }
+    if codex_claude_compat::enabled() {
+        session.services.agents_md_manager.forget_repository().await;
     }
 }
 

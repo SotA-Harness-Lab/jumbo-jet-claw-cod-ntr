@@ -72,7 +72,7 @@ async fn run_compact_task_inner(
     sess.emit_turn_item_completed(turn_context, compaction_item)
         .await;
 
-    crate::claude_rules::forget_shown_files(sess);
+    crate::claude_rules::forget_shown_files(sess).await;
     let post_compact_outcome = run_post_compact_hooks(sess, turn_context, trigger).await;
     if let PostCompactHookOutcome::Stopped = post_compact_outcome {
         return Err(CodexErr::TurnAborted);
