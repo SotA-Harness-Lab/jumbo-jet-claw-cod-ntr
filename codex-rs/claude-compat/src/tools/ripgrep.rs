@@ -116,6 +116,17 @@ fn is_missing_ripgrep(output: &str) -> bool {
     output.contains("'rg' is not recognized")
 }
 
+/// Adds the note that the results are partial to a `Glob` or `Grep` result whose search
+/// stopped at its timeout, so that the model does not take them for all there are.
+pub fn note_timeout(text: &mut String, timed_out: bool) {
+    if timed_out {
+        text.push_str(&format!(
+            "\n\n(The search timed out after {} seconds, so these results are partial. Try searching a more specific path or pattern.)",
+            TIMEOUT_MS / 1000
+        ));
+    }
+}
+
 fn timeout_message() -> String {
     format!(
         "Ripgrep search timed out after {} seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.",

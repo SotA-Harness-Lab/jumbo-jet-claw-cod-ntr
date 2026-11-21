@@ -37,14 +37,15 @@ impl Ripgrep {
     }
 
     /// Runs `rg` with `args` on `target` (a native path in `environment`) and returns the
-    /// lines it printed, or the error the model is told.
+    /// lines it printed and whether the search stopped at its timeout (the lines are then
+    /// partial), or the error the model is told.
     pub(super) async fn run(
         &self,
         invocation: &ToolInvocation,
         environment: &TurnEnvironment,
         args: &[String],
         target: &str,
-    ) -> Result<Vec<String>, FunctionCallError> {
+    ) -> Result<(Vec<String>, bool), FunctionCallError> {
         // The shell `exec_command` runs the command line with.
         let shell_type = environment
             .shell
@@ -85,6 +86,7 @@ impl Ripgrep {
             timed_out,
             target,
         })
+        .map(|lines| (lines, timed_out))
         .map_err(failed)
     }
 }

@@ -7,6 +7,7 @@ use super::RgRun;
 use super::Shell;
 use super::apply_head_limit;
 use super::command_line;
+use super::note_timeout;
 use super::relative_to;
 use super::result_lines;
 
@@ -125,4 +126,16 @@ fn head_limit_defaults_to_250_and_zero_is_unlimited() {
     assert_eq!((kept, applied), (vec![295, 296, 297, 298, 299], None));
     let (kept, applied) = apply_head_limit(items, Some(5), 294);
     assert_eq!((kept, applied), (vec![294, 295, 296, 297, 298], Some(5)));
+}
+
+#[test]
+fn results_of_a_search_that_timed_out_say_they_are_partial() {
+    let mut text = "Found 1 file\na.rs".to_string();
+    note_timeout(&mut text, /*timed_out*/ false);
+    assert_eq!(text, "Found 1 file\na.rs");
+    note_timeout(&mut text, /*timed_out*/ true);
+    assert_eq!(
+        text,
+        "Found 1 file\na.rs\n\n(The search timed out after 20 seconds, so these results are partial. Try searching a more specific path or pattern.)"
+    );
 }

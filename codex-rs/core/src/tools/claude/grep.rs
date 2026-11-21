@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 
 use codex_claude_compat::tools::GREP;
 use codex_claude_compat::tools::grep;
+use codex_claude_compat::tools::ripgrep::note_timeout;
 use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
@@ -156,7 +157,7 @@ impl GrepHandler {
             PermissionInput::ReadPath(&target.native_path()),
         )
         .await?;
-        let lines = self
+        let (lines, timed_out) = self
             .ripgrep
             .run(
                 &invocation,
@@ -165,7 +166,8 @@ impl GrepHandler {
                 &target.native_path(),
             )
             .await?;
-        let result = grep::format_result(&input, lines, &target.cwd_display());
+        let mut result = grep::format_result(&input, lines, &target.cwd_display());
+        note_timeout(&mut result.text, timed_out);
         Ok(boxed_tool_output(ClaudeToolOutput::new(
             result.text,
             result.tool_response,

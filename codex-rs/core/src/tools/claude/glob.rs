@@ -14,6 +14,7 @@ use std::time::Instant;
 
 use codex_claude_compat::tools::GLOB;
 use codex_claude_compat::tools::glob;
+use codex_claude_compat::tools::ripgrep::note_timeout;
 use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
@@ -135,7 +136,7 @@ impl GlobHandler {
             PermissionInput::ReadPath(&target.native_path()),
         )
         .await?;
-        let paths = self
+        let (paths, timed_out) = self
             .ripgrep
             .run(
                 &invocation,
@@ -145,7 +146,8 @@ impl GlobHandler {
             )
             .await?;
         let duration_ms = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
-        let result = glob::format_result(paths, &target.cwd_display(), duration_ms);
+        let mut result = glob::format_result(paths, &target.cwd_display(), duration_ms);
+        note_timeout(&mut result.text, timed_out);
         Ok(boxed_tool_output(ClaudeToolOutput::new(
             result.text,
             result.tool_response,
