@@ -534,6 +534,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | Two handlers that are the same (same command and `if`; same prompt; same URL), in the settings files or in one plugin | Run once, the last of them kept | The same | Done 2026-11-20 `f987126bd2` |
 | The shell that runs a command handler | `/bin/sh -c` (Git Bash on Windows) | `/bin/sh -c` for the hooks of Claude Code's settings files and plugins; Codex's own hooks keep the user's shell | Done 2026-11-20 `f987126bd2` |
 | What a command handler gets on stdin | The JSON input and a line break | The same | Done 2026-11-20 `f987126bd2` |
+| A hook that exits with a code other than 0 and 2 | An error that does not block, shown with the first line of the hook's stderr | The same (`hook exited with code N: <line>`); a `prompt` or `agent` hook whose request fails or times out is shown with its error the same way | Done 2026-11-21 |
 | Where a command handler runs once the session's working directory has been removed (a deleted worktree) | In the project directory, or else in the home directory | The same | Done 2026-11-21 |
 
 ### Claude tool set

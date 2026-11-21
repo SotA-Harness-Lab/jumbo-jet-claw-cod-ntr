@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: show the first line of a failed hook's stderr
+
 use std::path::Path;
 
 use codex_protocol::protocol::HookCompletedEvent;
@@ -33,6 +38,15 @@ pub(crate) fn join_text_chunks(chunks: Vec<String>) -> Option<String> {
         None
     } else {
         Some(chunks.join("\n\n"))
+    }
+}
+
+/// The error shown for a hook that exited with a code its event gives no meaning: the code and,
+/// as in Claude Code, the first line the hook wrote to stderr.
+pub(crate) fn exit_code_error(exit_code: i32, stderr: &str) -> String {
+    match stderr.lines().map(str::trim).find(|line| !line.is_empty()) {
+        Some(line) => format!("hook exited with code {exit_code}: {line}"),
+        None => format!("hook exited with code {exit_code}"),
     }
 }
 
@@ -171,9 +185,19 @@ mod tests {
     use codex_protocol::protocol::HookEventName;
     use pretty_assertions::assert_eq;
 
+    use super::exit_code_error;
     use super::matcher_pattern_for_event;
     use super::matches_matcher;
     use crate::engine::HookMatcher;
+
+    #[test]
+    fn exit_code_error_shows_the_first_line_of_stderr() {
+        assert_eq!(
+            exit_code_error(1, "\n  model gpt-x is not available \nretry later\n"),
+            "hook exited with code 1: model gpt-x is not available"
+        );
+        assert_eq!(exit_code_error(3, " \n"), "hook exited with code 3");
+    }
 
     #[test]
     fn matcher_omitted_matches_all_occurrences() {

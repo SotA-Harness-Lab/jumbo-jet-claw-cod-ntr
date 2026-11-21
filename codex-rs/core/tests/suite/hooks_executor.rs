@@ -658,9 +658,11 @@ async fn environment_hook_receives_prompt_and_reports_exit_status(
         .iter()
         .map(|entry| entry.text.as_str())
         .collect();
-    assert_eq!(
-        (run.status, entries),
-        (expected_status, vec![expected_output])
+    // A failed hook's message goes on with the first line of its stderr.
+    assert_eq!(run.status, expected_status);
+    assert!(
+        matches!(entries.as_slice(), [entry] if entry.starts_with(expected_output)),
+        "{entries:?}"
     );
     wait_for_event(thread, |event| matches!(event, EventMsg::TurnComplete(_))).await;
     Ok(())
