@@ -149,16 +149,18 @@ pub fn parse_arguments(arguments: &str) -> Vec<String> {
 
 /// Substitutes argument placeholders as Claude Code does, in this order: named arguments
 /// (`$<name>` not followed by `[` or a word character), `$ARGUMENTS[N]`, `$N` (not followed
-/// by a word character), then `$ARGUMENTS`. A placeholder past the last argument becomes
-/// empty. When nothing was replaced and `arguments` is not empty, `ARGUMENTS: <arguments>`
-/// is appended after a blank line.
+/// by a word character), then `$ARGUMENTS`. A named argument past the last argument
+/// becomes empty; `$ARGUMENTS[N]` and `$N` past the last argument stay as written, as in
+/// newer versions of Claude Code, so that the `$1` of an `awk` program is not lost. When
+/// nothing was replaced and `arguments` is not empty, `ARGUMENTS: <arguments>` is appended
+/// after a blank line.
 pub fn substitute_arguments(content: &str, arguments: &str, names: &[String]) -> String {
     let parsed = parse_arguments(arguments);
-    let argument = |index: usize| parsed.get(index).map(String::as_str).unwrap_or("");
+    let argument = |index: usize| parsed.get(index).map(String::as_str);
 
     let mut result = content.to_string();
     for (index, name) in names.iter().enumerate() {
-        result = replace_named(&result, name, argument(index));
+        result = replace_named(&result, name, argument(index).unwrap_or(""));
     }
     result = replace_indexed(
         &result,
@@ -167,7 +169,7 @@ pub fn substitute_arguments(content: &str, arguments: &str, names: &[String]) ->
         &argument,
     );
     result = replace_shorthand(&result, &argument);
-    result = result.replace(ARGUMENTS_PLACEHOLDER, arguments);
+    result = replace_whole_arguments(&result, arguments);
 
     if result == content && !arguments.is_empty() {
         result.push_str("\n\nARGUMENTS: ");
@@ -211,7 +213,7 @@ fn replace_indexed<'a>(
     content: &str,
     open: &str,
     close: &str,
-    argument: &impl Fn(usize) -> &'a str,
+    argument: &impl Fn(usize) -> Option<&'a str>,
 ) -> String {
     let mut out = String::with_capacity(content.len());
     let mut rest = content;
@@ -223,8 +225,15 @@ fn replace_indexed<'a>(
                 .len();
         out.push_str(&rest[..start]);
         if digits > 0 && after_open[digits..].starts_with(close) {
-            out.push_str(index_value(&after_open[..digits], argument));
-            rest = &after_open[digits + close.len()..];
+            let end = digits + close.len();
+            match index_value(&after_open[..digits], argument) {
+                Some(value) => out.push_str(value),
+                None => {
+                    out.push_str(open);
+                    out.push_str(&after_open[..end]);
+                }
+            }
+            rest = &after_open[end..];
         } else {
             out.push_str(open);
             rest = after_open;
@@ -235,7 +244,7 @@ fn replace_indexed<'a>(
 }
 
 /// Replaces `$<digits>` not followed by a word character with the argument at that index.
-fn replace_shorthand<'a>(content: &str, argument: &impl Fn(usize) -> &'a str) -> String {
+fn replace_shorthand<'a>(content: &str, argument: &impl Fn(usize) -> Option<&'a str>) -> String {
     let mut out = String::with_capacity(content.len());
     let mut rest = content;
     while let Some(start) = rest.find('$') {
@@ -250,7 +259,10 @@ fn replace_shorthand<'a>(content: &str, argument: &impl Fn(usize) -> &'a str) ->
             .next()
             .is_some_and(is_word_char);
         if digits > 0 && !followed_by_word {
-            out.push_str(index_value(&after_sigil[..digits], argument));
+            match index_value(&after_sigil[..digits], argument) {
+                Some(value) => out.push_str(value),
+                None => out.push_str(&rest[start..start + 1 + digits]),
+            }
             rest = &after_sigil[digits..];
         } else {
             out.push('$');
@@ -261,8 +273,32 @@ fn replace_shorthand<'a>(content: &str, argument: &impl Fn(usize) -> &'a str) ->
     out
 }
 
-fn index_value<'a>(digits: &str, argument: &impl Fn(usize) -> &'a str) -> &'a str {
-    digits.parse::<usize>().map(argument).unwrap_or("")
+/// The argument at the index `digits` names; `None` when there is none.
+fn index_value<'a>(digits: &str, argument: &impl Fn(usize) -> Option<&'a str>) -> Option<&'a str> {
+    digits.parse::<usize>().ok().and_then(argument)
+}
+
+/// Replaces `$ARGUMENTS` with the whole argument string, except where it begins an
+/// `$ARGUMENTS[N]` that was kept as written.
+fn replace_whole_arguments(content: &str, arguments: &str) -> String {
+    let mut out = String::with_capacity(content.len());
+    let mut rest = content;
+    while let Some(start) = rest.find(ARGUMENTS_PLACEHOLDER) {
+        let after = &rest[start + ARGUMENTS_PLACEHOLDER.len()..];
+        out.push_str(&rest[..start]);
+        let kept_index = after.strip_prefix('[').is_some_and(|inner| {
+            let index = inner.trim_start_matches(|ch: char| ch.is_ascii_digit());
+            index.len() < inner.len() && index.starts_with(']')
+        });
+        if kept_index {
+            out.push_str(ARGUMENTS_PLACEHOLDER);
+        } else {
+            out.push_str(arguments);
+        }
+        rest = after;
+    }
+    out.push_str(rest);
+    out
 }
 
 #[cfg(test)]

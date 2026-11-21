@@ -71,7 +71,7 @@ fn substitutes_every_kind_of_placeholder() {
     let content = "all=$ARGUMENTS first=$ARGUMENTS[0] second=$1 third=$2 file=$file mode=$mode";
     assert_eq!(
         substitute_arguments(content, r#"a.txt "b c""#, &names(&["file", "mode"])),
-        r#"all=a.txt "b c" first=a.txt second=b c third= file=a.txt mode=b c"#
+        r#"all=a.txt "b c" first=a.txt second=b c third=$2 file=a.txt mode=b c"#
     );
 }
 
@@ -87,12 +87,32 @@ fn leaves_lookalike_placeholders_alone() {
 #[test]
 fn empty_arguments_clear_placeholders() {
     assert_eq!(
-        substitute_arguments("[$ARGUMENTS] [$0] [$ARGUMENTS[3]]", "", &[]),
-        "[] [] []"
+        substitute_arguments(
+            "[$ARGUMENTS] [$0] [$ARGUMENTS[3]] [$file]",
+            "",
+            &names(&["file"])
+        ),
+        "[] [$0] [$ARGUMENTS[3]] []"
     );
     assert_eq!(
         substitute_arguments("no placeholder", "", &[]),
         "no placeholder"
+    );
+}
+
+#[test]
+fn keeps_indexed_placeholders_past_the_last_argument() {
+    assert_eq!(
+        substitute_arguments("awk '{print $1; exit}' costs $0.0034", "", &[]),
+        "awk '{print $1; exit}' costs $0.0034"
+    );
+    assert_eq!(
+        substitute_arguments("cell $B$2 and $ARGUMENTS[1]", "install", &[]),
+        "cell $B$2 and $ARGUMENTS[1]\n\nARGUMENTS: install"
+    );
+    assert_eq!(
+        substitute_arguments("run $0 then awk '{print $1}'", "install", &[]),
+        "run install then awk '{print $1}'"
     );
 }
 
