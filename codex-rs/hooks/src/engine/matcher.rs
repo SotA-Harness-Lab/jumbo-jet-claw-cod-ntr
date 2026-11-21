@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: honour the if condition of Claude Code's hooks, and match
+// lists and hyphenated names exactly as Claude Code does
 
 //! Compiled hook matchers retain their original spelling for configuration identity.
 //! Regex parsing happens during discovery; dispatch only evaluates admitted matchers.
@@ -20,13 +21,27 @@ pub(crate) enum HookMatcher {
 }
 
 impl HookMatcher {
+    /// A matcher made only of letters, digits, `_`, `-`, spaces, `,` and `|` is a list of exact
+    /// names separated by `|` or `,` (`Edit|Write`, `Edit, Write`, `code-reviewer`), as in
+    /// Claude Code; anything else is an unanchored regular expression.
     pub(crate) fn new(pattern: &str) -> Result<Self, regex::Error> {
+        Self::with_exact_set(pattern, |ch| {
+            ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | ' ' | ',' | '|')
+        })
+    }
+
+    /// The narrower rule Claude Code keeps for `StopFailure`: only letters, digits, `_` and `|`
+    /// make an exact list, so a hyphen, space or comma leaves the matcher a regular expression.
+    pub(crate) fn new_narrow(pattern: &str) -> Result<Self, regex::Error> {
+        Self::with_exact_set(pattern, |ch| {
+            ch.is_ascii_alphanumeric() || matches!(ch, '_' | '|')
+        })
+    }
+
+    fn with_exact_set(pattern: &str, exact: impl Fn(char) -> bool) -> Result<Self, regex::Error> {
         if pattern.is_empty() || pattern == "*" {
             Ok(Self::All(pattern.to_string()))
-        } else if pattern
-            .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '|')
-        {
+        } else if pattern.chars().all(exact) {
             Ok(Self::Exact(pattern.to_string()))
         } else {
             regex::Regex::new(pattern).map(Self::Regex)
@@ -61,9 +76,11 @@ impl HookMatcher {
     pub(crate) fn matches(&self, input: Option<&str>) -> bool {
         match self {
             Self::All(_) => true,
-            Self::Exact(pattern) => {
-                input.is_some_and(|input| pattern.split('|').any(|candidate| candidate == input))
-            }
+            Self::Exact(pattern) => input.is_some_and(|input| {
+                pattern
+                    .split(['|', ','])
+                    .any(|candidate| candidate.trim() == input)
+            }),
             Self::Regex(regex) => input.is_some_and(|input| regex.is_match(input)),
             Self::Conditional { matcher, .. } => matcher
                 .as_deref()
@@ -79,3 +96,7 @@ impl PartialEq for HookMatcher {
 }
 
 impl Eq for HookMatcher {}
+
+#[cfg(test)]
+#[path = "matcher_tests.rs"]
+mod tests;
