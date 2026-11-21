@@ -5,6 +5,7 @@
 //! kept per project under `projects`) and of the project's `.mcp.json` files.
 
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -27,14 +28,21 @@ use crate::permissions::normalize_path;
 /// `claude_json` is `~/.claude.json`; `settings` are the parsed settings files, which
 /// approve `.mcp.json` servers; `mcp_json_files` are the `.mcp.json` files from the top of
 /// the filesystem down to `cwd`; `project_root` is the key of the project in `~/.claude.json`.
+///
+/// A `headersHelper` is a shell command, so, as in Claude Code, that of a server of
+/// `.mcp.json` or of the project's entry in `~/.claude.json` is dropped unless
+/// `project_trusted`: the server then connects with its static `headers` alone. The
+/// command is left as written, for the shell that runs it to expand.
 pub fn mcp_server_declarations(
     claude_json: Option<&Value>,
     settings: &[Value],
     mcp_json_files: &[Value],
     project_root: &Path,
+    project_trusted: bool,
     env: &dyn Fn(&str) -> Option<String>,
 ) -> BTreeMap<String, Value> {
     let mut servers = BTreeMap::new();
+    let mut project_servers = BTreeSet::new();
     let project = claude_json
         .and_then(|config| config.get("projects"))
         .and_then(|projects| projects.get(project_root.to_string_lossy().as_ref()));
@@ -46,12 +54,25 @@ pub fn mcp_server_declarations(
     for file in mcp_json_files {
         for (name, server) in servers_of(file).unwrap_or_default() {
             if mcp_json_server_approved(&name, &approval_sources) {
+                project_servers.insert(name.clone());
                 servers.insert(name, server);
             }
         }
     }
     if let Some(local) = project.and_then(servers_of) {
+        project_servers.extend(local.keys().cloned());
         servers.extend(local);
+    }
+    if !project_trusted {
+        for name in &project_servers {
+            if let Some(Value::Object(server)) = servers.get_mut(name)
+                && server.remove(HEADERS_HELPER).is_some()
+            {
+                tracing::warn!(
+                    "headersHelper of MCP server {name} not run: the project is not trusted"
+                );
+            }
+        }
     }
     if let Some(disabled) = project
         .and_then(|project| project.get("disabledMcpServers"))
@@ -86,6 +107,38 @@ pub const CREDENTIAL_VARIABLES: &[&str] = &[
     "CODEX_API_KEY",
 ];
 
+/// The key of a remote server's command that prints headers to send.
+pub const HEADERS_HELPER: &str = "headersHelper";
+
+/// The `sh` script that runs a server's `headersHelper` as Claude Code runs it: with
+/// `CLAUDE_CODE_MCP_SERVER_NAME` and `CLAUDE_CODE_MCP_SERVER_URL` set and, for a plugin's
+/// server, `CLAUDE_PLUGIN_ROOT` set and the plugin's root as its working directory.
+pub fn headers_helper_script(
+    command: &str,
+    server_name: &str,
+    url: &str,
+    plugin_root: Option<&Path>,
+) -> String {
+    let mut script = format!(
+        "export CLAUDE_CODE_MCP_SERVER_NAME={} CLAUDE_CODE_MCP_SERVER_URL={}\n",
+        shell_quote(server_name),
+        shell_quote(url)
+    );
+    if let Some(root) = plugin_root {
+        let root = shell_quote(&root.to_string_lossy());
+        script.push_str(&format!(
+            "export CLAUDE_PLUGIN_ROOT={root}\ncd -- {root} || exit 1\n"
+        ));
+    }
+    script.push_str(command);
+    script
+}
+
+/// `text` in single quotes for `sh`.
+fn shell_quote(text: &str) -> String {
+    format!("'{}'", text.replace('\'', r"'\''"))
+}
+
 fn expand_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
     let Value::Object(fields) = server else {
         return expand_env(server, env);
@@ -95,7 +148,9 @@ fn expand_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
         fields
             .into_iter()
             .map(|(key, value)| {
-                let value = if remote && (key == "url" || key == "headers") {
+                let value = if key == HEADERS_HELPER {
+                    value
+                } else if remote && (key == "url" || key == "headers") {
                     expand_env_with(value, env, /*credentials_empty*/ true)
                 } else {
                     expand_env(value, env)

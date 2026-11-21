@@ -5770,6 +5770,7 @@ fn claude_code_mcp_servers(
         &settings,
         &mcp_json_files,
         &project_root,
+        project_trusted,
         &|name| std::env::var(name).ok(),
     );
     if declarations.is_empty() {

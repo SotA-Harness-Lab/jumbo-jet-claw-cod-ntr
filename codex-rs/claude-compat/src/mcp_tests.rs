@@ -38,6 +38,7 @@ fn sources_are_merged_in_claude_code_order() {
         &settings,
         &mcp_json,
         Path::new("/work/p"),
+        /*project_trusted*/ true,
         &env,
     );
 
@@ -55,7 +56,14 @@ fn sources_are_merged_in_claude_code_order() {
 fn enable_all_approves_every_unlisted_server() {
     let settings = [json!({"enableAllProjectMcpServers": true, "disabledMcpjsonServers": ["y"]})];
     let mcp_json = [json!({"mcpServers": {"x": {"command": "x"}, "y": {"command": "y"}}})];
-    let servers = mcp_server_declarations(None, &settings, &mcp_json, Path::new("/work/p"), &env);
+    let servers = mcp_server_declarations(
+        None,
+        &settings,
+        &mcp_json,
+        Path::new("/work/p"),
+        /*project_trusted*/ true,
+        &env,
+    );
     assert_eq!(servers.keys().collect::<Vec<_>>(), vec!["x"]);
 }
 
@@ -66,7 +74,14 @@ fn servers_turned_off_in_mcp_are_left_out() {
         "projects": {"/work/p": {"disabledMcpServers": ["b"]}}
     });
 
-    let servers = mcp_server_declarations(Some(&claude_json), &[], &[], Path::new("/work/p"), &env);
+    let servers = mcp_server_declarations(
+        Some(&claude_json),
+        &[],
+        &[],
+        Path::new("/work/p"),
+        /*project_trusted*/ true,
+        &env,
+    );
 
     assert_eq!(servers.keys().collect::<Vec<_>>(), vec!["a"]);
 }
@@ -92,6 +107,7 @@ fn credentials_read_as_empty_in_a_remote_server_s_address() {
         &settings,
         &mcp_json,
         Path::new("/work/p"),
+        /*project_trusted*/ true,
         &credentials,
     );
 
@@ -104,6 +120,76 @@ fn credentials_read_as_empty_in_a_remote_server_s_address() {
     );
     // A local server's own environment is the user's to give.
     assert_eq!(servers["local"]["env"]["KEY"], json!("sk-secret"));
+}
+
+#[test]
+fn a_project_s_headers_helper_runs_only_in_a_trusted_project() {
+    let claude_json = json!({
+        "mcpServers": {
+            "user": {"url": "https://u.example", "headersHelper": "user-helper ${TOKEN}"},
+            "shadowed": {"url": "https://s.example", "headersHelper": "user-helper"}
+        },
+        "projects": {"/work/p": {"mcpServers": {
+            "local": {"url": "https://l.example", "headersHelper": "local-helper"}
+        }}}
+    });
+    let settings = [json!({"enableAllProjectMcpServers": true})];
+    let mcp_json = [json!({"mcpServers": {
+        "project": {"url": "https://p.example", "headersHelper": "project-helper"},
+        "shadowed": {"url": "https://s.example", "headersHelper": "project-helper"}
+    }})];
+    let declarations = |project_trusted| {
+        mcp_server_declarations(
+            Some(&claude_json),
+            &settings,
+            &mcp_json,
+            Path::new("/work/p"),
+            project_trusted,
+            &env,
+        )
+    };
+
+    let trusted = declarations(true);
+    // The shell that runs the helper expands its variables, not the declaration.
+    assert_eq!(
+        trusted["user"]["headersHelper"],
+        json!("user-helper ${TOKEN}")
+    );
+    assert_eq!(trusted["local"]["headersHelper"], json!("local-helper"));
+    assert_eq!(trusted["project"]["headersHelper"], json!("project-helper"));
+    assert_eq!(
+        trusted["shadowed"]["headersHelper"],
+        json!("project-helper")
+    );
+
+    let untrusted = declarations(false);
+    assert_eq!(
+        untrusted["user"]["headersHelper"],
+        json!("user-helper ${TOKEN}")
+    );
+    for name in ["local", "project", "shadowed"] {
+        assert_eq!(untrusted[name].get("headersHelper"), None, "{name}");
+        assert!(untrusted[name].get("url").is_some(), "{name}");
+    }
+}
+
+#[test]
+fn a_headers_helper_script_sets_claude_code_s_variables() {
+    assert_eq!(
+        super::headers_helper_script("get-headers", "it's", "https://x.example/mcp", None),
+        "export CLAUDE_CODE_MCP_SERVER_NAME='it'\\''s' \
+         CLAUDE_CODE_MCP_SERVER_URL='https://x.example/mcp'\nget-headers"
+    );
+    assert_eq!(
+        super::headers_helper_script(
+            "./bin/headers",
+            "srv",
+            "https://x.example",
+            Some(Path::new("/plugins/p"))
+        ),
+        "export CLAUDE_CODE_MCP_SERVER_NAME='srv' CLAUDE_CODE_MCP_SERVER_URL='https://x.example'\n\
+         export CLAUDE_PLUGIN_ROOT='/plugins/p'\ncd -- '/plugins/p' || exit 1\n./bin/headers"
+    );
 }
 
 #[test]
