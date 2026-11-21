@@ -280,16 +280,298 @@ pub fn command_error_message(exit_code: Option<i32>, output: &str) -> String {
     }
 }
 
+/// Deepest nesting of elements converted to Markdown. The converter recurses once per level
+/// and the HTML parser slows down with depth, so a deeper page is reduced to its text.
+pub const MAX_HTML_DEPTH: usize = 1_000;
+
 /// The page as Claude Code works on it: HTML is converted to Markdown, anything else is
-/// kept as it came.
+/// kept as it came. HTML nested deeper than [`MAX_HTML_DEPTH`] becomes its plain text.
 pub fn to_markdown(body: &str, content_type: &str) -> String {
     if !content_type.contains("text/html") {
         return body.to_string();
+    }
+    if html_depth_exceeds(body, MAX_HTML_DEPTH) {
+        return html_text(body);
     }
     let converter = htmd::HtmlToMarkdown::builder()
         .skip_tags(vec!["script", "style"])
         .build();
     converter.convert(body).unwrap_or_else(|_| body.to_string())
+}
+
+/// Elements that have no content, and never nest.
+const VOID_ELEMENTS: &[&str] = &[
+    "area", "base", "br", "col", "embed", "frame", "hr", "img", "input", "keygen", "link", "meta",
+    "param", "source", "track", "wbr",
+];
+/// Elements the parser closes when the next one of their kind starts, so that a run of them
+/// without end tags does not nest; they are left out of the depth.
+const SELF_ENDING_ELEMENTS: &[&str] = &[
+    "p", "li", "dt", "dd", "tr", "td", "th", "thead", "tbody", "tfoot", "option", "optgroup", "rb",
+    "rt", "rtc", "rp", "caption", "colgroup", "html", "head", "body",
+];
+/// Elements whose content is text up to their end tag, not markup.
+const RAW_TEXT_ELEMENTS: &[&str] = &[
+    "script", "style", "textarea", "title", "xmp", "iframe", "noembed", "noframes",
+];
+/// Elements that end a line in the plain text of a page.
+const BLOCK_ELEMENTS: &[&str] = &[
+    "address",
+    "article",
+    "aside",
+    "blockquote",
+    "br",
+    "dd",
+    "div",
+    "dl",
+    "dt",
+    "footer",
+    "form",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "header",
+    "hr",
+    "li",
+    "main",
+    "nav",
+    "ol",
+    "p",
+    "pre",
+    "section",
+    "table",
+    "tr",
+    "ul",
+];
+
+enum HtmlToken<'a> {
+    Text(&'a str),
+    /// A start tag, its name in lower case, and whether it ends with `/>`.
+    Start(String, bool),
+    End(String),
+}
+
+/// Walks the tags and text of `html` without building a tree: comments, doctypes and the
+/// content of `<script>` and `<style>` are skipped; the content of the other raw-text
+/// elements is text. `visit` returns `false` to stop.
+fn scan_html(html: &str, mut visit: impl FnMut(HtmlToken<'_>) -> bool) {
+    let bytes = html.as_bytes();
+    let len = html.len();
+    let mut pos = 0;
+    let mut text_start = 0;
+    while let Some(offset) = html[pos..].find('<') {
+        let start = pos + offset;
+        let rest = &html[start + 1..];
+        let closing = rest.starts_with('/');
+        let name_start = start + 1 + usize::from(closing);
+        let name_len = bytes[name_start.min(len)..]
+            .iter()
+            .take_while(|byte| byte.is_ascii_alphanumeric() || matches!(**byte, b'-' | b':'))
+            .count();
+        let starts_with_letter = bytes.get(name_start).is_some_and(u8::is_ascii_alphabetic);
+        if name_len == 0 || !starts_with_letter {
+            let skip_to = if let Some(comment) = rest.strip_prefix("!--") {
+                comment.find("-->").map(|end| start + 4 + end + 3)
+            } else if rest.starts_with('!') || rest.starts_with('?') || closing {
+                rest.find('>').map(|end| start + 1 + end + 1)
+            } else {
+                // A `<` that starts no tag is text.
+                pos = start + 1;
+                continue;
+            };
+            if !visit(HtmlToken::Text(&html[text_start..start])) {
+                return;
+            }
+            pos = skip_to.unwrap_or(len);
+            text_start = pos;
+            continue;
+        }
+        let name = html[name_start..name_start + name_len].to_ascii_lowercase();
+        // The end of the tag: the first `>` outside a quoted attribute value.
+        let mut end = name_start + name_len;
+        let mut quote = None;
+        let mut after_equals = false;
+        while end < len {
+            let byte = bytes[end];
+            match quote {
+                Some(open) if byte == open => quote = None,
+                Some(_) => {}
+                None if byte == b'>' => break,
+                None if after_equals && matches!(byte, b'"' | b'\'') => quote = Some(byte),
+                None => {}
+            }
+            if !byte.is_ascii_whitespace() {
+                after_equals = quote.is_none() && byte == b'=';
+            }
+            end += 1;
+        }
+        let self_closing = end < len && end > name_start && bytes[end - 1] == b'/';
+        if !visit(HtmlToken::Text(&html[text_start..start])) {
+            return;
+        }
+        let token = if closing {
+            HtmlToken::End(name.clone())
+        } else {
+            HtmlToken::Start(name.clone(), self_closing)
+        };
+        if !visit(token) {
+            return;
+        }
+        pos = (end + 1).min(len);
+        text_start = pos;
+        if !closing && RAW_TEXT_ELEMENTS.contains(&name.as_str()) {
+            let close = find_end_tag(html, pos, &name).unwrap_or(len);
+            if !matches!(name.as_str(), "script" | "style")
+                && !visit(HtmlToken::Text(&html[pos..close]))
+            {
+                return;
+            }
+            pos = close;
+            text_start = close;
+        }
+    }
+    visit(HtmlToken::Text(&html[text_start..]));
+}
+
+/// Where the end tag of the raw-text element `name` starts, from `from` on.
+fn find_end_tag(html: &str, from: usize, name: &str) -> Option<usize> {
+    let mut pos = from;
+    while let Some(offset) = html[pos..].find("</") {
+        let start = pos + offset;
+        let candidate = html.get(start + 2..start + 2 + name.len());
+        if candidate.is_some_and(|candidate| candidate.eq_ignore_ascii_case(name)) {
+            return Some(start);
+        }
+        pos = start + 2;
+    }
+    None
+}
+
+/// Whether the elements of `html` nest deeper than `limit`, as the parser would nest them:
+/// an end tag closes the innermost open element of its name and those inside it, and is
+/// ignored when none is open; `/>` closes an element only inside `<svg>` or `<math>`.
+fn html_depth_exceeds(html: &str, limit: usize) -> bool {
+    let mut stack: Vec<String> = Vec::new();
+    let mut open: HashMap<String, usize> = HashMap::new();
+    let mut foreign = 0usize;
+    let mut exceeded = false;
+    scan_html(html, |token| {
+        match token {
+            HtmlToken::Text(_) => {}
+            HtmlToken::Start(name, self_closing) => {
+                let name_str = name.as_str();
+                if VOID_ELEMENTS.contains(&name_str)
+                    || SELF_ENDING_ELEMENTS.contains(&name_str)
+                    || (self_closing && (foreign > 0 || matches!(name_str, "svg" | "math")))
+                {
+                    return true;
+                }
+                if matches!(name_str, "svg" | "math") {
+                    foreign += 1;
+                }
+                *open.entry(name.clone()).or_default() += 1;
+                stack.push(name);
+                if stack.len() > limit {
+                    exceeded = true;
+                    return false;
+                }
+            }
+            HtmlToken::End(name) => {
+                if open.get(&name).copied().unwrap_or(0) == 0 {
+                    return true;
+                }
+                while let Some(popped) = stack.pop() {
+                    if let Some(count) = open.get_mut(&popped) {
+                        *count = count.saturating_sub(1);
+                    }
+                    if matches!(popped.as_str(), "svg" | "math") {
+                        foreign = foreign.saturating_sub(1);
+                    }
+                    if popped == name {
+                        break;
+                    }
+                }
+            }
+        }
+        true
+    });
+    exceeded
+}
+
+/// The text of `html`, for a page too deeply nested to convert: one line for each block,
+/// runs of spaces made one, and the common character references decoded.
+fn html_text(html: &str) -> String {
+    let mut raw = String::new();
+    scan_html(html, |token| {
+        match token {
+            HtmlToken::Text(text) => raw.push_str(text),
+            HtmlToken::Start(name, _) | HtmlToken::End(name) => {
+                if BLOCK_ELEMENTS.contains(&name.as_str()) {
+                    raw.push('\n');
+                } else if matches!(name.as_str(), "td" | "th") {
+                    raw.push(' ');
+                }
+            }
+        }
+        true
+    });
+    let mut text = String::new();
+    for line in raw.split('\n') {
+        let line =
+            decode_character_references(&line.split_whitespace().collect::<Vec<_>>().join(" "));
+        let line = line.trim();
+        if !line.is_empty() {
+            if !text.is_empty() {
+                text.push('\n');
+            }
+            text.push_str(line);
+        }
+    }
+    text
+}
+
+/// Decodes the named references HTML text uses most and numeric ones; others stay as
+/// they are.
+fn decode_character_references(text: &str) -> String {
+    let mut decoded = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find('&') {
+        decoded.push_str(&rest[..start]);
+        let after = &rest[start + 1..];
+        let reference = after
+            .find(';')
+            .filter(|end| *end <= 10)
+            .map(|end| (&after[..end], end));
+        let character = reference.and_then(|(name, _)| match name {
+            "amp" => Some('&'),
+            "lt" => Some('<'),
+            "gt" => Some('>'),
+            "quot" => Some('"'),
+            "apos" => Some('\''),
+            "nbsp" => Some(' '),
+            _ => name
+                .strip_prefix("#x")
+                .or_else(|| name.strip_prefix("#X"))
+                .and_then(|hex| u32::from_str_radix(hex, 16).ok())
+                .or_else(|| name.strip_prefix('#').and_then(|dec| dec.parse().ok()))
+                .and_then(char::from_u32),
+        });
+        match (character, reference) {
+            (Some(character), Some((_, end))) => {
+                decoded.push(character);
+                rest = &after[end + 1..];
+            }
+            _ => {
+                decoded.push('&');
+                rest = after;
+            }
+        }
+    }
+    decoded.push_str(rest);
+    decoded
 }
 
 /// A fetched page, as cached.

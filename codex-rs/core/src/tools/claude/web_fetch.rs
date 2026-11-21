@@ -320,11 +320,13 @@ impl WebFetchHandler {
             if !(200..300).contains(&response.status) {
                 return Err(failed(web_fetch::status_error_message(response.status)));
             }
+            let content =
+                convert_page(response.body.to_string(), response.content_type.to_string()).await?;
             return Ok(Fetched::Content(FetchedContent {
                 bytes: response.bytes,
                 code: response.status,
                 code_text: web_fetch::status_text(response.status).to_string(),
-                content: web_fetch::to_markdown(response.body, response.content_type),
+                content,
                 content_type: response.content_type.to_string(),
             }));
         }
@@ -333,6 +335,14 @@ impl WebFetchHandler {
             web_fetch::MAX_REDIRECTS
         )))
     }
+}
+
+/// Converts a page to Markdown on a blocking thread, so that a large page does not hold up
+/// the async workers.
+async fn convert_page(body: String, content_type: String) -> Result<String, FunctionCallError> {
+    tokio::task::spawn_blocking(move || web_fetch::to_markdown(&body, &content_type))
+        .await
+        .map_err(|err| failed(format!("Converting the page failed: {err}")))
 }
 
 fn elapsed_ms(start: Instant) -> u64 {

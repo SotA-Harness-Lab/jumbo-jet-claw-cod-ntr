@@ -16,6 +16,7 @@ use super::MAX_MARKDOWN_LENGTH;
 use super::command_error_message;
 use super::description;
 use super::fetch_command;
+use super::html_text;
 use super::is_permitted_redirect;
 use super::is_preapproved;
 use super::parse_fetch_output;
@@ -160,6 +161,44 @@ fn html_becomes_markdown_and_other_content_is_kept() {
     );
     assert!(!markdown.contains("x()"), "{markdown}");
     assert_eq!(to_markdown("<b>raw</b>", "text/plain"), "<b>raw</b>");
+}
+
+#[test]
+fn deeply_nested_html_becomes_plain_text() {
+    let html = format!("{}<b>deep</b> &amp; done", "<div>".repeat(100_000));
+    assert_eq!(to_markdown(&html, "text/html"), "deep & done");
+
+    // End tags of elements that are not open close nothing.
+    let html = format!("{}<b>deep</b>", "<div></span>".repeat(2_000));
+    assert_eq!(to_markdown(&html, "text/html"), "deep");
+}
+
+#[test]
+fn nesting_the_parser_undoes_is_converted() {
+    // Paragraphs and list items without end tags, closed elements, `<br>` and the shapes
+    // inside an SVG do not nest.
+    let html = format!(
+        "{}{}{}<svg>{}</svg><b>bold</b>",
+        "<p>a".repeat(2_000),
+        "<ul><li>b</ul>".repeat(2_000),
+        "<span>c<br></span>".repeat(2_000),
+        "<path d=\"M0 0\"/>".repeat(2_000),
+    );
+    assert!(to_markdown(&html, "text/html").ends_with("**bold**"));
+
+    let html = format!("{}<b>bold</b>", "<div>".repeat(200));
+    assert_eq!(to_markdown(&html, "text/html"), "**bold**");
+}
+
+#[test]
+fn plain_text_of_html_keeps_blocks_and_skips_scripts() {
+    assert_eq!(
+        html_text(
+            "<!DOCTYPE html><title>T</title><script>if (a < b) x()</script><!-- <div> -->\
+             <div>a &lt; b&nbsp;&#x41;</div><p class=\"x>y\">c  d</p>1 < 2"
+        ),
+        "T\na < b A\nc d\n1 < 2"
+    );
 }
 
 #[test]
