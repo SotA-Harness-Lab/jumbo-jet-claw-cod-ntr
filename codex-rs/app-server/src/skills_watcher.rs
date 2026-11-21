@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: reload skills only for changes that can change them
+// Modified by Tianyu (Sky) Lu in 2026: reload skills only for changes that can change them; leave hidden folders unwatched
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -50,7 +50,7 @@ impl SkillsWatcher {
         codex_home: &AbsolutePathBuf,
         outgoing: Arc<OutgoingMessageSender>,
     ) -> Arc<Self> {
-        let file_watcher = match FileWatcher::new() {
+        let file_watcher = match FileWatcher::new_skipping_hidden_dirs() {
             Ok(file_watcher) => Arc::new(file_watcher),
             Err(err) => {
                 warn!("failed to initialize skills file watcher: {err}");
