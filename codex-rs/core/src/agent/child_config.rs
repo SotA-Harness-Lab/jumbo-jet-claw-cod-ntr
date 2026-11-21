@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: apply a Claude Code subagent's permissionMode
+
 //! Prepares child configuration from captured step settings and requested overrides.
 //!
 //! Spawn and reload share live runtime policy; role and model precedence, full-history
@@ -95,6 +100,7 @@ pub(crate) async fn prepare_agent_spawn_config(
         apply_spawn_agent_service_tier(session, &mut config).await?;
     }
     apply_spawn_agent_runtime_overrides(&mut config, turn)?;
+    crate::tools::claude::apply_subagent_permission_mode(&mut config, options.role_name);
 
     // Remember an applied configured default so cold reload reapplies its restrictions.
     let role_name = options

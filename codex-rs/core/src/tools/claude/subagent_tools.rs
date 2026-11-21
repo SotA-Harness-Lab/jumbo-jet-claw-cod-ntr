@@ -10,9 +10,11 @@
 use codex_claude_compat::Subagent;
 use codex_claude_compat::tools::agent::ToolList;
 use codex_claude_compat::tools::agent::owner_of;
+use codex_protocol::protocol::AskForApproval;
 use codex_tools::ToolName;
 
 use crate::config::AgentRoleConfig;
+use crate::config::Config;
 use crate::session::turn_context::TurnContext;
 use crate::tools::registry::ToolRegistry;
 
@@ -61,6 +63,32 @@ pub(crate) fn subagent_max_turns(turn_context: &TurnContext) -> Option<u32> {
     let role_name = turn_context.session_source.get_agent_role()?;
     let role = crate::agent::role::resolve_role_config(&turn_context.config, &role_name)?;
     role_subagent(role)?.max_turns
+}
+
+/// Applies the `permissionMode` of the Claude Code subagent definition of `role_name` to the
+/// configuration of an agent about to start, where Codex has a counterpart that asks no
+/// more than the parent does: `dontAsk`, which denies what would be asked, runs the agent
+/// with the approval policy `never`. `default` (and `manual`) keeps the parent's, as Claude
+/// Code does under a parent in default mode; `acceptEdits`, `plan`, `auto` and
+/// `bypassPermissions` have no counterpart and keep the parent's too.
+pub(crate) fn apply_subagent_permission_mode(config: &mut Config, role_name: Option<&str>) {
+    let Some(subagent) = role_name
+        .and_then(|role_name| crate::agent::role::resolve_role_config(config, role_name))
+        .and_then(role_subagent)
+    else {
+        return;
+    };
+    if subagent.permission_mode.as_deref() == Some("dontAsk")
+        && let Err(err) = config
+            .permissions
+            .approval_policy
+            .set(AskForApproval::Never)
+    {
+        tracing::warn!(
+            "agent {}: permissionMode dontAsk is not allowed here: {err}",
+            subagent.name
+        );
+    }
 }
 
 /// Keeps in the registry only the tools `tools` permits.

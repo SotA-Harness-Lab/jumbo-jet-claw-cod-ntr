@@ -35,6 +35,9 @@ pub struct Subagent {
     pub max_turns: Option<u32>,
     /// `skills`: the skills to preload into the agent, as written.
     pub skills: Vec<String>,
+    /// `permissionMode`, as written; `None` for a plugin's agent, which Claude Code does not
+    /// let set it.
+    pub permission_mode: Option<String>,
     /// `tools` and `disallowedTools`, applied when Codex offers Claude Code's tools.
     pub tools: ToolList,
 }
@@ -145,6 +148,7 @@ fn parse_with(contents: &str, plugin_agent: Option<&PluginAgent>) -> Option<Suba
             .get("skills")
             .map(skill_names)
             .unwrap_or_default(),
+        permission_mode: field("permissionMode").filter(|_| plugin_agent.is_none()),
         tools: ToolList::from_frontmatter(
             frontmatter.get("tools"),
             frontmatter.get("disallowedTools"),
@@ -189,6 +193,7 @@ mod tests {
                 model: Some("haiku".to_string()),
                 max_turns: None,
                 skills: Vec::new(),
+                permission_mode: None,
                 tools: ToolList {
                     allowed: Some(vec!["Read".to_string()]),
                     disallowed: Vec::new(),
@@ -213,6 +218,16 @@ mod tests {
         assert_eq!(skills("api-conventions, errors"), both);
         assert_eq!(skills("\"api-conventions errors\""), both);
         assert_eq!(skills("{}"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn the_permission_mode_is_kept_as_written() {
+        assert_eq!(
+            parse_subagent("---\nname: w\ndescription: d\npermissionMode: dontAsk\n---\nDo x.\n")
+                .expect("subagent")
+                .permission_mode,
+            Some("dontAsk".to_string())
+        );
     }
 
     #[test]
