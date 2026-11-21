@@ -66,6 +66,7 @@ fn content_mode_takes_flags_context_type_and_globs() {
             "-U",
             "--multiline-dotall",
             "-i",
+            "--sort=path",
             "-n",
             "-B",
             "2",
@@ -94,12 +95,18 @@ fn content_mode_takes_flags_context_type_and_globs() {
         "-A": 9,
     }))
     .unwrap();
-    assert_eq!(rg_args(&input), with_common(&["-C", "4", "x"]));
+    assert_eq!(
+        rg_args(&input),
+        with_common(&["--sort=path", "-C", "4", "x"])
+    );
 
     // Context is for content mode only.
     let input =
         GrepInput::parse(json!({ "pattern": "x", "output_mode": "count", "-C": 1 })).unwrap();
-    assert_eq!(rg_args(&input), with_common(&["-c", "x"]));
+    assert_eq!(
+        rg_args(&input),
+        with_common(&["-c", "--with-filename", "--sort=path", "x"])
+    );
 }
 
 #[test]
@@ -156,6 +163,12 @@ fn files_mode_lists_files_with_pagination() {
         format_result(&input, Vec::new(), "/w").text,
         "No files found"
     );
+
+    let input = GrepInput::parse(json!({ "pattern": "x", "offset": 2 })).unwrap();
+    assert_eq!(
+        format_result(&input, strings(&["/w/a.rs", "/w/b.rs"]), "/w").text,
+        "No results at offset 2: the search found 2 files in all"
+    );
 }
 
 #[test]
@@ -183,6 +196,17 @@ fn content_mode_shows_lines() {
         format_result(&input, strings(&["/w/a:1:x", "/w/a:2:x"]), "/w").text,
         "a:1:x\n\n[Showing results with pagination = limit: 1]"
     );
+
+    let input = GrepInput::parse(json!({
+        "pattern": "x",
+        "output_mode": "content",
+        "offset": 5,
+    }))
+    .unwrap();
+    assert_eq!(
+        format_result(&input, strings(&["/w/a:1:x"]), "/w").text,
+        "No results at offset 5: the search found 1 line in all\n\n[Showing results with pagination = offset: 5]"
+    );
 }
 
 #[test]
@@ -201,6 +225,28 @@ fn count_mode_sums_matches() {
     assert_eq!(
         format_result(&input, Vec::new(), "/w").text,
         "No matches found\n\nFound 0 total occurrences across 0 files."
+    );
+
+    // The totals are the whole search's, also on a page of it.
+    let input = GrepInput::parse(json!({
+        "pattern": "x",
+        "output_mode": "count",
+        "head_limit": 1,
+        "offset": 1,
+    }))
+    .unwrap();
+    let lines = strings(&["/w/a.rs:3", "/w/b.rs:1", "/w/c.rs:2"]);
+    let result = format_result(&input, lines.clone(), "/w");
+    assert_eq!(
+        result.text,
+        "b.rs:1\n\nFound 6 total occurrences across 3 files. with pagination = limit: 1, offset: 1"
+    );
+    assert_eq!(result.tool_response["numMatches"], json!(6));
+    let input =
+        GrepInput::parse(json!({ "pattern": "x", "output_mode": "count", "offset": 3 })).unwrap();
+    assert_eq!(
+        format_result(&input, lines, "/w").text,
+        "No results at offset 3: the search found 3 entries in all\n\nFound 6 total occurrences across 3 files. with pagination = offset: 3"
     );
 }
 
