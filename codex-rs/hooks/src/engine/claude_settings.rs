@@ -17,6 +17,7 @@ use std::io;
 use std::path::Path;
 
 use codex_config::HookEventsToml;
+use codex_config::HookHandlerConfig;
 use codex_config::MatcherGroup;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use serde_json::Value;
@@ -183,7 +184,8 @@ pub(crate) fn load(
         let Some(hooks) = settings.get("hooks") else {
             continue;
         };
-        let mut hooks = supported_handlers(hooks.clone(), &path, warnings);
+        let hooks = supported_handlers(hooks.clone(), &path, warnings);
+        let mut hooks = drop_malformed(hooks, &path, warnings);
         let extras = handler_extras(&hooks, &http_policy);
         stand_in_for_http(&mut hooks);
         let claude_only = claude_only_groups(&hooks, &path, warnings);
@@ -478,6 +480,93 @@ fn supported_handlers(
         ));
     }
     hooks
+}
+
+/// Leaves out, with a warning, each event, matcher group and handler under `hooks` that Codex
+/// cannot read (a handler without `command`, a `matcher` that is not a string, an event that is
+/// not a list), so that one bad entry does not take the file's other hooks with it, as in
+/// Claude Code. A `timeout` that is not a whole number of seconds is rounded up first. Events
+/// Codex does not run are left as they are.
+fn drop_malformed(mut hooks: Value, path: &AbsolutePathBuf, warnings: &mut Vec<String>) -> Value {
+    let Some(events) = hooks.as_object_mut() else {
+        warnings.push(format!(
+            "skipping the hooks of Claude Code settings {}: `hooks` is not an object",
+            path.display()
+        ));
+        return Value::Object(serde_json::Map::new());
+    };
+    let codex_events = serde_json::to_value(HookEventsToml::default())
+        .ok()
+        .and_then(|events| {
+            events
+                .as_object()
+                .map(|events| events.keys().cloned().collect::<Vec<_>>())
+        })
+        .unwrap_or_default();
+    let mut skipped = Vec::new();
+    events.retain(|event, groups| {
+        let read_here = codex_events.contains(event)
+            || ClaudeOnlyEvent::ALL
+                .iter()
+                .any(|claude_only| claude_only.label() == event.as_str());
+        if !read_here {
+            return true;
+        }
+        let Some(groups) = groups.as_array_mut() else {
+            skipped.push(format!("{event}: not a list of matcher groups"));
+            return false;
+        };
+        groups.retain_mut(|group| {
+            let well_formed = group.is_object()
+                && group
+                    .get("matcher")
+                    .is_none_or(|matcher| matcher.is_string() || matcher.is_null())
+                && group.get("hooks").is_none_or(Value::is_array);
+            if !well_formed {
+                skipped.push(format!(
+                    "{event}: a matcher group that is not an object with a string `matcher` \
+                     and a list of `hooks`"
+                ));
+                return false;
+            }
+            if let Some(handlers) = group.get_mut("hooks").and_then(Value::as_array_mut) {
+                handlers.retain_mut(|handler| {
+                    round_up_timeout(handler);
+                    let mut parsed = handler.clone();
+                    // `http` handlers are parsed as `prompt` ones; see `stand_in_for_http`.
+                    if parsed.get("type").and_then(Value::as_str) == Some("http") {
+                        parsed["type"] = Value::String("prompt".to_string());
+                    }
+                    match serde_json::from_value::<HookHandlerConfig>(parsed) {
+                        Ok(_) => true,
+                        Err(err) => {
+                            skipped.push(format!("{event}: a handler ({err})"));
+                            false
+                        }
+                    }
+                });
+            }
+            true
+        });
+        true
+    });
+    for entry in skipped {
+        warnings.push(format!(
+            "skipping a Claude Code hook in {}: {entry}",
+            path.display()
+        ));
+    }
+    hooks
+}
+
+/// Claude Code takes any positive number of seconds; Codex's configuration takes whole ones.
+fn round_up_timeout(handler: &mut Value) {
+    if let Some(timeout) = handler.get("timeout").and_then(Value::as_f64)
+        && timeout > 0.0
+        && timeout.fract() != 0.0
+    {
+        handler["timeout"] = Value::from(timeout.ceil() as u64);
+    }
 }
 
 #[cfg(test)]
