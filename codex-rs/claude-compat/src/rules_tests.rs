@@ -96,6 +96,18 @@ fn matches_globs_like_gitignore_patterns() {
     ));
 }
 
+#[test]
+fn a_malformed_glob_leaves_the_others_working() {
+    let base = Path::new("/repo");
+    let globs = vec![
+        "src/**/*.rs".to_string(),
+        "docs/{draft".to_string(),
+        "[z-a]".to_string(),
+    ];
+    assert!(glob_matches(&globs, base, Path::new("/repo/src/a.rs")));
+    assert!(!glob_matches(&globs, base, Path::new("/repo/docs/x.md")));
+}
+
 #[tokio::test]
 async fn loads_rules_sorted_with_their_globs() {
     let dir = TempDir::new().expect("temp dir");

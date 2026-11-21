@@ -222,7 +222,8 @@ fn expand_braces(pattern: &str, limit: usize) -> Option<Vec<String>> {
 }
 
 /// Whether `file` matches one of `globs`, read as gitignore patterns relative to `base`.
-/// A file outside `base` never matches.
+/// A file outside `base` never matches. A glob the matcher cannot read is skipped, and
+/// the others still apply.
 pub fn glob_matches(globs: &[String], base: &Path, file: &Path) -> bool {
     let Ok(relative) = file.strip_prefix(base) else {
         return false;
@@ -232,8 +233,8 @@ pub fn glob_matches(globs: &[String], base: &Path, file: &Path) -> bool {
     }
     let mut builder = GitignoreBuilder::new(base);
     for glob in globs {
-        if builder.add_line(None, glob).is_err() {
-            return false;
+        if let Err(err) = builder.add_line(None, glob) {
+            tracing::debug!("skipping the rule glob `{glob}`: {err}");
         }
     }
     let Ok(matcher) = builder.build() else {
