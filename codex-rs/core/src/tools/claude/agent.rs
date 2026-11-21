@@ -40,6 +40,7 @@ use super::check_permission;
 use super::failed;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::skill::preloaded_skills;
 use super::subagent_tools::list_entry;
 use super::subagent_tools::role_subagent;
 use super::subagent_tools::role_tool_list;
@@ -286,18 +287,30 @@ impl AgentHandler {
         role: Option<&str>,
     ) -> Result<(String, ThreadId), FunctionCallError> {
         let mut arguments = Map::new();
-        arguments.insert("message".to_string(), json!(args.prompt));
+        let subagent = role
+            .and_then(|role| crate::agent::role::resolve_role_config(&invocation.turn.config, role))
+            .and_then(role_subagent);
+        // As in Claude Code, the skills the subagent names come with the prompt, in full.
+        let preloaded = match (role, &subagent) {
+            (Some(role), Some(subagent)) => {
+                preloaded_skills(invocation, role, &subagent.skills).await
+            }
+            _ => Vec::new(),
+        };
+        let message = std::iter::once(args.prompt.clone())
+            .chain(preloaded)
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        arguments.insert("message".to_string(), json!(message));
         if let Some(role) = role {
             arguments.insert("agent_type".to_string(), json!(role));
         }
-        let subagent_model = role
-            .and_then(|role| crate::agent::role::resolve_role_config(&invocation.turn.config, role))
-            .and_then(role_subagent)
-            .and_then(|subagent| subagent.model);
         if let Some(model) = spawn_model(
             &invocation.turn.config.mod_config.hooks,
             args.model.as_deref(),
-            subagent_model.as_deref(),
+            subagent
+                .as_ref()
+                .and_then(|subagent| subagent.model.as_deref()),
         ) {
             arguments.insert("model".to_string(), json!(model));
         }

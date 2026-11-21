@@ -93,6 +93,85 @@ impl CoreToolRuntime for SkillHandler {
     }
 }
 
+/// The text of each skill a subagent's `skills` names, to start the agent with, as Claude
+/// Code preloads them: the first [`skill::MAX_PRELOADED_SKILLS`] distinct names, each found
+/// among the skills the model may invoke this turn by [`skill::resolve_preloaded_skill`] and
+/// expanded as the `Skill` tool expands it. One that is not found or cannot be read is left
+/// out, with a line in the log.
+pub(super) async fn preloaded_skills(
+    invocation: &ToolInvocation,
+    agent_type: &str,
+    names: &[String],
+) -> Vec<String> {
+    if names.is_empty() {
+        return Vec::new();
+    }
+    let environments = invocation
+        .session
+        .services
+        .turn_environments
+        .snapshot()
+        .await;
+    let snapshot = invocation
+        .session
+        .host_skills_for_step(&invocation.turn, &environments)
+        .await;
+    let outcome = snapshot.outcome();
+    let invocable = outcome
+        .skills
+        .iter()
+        .filter(|candidate| {
+            outcome.is_skill_enabled(candidate) && candidate.allows_implicit_invocation()
+        })
+        .collect::<Vec<_>>();
+    let available = invocable
+        .iter()
+        .map(|candidate| candidate.name.as_str())
+        .collect::<Vec<_>>();
+    let session_id = invocation.session.session_id().to_string();
+    let mut wanted = Vec::new();
+    for name in names {
+        let name = skill::normalize_name(name);
+        if !name.is_empty() && !wanted.contains(&name) {
+            wanted.push(name);
+        }
+    }
+    wanted.truncate(skill::MAX_PRELOADED_SKILLS);
+    let mut texts = Vec::new();
+    for name in wanted {
+        let Some(found) = skill::resolve_preloaded_skill(&available, agent_type, name)
+            .and_then(|found| invocable.iter().find(|candidate| candidate.name == found))
+        else {
+            tracing::warn!("agent {agent_type}: skill {name} of its skills was not found");
+            continue;
+        };
+        let Ok(path) = found.path_to_skills_md.to_abs_path() else {
+            tracing::warn!("agent {agent_type}: skill {name} is not a file on this machine");
+            continue;
+        };
+        let contents = match tokio::fs::read_to_string(path.as_path()).await {
+            Ok(contents) => contents,
+            Err(err) => {
+                tracing::warn!("agent {agent_type}: cannot read skill {name}: {err}");
+                continue;
+            }
+        };
+        let skill_dir = path
+            .as_path()
+            .parent()
+            .map(|dir| dir.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let expanded = codex_claude_compat::render_invoked_skill(
+            &contents,
+            &skill_dir,
+            &session_id,
+            /*arguments*/ "",
+        );
+        texts.push(skill::result_text(&found.name, &expanded));
+    }
+    texts
+}
+
 async fn handle_call(invocation: ToolInvocation) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
     let args: SkillArgs = parse_claude_arguments(SKILL, &invocation)?;
     let name = skill::normalize_name(&args.skill).to_string();

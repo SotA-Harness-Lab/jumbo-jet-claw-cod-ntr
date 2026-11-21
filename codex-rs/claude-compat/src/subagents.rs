@@ -33,6 +33,8 @@ pub struct Subagent {
     /// `maxTurns`: how many model requests the agent may make; a value that is not a
     /// positive whole number is left out.
     pub max_turns: Option<u32>,
+    /// `skills`: the skills to preload into the agent, as written.
+    pub skills: Vec<String>,
     /// `tools` and `disallowedTools`, applied when Codex offers Claude Code's tools.
     pub tools: ToolList,
 }
@@ -139,11 +141,31 @@ fn parse_with(contents: &str, plugin_agent: Option<&PluginAgent>) -> Option<Suba
         max_turns: field("maxTurns")
             .and_then(|turns| turns.parse::<u32>().ok())
             .filter(|turns| *turns > 0),
+        skills: frontmatter
+            .get("skills")
+            .map(skill_names)
+            .unwrap_or_default(),
         tools: ToolList::from_frontmatter(
             frontmatter.get("tools"),
             frontmatter.get("disallowedTools"),
         ),
     })
+}
+
+/// The names in a `skills` value: a list, or one string of names separated by commas or
+/// spaces.
+fn skill_names(value: &Value) -> Vec<String> {
+    let entries: Vec<&str> = match value {
+        Value::String(text) => vec![text.as_str()],
+        Value::Sequence(items) => items.iter().filter_map(Value::as_str).collect(),
+        _ => Vec::new(),
+    };
+    entries
+        .into_iter()
+        .flat_map(|entry| entry.split(|ch: char| ch == ',' || ch.is_whitespace()))
+        .filter(|name| !name.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 #[cfg(test)]
@@ -166,6 +188,7 @@ mod tests {
                 effort: Some("high".to_string()),
                 model: Some("haiku".to_string()),
                 max_turns: None,
+                skills: Vec::new(),
                 tools: ToolList {
                     allowed: Some(vec!["Read".to_string()]),
                     disallowed: Vec::new(),
@@ -174,6 +197,22 @@ mod tests {
         );
         assert_eq!(parse_subagent("---\nname: w\n---\nDo x."), None);
         assert_eq!(parse_subagent("---\nname: w\ndescription: d\n---\n"), None);
+    }
+
+    #[test]
+    fn skills_are_a_list_or_names_separated_by_commas() {
+        let skills = |value: &str| {
+            parse_subagent(&format!(
+                "---\nname: w\ndescription: d\nskills: {value}\n---\nDo x.\n"
+            ))
+            .expect("subagent")
+            .skills
+        };
+        let both = vec!["api-conventions".to_string(), "errors".to_string()];
+        assert_eq!(skills("[api-conventions, errors]"), both);
+        assert_eq!(skills("api-conventions, errors"), both);
+        assert_eq!(skills("\"api-conventions errors\""), both);
+        assert_eq!(skills("{}"), Vec::<String>::new());
     }
 
     #[test]
