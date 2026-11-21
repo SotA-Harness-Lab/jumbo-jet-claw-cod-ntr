@@ -1027,6 +1027,38 @@ fn other_tools_match_their_content_exactly() {
 }
 
 #[test]
+fn the_local_rules_of_the_repository_root_apply_in_a_subdirectory() {
+    let home = tempfile::tempdir().expect("tempdir");
+    let repo = tempfile::tempdir().expect("tempdir");
+    std::fs::create_dir_all(repo.path().join(".git")).expect("create .git");
+    let root = repo.path().to_path_buf();
+    let project = root.join("sub");
+    for (dir, rule) in [(&project, "WebSearch"), (&root, "WebFetch")] {
+        let dot_claude = dir.join(".claude");
+        std::fs::create_dir_all(&dot_claude).expect("create .claude");
+        std::fs::write(
+            dot_claude.join("settings.local.json"),
+            json!({ "permissions": { "deny": [rule] } }).to_string(),
+        )
+        .expect("write settings");
+    }
+    let (rules, errors) = PermissionRules::load(Some(home.path()), Some(&project));
+    assert!(errors.is_empty());
+    let sources = rules
+        .rules()
+        .iter()
+        .map(|rule| (rule.source, rule.text.as_str()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        sources,
+        vec![
+            (RuleSource::Local, "WebSearch"),
+            (RuleSource::Local, "WebFetch"),
+        ]
+    );
+}
+
+#[test]
 fn rules_are_loaded_from_the_user_project_and_local_files() {
     let home = tempfile::tempdir().expect("tempdir");
     let project = tempfile::tempdir().expect("tempdir");

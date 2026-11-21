@@ -4,7 +4,8 @@
 //! Hooks declared in Claude Code's settings files, run by Codex in place.
 //!
 //! Claude Code keeps hooks under the `hooks` key of `~/.claude/settings.json` and of a
-//! project's `.claude/settings.json` and `.claude/settings.local.json`, in the same shape
+//! project's `.claude/settings.json` and `.claude/settings.local.json` (also the one at the
+//! root of its repository), in the same shape
 //! Codex reads from `hooks.json`. Handlers of a type Codex does not run are left out with
 //! a warning, so that one of them does not take the whole file with it. Of the events Codex
 //! does not have, `Notification`, `PostToolUseFailure` and `StopFailure` are kept apart and run
@@ -26,7 +27,6 @@ use super::http_runner::HttpHook;
 use super::http_runner::HttpHookPolicy;
 use crate::events::claude_only::ClaudeOnlyEvent;
 
-const SETTINGS_FILES: &[&str] = &["settings.json", "settings.local.json"];
 /// Handler types Codex runs; any other is dropped before parsing.
 const KNOWN_HANDLER_TYPES: &[&str] = &["command", "prompt", "agent", "http", "mcp_tool"];
 
@@ -255,10 +255,16 @@ fn settings_files(settings: &ClaudeHookSettings) -> Vec<(AbsolutePathBuf, bool)>
         let dot_claude = project_dir.join(".claude");
         // In the home directory, `.claude` is the user's own configuration.
         if settings.user_dir.as_ref() != Some(&dot_claude) {
+            files.push((dot_claude.join("settings.json"), false));
+            let home_dir = settings.user_dir.as_ref().and_then(AbsolutePathBuf::parent);
             files.extend(
-                SETTINGS_FILES
-                    .iter()
-                    .map(|name| (dot_claude.join(name), false)),
+                codex_claude_compat::local_settings_paths(
+                    project_dir.as_path(),
+                    home_dir.as_ref().map(AbsolutePathBuf::as_path),
+                )
+                .into_iter()
+                .filter_map(|path| AbsolutePathBuf::from_absolute_path_checked(path).ok())
+                .map(|path| (path, false)),
             );
         }
     }

@@ -109,10 +109,14 @@ fn expand_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
 /// of its Git repository, also from a linked worktree (Claude Code's `findCanonicalGitRoot`),
 /// or `cwd` itself outside a repository.
 pub fn claude_json_project_root(cwd: &Path) -> PathBuf {
-    match cwd.ancestors().find(|dir| dir.join(".git").exists()) {
-        Some(git_root) => canonical_git_root(git_root).unwrap_or_else(|| git_root.to_path_buf()),
-        None => cwd.to_path_buf(),
-    }
+    git_repository_root(cwd).unwrap_or_else(|| cwd.to_path_buf())
+}
+
+/// The root of the Git repository `cwd` is in, the main checkout's from a linked worktree
+/// (Claude Code's `findCanonicalGitRoot`); `None` outside a repository.
+pub(crate) fn git_repository_root(cwd: &Path) -> Option<PathBuf> {
+    let git_root = cwd.ancestors().find(|dir| dir.join(".git").exists())?;
+    Some(canonical_git_root(git_root).unwrap_or_else(|| git_root.to_path_buf()))
 }
 
 /// The main checkout of the linked worktree `git_root`, or of a bare repository its common

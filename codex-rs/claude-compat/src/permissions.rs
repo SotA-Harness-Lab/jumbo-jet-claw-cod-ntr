@@ -87,7 +87,8 @@ pub enum RuleSource {
     User,
     /// `.claude/settings.json` of the project: `/path` is in the project directory.
     Project,
-    /// `.claude/settings.local.json` of the project: as for `Project`.
+    /// A `.claude/settings.local.json` of the project, in `project_dir` or at the root of its
+    /// repository: as for `Project`, `/path` is in the project directory.
     Local,
 }
 
@@ -160,9 +161,11 @@ struct FileMatcher {
 }
 
 impl PermissionRules {
-    /// Reads the rules of the user's `~/.claude/settings.json` and of the project's
-    /// `.claude/settings.json` and `.claude/settings.local.json` in `project_dir`. Files
-    /// that cannot be read are returned with their error and skipped.
+    /// Reads the rules of the user's `~/.claude/settings.json`, of the project's
+    /// `.claude/settings.json` in `project_dir` and of its `.claude/settings.local.json`
+    /// files, the one at the repository's root included (see
+    /// [`crate::local_settings_paths`]). Files that cannot be read are returned with their
+    /// error and skipped.
     pub fn load(
         home_dir: Option<&Path>,
         project_dir: Option<&Path>,
@@ -177,7 +180,11 @@ impl PermissionRules {
             // In the home directory, `.claude` is the user's own configuration.
             if claude_home.as_deref() != Some(dot_claude.as_path()) {
                 files.push((RuleSource::Project, dot_claude.join("settings.json")));
-                files.push((RuleSource::Local, dot_claude.join("settings.local.json")));
+                files.extend(
+                    crate::settings::local_settings_paths(project_dir, home_dir)
+                        .into_iter()
+                        .map(|path| (RuleSource::Local, path)),
+                );
             }
         }
         let mut settings = Vec::new();
