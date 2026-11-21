@@ -325,6 +325,24 @@ impl PermissionRules {
         self
     }
 
+    /// These rules with `texts` added as allow rules granted for a while, such as the
+    /// `allowed-tools` of a skill for the turn that invokes it. Their `/path` patterns are
+    /// relative to the project directory, and deny and ask rules still win over them.
+    pub fn with_granted_allow_rules(mut self, texts: &[String]) -> Self {
+        for text in texts {
+            let (tool, content) = parse_rule(text);
+            self.rules.push(PermissionRule {
+                tool,
+                content,
+                decision: PermissionDecision::Allow,
+                source: RuleSource::Local,
+                text: text.clone(),
+            });
+        }
+        self.file_matchers = self.build_file_matchers(/*warn*/ false);
+        self
+    }
+
     /// What the rules decide for a call of `tool` with `input`.
     pub fn evaluate(&self, tool: &str, input: ToolInput<'_>) -> RuleVerdict {
         let tool_name = normalize_tool_name(tool);

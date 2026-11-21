@@ -1173,3 +1173,16 @@ fn link_targets_are_taken_relative_to_the_link() {
         PathBuf::from("/w/same")
     );
 }
+
+#[test]
+fn granted_allow_rules_allow_what_no_deny_or_ask_rule_holds_back() {
+    let rules = local_rules(&[], &["Bash(git push *)"], &["Bash(rm *)"])
+        .with_granted_allow_rules(&["Bash".to_string(), "Read".to_string()]);
+    assert_eq!(bash(&rules, "ls -la"), allow("Bash"));
+    assert_eq!(bash(&rules, "git push origin"), ask("Bash(git push *)"));
+    assert_eq!(
+        bash(&rules, "rm -rf x"),
+        denied_command("Bash(rm *)", "rm -rf x")
+    );
+    assert_eq!(read(&rules, "/work/project/a.rs"), allow("Read"));
+}

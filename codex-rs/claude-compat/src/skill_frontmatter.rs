@@ -8,6 +8,7 @@ use crate::markdown::frontmatter_string;
 use crate::markdown::parse_document;
 use crate::markdown::parse_frontmatter;
 use crate::rules::rule_globs;
+use crate::tools::agent::tool_list_entries;
 
 /// What a skill's frontmatter says about how it is offered and run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,6 +22,9 @@ pub struct SkillFrontmatter {
     /// `paths`: the globs of the files that bring the skill up, read as a rule's `paths:`
     /// are. `None` for a skill offered from the start.
     pub paths: Option<Vec<String>>,
+    /// `allowed-tools`: permission rules (`Read`, `Bash(git add *)`) the turn that invokes
+    /// the skill runs without asking, as written.
+    pub allowed_tools: Vec<String>,
 }
 
 impl Default for SkillFrontmatter {
@@ -29,6 +33,7 @@ impl Default for SkillFrontmatter {
             user_invocable: true,
             argument_hint: None,
             paths: None,
+            allowed_tools: Vec::new(),
         }
     }
 }
@@ -48,6 +53,10 @@ pub fn skill_frontmatter(contents: &str) -> SkillFrontmatter {
             .get("argument-hint")
             .and_then(|hint| text_value(hint, frontmatter, "argument-hint")),
         paths: rule_globs(frontmatter),
+        allowed_tools: value
+            .get("allowed-tools")
+            .map(tool_list_entries)
+            .unwrap_or_default(),
     }
 }
 

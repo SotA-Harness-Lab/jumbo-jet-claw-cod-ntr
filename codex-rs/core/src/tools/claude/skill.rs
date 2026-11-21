@@ -212,6 +212,11 @@ async fn handle_call(invocation: ToolInvocation) -> Result<Box<dyn ToolOutput>, 
         .parent()
         .map(|dir| dir.to_string_lossy().into_owned())
         .unwrap_or_default();
+    // The skill's `allowed-tools` run without asking for the rest of this turn.
+    codex_skills_extension::grant_skill_tools(
+        &invocation.turn.extension_data,
+        codex_skills_extension::skill_tool_grants(&contents, &path.as_path().to_string_lossy()),
+    );
     let session_id = invocation.session.session_id().to_string();
     let expanded = codex_claude_compat::render_invoked_skill(
         &contents,

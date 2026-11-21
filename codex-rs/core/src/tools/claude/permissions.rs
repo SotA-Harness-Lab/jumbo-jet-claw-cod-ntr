@@ -315,6 +315,13 @@ pub(crate) async fn check_permission(
         invocation.turn.config.cwd.as_path(),
         invocation.turn.config.active_project.is_trusted(),
     );
+    // The `allowed-tools` of the skills invoked in this turn allow what they name.
+    let granted = codex_skills_extension::granted_skill_tools(&invocation.turn.extension_data);
+    let rules = if granted.is_empty() {
+        rules
+    } else {
+        Arc::new((*rules).clone().with_granted_allow_rules(&granted))
+    };
     if rules.is_empty() {
         return Ok(guard);
     }

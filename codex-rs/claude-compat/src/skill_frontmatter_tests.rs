@@ -60,3 +60,26 @@ fn paths_are_read_as_a_rule_reads_them() {
     // A skill for every file is offered from the start.
     assert_eq!(paths("paths: \"**\""), None);
 }
+
+#[test]
+fn allowed_tools_are_split_as_claude_code_splits_them() {
+    let allowed = |frontmatter: &str| {
+        skill_frontmatter(&format!("---\n{frontmatter}\n---\nBody\n")).allowed_tools
+    };
+    assert_eq!(allowed("name: demo"), Vec::<String>::new());
+    assert_eq!(
+        allowed("allowed-tools: Read, Grep Bash(git add *)"),
+        vec![
+            "Read".to_string(),
+            "Grep".to_string(),
+            "Bash(git add *)".to_string()
+        ]
+    );
+    assert_eq!(
+        allowed("allowed-tools:\n  - Read\n  - Bash(npm run test, npm run lint)"),
+        vec![
+            "Read".to_string(),
+            "Bash(npm run test, npm run lint)".to_string()
+        ]
+    );
+}

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks; grant a skill's allowed-tools
 // Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks;
 // read the project instructions again for a compaction
 // stop a subagent at its maxTurns
@@ -1435,6 +1436,7 @@ async fn build_skills_and_plugins(
         fragments,
         injected: injected_host_skills,
         warnings: host_skill_warnings,
+        claude_allowed_tools,
     } = skills_snapshot
         .load_skill_prompts(
             &mentioned_skills,
@@ -1455,6 +1457,7 @@ async fn build_skills_and_plugins(
         sess.send_event(turn_context, EventMsg::Warning(WarningEvent { message }))
             .await;
     }
+    codex_skills_extension::grant_skill_tools(&turn_context.extension_data, claude_allowed_tools);
     let skill_items = fragments
         .into_iter()
         .map(ContextualUserFragment::into_boxed_response_item)
