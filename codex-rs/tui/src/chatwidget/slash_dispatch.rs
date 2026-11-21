@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable; ask before /exit stops running work
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable; ask before /exit stops running work;
+// leave out skills that are not user-invocable
 
 //! Slash-command dispatch and local-recall handoff for `ChatWidget`.
 //!
@@ -1324,6 +1325,7 @@ impl ChatWidget {
             .skills()?
             .iter()
             .find(|skill| skill.name == name)
+            .filter(|skill| crate::bottom_pane::slash_commands::is_user_invocable(skill))
             .cloned()
     }
 
