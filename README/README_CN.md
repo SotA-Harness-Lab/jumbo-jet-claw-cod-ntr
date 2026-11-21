@@ -17,7 +17,7 @@ Jumbo Jet CodClaw NTR（jjcn）是在 [CodClaw NTR](https://github.com/lutianyu2
 
 NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 CodClaw NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
 
-程序名、设置文件和环境变量都沿用 CodClaw NTR 的（`ccn`、`ccn-config.toml`、`CCN_`），所以两个版本在同一台机器上可以互相替换。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得。
+目前程序名、设置文件和环境变量都沿用 CodClaw NTR 的（`ccn`、`ccn-config.toml`、`CCN_`），所以两个版本在同一台机器上可以互相替换；等 jjcn 的设置改用 Claude Code 的设置文件后就不再如此（见[方向](#方向)）。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得。
 
 目前加入的改动，逐项说明见 [jjcn refinements](../docs/jjcn.md)：
 
@@ -32,7 +32,7 @@ NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一
 ## 目录
 
 - [概述](#概述)
-- [定位](#定位)
+- [方向](#方向)
 - [功能特性](#功能特性)
 - [不兼容的部分](#不兼容的部分)
 - [安装](#安装)
@@ -48,15 +48,16 @@ jjcn 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件），�
 
 改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`。
 
-## 定位
+## 方向
 
-CodClaw NTR 是让 Codex 尽量完整地读懂 Claude Code 配置文件的版本。落到代码上：
+jjcn 是 CodClaw NTR 的大改版。CodClaw NTR 保留 Codex，让它读懂 Claude Code 的配置；jjcn 则完全靠向 Claude Code 的生态：
 
-- **兼容 Claude Code 优先。** Codex 和 Claude Code 的配置有冲突的地方，改 Codex 去适应 Claude Code，哪怕改动很大。
-- **其余保持 Codex 原样。** Codex 自己不冲突的特性都保留，不过保留它们本身不是目标。Codex 的代码只改兼容需要的部分，为的是能持续跟进上游 Codex 的更新：可以和上游有一定分叉，但始终保持在手动解决冲突就能合并的程度。
-- **插件系统和程序设置沿用 Codex。** 它们是 Codex 的核心组件，不好大改，从头复刻一套兼容 Claude Code 的插件系统也没有必要。Claude Code 的插件在好做的范围内兼容；设置是 Codex 的 `config.toml` 和本改版的 `ccn-config.toml`，Claude Code 的设置只读兼容用得到的部分。
+- **配置与 Codex 的生态彻底脱离。** 设置全面采用 Claude Code 的设置文件，加上 jjcn 自己的设置文件，用 [layeredcfg](https://github.com/lutianyu2001/layeredcfg) 分层，jjcn 自己的设置文件优先于 Claude Code 的。
+- **插件两边都兼容。** 插件系统同时加载 Claude Code 和 Codex 的插件。
+- **大量新特性**：作者认为有用的都会加进来，打造一个适合作者自用的 harness；已加入的见 [jjcn refinements](../docs/jjcn.md)。
+- **以 Codex 为底子，但不受它限制。** 需要多深的改动就改多深，同时继续跟进 CodClaw NTR 的更新。
 
-想要完全转向 Claude Code 生态的 harness，见在本项目之上构建的 [jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr)。
+以上是 jjcn 的方向，还没有全部做到：目前设置仍沿用 CodClaw NTR 的 `ccn-config.toml`。
 
 ## 功能特性
 

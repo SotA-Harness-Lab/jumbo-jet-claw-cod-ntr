@@ -23,8 +23,9 @@ NTR stands here for Next-Tier Refined: refined, change by change, toward that ne
 the same letters stand for Native Tooling Ready, which still holds here: Claude Code's native
 configuration works as it is, with nothing to convert or migrate.
 
-The program, its settings file and its environment variables are CodClaw NTR's (`ccn`,
-`ccn-config.toml`, `CCN_`), so either build can take the other's place on a machine. The repository
+For now, the program, its settings file and its environment variables are CodClaw NTR's (`ccn`,
+`ccn-config.toml`, `CCN_`), so either build can take the other's place on a machine; that ends as jjcn
+moves its settings to Claude Code's files (see [Direction](#direction)). The repository
 starts as a copy of CodClaw NTR's `main` and takes its later changes from there.
 
 What it adds so far, each described in [jjcn refinements](./docs/jjcn.md):
@@ -42,7 +43,7 @@ Each is on by default and has a switch in `~/.codex/ccn-config.toml`, under `[ha
 ## Table of Contents
 
 - [Overview](#overview)
-- [Scope](#scope)
+- [Direction](#direction)
 - [Features](#features)
 - [What Is Not Compatible](#what-is-not-compatible)
 - [Installation](#installation)
@@ -62,24 +63,22 @@ item by item, are in [Claude Code compatibility](./docs/claude-compat.md).
 
 The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `config.toml`.
 
-## Scope
+## Direction
 
-CodClaw NTR is Codex made to read Claude Code's configuration files as completely as it can. What that
-means for the code:
+jjcn is the heavily reworked edition of CodClaw NTR. CodClaw NTR keeps Codex and makes it read Claude
+Code's configuration; jjcn leans all the way toward Claude Code's ecosystem:
 
-- **Claude Code compatibility comes first.** Where Codex conflicts with Claude Code's configuration,
-  Codex is changed to follow Claude Code, even when the change is large.
-- **Otherwise Codex stays as it is.** Codex's own features that do not conflict are kept, though keeping
-  them is not a goal in itself. Codex's code is changed no more than compatibility needs, so that upstream
-  Codex's updates keep coming in: the fork may drift from upstream, but never so far that a merge can't be
-  resolved by hand.
-- **Plugins and settings stay Codex's.** The plugin system and the program's settings are core parts of
-  Codex and hard to change much, and rebuilding Claude Code's plugin system here would serve no purpose.
-  Claude Code's plugins are supported where that is easy; the settings are Codex's `config.toml` and this
-  fork's `ccn-config.toml`, and of Claude Code's settings only what the compatibility needs is read.
+- **Configuration leaves Codex's ecosystem.** The settings are Claude Code's settings files plus jjcn's own
+  file, layered with [layeredcfg](https://github.com/lutianyu2001/layeredcfg); jjcn's own file takes
+  precedence over Claude Code's.
+- **Plugins of both kinds.** The plugin system loads Claude Code's plugins and Codex's alike.
+- **Many new features**, of the kind its author finds useful, toward a harness made for the author's own
+  use; those added so far are in [jjcn refinements](./docs/jjcn.md).
+- **Codex as the base, not as a limit.** The code is changed as deeply as that calls for, and jjcn keeps
+  taking CodClaw NTR's changes.
 
-For a harness that goes all the way to Claude Code's ecosystem, see
-[jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr), which is built on this one.
+This is where jjcn is going, not all of it done yet: for now its settings are still CodClaw NTR's
+`ccn-config.toml`.
 
 ## Features
 
