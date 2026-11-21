@@ -763,6 +763,10 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
         "git/commit.md",
         "---\nname: ignored\ndescription: Commit staged changes\n---\nCommit them.\n",
     );
+    write(
+        "bom.md",
+        "\u{feff}---\ndescription: Saved with a byte order mark\n---\nBody.\n",
+    );
     write("notes.txt", "not a command\n");
     write(".hidden/secret.md", "Hidden command\n");
 
@@ -783,6 +787,10 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
     assert_eq!(
         skills,
         vec![
+            (
+                "bom".to_string(),
+                "Saved with a byte order mark".to_string()
+            ),
             (
                 "git:commit".to_string(),
                 "Commit staged changes".to_string()

@@ -490,6 +490,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | `$ARGUMENTS`, `$ARGUMENTS[N]`, `$N` | The arguments as typed; the N-th word, counted from 0 and split as a shell splits words, with quotes. Newer versions (2.1.210) keep `$ARGUMENTS[N]` and `$N` as written when there is no N-th word, so that `$1` in an `awk` program or `$B$2` stays; newer versions (2.1.233) also put each value in once, without reading it again for placeholders | The same | Done 2026-11-21 |
 | Named arguments | `$<name>` is the word at the position of `<name>` in the `arguments` frontmatter (a list, or names separated by spaces); empty when there is no such word | The same | Done 2026-11-17 `0d118bdf09` |
 | A frontmatter value with `: ` in it (`description: Triggers include: X`) | Put in quotes and the frontmatter read again (2.1.69) | The same, for the skill and for its `arguments` | Done 2026-11-21 |
+| A skill, command or subagent file that starts with a UTF-8 byte order mark | Newer versions (2.1.239) read it as if it had none | The same, and a rule file too | Done 2026-11-21 |
 | No placeholder in the body | The arguments are appended as `ARGUMENTS: <args>`; in newer versions (2.1.210) also when the only placeholders are `$ARGUMENTS[N]` or `$N` with no N-th word | The same | Done 2026-11-21 |
 | `${CLAUDE_SKILL_DIR}` | The skill's directory | The same, also when the skill is mentioned as `$<name>`; such a mention keeps the rest of the text as it is, `$ARGUMENTS` included | Done 2026-11-17 `0d118bdf09` |
 
@@ -602,6 +603,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | `userConfig`: `${user_config.KEY}` | Filled in in MCP server declarations and agent bodies, and in the reference source in hook commands (newer versions refuse it in a hook's shell command and want `CLAUDE_PLUGIN_OPTION_<KEY>` there) | Filled in in all three | Done 2026-11-19 `4ff3147125` |
 | `userConfig`: `CLAUDE_PLUGIN_OPTION_<KEY>` | In the environment of the plugin's hooks, the key in upper case with anything but letters, digits and `_` turned into `_` | The same | Done 2026-11-19 `4ff3147125` |
 | The manifest's `agents` list | Stands in place of `agents/` | The same, for the directories it lists | Done 2026-11-20 `f987126bd2` |
+| A `plugin.json` that starts with a UTF-8 byte order mark | Read as if it had none (newer versions, 2.1.246, also when installing) | The same | Done 2026-11-21 |
 | A project's settings and the plugins they enable | Count once the folder is trusted | Count in a project Codex trusts; elsewhere they can turn a plugin off and not on | Done 2026-11-20 `f987126bd2` |
 
 ## Not yet implemented

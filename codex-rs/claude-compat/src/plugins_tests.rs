@@ -436,6 +436,29 @@ fn applicable_plugins_disable_incompatible_ones_unless_enabled() {
 }
 
 #[test]
+fn a_manifest_with_a_byte_order_mark_is_read() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let bom = tmp.path().join("bom");
+    write(
+        &bom.join(".claude-plugin/plugin.json"),
+        "\u{feff}{\"name\": \"bom\", \"lspServers\": {\"rust\": {\"command\": \"ra\"}}}",
+    );
+    let plugin = ClaudePlugin {
+        id: "bom@m".to_string(),
+        install_path: bom.clone(),
+        enabled_by_user: true,
+    };
+
+    let (applicable, warnings) = applicable_plugins(vec![plugin.clone()], &["bom@m".to_string()]);
+
+    assert_eq!((applicable, warnings), (vec![plugin], Vec::<String>::new()));
+    assert_eq!(
+        incompatibility(&bom),
+        Some("it declares LSP servers, which Codex does not have".to_string())
+    );
+}
+
+#[test]
 fn an_untrusted_project_can_turn_a_plugin_off_but_not_on() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let claude_home = tmp.path().join("home/.claude");

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code skill frontmatter; load Claude Code's custom slash commands
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code skill frontmatter; load Claude Code's custom slash commands; skip a byte order mark
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -402,6 +402,10 @@ async fn parse_skill_file(
         load_host_skill_metadata(file_system, path, &metadata, plugin_root),
     );
     let mut contents = contents.map_err(|error| format!("failed to read file: {error}"))?;
+    // Claude Code reads a file saved with a UTF-8 byte order mark as if it had none.
+    if let Some(without_bom) = contents.strip_prefix('\u{feff}') {
+        contents = without_bom.to_string();
+    }
     // A command file may have no frontmatter at all; its description then comes from the
     // first line of the body, as for a skill without one.
     if command_name.is_some() && !contents.trim_start().starts_with("---") {

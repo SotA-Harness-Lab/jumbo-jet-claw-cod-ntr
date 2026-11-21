@@ -30,6 +30,18 @@ fn splits_frontmatter_from_body() {
 }
 
 #[test]
+fn drops_a_byte_order_mark_before_the_frontmatter() {
+    assert_eq!(
+        parse_document("\u{feff}---\npaths: a\n---\nbody\n"),
+        Document {
+            frontmatter: Some("paths: a\n"),
+            body: "body\n",
+        }
+    );
+    assert_eq!(parse_document("\u{feff}plain").body, "plain");
+}
+
+#[test]
 fn quotes_values_that_break_the_frontmatter_and_parses_again() {
     let value = parse_frontmatter(
         "name: x\ndescription: Triggers include: X, Y\nglob: **/*.rs\narguments: [topic]\nhint: \"keep\"\n",

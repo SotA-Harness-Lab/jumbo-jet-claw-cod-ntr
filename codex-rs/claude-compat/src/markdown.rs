@@ -13,8 +13,10 @@ pub struct Document<'a> {
 }
 
 /// Splits a leading `---` frontmatter block off a file. A file whose block is never
-/// closed is all body.
+/// closed is all body. A UTF-8 byte order mark at the start is dropped, as Claude Code
+/// drops it.
 pub fn parse_document(contents: &str) -> Document<'_> {
+    let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
     let whole = Document {
         frontmatter: None,
         body: contents,

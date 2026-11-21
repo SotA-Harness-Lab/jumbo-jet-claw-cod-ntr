@@ -250,7 +250,7 @@ fn keep_only_disabled_plugins(settings: &mut Value) {
 pub fn incompatibility(root: &Path) -> Option<String> {
     let manifest = std::fs::read_to_string(root.join(CLAUDE_MANIFEST))
         .ok()
-        .and_then(|contents| serde_json::from_str::<Value>(&contents).ok());
+        .and_then(|contents| serde_json::from_str::<Value>(without_bom(&contents)).ok());
     let field = |name: &str| manifest.as_ref().and_then(|manifest| manifest.get(name));
 
     let output_styles = match field("outputStyles") {
@@ -422,8 +422,14 @@ pub fn applicable_plugins(
 
 fn manifest_parses(path: &Path) -> bool {
     std::fs::read_to_string(path).ok().is_some_and(|contents| {
-        serde_json::from_str::<Value>(&contents).is_ok_and(|v| v.is_object())
+        serde_json::from_str::<Value>(without_bom(&contents)).is_ok_and(|v| v.is_object())
     })
+}
+
+/// `contents` without a leading UTF-8 byte order mark, which Claude Code drops before it
+/// parses a `plugin.json`.
+fn without_bom(contents: &str) -> &str {
+    contents.strip_prefix('\u{feff}').unwrap_or(contents)
 }
 
 #[cfg(test)]
