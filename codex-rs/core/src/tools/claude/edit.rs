@@ -19,7 +19,7 @@ use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
-use serde::Deserialize;
+use serde_json::Value;
 use serde_json::json;
 
 use super::PermissionInput;
@@ -50,15 +50,6 @@ pub(super) fn install(swap: &mut ToolSwap<'_>) {
 
 struct EditHandler {
     apply_patch: Arc<dyn CoreToolRuntime>,
-}
-
-#[derive(Deserialize)]
-struct EditArgs {
-    file_path: String,
-    old_string: String,
-    new_string: String,
-    #[serde(default)]
-    replace_all: Option<bool>,
 }
 
 impl ToolExecutor<ToolInvocation> for EditHandler {
@@ -122,7 +113,8 @@ impl EditHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
-        let args: EditArgs = parse_claude_arguments(EDIT, &invocation)?;
+        let arguments: Value = parse_claude_arguments(EDIT, &invocation)?;
+        let args = edit::EditInput::parse(arguments).map_err(|message| rejected(&message))?;
         let replace_all = args.replace_all.unwrap_or(false);
         if args.old_string == args.new_string {
             return Err(rejected(&EditError::NoChange.message()));

@@ -3,6 +3,8 @@
 
 //! Claude Code's `Bash` tool: description, parameters and result text.
 
+use serde_json::Value;
+
 use super::AGENT;
 use super::BASH;
 use super::EDIT;
@@ -11,6 +13,7 @@ use super::GREP;
 use super::READ;
 use super::TODO_WRITE;
 use super::WRITE;
+use super::input::Input;
 
 /// Timeout of a command that does not give one, in milliseconds (Claude Code's default).
 pub const DEFAULT_TIMEOUT_MS: u64 = 120_000;
@@ -18,6 +21,40 @@ pub const DEFAULT_TIMEOUT_MS: u64 = 120_000;
 pub const MAX_TIMEOUT_MS: u64 = 600_000;
 
 pub const COMMAND_PARAM_DESCRIPTION: &str = "The command to execute";
+
+/// A `Bash` call's input.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BashInput {
+    pub command: String,
+    /// Milliseconds.
+    pub timeout: Option<f64>,
+    pub description: Option<String>,
+    pub run_in_background: Option<bool>,
+    pub dangerously_disable_sandbox: Option<bool>,
+}
+
+impl BashInput {
+    /// Reads the model's arguments: numbers and booleans may come as strings (`"60000"`,
+    /// `"true"`), and `command_description` stands for `description`; `Err` is Claude
+    /// Code's input validation message.
+    pub fn parse(arguments: Value) -> Result<Self, String> {
+        let mut input =
+            Input::ignoring_unknown(BASH, arguments, &[("command_description", "description")]);
+        let command = input.required_string("command");
+        let timeout = input.number("timeout");
+        let description = input.string("description");
+        let run_in_background = input.boolean("run_in_background");
+        let dangerously_disable_sandbox = input.boolean("dangerouslyDisableSandbox");
+        input.finish()?;
+        Ok(Self {
+            command,
+            timeout,
+            description,
+            run_in_background,
+            dangerously_disable_sandbox,
+        })
+    }
+}
 
 pub const DESCRIPTION_PARAM_DESCRIPTION: &str = r#"Clear, concise description of what this command does in active voice. Never use words like "complex" or "risk" in the description - just describe what it does.
 

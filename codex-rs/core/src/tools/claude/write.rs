@@ -17,7 +17,7 @@ use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
-use serde::Deserialize;
+use serde_json::Value;
 use serde_json::json;
 
 use super::PermissionInput;
@@ -58,12 +58,6 @@ pub(super) fn patch_runtime(swap: &mut ToolSwap<'_>) -> Option<Arc<dyn CoreToolR
 
 struct WriteHandler {
     apply_patch: Arc<dyn CoreToolRuntime>,
-}
-
-#[derive(Deserialize)]
-struct WriteArgs {
-    file_path: String,
-    content: String,
 }
 
 impl ToolExecutor<ToolInvocation> for WriteHandler {
@@ -115,7 +109,8 @@ impl WriteHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
-        let args: WriteArgs = parse_claude_arguments(WRITE, &invocation)?;
+        let arguments: Value = parse_claude_arguments(WRITE, &invocation)?;
+        let args = write::WriteInput::parse(arguments).map_err(|message| rejected(&message))?;
         let target = FileTarget::resolve(&invocation, &args.file_path)?;
         let path = target.native_path();
         if !patch::is_patchable_path(&path) {

@@ -30,7 +30,7 @@ use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
-use serde::Deserialize;
+use serde_json::Value;
 use serde_json::json;
 use std::collections::BTreeMap;
 
@@ -64,17 +64,6 @@ struct ReadHandler {
 }
 
 mod pdf;
-
-#[derive(Deserialize)]
-struct ReadArgs {
-    file_path: String,
-    #[serde(default)]
-    offset: Option<usize>,
-    #[serde(default)]
-    limit: Option<usize>,
-    #[serde(default)]
-    pages: Option<String>,
-}
 
 impl ToolExecutor<ToolInvocation> for ReadHandler {
     fn tool_name(&self) -> ToolName {
@@ -137,7 +126,8 @@ impl ReadHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
-        let args: ReadArgs = parse_claude_arguments(READ, &invocation)?;
+        let arguments: Value = parse_claude_arguments(READ, &invocation)?;
+        let args = read::ReadInput::parse(arguments).map_err(|message| rejected(&message))?;
         // An empty `pages` is taken as left out, as Claude Code takes it.
         let pages = args
             .pages

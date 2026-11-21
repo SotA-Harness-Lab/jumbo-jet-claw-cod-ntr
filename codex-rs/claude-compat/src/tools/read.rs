@@ -4,8 +4,12 @@
 //! Claude Code's `Read` tool: description, line selection and numbering, PDF page ranges,
 //! messages.
 
+use serde_json::Value;
+
 use super::BASH;
+use super::READ;
 use super::format_file_size;
+use super::input::Input;
 
 /// Without `limit`, a file larger than this is refused (Claude Code's default).
 pub const MAX_SIZE_BYTES: u64 = 256 * 1024;
@@ -52,6 +56,34 @@ const BINARY_EXTENSIONS: &[&str] = &[
     "npy", "npz", "pkl", "pickle", "h5", "hdf5", "epub", "mobi", "azw3", "heic", "heif", "avif",
     "jxl", "dmg", "apk", "ipa", "onnx", "gguf", "ckpt", "pt", "pth",
 ];
+
+/// A `Read` call's input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadInput {
+    pub file_path: String,
+    pub offset: Option<usize>,
+    pub limit: Option<usize>,
+    pub pages: Option<String>,
+}
+
+impl ReadInput {
+    /// Reads the model's arguments: numbers may come as strings (`"120"`, `" +5 "`), and
+    /// `path` stands for `file_path`; `Err` is Claude Code's input validation message.
+    pub fn parse(arguments: Value) -> Result<Self, String> {
+        let mut input = Input::ignoring_unknown(READ, arguments, &[("path", "file_path")]);
+        let file_path = input.required_string("file_path");
+        let offset = input.count("offset");
+        let limit = input.count("limit");
+        let pages = input.string("pages");
+        input.finish()?;
+        Ok(Self {
+            file_path,
+            offset,
+            limit,
+            pages,
+        })
+    }
+}
 
 /// The tool description, after Claude Code's. `images` says whether image files are shown
 /// to the model.

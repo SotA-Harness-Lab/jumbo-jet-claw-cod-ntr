@@ -15,11 +15,11 @@ use std::collections::BTreeMap;
 
 use codex_claude_compat::tools::BASH;
 use codex_claude_compat::tools::bash;
+use codex_claude_compat::tools::bash::BashInput as BashArgs;
 use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
-use serde::Deserialize;
 use serde_json::Value;
 use serde_json::json;
 
@@ -29,6 +29,7 @@ use super::check_permission;
 use super::delegated;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::rejected;
 use super::shell_cwd::Tracking;
 use crate::function_tool::FunctionCallError;
 use crate::tools::context::ToolInvocation;
@@ -73,19 +74,6 @@ struct BashHandler {
     foreground: ExecCommandHandler,
     /// Starts a command that keeps running; `None` when Codex's unified exec is off.
     background: Option<ExecCommandHandler>,
-}
-
-#[derive(Deserialize)]
-struct BashArgs {
-    command: String,
-    #[serde(default)]
-    timeout: Option<f64>,
-    #[serde(default)]
-    description: Option<String>,
-    #[serde(default)]
-    run_in_background: Option<bool>,
-    #[serde(default, rename = "dangerouslyDisableSandbox")]
-    dangerously_disable_sandbox: Option<bool>,
 }
 
 impl ToolExecutor<ToolInvocation> for BashHandler {
@@ -183,7 +171,8 @@ impl BashHandler {
         &self,
         invocation: ToolInvocation,
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
-        let args: BashArgs = parse_claude_arguments(BASH, &invocation)?;
+        let arguments: Value = parse_claude_arguments(BASH, &invocation)?;
+        let args = BashArgs::parse(arguments).map_err(|message| rejected(&message))?;
         let _permission =
             check_permission(&invocation, BASH, PermissionInput::Command(&args.command)).await?;
         let (handler, background) = match &self.background {
@@ -286,7 +275,9 @@ impl BashHandler {
 
 #[cfg(test)]
 pub(super) fn exec_command_arguments_for_test(arguments: &str, background: bool) -> Value {
-    let args: BashArgs = serde_json::from_str(arguments)
+    let args = serde_json::from_str(arguments)
+        .map_err(|err| err.to_string())
+        .and_then(BashArgs::parse)
         .unwrap_or_else(|err| panic!("invalid Bash arguments: {err}"));
     exec_command_arguments(&args, background, /*workdir*/ None)
 }

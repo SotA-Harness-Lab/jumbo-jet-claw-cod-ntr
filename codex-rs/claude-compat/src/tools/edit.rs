@@ -3,8 +3,12 @@
 
 //! Claude Code's `Edit` tool: description, the exact string replacement and its messages.
 
+use serde_json::Value;
+
 use super::BASH;
+use super::EDIT;
 use super::READ;
+use super::input::Input;
 
 pub const FILE_PATH_PARAM_DESCRIPTION: &str = "The absolute path to the file to modify";
 pub const OLD_STRING_PARAM_DESCRIPTION: &str = "The text to replace";
@@ -18,6 +22,34 @@ pub const NOT_READ_MESSAGE: &str =
     "File has not been read yet. Read it first before writing to it.";
 /// Refusal of an edit or write of a file changed since the session read it.
 pub const MODIFIED_SINCE_READ_MESSAGE: &str = "File has been modified since read, either by the user or by a linter. Read it again before attempting to write it.";
+
+/// An `Edit` call's input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EditInput {
+    pub file_path: String,
+    pub old_string: String,
+    pub new_string: String,
+    pub replace_all: Option<bool>,
+}
+
+impl EditInput {
+    /// Reads the model's arguments: `replace_all` may come as `"true"` or `"false"`, and
+    /// `path` stands for `file_path`; `Err` is Claude Code's input validation message.
+    pub fn parse(arguments: Value) -> Result<Self, String> {
+        let mut input = Input::ignoring_unknown(EDIT, arguments, &[("path", "file_path")]);
+        let file_path = input.required_string("file_path");
+        let old_string = input.required_string("old_string");
+        let new_string = input.required_string("new_string");
+        let replace_all = input.boolean("replace_all");
+        input.finish()?;
+        Ok(Self {
+            file_path,
+            old_string,
+            new_string,
+            replace_all,
+        })
+    }
+}
 
 /// The tool description, after Claude Code's.
 pub fn description() -> String {
