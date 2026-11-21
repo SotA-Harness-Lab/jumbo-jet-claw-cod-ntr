@@ -11,6 +11,7 @@ use super::BashPrefixRule;
 use super::PermissionDecision;
 use super::bash_prefix_rules;
 use super::read_settings;
+use super::settings_effort_level;
 use super::settings_env;
 use super::settings_paths;
 
@@ -106,4 +107,18 @@ fn settings_linked_to_a_device_count_as_missing() {
     std::os::unix::fs::symlink("/dev/null", &path).unwrap();
 
     assert_eq!(read_settings(&path).unwrap(), None);
+}
+
+#[test]
+fn effort_levels_become_codex_efforts() {
+    let effort = |value: serde_json::Value| settings_effort_level(&json!({ "effortLevel": value }));
+    assert_eq!(effort(json!("low")), Some("low"));
+    assert_eq!(effort(json!("medium")), Some("medium"));
+    assert_eq!(effort(json!("high")), Some("high"));
+    assert_eq!(effort(json!("xhigh")), Some("xhigh"));
+    assert_eq!(effort(json!("max")), Some("xhigh"));
+    assert_eq!(effort(json!("auto")), None);
+    assert_eq!(effort(json!("High")), None);
+    assert_eq!(effort(json!(3)), None);
+    assert_eq!(settings_effort_level(&json!({})), None);
 }

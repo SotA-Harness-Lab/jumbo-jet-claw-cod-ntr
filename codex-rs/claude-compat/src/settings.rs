@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 
-//! Claude Code's `settings.json`: the parts Codex can apply, `env` and the Bash
-//! permission rules.
+//! Claude Code's `settings.json`: the parts Codex can apply, `env`, `effortLevel` and the
+//! Bash permission rules.
 
 use std::io;
 use std::path::Path;
@@ -101,6 +101,19 @@ pub fn settings_env(settings: &Value) -> Vec<(String, String)> {
             (name.clone(), value)
         })
         .collect()
+}
+
+/// The `effortLevel` of a settings file as a Codex reasoning effort: Claude Code's `low`,
+/// `medium`, `high` and `xhigh` are Codex's levels of the same name, and `max` becomes `xhigh`,
+/// as a subagent's `effort` does. Any other value is passed over.
+pub fn settings_effort_level(settings: &Value) -> Option<&'static str> {
+    match settings.get("effortLevel").and_then(Value::as_str)? {
+        "low" => Some("low"),
+        "medium" => Some("medium"),
+        "high" => Some("high"),
+        "xhigh" | "max" => Some("xhigh"),
+        _ => None,
+    }
 }
 
 /// The Bash rules of `permissions.allow`, `ask` and `deny` that name a command prefix,

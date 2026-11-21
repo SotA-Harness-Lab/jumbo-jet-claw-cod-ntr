@@ -4274,6 +4274,11 @@ impl Config {
             &resolved_cwd,
             active_project.is_trusted(),
         );
+        // Claude Code's `effortLevel` is the default only where Codex's own configuration
+        // names no reasoning effort.
+        let model_reasoning_effort = cfg.model_reasoning_effort.clone().or_else(|| {
+            claude_code_effort_level(&resolved_cwd, active_project.is_trusted())
+        });
         let allow_login_shell = cfg.allow_login_shell.unwrap_or(true);
 
         let history = cfg.history.unwrap_or_default();
@@ -4958,7 +4963,7 @@ impl Config {
                 .as_ref()
                 .and_then(|auto_review| auto_review.circuit_break_action)
                 .unwrap_or_default(),
-            model_reasoning_effort: cfg.model_reasoning_effort,
+            model_reasoning_effort,
             plan_mode_reasoning_effort: cfg.plan_mode_reasoning_effort,
             model_reasoning_summary: cfg.model_reasoning_summary,
             model_catalog,
@@ -5625,6 +5630,39 @@ fn add_claude_code_env(
     for (name, value) in env {
         policy.r#set.entry(name).or_insert(value);
     }
+}
+
+/// The reasoning effort that `effortLevel` of Claude Code's settings files sets (the user's,
+/// then the project's, later files winning), as `env` is read: a project's files count only
+/// once the project is trusted.
+fn claude_code_effort_level(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) -> Option<ReasoningEffort> {
+    // Unit tests never read the real home directory's Claude Code settings.
+    if cfg!(test) || !codex_claude_compat::enabled() {
+        return None;
+    }
+    let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let project_dir = project_trusted.then_some(cwd.as_path());
+    let mut effort = None;
+    for path in codex_claude_compat::settings_paths(claude_home.as_deref(), project_dir) {
+        match codex_claude_compat::read_settings(&path) {
+            Ok(Some(settings)) => {
+                if let Some(level) = codex_claude_compat::settings_effort_level(&settings) {
+                    effort = Some(level);
+                }
+            }
+            Ok(None) => {}
+            Err(err) => {
+                tracing::warn!(
+                    "failed to read Claude Code settings {}: {err}",
+                    path.display()
+                );
+            }
+        }
+    }
+    effort.and_then(|level| level.parse().ok())
 }
 
 /// The MCP servers Claude Code would start in `cwd`, from `~/.claude.json` and the

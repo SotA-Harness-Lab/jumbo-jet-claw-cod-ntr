@@ -86,6 +86,7 @@ pub use settings::BashPrefixRule;
 pub use settings::PermissionDecision;
 pub use settings::bash_prefix_rules;
 pub use settings::read_settings;
+pub use settings::settings_effort_level;
 pub use settings::settings_env;
 pub use settings::settings_paths;
 pub use skill_invocation::argument_names;

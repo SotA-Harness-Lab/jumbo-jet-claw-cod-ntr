@@ -116,6 +116,7 @@ plugins are used.
 | Rules with `paths:`, and the instruction files of directories below the working directory | Shown to the model once a file they cover is worked on | At once |
 | `hooks` in `~/.claude/settings.json`, `.claude/settings.json`, `.claude/settings.local.json` | Hooks, beside Codex's own | At the next session |
 | `env` in the same files | Added to the environment of the commands Codex runs | At the next session |
+| `effortLevel` in the same files | The default reasoning effort, when Codex's own configuration sets none | At the next session |
 | Bash rules in `permissions` of `~/.claude/settings.json` | Command rules (execpolicy), while the Claude tool set is off | At the next session |
 | `permissions.allow`, `ask`, `deny` of the three settings files | Checked by the Claude tool set before each call, while it is on | At the next session |
 | `~/.claude/agents/**/*.md`, `.claude/agents/**/*.md` | Agent roles | Description at the next session, instructions at each spawn |
@@ -362,6 +363,7 @@ registered from `add_shell_tools`, which owns the shell options.
 | `env` | Written into Claude Code's own environment (the user's file at the start, a project's once the folder is trusted), so that Claude Code itself and everything it starts see it: commands, hooks, MCP servers | Added to the environment of the commands Codex runs, not to Codex's own; a project's files only when Codex trusts the project (`trust_level = "trusted"`); `shell_environment_policy.set` in `config.toml` wins over it | Done 2026-11-20 `2a011b3a43` |
 | `permissions`, with the Claude tool set off | Applied to Claude Code's tools | An approximation for commands only: a Bash rule that names a command prefix (`Bash(git status)`, `Bash(git diff*)`, `Bash(gh pr *)`, `Bash(npm run:*)`) becomes a Codex command rule of the same prefix, word by word. `allow` runs without asking (and, as for any Codex allow rule, outside the sandbox), `ask` asks, `deny` forbids; the strictest matching rule wins, as in Claude Code. A word cut short by `*` (`--force*`) matches only that whole word. Only the user's file is read. Rules for other tools, wildcards inside a command, `defaultMode` and `additionalDirectories` are not applied | Done 2026-11-17 `80c1279420` |
 | `permissions`, with the Claude tool set on | Applied | All of `allow`, `ask` and `deny` from the three files; see "Permission rules". The approximation above is then not loaded | Done 2026-11-18 `6c5d824b9f` |
+| `effortLevel` | The default effort level, from the settings file of highest precedence that sets it; a level saved for the model in `modelSettings` comes first, `--effort` and `CLAUDE_CODE_EFFORT_LEVEL` override it, and newer versions apply the user's file's `effortLevel` only to Opus 5, Fable 5.1 and older models | The default of `model_reasoning_effort` when Codex's own configuration (`config.toml`, a profile, `-c`) sets none, for every model: `low`, `medium`, `high` and `xhigh` as Codex's levels of the same name, `max` as `xhigh`, any other value passed over; the later file wins, a project's files only when Codex trusts the project. `modelSettings` and `CLAUDE_CODE_EFFORT_LEVEL` are not read. Read once a session | Done 2026-11-21 |
 
 ### Subagents
 
@@ -818,7 +820,7 @@ a feature of its own for the purpose, configured in its own way.
 | Feature | Claude Code | Codex today, and the nearest thing it has | Status |
 | --- | --- | --- | --- |
 | Output styles (`outputStyle`, `~/.claude/output-styles/`) | Replace parts of the system prompt; newer versions add the built-in style `Concise` (2.1.237) | Not read. Nearest: `personality`, `developer_instructions` and `model_instructions_file` in `config.toml` | Not planned |
-| `effortLevel`, `alwaysThinkingEnabled`, `MAX_THINKING_TOKENS`, `CLAUDE_CODE_DISABLE_ULTRATHINK` (newer versions, 2.1.316) | Set how much the model thinks | Not read. Nearest: `model_reasoning_effort` | Not planned |
+| `alwaysThinkingEnabled`, `MAX_THINKING_TOKENS`, `CLAUDE_CODE_DISABLE_ULTRATHINK` (newer versions, 2.1.316) | Set how much the model thinks | Not read. Nearest: `model_reasoning_effort`, which `effortLevel` sets (see "Differences from Claude Code") | Not planned |
 | `language` | The language the model answers in | Not read; `ui.language` of `ccn-config.toml` is the language of the interface | Not planned |
 | `attribution`, `includeCoAuthoredBy`, `includeGitInstructions` | Decide the attribution lines and the Git instructions in the prompt; newer versions take `"attribution": false` (2.1.281) | Not read. The `Bash` description here carries the commit instructions without attribution lines | Not planned |
 | `~/.claude/keybindings.json`, `editorMode`, and of newer versions `keybindingFlavor` (2.1.238), vim's visual modes (2.1.118) and the actions `selection:clear` (2.1.234) and `effortSlider:*` (2.1.284) | Key bindings and vim mode | Not read. Nearest: `[tui.keymap]` and Codex's `/keymap` and `/vim` | Not planned |
