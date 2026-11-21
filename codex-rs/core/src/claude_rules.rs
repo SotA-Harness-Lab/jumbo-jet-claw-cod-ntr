@@ -12,6 +12,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 use codex_claude_compat::InstructionFile;
@@ -27,6 +28,7 @@ use codex_utils_output_truncation::approx_token_count;
 use serde::Deserialize;
 
 use crate::hook_runtime::record_additional_contexts;
+use crate::session::step_context::StepContext;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolPayload;
 
@@ -55,6 +57,42 @@ pub(crate) async fn forget_shown_files(session: &crate::session::session::Sessio
     }
     if codex_claude_compat::enabled() {
         session.services.agents_md_manager.forget_repository().await;
+    }
+}
+
+/// The step a compaction rebuilds the context from, with the project's instructions read
+/// from disk again: Claude Code gives the context that follows a compaction the project's
+/// `CLAUDE.md` and `MEMORY.md` as they are now, not as they were when the step began, so
+/// that edits made during the session are in it from the start.
+pub(crate) async fn with_fresh_instructions(
+    session: &crate::session::session::Session,
+    step_context: Arc<StepContext>,
+) -> Arc<StepContext> {
+    if !codex_claude_compat::enabled() {
+        return step_context;
+    }
+    reload_instructions(session, step_context).await
+}
+
+async fn reload_instructions(
+    session: &crate::session::session::Session,
+    step_context: Arc<StepContext>,
+) -> Arc<StepContext> {
+    let manager = &session.services.agents_md_manager;
+    manager.forget_repository().await;
+    let (loaded, warnings) = manager
+        .refresh(&step_context.turn.config, &step_context.environments)
+        .await;
+    session.emit_instruction_warnings(warnings).await;
+    match loaded {
+        Ok(loaded_agents_md) => Arc::new(StepContext {
+            loaded_agents_md,
+            ..(*step_context).clone()
+        }),
+        Err(err) => {
+            tracing::warn!("failed to read the project instructions again for a compaction: {err}");
+            step_context
+        }
     }
 }
 
@@ -406,6 +444,64 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::collections::HashSet;
     use std::path::PathBuf;
+
+    struct EditedInstructions(std::sync::Mutex<String>);
+
+    impl codex_extension_api::UserInstructionsProvider for EditedInstructions {
+        fn load_user_instructions(&self) -> codex_extension_api::LoadInstructionsFuture<'_> {
+            let text = self.0.lock().expect("instructions").clone();
+            Box::pin(async move {
+                codex_extension_api::LoadedUserInstructions {
+                    instructions: Some(codex_extension_api::Instructions { text, source: None }),
+                    warnings: Vec::new(),
+                }
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn a_compaction_rebuilds_the_context_from_the_instructions_as_they_are_now() {
+        let (mut session, turn) = crate::session::tests::make_session_and_context().await;
+        let turn = std::sync::Arc::new(turn);
+        let provider = std::sync::Arc::new(EditedInstructions(std::sync::Mutex::new(
+            "BEFORE-COMPACTION-MARKER".to_string(),
+        )));
+        session.services.agents_md_manager =
+            std::sync::Arc::new(crate::agents_md_manager::AgentsMdManager::new(
+                crate::agents_md_manager::SessionInstructions {
+                    user_provider: Some(provider.clone()),
+                    ..Default::default()
+                },
+            ));
+        let session = std::sync::Arc::new(session);
+        let step = session
+            .capture_step_context(
+                std::sync::Arc::clone(&turn),
+                &tokio_util::sync::CancellationToken::new(),
+            )
+            .await
+            .expect("capture step");
+        // The project's own files may follow the user's instructions.
+        let marker = |step: &crate::session::step_context::StepContext| {
+            let text = step.loaded_agents_md.as_ref().expect("instructions").text();
+            ["BEFORE-COMPACTION-MARKER", "AFTER-COMPACTION-MARKER"]
+                .into_iter()
+                .filter(|wanted| text.contains(wanted))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(marker(&step), vec!["BEFORE-COMPACTION-MARKER"]);
+
+        *provider.0.lock().expect("instructions") = "AFTER-COMPACTION-MARKER".to_string();
+        let fresh = super::reload_instructions(&session, std::sync::Arc::clone(&step)).await;
+
+        assert_eq!(
+            (marker(&step), marker(&fresh)),
+            (
+                vec!["BEFORE-COMPACTION-MARKER"],
+                vec!["AFTER-COMPACTION-MARKER"]
+            )
+        );
+    }
 
     #[test]
     fn files_shown_before_a_resume_are_read_back_from_the_history() {

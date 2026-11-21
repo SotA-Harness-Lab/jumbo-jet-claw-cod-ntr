@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks;
+// read the project instructions again for a compaction
 // stop a subagent at its maxTurns
 
 use std::borrow::Cow;
@@ -1804,6 +1805,8 @@ async fn run_auto_compact(
     {
         return Ok(false);
     }
+    let replacement_step_context =
+        crate::claude_rules::with_fresh_instructions(sess, replacement_step_context).await;
     let world_state = Arc::new(
         sess.build_world_state_for_step(&replacement_step_context, /*new_window*/ true)
             .await?,
