@@ -25,6 +25,8 @@ mod source;
 mod subagents;
 pub mod tools;
 
+pub use env_file::EnvAssignment;
+pub use env_file::apply_env_assignments;
 pub use env_file::hook_env_dir;
 pub use env_file::hook_env_file;
 pub use env_file::parse_env_file;
