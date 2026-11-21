@@ -47,15 +47,21 @@ pub(crate) fn select_handlers(
 }
 
 /// The handlers of a tool event for a call of the tool known by `matcher_inputs` with
-/// `tool_input`: those whose matcher meets one of the names and whose `if` condition, when
-/// they have one, covers the call.
+/// `tool_input`, made in `cwd`: those whose matcher meets one of the names and whose `if`
+/// condition, when they have one, covers the call.
 pub(crate) fn select_handlers_for_tool(
     handlers: &[ConfiguredHandler],
     event_name: HookEventName,
     matcher_inputs: &[&str],
     tool_input: &Value,
+    cwd: &Path,
 ) -> Vec<ConfiguredHandler> {
-    select_matching_handlers(handlers, event_name, matcher_inputs, Some(tool_input))
+    select_matching_handlers(
+        handlers,
+        event_name,
+        matcher_inputs,
+        Some((tool_input, cwd)),
+    )
 }
 
 /// The handlers of an event that is not a tool call. A handler with an `if` condition never
@@ -69,15 +75,16 @@ pub(crate) fn select_handlers_for_matcher_inputs(
         handlers,
         event_name,
         matcher_inputs,
-        /*tool_input*/ None,
+        /*tool_call*/ None,
     )
 }
 
-/// Whether the handler's `if` condition, when it has one, covers the tool call.
+/// Whether the handler's `if` condition, when it has one, covers the tool call: its input
+/// and the working directory it was made in.
 pub(crate) fn condition_covers(
     handler: &ConfiguredHandler,
     matcher_inputs: &[&str],
-    tool_input: Option<&Value>,
+    tool_call: Option<(&Value, &Path)>,
 ) -> bool {
     let Some(condition) = handler
         .matcher
@@ -86,8 +93,8 @@ pub(crate) fn condition_covers(
     else {
         return true;
     };
-    tool_input.is_some_and(|tool_input| {
-        codex_claude_compat::hook_condition_matches(condition, matcher_inputs, tool_input)
+    tool_call.is_some_and(|(tool_input, cwd)| {
+        codex_claude_compat::hook_condition_matches(condition, matcher_inputs, tool_input, cwd)
     })
 }
 
@@ -95,7 +102,7 @@ fn select_matching_handlers(
     handlers: &[ConfiguredHandler],
     event_name: HookEventName,
     matcher_inputs: &[&str],
-    tool_input: Option<&Value>,
+    tool_call: Option<(&Value, &Path)>,
 ) -> Vec<ConfiguredHandler> {
     // Check each configured handler once, even when several compatibility names
     // match the same regex. A hook like `apply_patch|Write|Edit` should run a
@@ -127,7 +134,7 @@ fn select_matching_handlers(
             | HookEventName::Stop
             | HookEventName::Interrupt => true,
         })
-        .filter(|handler| condition_covers(handler, matcher_inputs, tool_input))
+        .filter(|handler| condition_covers(handler, matcher_inputs, tool_call))
         .cloned()
         .collect::<Vec<_>>();
     dedup_claude_handlers(selected)
@@ -608,10 +615,16 @@ mod tests {
             ),
         ];
         let selected = |names: &[&str], input: serde_json::Value| {
-            super::select_handlers_for_tool(&handlers, HookEventName::PreToolUse, names, &input)
-                .into_iter()
-                .map(|handler| handler.display_order)
-                .collect::<Vec<_>>()
+            super::select_handlers_for_tool(
+                &handlers,
+                HookEventName::PreToolUse,
+                names,
+                &input,
+                std::path::Path::new("/repo"),
+            )
+            .into_iter()
+            .map(|handler| handler.display_order)
+            .collect::<Vec<_>>()
         };
 
         assert_eq!(

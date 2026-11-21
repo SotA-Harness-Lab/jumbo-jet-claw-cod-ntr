@@ -85,6 +85,7 @@ pub(crate) fn preview(
         HookEventName::PreToolUse,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     )
     .into_iter()
     .map(|handler| {
@@ -103,6 +104,7 @@ pub(crate) async fn run(
         HookEventName::PreToolUse,
         &matcher_inputs,
         &request.tool_input,
+        request.cwd.as_path(),
     );
     if matched.is_empty() {
         return PreToolUseOutcome {

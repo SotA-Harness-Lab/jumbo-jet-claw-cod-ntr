@@ -8,6 +8,9 @@
 //! reads it: the tool has to be the rule's, and the content is matched against the one input
 //! the tool is known by (the command, the file path, the search pattern).
 
+use std::path::Path;
+use std::path::PathBuf;
+
 use serde_json::Value;
 
 use crate::permissions::bash::ShellRule;
@@ -15,16 +18,23 @@ use crate::permissions::bash::deny_forms;
 use crate::permissions::bash::matches_wildcard;
 use crate::permissions::bash::parse_shell_rule;
 use crate::permissions::bash::split_command;
+use crate::permissions::file_pattern_matches;
 use crate::permissions::normalize_tool_name;
 use crate::permissions::parse_rule;
 
 /// Whether a hook whose `if` is `condition` runs for a call of the tool known by
 /// `tool_names` (its own name and the Claude Code names it is also matched by) with
-/// `tool_input`.
+/// `tool_input`, in the working directory `cwd`. A file path is matched as a `Read(...)`
+/// or `Edit(...)` permission rule matches it (`.env`, `src/**`, `~/.ssh/**`, `//etc/**`).
 ///
 /// Where the input lacks what the content is matched against, the hook runs: it then sees the
 /// call and decides for itself, which is safer than a guard that silently never fires.
-pub fn hook_condition_matches(condition: &str, tool_names: &[&str], tool_input: &Value) -> bool {
+pub fn hook_condition_matches(
+    condition: &str,
+    tool_names: &[&str],
+    tool_input: &Value,
+    cwd: &Path,
+) -> bool {
     let (tool, content) = parse_rule(condition.trim());
     if !tool_names
         .iter()
@@ -47,6 +57,9 @@ pub fn hook_condition_matches(condition: &str, tool_names: &[&str], tool_input: 
     };
     if tool == "Bash" {
         command_matches(&content, value)
+    } else if field == "file_path" {
+        let home_dir = std::env::var_os("HOME").map(PathBuf::from);
+        file_pattern_matches(&content, Path::new(value), cwd, home_dir.as_deref())
     } else {
         matches_wildcard(&content, value)
     }

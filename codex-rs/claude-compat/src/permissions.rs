@@ -781,6 +781,50 @@ fn tool_matches(rule: &PermissionRule, tool: &str) -> bool {
     }
 }
 
+/// Whether `pattern`, the content of a `Read(...)`, `Edit(...)` or `Write(...)` rule as a
+/// hook's `if` writes it, covers `path` (relative paths are under `cwd`). It is matched as
+/// an allow rule of the project's settings is: gitignore patterns without regard to case,
+/// `//path` absolute, `~/path` in `home_dir`, `/path` and anything else under `cwd`, and a
+/// single directory (`src/**`) only at the top. A pattern that is no usable glob covers
+/// every path, so that a guard does not silently stop firing.
+pub(crate) fn file_pattern_matches(
+    pattern: &str,
+    path: &Path,
+    cwd: &Path,
+    home_dir: Option<&Path>,
+) -> bool {
+    let anchors = PermissionRules {
+        home_dir: home_dir.map(Path::to_path_buf),
+        project_dir: Some(cwd.to_path_buf()),
+        ..PermissionRules::default()
+    };
+    let Some((pattern, root)) = anchors.pattern_root(pattern, RuleSource::Project) else {
+        return false;
+    };
+    let root = normalize_path(root.as_deref().unwrap_or(cwd));
+    let path = normalize_path(&cwd.join(path));
+    let Ok(relative) = path.strip_prefix(&root) else {
+        return false;
+    };
+    if relative.as_os_str().is_empty() {
+        return false;
+    }
+    let mut builder = GitignoreBuilder::new(&root);
+    if builder.case_insensitive(true).is_err() {
+        return true;
+    }
+    let line = gitignore_line(&pattern, PermissionDecision::Allow);
+    if builder.add_line(None, &line).is_err() {
+        return true;
+    }
+    let Ok(matcher) = builder.build() else {
+        return true;
+    };
+    matcher
+        .matched_path_or_any_parents(relative, /*is_dir*/ false)
+        .is_ignore()
+}
+
 /// The gitignore line for a file pattern of a rule of `decision`, the pattern relative to
 /// its anchor. `dir/**` is `dir`, the directory and everything in it; in an allow rule a
 /// single directory (`src/**`) is anchored, so that it covers `<anchor>/src` only, while
