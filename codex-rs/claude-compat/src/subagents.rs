@@ -38,6 +38,11 @@ pub struct Subagent {
     /// `permissionMode`, as written; `None` for a plugin's agent, which Claude Code does not
     /// let set it.
     pub permission_mode: Option<String>,
+    /// The MCP servers `mcpServers` defines inline, by name, in the shape of a `.mcp.json`
+    /// entry; the names it lists of servers already configured are left out, the agent
+    /// having those anyway. Empty for a plugin's agent, which Claude Code does not let
+    /// define servers.
+    pub mcp_servers: Vec<(String, serde_json::Value)>,
     /// `tools` and `disallowedTools`, applied when Codex offers Claude Code's tools.
     pub tools: ToolList,
 }
@@ -149,11 +154,34 @@ fn parse_with(contents: &str, plugin_agent: Option<&PluginAgent>) -> Option<Suba
             .map(skill_names)
             .unwrap_or_default(),
         permission_mode: field("permissionMode").filter(|_| plugin_agent.is_none()),
+        mcp_servers: match (plugin_agent, frontmatter.get("mcpServers")) {
+            (None, Some(servers)) => inline_mcp_servers(servers),
+            _ => Vec::new(),
+        },
         tools: ToolList::from_frontmatter(
             frontmatter.get("tools"),
             frontmatter.get("disallowedTools"),
         ),
     })
+}
+
+/// The servers an `mcpServers` value defines inline: each entry of its list that maps a
+/// name to a server's settings (a name alone refers to a server already configured), or each
+/// entry of a map.
+fn inline_mcp_servers(value: &Value) -> Vec<(String, serde_json::Value)> {
+    let maps: Vec<&serde_yaml::Mapping> = match value {
+        Value::Sequence(items) => items.iter().filter_map(Value::as_mapping).collect(),
+        Value::Mapping(map) => vec![map],
+        _ => Vec::new(),
+    };
+    maps.into_iter()
+        .flat_map(|map| map.iter())
+        .filter_map(|(name, server)| {
+            let name = name.as_str()?.trim();
+            let server = serde_json::to_value(server).ok()?;
+            (!name.is_empty() && server.is_object()).then(|| (name.to_string(), server))
+        })
+        .collect()
 }
 
 /// The names in a `skills` value: a list, or one string of names separated by commas or
@@ -194,6 +222,7 @@ mod tests {
                 max_turns: None,
                 skills: Vec::new(),
                 permission_mode: None,
+                mcp_servers: Vec::new(),
                 tools: ToolList {
                     allowed: Some(vec!["Read".to_string()]),
                     disallowed: Vec::new(),
@@ -218,6 +247,25 @@ mod tests {
         assert_eq!(skills("api-conventions, errors"), both);
         assert_eq!(skills("\"api-conventions errors\""), both);
         assert_eq!(skills("{}"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn inline_mcp_servers_are_kept_and_references_left_out() {
+        let agent = parse_subagent(
+            "---\nname: w\ndescription: d\nmcpServers:\n  - playwright:\n      type: stdio\n      command: npx\n      args: [\"-y\", \"@playwright/mcp\"]\n  - github\n---\nDo x.\n",
+        )
+        .expect("subagent");
+        assert_eq!(
+            agent.mcp_servers,
+            vec![(
+                "playwright".to_string(),
+                serde_json::json!({
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": ["-y", "@playwright/mcp"],
+                })
+            )]
+        );
     }
 
     #[test]

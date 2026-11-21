@@ -59,6 +59,7 @@ pub(crate) use permissions::check_permission;
 pub(crate) use permissions::remove_denied_tools;
 pub(crate) use permissions::rule_allows;
 pub(crate) use shell_cwd::take_cwd_report;
+pub(crate) use subagent_tools::apply_subagent_mcp_servers;
 pub(crate) use subagent_tools::apply_subagent_permission_mode;
 pub(crate) use subagent_tools::restrict_to_subagent_tools;
 pub(crate) use subagent_tools::subagent_max_turns;

@@ -91,6 +91,67 @@ pub(crate) fn apply_subagent_permission_mode(config: &mut Config, role_name: Opt
     }
 }
 
+/// Adds the MCP servers the Claude Code subagent definition of `role_name` defines inline in
+/// its `mcpServers` to the configuration of an agent about to start, so that the agent alone
+/// has them, beside its parent's. As in Claude Code, a project's agent file brings them only
+/// once the project is trusted, while the user's own (`~/.claude/agents`) always does; a
+/// server of a name the agent already has is left out, and one the requirements forbid too.
+pub(crate) fn apply_subagent_mcp_servers(config: &mut Config, role_name: Option<&str>) {
+    let Some(role) =
+        role_name.and_then(|role_name| crate::agent::role::resolve_role_config(config, role_name))
+    else {
+        return;
+    };
+    let Some(path) = role.config_file.clone() else {
+        return;
+    };
+    let Some(subagent) = role_subagent(role).filter(|subagent| !subagent.mcp_servers.is_empty())
+    else {
+        return;
+    };
+    let users_agent = dirs::home_dir().is_some_and(|home| {
+        path.starts_with(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"))
+    });
+    if !users_agent && !config.active_project.is_trusted() {
+        tracing::warn!(
+            "agent {}: the MCP servers of {} wait for the project to be trusted",
+            subagent.name,
+            path.display()
+        );
+        return;
+    }
+    let env = |name: &str| std::env::var(name).ok();
+    let declarations = subagent
+        .mcp_servers
+        .into_iter()
+        .map(|(name, server)| (name, codex_claude_compat::expand_mcp_server(server, &env)))
+        .collect::<serde_json::Map<_, _>>();
+    let contents = serde_json::json!({ "mcpServers": declarations }).to_string();
+    let parsed = match codex_mcp::parse_plugin_mcp_config(config.cwd.as_path(), &contents) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            tracing::warn!(
+                "agent {}: cannot read its MCP servers: {err}",
+                subagent.name
+            );
+            return;
+        }
+    };
+    for error in parsed.errors {
+        tracing::warn!("agent {}: skipping an MCP server: {error:?}", subagent.name);
+    }
+    let mut servers = config.mcp_servers.get().clone();
+    for (name, server) in parsed.servers {
+        servers.entry(name).or_insert(server);
+    }
+    if let Err(err) = config.mcp_servers.set(servers) {
+        tracing::warn!(
+            "agent {}: its MCP servers are not allowed here: {err}",
+            subagent.name
+        );
+    }
+}
+
 /// Keeps in the registry only the tools `tools` permits.
 pub(super) fn restrict(registry: &mut ToolRegistry, tools: &ToolList) {
     let removed = registry

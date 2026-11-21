@@ -139,6 +139,12 @@ fn shell_quote(text: &str) -> String {
     format!("'{}'", text.replace('\'', r"'\''"))
 }
 
+/// A server's settings with `${VAR}` expanded as in `.mcp.json`, for a server declared
+/// elsewhere (a subagent's `mcpServers`).
+pub fn expand_mcp_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
+    expand_server(server, env)
+}
+
 fn expand_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
     let Value::Object(fields) = server else {
         return expand_env(server, env);

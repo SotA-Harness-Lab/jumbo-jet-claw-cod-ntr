@@ -49,6 +49,7 @@ pub use mcp::HEADERS_HELPER;
 pub use mcp::McpTimeouts;
 pub use mcp::claude_json_project_root;
 pub use mcp::headers_helper_script;
+pub use mcp::expand_mcp_server;
 pub use mcp::mcp_json_paths;
 pub use mcp::mcp_server_declarations;
 pub use mcp::mcp_timeouts;
