@@ -3,6 +3,7 @@
 
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use pretty_assertions::assert_eq;
 use serde_json::Value;
@@ -12,6 +13,7 @@ use super::PermissionRules;
 use super::RuleSource;
 use super::RuleVerdict;
 use super::ToolInput;
+use super::bash::compiled_wildcard;
 use super::bash::matches_wildcard;
 use super::bash::split_command;
 use super::bash::strip_output_redirections;
@@ -132,6 +134,17 @@ fn shell_wildcards_match_as_in_claude_code() {
             "{pattern} vs {command}"
         );
     }
+}
+
+#[test]
+fn wildcard_patterns_are_compiled_once() {
+    let first = compiled_wildcard("cargo test * --release");
+    let second = compiled_wildcard("cargo test * --release");
+    assert!(
+        first
+            .zip(second)
+            .is_some_and(|(first, second)| Arc::ptr_eq(&first, &second))
+    );
 }
 
 #[test]

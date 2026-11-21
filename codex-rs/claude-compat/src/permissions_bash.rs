@@ -14,9 +14,13 @@
 //! substitution that only reads a quoted heredoc with `cat` (`"$(cat <<'EOF' ... EOF)"`) is
 //! an inert argument.
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::LazyLock;
+use std::sync::Mutex;
+use std::sync::PoisonError;
 
 use regex_lite::Regex;
 
@@ -143,10 +147,38 @@ fn has_wildcards(pattern: &str) -> bool {
     })
 }
 
+/// The wildcard patterns compiled so far, each once: they come from the settings files and
+/// hook conditions, while every command is checked against all of them.
+static WILDCARDS: LazyLock<Mutex<HashMap<String, Option<Arc<Regex>>>>> =
+    LazyLock::new(Mutex::default);
+
+/// How many compiled patterns are kept before they are compiled anew.
+const MAX_WILDCARDS: usize = 4096;
+
 /// Claude Code's wildcard match: `*` is any text (line breaks included), `\*` a literal
 /// star, `\\` a backslash; the whole command must match. A pattern whose only wildcard is a
 /// trailing ` *` also matches the command without it (`git *` matches `git`).
 pub(crate) fn matches_wildcard(pattern: &str, command: &str) -> bool {
+    compiled_wildcard(pattern).is_some_and(|regex| regex.is_match(command))
+}
+
+/// The regular expression of a wildcard pattern, compiled on its first use; `None` when it
+/// does not compile.
+pub(crate) fn compiled_wildcard(pattern: &str) -> Option<Arc<Regex>> {
+    let mut wildcards = WILDCARDS.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(regex) = wildcards.get(pattern) {
+        return regex.clone();
+    }
+    let regex = wildcard_regex(pattern).map(Arc::new);
+    if wildcards.len() >= MAX_WILDCARDS {
+        wildcards.clear();
+    }
+    wildcards.insert(pattern.to_string(), regex.clone());
+    regex
+}
+
+/// The regular expression of a wildcard pattern; `None` when it does not compile.
+fn wildcard_regex(pattern: &str) -> Option<Regex> {
     let pattern = pattern.trim();
     let chars = pattern.chars().collect::<Vec<_>>();
     let mut expression = String::new();
@@ -173,7 +205,7 @@ pub(crate) fn matches_wildcard(pattern: &str, command: &str) -> bool {
         expression.truncate(expression.len() - 3);
         expression.push_str("( .*)?");
     }
-    Regex::new(&format!("(?s)^{expression}$")).is_ok_and(|regex| regex.is_match(command))
+    Regex::new(&format!("(?s)^{expression}$")).ok()
 }
 
 /// Drops full-line comments; a command of comments only is kept as it is.
