@@ -17,6 +17,7 @@ use super::bash::exec_command_arguments_for_test;
 use super::edit;
 use super::read;
 use super::write;
+use super::written_file_path;
 use crate::tools::handlers::ApplyPatchHandler;
 use crate::tools::handlers::ViewImageHandler;
 use crate::tools::registry::CoreToolRuntime;
@@ -114,4 +115,20 @@ async fn edits_reach_the_file_through_apply_patch() {
         std::fs::read_to_string(&created).expect("read file"),
         "a\nb\n"
     );
+}
+
+#[test]
+fn the_file_a_write_or_edit_wrote_is_found_for_its_post_tool_use_hooks() {
+    assert_eq!(
+        written_file_path("Write", r#"{"file_path":"/a.rs","content":"x"}"#),
+        Some("/a.rs".to_string())
+    );
+    assert_eq!(
+        written_file_path(
+            "Edit",
+            r#"{"file_path":"/b.rs","old_string":"x","new_string":"y"}"#
+        ),
+        Some("/b.rs".to_string())
+    );
+    assert_eq!(written_file_path("Read", r#"{"file_path":"/a.rs"}"#), None);
 }

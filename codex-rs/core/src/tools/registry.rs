@@ -1088,6 +1088,14 @@ impl ToolRegistry {
         } else {
             None
         };
+        if post_tool_use_outcome
+            .as_ref()
+            .is_some_and(|outcome| !outcome.hook_events.is_empty())
+        {
+            crate::tools::claude::record_after_post_tool_use(&invocation)
+                .or_cancel_tool(&cancellation_token)
+                .await?;
+        }
         if let Some(outcome) = &post_tool_use_outcome {
             record_additional_contexts(
                 &invocation.session,

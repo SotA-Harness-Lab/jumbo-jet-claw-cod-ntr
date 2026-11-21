@@ -164,6 +164,42 @@ impl<'a> ToolSwap<'a> {
     }
 }
 
+/// Remembers the file a `Write` or `Edit` call wrote as its `PostToolUse` hooks left it,
+/// once they have run: a hook that formats the file it was given (prettier, rustfmt, black)
+/// does not make the next edit of it refused as changed since read, as in Claude Code.
+pub(crate) async fn record_after_post_tool_use(invocation: &ToolInvocation) {
+    if !enabled(&invocation.turn) || !invocation.tool_name.is_default_namespace() {
+        return;
+    }
+    let ToolPayload::Function { arguments } = &invocation.payload else {
+        return;
+    };
+    let Some(file_path) = written_file_path(&invocation.tool_name.name, arguments) else {
+        return;
+    };
+    if let Ok(target) = files::FileTarget::resolve(invocation, &file_path) {
+        target.record_written(invocation).await;
+    }
+}
+
+/// The `file_path` of a `Write` or `Edit` call, from its arguments.
+fn written_file_path(tool: &str, arguments: &str) -> Option<String> {
+    let arguments = serde_json::from_str::<serde_json::Value>(arguments).ok()?;
+    match tool {
+        codex_claude_compat::tools::EDIT => {
+            codex_claude_compat::tools::edit::EditInput::parse(arguments)
+                .ok()
+                .map(|input| input.file_path)
+        }
+        codex_claude_compat::tools::WRITE => {
+            codex_claude_compat::tools::write::WriteInput::parse(arguments)
+                .ok()
+                .map(|input| input.file_path)
+        }
+        _ => None,
+    }
+}
+
 /// Parses a Claude tool's arguments; Claude Code reports an invalid input wrapped as a
 /// tool use error.
 pub(crate) fn parse_claude_arguments<T>(
