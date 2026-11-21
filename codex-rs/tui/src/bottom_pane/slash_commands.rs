@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; leave out skills that are not user-invocable
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; leave out skills that are not user-invocable; show argument hints
 
 //! Shared helpers for filtering and matching built-in and model service-tier slash commands.
 //!
@@ -28,19 +28,28 @@ pub(crate) struct ServiceTierCommand {
 pub(crate) struct SkillCommand {
     pub(crate) name: String,
     pub(crate) description: String,
+    /// The skill's `argument-hint`, shown after its name.
+    pub(crate) argument_hint: Option<String>,
 }
 
 /// Whether the user may run `skill` as `/<name>`: not when its frontmatter says
 /// `user-invocable: false`, which in Claude Code keeps a skill for the model alone. A
 /// `SKILL.md` that cannot be read here (a remote app server's) counts as user-invocable.
 pub(crate) fn is_user_invocable(skill: &codex_app_server_protocol::SkillMetadata) -> bool {
+    claude_skill_frontmatter(skill).user_invocable
+}
+
+/// The Claude Code fields of `skill`'s frontmatter, read from its `SKILL.md`; the defaults
+/// when the file cannot be read here or `CCN_CLAUDE_COMPAT=0`.
+pub(crate) fn claude_skill_frontmatter(
+    skill: &codex_app_server_protocol::SkillMetadata,
+) -> codex_claude_compat::SkillFrontmatter {
     if !codex_claude_compat::enabled() {
-        return true;
+        return codex_claude_compat::SkillFrontmatter::default();
     }
-    match std::fs::read_to_string(skill.path.as_str()) {
-        Ok(contents) => codex_claude_compat::skill_frontmatter(&contents).user_invocable,
-        Err(_) => true,
-    }
+    std::fs::read_to_string(skill.path.as_str())
+        .map(|contents| codex_claude_compat::skill_frontmatter(&contents))
+        .unwrap_or_default()
 }
 
 /// The skill invoked by `/<name>`, unless a built-in or service-tier command has that name.

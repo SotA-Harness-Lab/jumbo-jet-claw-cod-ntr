@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; invoke skills as /name; dropped tests of removed features; made the interface translatable
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; invoke skills as /name; dropped tests of removed features; made the interface translatable; show skill argument hints
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -241,7 +241,14 @@ impl CommandPopup {
             .into_iter()
             .enumerate()
             .map(|(index, (item, indices))| {
-                let name = format!("/{}", item.command());
+                let name = match &item {
+                    CommandItem::Skill(SkillCommand {
+                        name,
+                        argument_hint: Some(hint),
+                        ..
+                    }) => format!("/{name} {hint}"),
+                    _ => format!("/{}", item.command()),
+                };
                 let description = if matches!(item, CommandItem::Builtin(SlashCommand::Daybreak)) {
                     self.daybreak_command_description
                         .unwrap_or(item.description())
@@ -726,6 +733,7 @@ mod tests {
         let skill = |name: &str| SkillCommand {
             name: name.to_string(),
             description: format!("{name} skill"),
+            argument_hint: None,
         };
         let mut popup = CommandPopup::new(CommandPopupFlags::default(), Vec::new())
             .with_skill_commands(vec![skill("zz-deploy"), skill("init-project")]);
@@ -755,5 +763,22 @@ mod tests {
             Some(&CommandItem::Builtin(SlashCommand::Init))
         );
         assert!(items.contains(&CommandItem::Skill(skill("init-project"))));
+    }
+
+    #[test]
+    fn a_skill_shows_its_argument_hint_after_its_name() {
+        let mut popup = CommandPopup::new(CommandPopupFlags::default(), Vec::new())
+            .with_skill_commands(vec![SkillCommand {
+                name: "zz-deploy".to_string(),
+                description: "Deploy the app".to_string(),
+                argument_hint: Some("<environment>".to_string()),
+            }]);
+        popup.on_composer_text_change("/zz".to_string());
+        let names = popup
+            .rows_from_matches(popup.filtered())
+            .into_iter()
+            .map(|row| row.name)
+            .collect::<Vec<_>>();
+        assert_eq!(names, vec!["/zz-deploy <environment>".to_string()]);
     }
 }

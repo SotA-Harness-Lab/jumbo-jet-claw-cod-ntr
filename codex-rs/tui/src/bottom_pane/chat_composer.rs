@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; removed the desktop app integration; invoke skills as /name; made the interface translatable; quit on exit, quit, :q and /exit at once;
-// leave out skills that are not user-invocable
+// leave out skills that are not user-invocable; show argument hints
 
 //! The chat composer is the bottom-pane text input state machine.
 //! Rich registers retain original payloads across draft clears and composer replacement;
@@ -973,10 +973,14 @@ impl ChatComposer {
         self.skill_commands = skills
             .iter()
             .flatten()
-            .filter(|skill| crate::bottom_pane::slash_commands::is_user_invocable(skill))
-            .map(|skill| SkillCommand {
-                name: skill.name.clone(),
-                description: skill_description(skill).unwrap_or_default(),
+            .filter_map(|skill| {
+                let frontmatter =
+                    crate::bottom_pane::slash_commands::claude_skill_frontmatter(skill);
+                frontmatter.user_invocable.then(|| SkillCommand {
+                    name: skill.name.clone(),
+                    description: skill_description(skill).unwrap_or_default(),
+                    argument_hint: frontmatter.argument_hint,
+                })
             })
             .collect();
         self.skills = skills;
