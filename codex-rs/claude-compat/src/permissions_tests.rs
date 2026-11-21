@@ -164,28 +164,63 @@ fn commands_are_split_into_simple_commands() {
         Some((owned(&["cat <<EOF > f", "ls"]), false))
     );
     assert_eq!(split("echo a \\\n b"), Some((owned(&["echo a  b"]), false)));
-    assert_eq!(split("echo 'open"), None);
-    assert_eq!(
-        split("echo $(rm -rf /)").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(split("echo `id`").map(|(_, complex)| complex), Some(true));
-    assert_eq!(
-        split("(cd x && make)").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(
-        split("for f in *; do rm $f; done").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(
-        split("diff <(ls a) <(ls b)").map(|(_, complex)| complex),
-        Some(true)
-    );
-    assert_eq!(split("echo {a,b}").map(|(_, complex)| complex), Some(false));
     assert_eq!(
         split("# comment\nls # trailing"),
         Some((owned(&["ls"]), false))
+    );
+    assert_eq!(split("echo 'open"), None);
+    assert_eq!(split("echo $(ls"), None);
+    assert_eq!(split("ls )"), None);
+    assert_eq!(split("echo {a,b}").map(|(_, complex)| complex), Some(false));
+}
+
+#[test]
+fn nested_commands_are_taken_out() {
+    let split =
+        |command: &str| split_command(command).map(|split| (split.subcommands, split.complex));
+    let owned = |parts: &[&str]| parts.iter().map(ToString::to_string).collect::<Vec<_>>();
+    let cases: &[(&str, &[&str])] = &[
+        ("echo $(rm -rf /)", &["echo $(rm -rf /)", "rm -rf /"]),
+        ("echo `id`", &["echo `id`", "id"]),
+        ("echo \"a $(b; c) d\"", &["echo \"a $(b; c) d\"", "b", "c"]),
+        (
+            "echo $(echo $(id))",
+            &["echo $(echo $(id))", "echo $(id)", "id"],
+        ),
+        ("(cd x && make)", &["cd x", "make"]),
+        ("true && { rm -rf build; }", &["true", "rm -rf build"]),
+        ("for f in $(ls); do rm $f; done", &["rm $f", "ls"]),
+        (
+            "if test -f a; then cat a; elif true; then :; else ls; fi > out",
+            &["test -f a", "cat a", "true", ":", "ls"],
+        ),
+        (
+            "while read l; do echo $l; done < in",
+            &["read l", "echo $l"],
+        ),
+        ("case $x in a|b) rm a;; (c) ls ;; esac", &["rm a", "ls"]),
+        (
+            "diff <(ls a) <(ls b)",
+            &["diff <(ls a) <(ls b)", "ls a", "ls b"],
+        ),
+        ("a=($(ls) x y)", &["a=($(ls) x y)", "ls"]),
+        ("echo ${x:-$(id)}", &["echo ${x:-$(id)}", "id"]),
+        ("echo $((1 + $(id)))", &["echo $((1 + $(id)))", "id"]),
+        ("cat <<EOF\n$(id)\nEOF", &["cat <<EOF", "id"]),
+    ];
+    for &(command, parts) in cases {
+        assert_eq!(split(command), Some((owned(parts), true)), "{command}");
+    }
+    assert_eq!(
+        split("cat <<'EOF'\n$(id)\nEOF"),
+        Some((owned(&["cat <<'EOF'"]), false))
+    );
+    // A quoted heredoc read by `cat` is the text it holds.
+    let commit = "git commit -m \"$(cat <<'EOF'\nFix it (it's broken)\nEOF\n)\"";
+    assert_eq!(split(commit), Some((owned(&[commit]), false)));
+    assert_eq!(
+        split("echo \"$(cat <<'EOF'\n/proc/self/environ\nEOF\n)\"").map(|(_, complex)| complex),
+        Some(true)
     );
 }
 
@@ -312,6 +347,50 @@ fn deny_rules_see_through_assignments_wrappers_and_complex_commands() {
     }
     // A command Claude Code cannot take apart meets deny rules on the whole text.
     assert_eq!(bash(&rules, "curl $(cat url)"), deny("curl $(cat url)"));
+}
+
+#[test]
+fn deny_and_ask_rules_meet_nested_commands() {
+    let rules = local_rules(&["Bash(echo:*)"], &["Bash(git push:*)"], &["Bash(rm:*)"]);
+    let deny = |command: &str| denied_command("Bash(rm:*)", command);
+    for command in [
+        "(rm -rf build)",
+        "true && { rm -rf build; }",
+        "echo $(date); rm -rf build",
+        "echo $(rm -rf build)",
+        "echo `rm -rf build`",
+        "for f in a; do rm -rf $f; done",
+        "if true; then rm -rf build; fi",
+        "git push origin \"$(rm -rf build)\"",
+    ] {
+        assert_eq!(bash(&rules, command), deny(command), "{command}");
+    }
+    assert_eq!(
+        bash(&rules, "git push origin \"$(git branch --show-current)\""),
+        ask("Bash(git push:*)")
+    );
+    assert_eq!(
+        bash(&rules, "echo \"$(git push)\""),
+        ask("Bash(git push:*)")
+    );
+    // Allow rules still cover no such command.
+    assert_eq!(bash(&rules, "echo $(date)"), RuleVerdict::NoMatch);
+    assert_eq!(bash(&rules, "(echo a)"), RuleVerdict::NoMatch);
+}
+
+#[test]
+fn a_quoted_heredoc_read_by_cat_is_an_inert_argument() {
+    let commit = "git commit -m \"$(cat <<'EOF'\nFix the parser (it's $(broken))\nEOF\n)\"";
+    let rules = local_rules(&["Bash(git commit:*)"], &[], &[]);
+    assert_eq!(bash(&rules, commit), allow("Bash(git commit:*)"));
+    let rules = local_rules(&[], &["Bash(git commit:*)"], &[]);
+    assert_eq!(bash(&rules, commit), ask("Bash(git commit:*)"));
+    // An unquoted heredoc is expanded, so it is not inert.
+    let rules = local_rules(&["Bash(git commit:*)"], &[], &[]);
+    assert_eq!(
+        bash(&rules, "git commit -m \"$(cat <<EOF\nmsg\nEOF\n)\""),
+        RuleVerdict::NoMatch
+    );
 }
 
 #[test]

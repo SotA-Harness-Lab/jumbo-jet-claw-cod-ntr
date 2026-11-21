@@ -58,8 +58,30 @@ fn a_command_that_cannot_be_taken_apart_runs_the_hook() {
     let matches = |command: &str| {
         hook_condition_matches("Bash(git *)", &["Bash"], &json!({"command": command}))
     };
-    check(matches("echo $(git push)"), true);
     check(matches("echo 'unclosed"), true);
+    check(matches("echo $(git push"), true);
+}
+
+#[test]
+fn bash_content_is_matched_against_nested_commands_only_where_they_match() {
+    let matches = |condition: &str, command: &str| {
+        hook_condition_matches(condition, &["Bash"], &json!({"command": command}))
+    };
+    check(matches("Bash(git *)", "echo $(git push)"), true);
+    check(matches("Bash(git *)", "echo `git push`"), true);
+    check(matches("Bash(rm *)", "(cd build && rm -rf out)"), true);
+    check(matches("Bash(rm *)", "for f in a; do rm $f; done"), true);
+    check(matches("Bash(rm *)", "echo \"$(date)\" && { rm x; }"), true);
+    check(matches("Bash(rm *)", "echo $(date)"), false);
+    check(matches("Bash(rm *)", "for f in *; do echo $f; done"), false);
+    check(matches("Bash(cat *)", "echo $(date) more"), false);
+    check(
+        matches(
+            "Bash(git commit *)",
+            "git commit -m \"$(cat <<'EOF'\nmsg\nEOF\n)\"",
+        ),
+        true,
+    );
 }
 
 #[test]

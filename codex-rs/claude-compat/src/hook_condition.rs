@@ -54,15 +54,14 @@ pub fn hook_condition_matches(condition: &str, tool_names: &[&str], tool_input: 
 }
 
 /// A command meets the content when one of its simple commands does, so that
-/// `ls && git push` still runs a hook for `Bash(git *)`. A command that cannot be taken
-/// apart runs the hook.
+/// `ls && git push` and `echo "$(git push)"` still run a hook for `Bash(git *)`, while
+/// `echo $(date)` does not: the commands nested in substitutions, subshells and control flow
+/// are matched like the others. A command that cannot be taken apart (an unclosed quote) runs
+/// the hook.
 fn command_matches(content: &str, command: &str) -> bool {
     let Some(split) = split_command(command) else {
         return true;
     };
-    if split.complex {
-        return true;
-    }
     let rule = parse_shell_rule(content);
     split.subcommands.iter().any(|subcommand| {
         let subcommand = strip_all_leading_env_vars(&strip_output_redirections(subcommand));

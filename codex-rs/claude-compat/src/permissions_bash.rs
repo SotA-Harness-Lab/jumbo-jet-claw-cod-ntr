@@ -8,8 +8,11 @@
 //! A command is split into its subcommands (`&&`, `||`, `;`, `|`, `&`, line breaks) and
 //! each is matched on its own, as Claude Code does: a deny or ask rule for any subcommand
 //! decides the whole command, an allow rule allows it only when every subcommand is allowed.
-//! Commands Claude Code does not split but asks about (command substitution, subshells,
-//! control flow) are left to Codex unless an exact rule or a deny rule names them.
+//! The commands nested in command substitutions, subshells, groups and control flow are
+//! taken out too: deny and ask rules meet them, as in Claude Code, but no prefix or wildcard
+//! allow rule covers such a command, which is left to Codex unless an exact rule names it. A
+//! substitution that only reads a quoted heredoc with `cat` (`"$(cat <<'EOF' ... EOF)"`) is
+//! an inert argument.
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -228,236 +231,623 @@ pub(crate) fn strip_all_leading_env_vars(command: &str) -> String {
     stripped.trim().to_string()
 }
 
+/// How deep command substitutions, subshells and backticks may nest before a command is taken
+/// for one that cannot be taken apart.
+const MAX_NESTING: usize = 32;
+
+/// `$(cat <<'EOF' ... EOF)`: a heredoc with a quoted delimiter read by a bare `cat`, which
+/// Claude Code takes for the literal text it is (`extractSafeCatHeredoc`).
+static SAFE_CAT_HEREDOC: LazyLock<Regex> =
+    LazyLock::new(|| regex(r#"^cat[ \t]+<<-?[ \t]*(?:'[^'\n]+'|"[^"\n]+"|\\[^ \t\n'"]+)$"#));
+
+/// What Claude Code does not take for inert text even in such a heredoc.
+static DANGEROUS_HEREDOC_BODY: LazyLock<Regex> =
+    LazyLock::new(|| regex(r"/proc/[^/\n]*/environ|\bsystem\s*\("));
+
 /// A command taken apart at its operators.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct SplitCommand {
-    /// Each simple command, trimmed, with its redirections; heredoc bodies are left out.
+    /// Each simple command, trimmed, with its redirections; heredoc bodies are left out. The
+    /// commands of the line come first, the keywords of control flow dropped, then the
+    /// commands nested in command and process substitutions, backticks and subshells.
     pub(crate) subcommands: Vec<String>,
-    /// The command has a construct Claude Code does not split (command or process
-    /// substitution, a subshell or group, control flow).
+    /// The command has a construct Claude Code does not split for allow rules (command or
+    /// process substitution, a subshell or group, control flow). A substitution that is only
+    /// a quoted heredoc read by `cat` does not count.
     pub(crate) complex: bool,
 }
 
 /// Splits a command at `&&`, `||`, `;`, `|`, `|&`, `&` and line breaks outside quotes, as
-/// Claude Code takes a command into its simple commands. `None` when a quote is not closed.
+/// Claude Code takes a command into its simple commands, and takes out the commands nested in
+/// it. `None` when a quote, a substitution or a subshell is not closed, or a `)` closes
+/// nothing.
 pub(crate) fn split_command(command: &str) -> Option<SplitCommand> {
     let chars = command.chars().collect::<Vec<_>>();
-    let mut subcommands = Vec::new();
-    let mut complex = false;
-    let mut current = String::new();
-    let mut word_start = true;
-    let mut heredocs: Vec<(String, bool)> = Vec::new();
-    let mut index = 0;
+    let scanned = Scanner::new(&chars, 0).scan(false)?;
+    let mut subcommands = scanned.own;
+    subcommands.extend(scanned.nested);
+    Some(SplitCommand {
+        subcommands,
+        complex: scanned.complex,
+    })
+}
 
-    let finish = |current: &mut String, subcommands: &mut Vec<String>| {
-        let trimmed = current.trim();
-        if !trimmed.is_empty() {
-            subcommands.push(trimmed.to_string());
+/// What a scan of a list of commands found.
+#[derive(Default)]
+struct Scanned {
+    /// The simple commands of the list.
+    own: Vec<String>,
+    /// The simple commands nested in its substitutions and subshells.
+    nested: Vec<String>,
+    complex: bool,
+}
+
+impl Scanned {
+    /// Takes in what the scan of a substitution or subshell found; of an array or a pattern
+    /// (`nested_only`), only what is substituted in it runs.
+    fn absorb(&mut self, inner: Scanned, nested_only: bool) {
+        if !nested_only {
+            self.nested.extend(inner.own);
+        }
+        self.nested.extend(inner.nested);
+        self.complex = true;
+    }
+
+    /// Ends the simple command in `current`. Control flow keywords in front of it are dropped,
+    /// and so is a command that is only the header of a loop, a `case` or a function, or the
+    /// end of a block.
+    fn finish(&mut self, current: &mut String) {
+        let mut command = current.trim();
+        loop {
+            let (word, rest) = command
+                .split_once(char::is_whitespace)
+                .unwrap_or((command, ""));
+            if !COMPOUND_KEYWORDS.contains(&word) {
+                break;
+            }
+            self.complex = true;
+            command = match word {
+                "if" | "then" | "elif" | "else" | "do" | "while" | "until" => rest.trim_start(),
+                // The substitutions of a header were taken out already.
+                _ => "",
+            };
+        }
+        if !command.is_empty() {
+            self.own.push(command.to_string());
         }
         current.clear();
-    };
+    }
+}
 
-    while index < chars.len() {
-        let c = chars[index];
-        let next = chars.get(index + 1).copied();
+/// A heredoc whose body starts at the next line break.
+struct Heredoc {
+    delimiter: String,
+    strip_tabs: bool,
+    /// The delimiter is quoted, so nothing in the body is expanded.
+    quoted: bool,
+}
+
+/// Whether nothing but control flow keywords comes before the next word of a command.
+fn at_command_start(current: &str) -> bool {
+    current
+        .split_whitespace()
+        .all(|word| word == "!" || COMPOUND_KEYWORDS.contains(&word))
+}
+
+/// Where an arithmetic expression starting at `from` (after its `((`) ends, past its `))`;
+/// `None` when the parentheses do not close as an arithmetic expression's.
+fn arithmetic_end(chars: &[char], from: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (index, &c) in chars.iter().enumerate().skip(from) {
         match c {
-            '\'' => {
-                let end = chars[index + 1..].iter().position(|c| *c == '\'')? + index + 1;
-                current.extend(&chars[index..=end]);
-                index = end + 1;
-                word_start = false;
+            '(' => depth += 1,
+            ')' if depth > 0 => depth -= 1,
+            ')' => return (chars.get(index + 1) == Some(&')')).then_some(index + 2),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Whether a command substitution, with the scan of what is inside it, is a quoted heredoc
+/// read by a bare `cat`.
+fn is_safe_cat_heredoc(inner: &Scanned, text: &[char]) -> bool {
+    !inner.complex
+        && inner.nested.is_empty()
+        && matches!(inner.own.as_slice(), [command] if SAFE_CAT_HEREDOC.is_match(command))
+        && !DANGEROUS_HEREDOC_BODY.is_match(&text.iter().collect::<String>())
+}
+
+/// Reads a command character by character, as far as a shell's parser would to find its
+/// simple commands.
+struct Scanner<'a> {
+    chars: &'a [char],
+    index: usize,
+    /// How many substitutions and subshells the scan is inside.
+    depth: usize,
+}
+
+impl<'a> Scanner<'a> {
+    fn new(chars: &'a [char], depth: usize) -> Self {
+        Self {
+            chars,
+            index: 0,
+            depth,
+        }
+    }
+
+    fn at(&self, offset: usize) -> Option<char> {
+        self.chars.get(self.index + offset).copied()
+    }
+
+    /// Scans a list of commands to the end of the input or, `in_parens`, to the `)` that
+    /// closes it, which is consumed.
+    fn scan(&mut self, in_parens: bool) -> Option<Scanned> {
+        let mut out = Scanned::default();
+        let mut current = String::new();
+        let mut word_start = true;
+        let mut heredocs: Vec<Heredoc> = Vec::new();
+        // The `case` statements open, whether the words before their `in` are being read, and
+        // whether a pattern comes next.
+        let mut cases = 0usize;
+        let mut case_header = false;
+        let mut case_pattern = false;
+
+        while let Some(c) = self.at(0) {
+            let next = self.at(1);
+            if word_start && c.is_ascii_alphabetic() {
+                let word = self.peek_word();
+                if word == "case" && at_command_start(&current) {
+                    cases += 1;
+                    case_header = true;
+                    out.complex = true;
+                    current.push_str(&word);
+                    self.index += word.len();
+                    word_start = false;
+                    continue;
+                }
+                if word == "in" && case_header {
+                    case_header = false;
+                    case_pattern = true;
+                    current.clear();
+                    self.index += word.len();
+                    continue;
+                }
+                if word == "esac" && cases > 0 && (case_pattern || at_command_start(&current)) {
+                    out.finish(&mut current);
+                    cases -= 1;
+                    case_pattern = false;
+                    self.index += word.len();
+                    word_start = false;
+                    continue;
+                }
             }
-            '"' => {
-                current.push('"');
-                index += 1;
-                loop {
-                    let c = *chars.get(index)?;
-                    match c {
-                        '\\' => {
+            if case_pattern && word_start && !c.is_whitespace() {
+                self.skip_case_pattern()?;
+                case_pattern = false;
+                continue;
+            }
+            match c {
+                '\'' => {
+                    let end = self.chars[self.index + 1..]
+                        .iter()
+                        .position(|c| *c == '\'')?
+                        + self.index
+                        + 1;
+                    current.extend(&self.chars[self.index..=end]);
+                    self.index = end + 1;
+                    word_start = false;
+                }
+                '"' => {
+                    self.double_quoted(&mut current, &mut out)?;
+                    word_start = false;
+                }
+                '\\' => {
+                    match next {
+                        // A line continuation joins the lines without a space.
+                        Some('\n') => {}
+                        Some(escaped) => {
                             current.push(c);
-                            if let Some(escaped) = chars.get(index + 1) {
-                                current.push(*escaped);
-                            }
-                            index += 2;
+                            current.push(escaped);
+                            word_start = false;
                         }
-                        '"' => {
-                            current.push(c);
-                            index += 1;
-                            break;
-                        }
-                        '`' => {
-                            complex = true;
-                            current.push(c);
-                            index += 1;
-                        }
-                        '$' if chars.get(index + 1) == Some(&'(') => {
-                            complex = true;
-                            current.push(c);
-                            index += 1;
-                        }
-                        _ => {
-                            current.push(c);
-                            index += 1;
-                        }
+                        None => current.push(c),
+                    }
+                    self.index += 2;
+                }
+                '#' if word_start => {
+                    while self.at(0).is_some_and(|c| c != '\n') {
+                        self.index += 1;
                     }
                 }
-                word_start = false;
-            }
-            '\\' => {
-                match next {
-                    // A line continuation joins the lines without a space.
-                    Some('\n') => {}
-                    Some(escaped) => {
-                        current.push(c);
-                        current.push(escaped);
+                '\n' => {
+                    out.finish(&mut current);
+                    self.index += 1;
+                    for heredoc in heredocs.drain(..) {
+                        self.heredoc_body(&heredoc, &mut out)?;
+                    }
+                    word_start = true;
+                }
+                ';' => {
+                    let mut length = 1;
+                    if next == Some(';') {
+                        out.complex = true;
+                        length = if self.at(2) == Some('&') { 3 } else { 2 };
+                    } else if next == Some('&') && cases > 0 {
+                        length = 2;
+                    }
+                    if length > 1 && cases > 0 {
+                        case_pattern = true;
+                    }
+                    out.finish(&mut current);
+                    self.index += length;
+                    word_start = true;
+                }
+                '&' if next == Some('&') => {
+                    out.finish(&mut current);
+                    self.index += 2;
+                    word_start = true;
+                }
+                '|' if next == Some('|') => {
+                    out.finish(&mut current);
+                    self.index += 2;
+                    word_start = true;
+                }
+                '|' => {
+                    out.finish(&mut current);
+                    self.index += if next == Some('&') { 2 } else { 1 };
+                    word_start = true;
+                }
+                '&' if next == Some('>')
+                    || matches!(
+                        self.index.checked_sub(1).map(|i| self.chars[i]),
+                        Some('>' | '<')
+                    ) =>
+                {
+                    current.push(c);
+                    self.index += 1;
+                    word_start = false;
+                }
+                '&' => {
+                    out.finish(&mut current);
+                    self.index += 1;
+                    word_start = true;
+                }
+                '<' if next == Some('<') && self.at(2) != Some('<') => {
+                    heredocs.push(self.heredoc_operator(&mut current));
+                    word_start = false;
+                }
+                '<' | '>' if next == Some('(') => {
+                    let start = self.index;
+                    self.index += 2;
+                    let inner = self.nested()?;
+                    current.extend(&self.chars[start..self.index]);
+                    out.absorb(inner, false);
+                    word_start = false;
+                }
+                '`' => {
+                    self.backtick(&mut current, &mut out)?;
+                    word_start = false;
+                }
+                '$' if next == Some('(') => {
+                    self.substitution(&mut current, &mut out)?;
+                    word_start = false;
+                }
+                '$' if next == Some('{') => {
+                    self.parameter(&mut current, &mut out)?;
+                    word_start = false;
+                }
+                '(' => {
+                    let start = self.index;
+                    if word_start
+                        && next == Some('(')
+                        && let Some(end) = arithmetic_end(self.chars, start + 2)
+                    {
+                        // `(( expression ))`
+                        Self::substitutions_in(
+                            &self.chars[start + 2..end - 2],
+                            self.depth,
+                            &mut out,
+                        )?;
+                        current.extend(&self.chars[start..end]);
+                        self.index = end;
+                        out.complex = true;
+                        word_start = false;
+                    } else if word_start {
+                        // A subshell: its commands run.
+                        self.index += 1;
+                        let inner = self.nested()?;
+                        out.absorb(inner, false);
+                        word_start = true;
+                    } else {
+                        // An array (`a=(x y)`) or a pattern (`!(x|y)`): only what is
+                        // substituted in it runs.
+                        self.index += 1;
+                        let inner = self.nested()?;
+                        current.extend(&self.chars[start..self.index]);
+                        out.absorb(inner, true);
                         word_start = false;
                     }
-                    None => current.push(c),
                 }
-                index += 2;
-            }
-            '#' if word_start => {
-                while index < chars.len() && chars[index] != '\n' {
-                    index += 1;
-                }
-            }
-            '\n' => {
-                finish(&mut current, &mut subcommands);
-                index += 1;
-                for (delimiter, strip_tabs) in heredocs.drain(..) {
-                    while index < chars.len() {
-                        let end = chars[index..]
-                            .iter()
-                            .position(|c| *c == '\n')
-                            .map_or(chars.len(), |offset| index + offset);
-                        let line = chars[index..end].iter().collect::<String>();
-                        index = (end + 1).min(chars.len());
-                        let line = if strip_tabs {
-                            line.trim_start_matches('\t')
-                        } else {
-                            line.as_str()
-                        };
-                        if line == delimiter {
-                            break;
-                        }
+                ')' => {
+                    if !in_parens {
+                        return None;
                     }
+                    out.finish(&mut current);
+                    self.index += 1;
+                    return Some(out);
                 }
-                word_start = true;
-            }
-            ';' => {
-                if next == Some(';') {
-                    complex = true;
+                // A group, `{ ...; }`: its commands are taken as the line's.
+                '{' | '}'
+                    if word_start
+                        && (next.is_none_or(char::is_whitespace)
+                            || (c == '}'
+                                && matches!(next, Some(';' | '&' | '|' | ')' | '<' | '>')))) =>
+                {
+                    out.complex = true;
+                    out.finish(&mut current);
+                    self.index += 1;
+                    word_start = true;
                 }
-                finish(&mut current, &mut subcommands);
-                index += 1;
-                word_start = true;
-            }
-            '&' if next == Some('&') => {
-                finish(&mut current, &mut subcommands);
-                index += 2;
-                word_start = true;
-            }
-            '|' if next == Some('|') => {
-                finish(&mut current, &mut subcommands);
-                index += 2;
-                word_start = true;
-            }
-            '|' => {
-                finish(&mut current, &mut subcommands);
-                index += if next == Some('&') { 2 } else { 1 };
-                word_start = true;
-            }
-            '&' if next == Some('>')
-                || matches!(index.checked_sub(1).map(|i| chars[i]), Some('>' | '<')) =>
-            {
-                current.push(c);
-                index += 1;
-                word_start = false;
-            }
-            '&' => {
-                finish(&mut current, &mut subcommands);
-                index += 1;
-                word_start = true;
-            }
-            '<' if next == Some('<') && chars.get(index + 2) != Some(&'<') => {
-                current.push_str("<<");
-                index += 2;
-                let strip_tabs = chars.get(index) == Some(&'-');
-                if strip_tabs {
-                    current.push('-');
-                    index += 1;
-                }
-                while matches!(chars.get(index), Some(' ' | '\t')) {
-                    current.push(chars[index]);
-                    index += 1;
-                }
-                let mut delimiter = String::new();
-                while let Some(&c) = chars.get(index) {
-                    if c.is_whitespace() || matches!(c, ';' | '&' | '|' | '<' | '>' | '(' | ')') {
-                        break;
-                    }
+                c if c.is_whitespace() => {
                     current.push(c);
-                    if !matches!(c, '\'' | '"' | '\\') {
-                        delimiter.push(c);
-                    }
-                    index += 1;
+                    self.index += 1;
+                    word_start = true;
                 }
-                heredocs.push((delimiter, strip_tabs));
-                word_start = false;
+                c => {
+                    current.push(c);
+                    self.index += 1;
+                    word_start = false;
+                }
             }
-            '<' | '>' if next == Some('(') => {
-                complex = true;
-                current.push(c);
-                index += 1;
-                word_start = false;
+        }
+        if in_parens {
+            return None;
+        }
+        out.finish(&mut current);
+        Some(out)
+    }
+
+    /// The scan of a substitution or subshell whose `(` was just read.
+    fn nested(&mut self) -> Option<Scanned> {
+        if self.depth >= MAX_NESTING {
+            return None;
+        }
+        self.depth += 1;
+        let scanned = self.scan(true);
+        self.depth -= 1;
+        scanned
+    }
+
+    /// The plain word at the current position, or an empty string when the word goes on with
+    /// other characters (`in=1`, `done.txt`).
+    fn peek_word(&self) -> String {
+        let rest = &self.chars[self.index..];
+        let length = rest
+            .iter()
+            .take_while(|c| c.is_ascii_alphanumeric() || **c == '_')
+            .count();
+        match rest.get(length) {
+            Some(&c)
+                if !c.is_whitespace() && !matches!(c, ';' | '&' | '|' | '(' | ')' | '<' | '>') =>
+            {
+                String::new()
             }
-            '`' => {
-                complex = true;
-                current.push(c);
-                index += 1;
-                word_start = false;
-            }
-            '$' if next == Some('(') => {
-                complex = true;
-                current.push(c);
-                index += 1;
-                word_start = false;
-            }
-            '(' | ')' => {
-                complex = true;
-                current.push(c);
-                index += 1;
-                word_start = true;
-            }
-            '{' | '}' if word_start && next.is_none_or(char::is_whitespace) => {
-                complex = true;
-                current.push(c);
-                index += 1;
-            }
-            c if c.is_whitespace() => {
-                current.push(c);
-                index += 1;
-                word_start = true;
-            }
-            c => {
-                current.push(c);
-                index += 1;
-                word_start = false;
+            _ => rest[..length].iter().collect(),
+        }
+    }
+
+    /// Skips a `case` pattern up to and with the `)` that ends it.
+    fn skip_case_pattern(&mut self) -> Option<()> {
+        if self.at(0) == Some('(') {
+            self.index += 1;
+        }
+        loop {
+            match self.at(0)? {
+                ')' => {
+                    self.index += 1;
+                    return Some(());
+                }
+                '\\' => self.index += 2,
+                quote @ ('\'' | '"') => {
+                    let length = self.chars[self.index + 1..]
+                        .iter()
+                        .position(|c| *c == quote)?;
+                    self.index += length + 2;
+                }
+                _ => self.index += 1,
             }
         }
     }
-    finish(&mut current, &mut subcommands);
 
-    complex |= subcommands.iter().any(|subcommand| {
-        subcommand
-            .split_whitespace()
-            .next()
-            .is_some_and(|word| COMPOUND_KEYWORDS.contains(&word))
-    });
-    Some(SplitCommand {
-        subcommands,
-        complex,
-    })
+    /// Reads a `<<` or `<<-` operator and its delimiter into `current`.
+    fn heredoc_operator(&mut self, current: &mut String) -> Heredoc {
+        current.push_str("<<");
+        self.index += 2;
+        let strip_tabs = self.at(0) == Some('-');
+        if strip_tabs {
+            current.push('-');
+            self.index += 1;
+        }
+        while let Some(c @ (' ' | '\t')) = self.at(0) {
+            current.push(c);
+            self.index += 1;
+        }
+        let mut delimiter = String::new();
+        let mut quoted = false;
+        while let Some(c) = self.at(0) {
+            if c.is_whitespace() || matches!(c, ';' | '&' | '|' | '<' | '>' | '(' | ')') {
+                break;
+            }
+            current.push(c);
+            if matches!(c, '\'' | '"' | '\\') {
+                quoted = true;
+            } else {
+                delimiter.push(c);
+            }
+            self.index += 1;
+        }
+        Heredoc {
+            delimiter,
+            strip_tabs,
+            quoted,
+        }
+    }
+
+    /// Skips a heredoc's body and its delimiter line, taking out the commands substituted in
+    /// the body unless the delimiter is quoted.
+    fn heredoc_body(&mut self, heredoc: &Heredoc, out: &mut Scanned) -> Option<()> {
+        let start = self.index;
+        let mut body_end = self.chars.len();
+        while self.index < self.chars.len() {
+            let line_start = self.index;
+            let end = self.chars[line_start..]
+                .iter()
+                .position(|c| *c == '\n')
+                .map_or(self.chars.len(), |offset| line_start + offset);
+            let line = self.chars[line_start..end].iter().collect::<String>();
+            self.index = (end + 1).min(self.chars.len());
+            let line = if heredoc.strip_tabs {
+                line.trim_start_matches('\t')
+            } else {
+                line.as_str()
+            };
+            if line == heredoc.delimiter {
+                body_end = line_start;
+                break;
+            }
+        }
+        if heredoc.quoted {
+            return Some(());
+        }
+        Self::substitutions_in(&self.chars[start..body_end], self.depth, out)
+    }
+
+    /// A double-quoted string at the current position.
+    fn double_quoted(&mut self, current: &mut String, out: &mut Scanned) -> Option<()> {
+        current.push('"');
+        self.index += 1;
+        loop {
+            let c = self.at(0)?;
+            match c {
+                '\\' => {
+                    current.push(c);
+                    if let Some(escaped) = self.at(1) {
+                        current.push(escaped);
+                    }
+                    self.index += 2;
+                }
+                '"' => {
+                    current.push(c);
+                    self.index += 1;
+                    return Some(());
+                }
+                '`' => self.backtick(current, out)?,
+                '$' if self.at(1) == Some('(') => self.substitution(current, out)?,
+                '$' if self.at(1) == Some('{') => self.parameter(current, out)?,
+                _ => {
+                    current.push(c);
+                    self.index += 1;
+                }
+            }
+        }
+    }
+
+    /// A `$(...)` or `$((...))` at the current position: its text goes into `current`, the
+    /// commands in it into `out`.
+    fn substitution(&mut self, current: &mut String, out: &mut Scanned) -> Option<()> {
+        let start = self.index;
+        if self.at(2) == Some('(')
+            && let Some(end) = arithmetic_end(self.chars, start + 3)
+        {
+            Self::substitutions_in(&self.chars[start + 3..end - 2], self.depth, out)?;
+            current.extend(&self.chars[start..end]);
+            self.index = end;
+            out.complex = true;
+            return Some(());
+        }
+        self.index += 2;
+        let inner = self.nested()?;
+        let text = &self.chars[start..self.index];
+        current.extend(text);
+        if !is_safe_cat_heredoc(&inner, text) {
+            out.absorb(inner, false);
+        }
+        Some(())
+    }
+
+    /// A backtick substitution at the current position.
+    fn backtick(&mut self, current: &mut String, out: &mut Scanned) -> Option<()> {
+        let start = self.index;
+        let mut content = Vec::new();
+        self.index += 1;
+        loop {
+            match self.at(0)? {
+                '`' => break,
+                '\\' => {
+                    let escaped = self.at(1)?;
+                    if !matches!(escaped, '`' | '\\' | '$') {
+                        content.push('\\');
+                    }
+                    content.push(escaped);
+                    self.index += 2;
+                }
+                c => {
+                    content.push(c);
+                    self.index += 1;
+                }
+            }
+        }
+        self.index += 1;
+        current.extend(&self.chars[start..self.index]);
+        if self.depth >= MAX_NESTING {
+            return None;
+        }
+        let inner = Scanner::new(&content, self.depth + 1).scan(false)?;
+        out.absorb(inner, false);
+        Some(())
+    }
+
+    /// A `${...}` expansion at the current position; what is substituted in it is taken out.
+    fn parameter(&mut self, current: &mut String, out: &mut Scanned) -> Option<()> {
+        let start = self.index;
+        let mut index = start + 2;
+        let mut depth = 0usize;
+        loop {
+            match *self.chars.get(index)? {
+                '\\' => index += 2,
+                '{' => {
+                    depth += 1;
+                    index += 1;
+                }
+                '}' if depth == 0 => break,
+                '}' => {
+                    depth -= 1;
+                    index += 1;
+                }
+                _ => index += 1,
+            }
+        }
+        self.index = index + 1;
+        current.extend(&self.chars[start..self.index]);
+        Self::substitutions_in(&self.chars[start + 2..index], self.depth, out)
+    }
+
+    /// Takes out the commands of the `$(...)` and backticks in text that is not itself read as
+    /// commands: an unquoted heredoc's body, a `${...}` expansion, an arithmetic expression.
+    fn substitutions_in(text: &[char], depth: usize, out: &mut Scanned) -> Option<()> {
+        let mut scanner = Scanner::new(text, depth);
+        let mut ignored = String::new();
+        while let Some(c) = scanner.at(0) {
+            match c {
+                '\\' => scanner.index += 2,
+                '$' if scanner.at(1) == Some('(') => scanner.substitution(&mut ignored, out)?,
+                '`' => scanner.backtick(&mut ignored, out)?,
+                _ => scanner.index += 1,
+            }
+        }
+        Some(())
+    }
 }
 
 /// A word of a command with where it is, quotes kept.
@@ -730,8 +1120,7 @@ impl<'r> ShellRules<'r> {
     /// A whole command (`bashToolHasPermission`), run in `cwd`.
     pub(crate) fn decide(&self, command: &str, cwd: &Path) -> ShellDecision<'r> {
         let exact = self.exact(command);
-        let split = split_command(command);
-        let Some(split) = split.filter(|split| !split.complex) else {
+        let Some(split) = split_command(command) else {
             // Claude Code asks about what it cannot take apart, unless an exact rule or a
             // deny rule decides; the asking is left to Codex.
             if exact != ShellDecision::NoMatch {
@@ -744,6 +1133,29 @@ impl<'r> ShellRules<'r> {
         };
         if let ShellDecision::Deny(_) = exact {
             return exact;
+        }
+        if split.complex {
+            // Deny and ask rules meet each command, those nested in substitutions,
+            // subshells and control flow too. Claude Code asks about the rest unless an
+            // exact rule decides; the asking is left to Codex.
+            if let Some(rule) = first_match(&self.deny, command, MatchMode::Prefix, true) {
+                return ShellDecision::Deny(rule);
+            }
+            let decisions = split
+                .subcommands
+                .iter()
+                .map(|subcommand| self.subcommand(subcommand))
+                .collect::<Vec<_>>();
+            return decisions
+                .iter()
+                .find(|decision| matches!(decision, ShellDecision::Deny(_)))
+                .or_else(|| {
+                    decisions
+                        .iter()
+                        .find(|decision| matches!(decision, ShellDecision::Ask(_)))
+                })
+                .copied()
+                .unwrap_or(exact);
         }
 
         // Models often start with `cd` into the working directory, which changes nothing.
