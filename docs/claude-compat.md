@@ -603,6 +603,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | `userConfig`: `${user_config.KEY}` | Filled in in MCP server declarations and agent bodies, and in the reference source in hook commands (newer versions refuse it in a hook's shell command and want `CLAUDE_PLUGIN_OPTION_<KEY>` there) | Filled in in all three | Done 2026-11-19 `4ff3147125` |
 | `userConfig`: `CLAUDE_PLUGIN_OPTION_<KEY>` | In the environment of the plugin's hooks, the key in upper case with anything but letters, digits and `_` turned into `_` | The same | Done 2026-11-19 `4ff3147125` |
 | The manifest's `agents` list | Stands in place of `agents/` | The same, for the directories it lists | Done 2026-11-20 `f987126bd2` |
+| A plugin skill whose frontmatter `name` already starts with `<plugin>:` | Newer versions (2.1.246) do not add the prefix again: `name: acme:review` in plugin `acme` is `/acme:review` | The same | Done 2026-11-21 |
 | The manifest's `skills` list | Adds to the `skills/` folder, which is still scanned (newer versions, 2.1.136, stopped it hiding `skills/`) | The same | Done 2026-11-21 |
 | A `plugin.json` that starts with a UTF-8 byte order mark | Read as if it had none (newer versions, 2.1.246, also when installing) | The same | Done 2026-11-21 |
 | A project's settings and the plugins they enable | Count once the folder is trusted | Count in a project Codex trusts; elsewhere they can turn a plugin off and not on | Done 2026-11-20 `f987126bd2` |
