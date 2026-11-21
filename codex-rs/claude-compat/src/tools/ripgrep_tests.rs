@@ -8,6 +8,7 @@ use super::Shell;
 use super::apply_head_limit;
 use super::command_line;
 use super::note_timeout;
+use super::exclusion_args;
 use super::relative_to;
 use super::result_lines;
 
@@ -138,4 +139,13 @@ fn results_of_a_search_that_timed_out_say_they_are_partial() {
         text,
         "Found 1 file\na.rs\n\n(The search timed out after 20 seconds, so these results are partial. Try searching a more specific path or pattern.)"
     );
+}
+
+#[test]
+fn exclusions_are_negated_globs_without_regard_to_case() {
+    assert_eq!(
+        exclusion_args(&strings(&["**/.env", "/build"])),
+        strings(&["--iglob", "!**/.env", "--iglob", "!/build"])
+    );
+    assert_eq!(exclusion_args(&[]), Vec::<String>::new());
 }

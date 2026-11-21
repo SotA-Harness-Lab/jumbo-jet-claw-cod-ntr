@@ -36,7 +36,8 @@ impl Ripgrep {
         }
     }
 
-    /// Runs `rg` with `args` on `target` (a native path in `environment`) and returns the
+    /// Runs `rg` with `args` on `target` (a native path in `environment`), in `workdir`
+    /// when one is given, and returns the lines it printed, or the error the model is told.
     /// lines it printed and whether the search stopped at its timeout (the lines are then
     /// partial), or the error the model is told.
     pub(super) async fn run(
@@ -45,6 +46,7 @@ impl Ripgrep {
         environment: &TurnEnvironment,
         args: &[String],
         target: &str,
+        workdir: Option<&str>,
     ) -> Result<(Vec<String>, bool), FunctionCallError> {
         // The shell `exec_command` runs the command line with.
         let shell_type = environment
@@ -59,12 +61,15 @@ impl Ripgrep {
         };
         // No `max_output_tokens`: the whole output comes back, and the Claude tool limits
         // it as Claude Code does.
+        let mut arguments = json!({
+            "cmd": ripgrep::command_line(args, target, shell),
+            "timeout_ms": ripgrep::TIMEOUT_MS,
+        });
+        if let Some(workdir) = workdir {
+            arguments["workdir"] = json!(workdir);
+        }
         let payload = ToolPayload::Function {
-            arguments: json!({
-                "cmd": ripgrep::command_line(args, target, shell),
-                "timeout_ms": ripgrep::TIMEOUT_MS,
-            })
-            .to_string(),
+            arguments: arguments.to_string(),
         };
         let output = self
             .exec

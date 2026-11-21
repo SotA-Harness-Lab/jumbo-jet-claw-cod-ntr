@@ -32,6 +32,16 @@ pub fn command_line(args: &[String], target: &str, shell: Shell) -> String {
     line
 }
 
+/// The arguments that leave out of a search what `globs` match (`Read` deny patterns,
+/// relative to the directory `rg` runs in), compared without regard to case as the
+/// permission rules are.
+pub fn exclusion_args(globs: &[String]) -> Vec<String> {
+    globs
+        .iter()
+        .flat_map(|glob| ["--iglob".to_string(), format!("!{glob}")])
+        .collect()
+}
+
 fn quote(arg: &str, shell: Shell) -> String {
     // A leading `=` stays quoted: zsh expands `=word` to the path of the command `word`.
     let plain = !arg.is_empty()

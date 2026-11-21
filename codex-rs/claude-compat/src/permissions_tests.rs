@@ -625,6 +625,65 @@ fn rules_for_everything_under_an_anchor_match() {
 }
 
 #[test]
+fn read_deny_rules_become_globs_relative_to_the_search_directory() {
+    let rules = rules_from(&[
+        (
+            RuleSource::User,
+            json!({ "permissions": {
+                "deny": ["Read(~/.ssh/**)", "Read(//etc/shadow)", "Read(//**/*.key)"],
+                "allow": ["Read(*.pem)"]
+            } }),
+        ),
+        (
+            RuleSource::Project,
+            json!({ "permissions": {
+                "deny": ["Read(.env)", "Read(/build/**)", "Read(./src/secret/*.json)", "Read(!x)"],
+                "ask": ["Read(*.log)"]
+            } }),
+        ),
+    ]);
+    let globs = |search_dir: &str| rules.read_deny_globs(Path::new(search_dir), Path::new(PROJECT));
+    assert_eq!(
+        globs(PROJECT),
+        vec![
+            "/**/*.key".to_string(),
+            "**/.env".to_string(),
+            "/src/secret/*.json".to_string(),
+            "/build".to_string(),
+        ]
+    );
+    assert_eq!(
+        globs("/work/project/src"),
+        vec![
+            "/**/*.key".to_string(),
+            "**/.env".to_string(),
+            "/secret/*.json".to_string(),
+        ]
+    );
+    assert_eq!(
+        globs("/work"),
+        vec![
+            "/**/*.key".to_string(),
+            "/project/**/.env".to_string(),
+            "/project/src/secret/*.json".to_string(),
+            "/project/build".to_string(),
+        ]
+    );
+    assert_eq!(
+        globs(HOME),
+        vec!["/.ssh".to_string(), "/**/*.key".to_string()]
+    );
+    assert_eq!(
+        globs("/home/user/.ssh/keys"),
+        vec!["**".to_string(), "/**/*.key".to_string()]
+    );
+    assert_eq!(
+        globs("/etc"),
+        vec!["/shadow".to_string(), "/**/*.key".to_string()]
+    );
+}
+
+#[test]
 fn a_path_through_a_symbolic_link_is_checked_where_it_leads_too() {
     let rules = local_rules(&["Read(docs/**)", "Edit(*.txt)"], &[], &["Read(~/.ssh/**)"]);
     let link = PathBuf::from("/work/project/docs/key");

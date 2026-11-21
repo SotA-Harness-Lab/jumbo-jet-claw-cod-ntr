@@ -36,6 +36,7 @@ use std::sync::PoisonError;
 use codex_claude_compat::PermissionRules;
 use codex_claude_compat::RuleVerdict;
 use codex_claude_compat::ToolInput;
+use codex_claude_compat::tools::ripgrep;
 use codex_protocol::approvals::ExecApprovalKind;
 use codex_protocol::protocol::AskForApproval;
 use codex_protocol::protocol::ReviewDecision;
@@ -195,6 +196,26 @@ fn call_directory(invocation: &ToolInvocation) -> (PathUri, Option<String>) {
         ),
         Err(_) => (PathUri::from_abs_path(&invocation.turn.config.cwd), None),
     }
+}
+
+/// The ripgrep arguments that keep a `Grep` or `Glob` search of `search_dir` (a native
+/// path, which `rg` runs in) out of the files Claude Code's `Read` deny rules cover, as
+/// Claude Code's own tools add them. Empty when no such rule applies.
+pub(crate) fn read_deny_args(invocation: &ToolInvocation, search_dir: &str) -> Vec<String> {
+    if !super::enabled(&invocation.turn) {
+        return Vec::new();
+    }
+    let rules = rules_for(
+        &invocation.session,
+        invocation.turn.config.cwd.as_path(),
+        invocation.turn.config.active_project.is_trusted(),
+    );
+    if rules.is_empty() {
+        return Vec::new();
+    }
+    let (cwd_uri, _) = call_directory(invocation);
+    let cwd = PathBuf::from(cwd_uri.inferred_native_path_string());
+    ripgrep::exclusion_args(&rules.read_deny_globs(Path::new(search_dir), &cwd))
 }
 
 /// Checks a Claude tool call against Claude Code's permission rules before the tool runs.

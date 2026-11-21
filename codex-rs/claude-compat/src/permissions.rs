@@ -399,6 +399,34 @@ impl PermissionRules {
         }
     }
 
+    /// The patterns of the `Read` deny rules as ripgrep globs for a search of `search_dir`,
+    /// relative to it (`getFileReadIgnorePatterns`, `normalizePatternsToPath`), so that
+    /// `Grep` and `Glob` leave out the files those rules cover, as in Claude Code. A glob
+    /// that starts with `/` is anchored at `search_dir`; one that starts with `**/`
+    /// matches at any depth. Patterns that cannot reach into `search_dir`, and negations,
+    /// are left out. Relative patterns are under `cwd`.
+    pub fn read_deny_globs(&self, search_dir: &Path, cwd: &Path) -> Vec<String> {
+        let search_dir = normalize_path(search_dir);
+        let cwd = normalize_path(cwd);
+        let mut globs = Vec::new();
+        for matcher in self.file_matchers.iter().filter(|matcher| {
+            matcher.tool == FILE_READ_TOOL && matcher.decision == PermissionDecision::Deny
+        }) {
+            let root = matcher.root.as_deref().unwrap_or(&cwd);
+            for (line, _) in &matcher.lines {
+                if line.starts_with('!') {
+                    continue;
+                }
+                if let Some(glob) = search_glob(root, line, &search_dir)
+                    && !globs.contains(&glob)
+                {
+                    globs.push(glob);
+                }
+            }
+        }
+        globs
+    }
+
     /// The `tool` allow rule of the first of `paths`, when every one of them has one: a
     /// path reached through a symbolic link is allowed only when the link and what it
     /// leads to both are.
@@ -769,6 +797,68 @@ fn gitignore_line(pattern: &str, decision: PermissionDecision) -> String {
         return format!("/{directory}");
     }
     directory.to_string()
+}
+
+/// The gitignore `line` of a pattern anchored at `root` as a ripgrep glob relative to
+/// `search_dir`: `/<path>` from `search_dir`, or `**/<name>` at any depth; `None` when
+/// the pattern names nothing in `search_dir`. A directory of `search_dir` that a
+/// wildcard of the pattern stands for is taken as matching it.
+fn search_glob(root: &Path, line: &str, search_dir: &Path) -> Option<String> {
+    let body = line.strip_prefix('/').unwrap_or(line);
+    // As in gitignore, a line with a slash only at its end matches at any depth.
+    let anchored = line.starts_with('/') || line.trim_end_matches('/').contains('/');
+    if let Ok(rest) = root.strip_prefix(search_dir) {
+        // The pattern's root is `search_dir` or a directory in it.
+        let prefix = slash_path(rest);
+        return Some(match (anchored, prefix.is_empty()) {
+            (false, true) => format!("**/{body}"),
+            (false, false) => format!("/{prefix}/**/{body}"),
+            (true, true) => format!("/{body}"),
+            (true, false) => format!("/{prefix}/{body}"),
+        });
+    }
+    // `search_dir` is inside the pattern's root: the directories between them have to be
+    // the pattern's first components.
+    let rest = search_dir.strip_prefix(root).ok()?;
+    if !anchored {
+        return Some(format!("**/{body}"));
+    }
+    let components = body.split('/').collect::<Vec<_>>();
+    let mut index = 0;
+    for directory in rest.components() {
+        let directory = directory.as_os_str().to_string_lossy();
+        match components.get(index) {
+            // The pattern covers a directory `search_dir` is in: all of it.
+            None => return Some("**".to_string()),
+            Some(&"**") => break,
+            Some(component) if is_literal(component) => {
+                if !component.eq_ignore_ascii_case(&directory) {
+                    return None;
+                }
+                index += 1;
+            }
+            Some(_) => index += 1,
+        }
+    }
+    let remaining = components[index..].join("/");
+    Some(if remaining.is_empty() {
+        "**".to_string()
+    } else {
+        format!("/{remaining}")
+    })
+}
+
+/// Whether a component of a glob has no wildcard in it.
+fn is_literal(component: &str) -> bool {
+    !component.contains(['*', '?', '[', '{', '\\'])
+}
+
+/// The components of a relative path joined with `/`.
+fn slash_path(path: &Path) -> String {
+    path.components()
+        .map(|component| component.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 /// `line` with every character a glob gives a meaning to escaped, so that it matches the
