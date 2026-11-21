@@ -8173,3 +8173,40 @@ fn claude_plugin_command_roots_are_read_in_place() {
         Vec::<AbsolutePathBuf>::new()
     );
 }
+
+#[test]
+fn claude_plugin_manifest_skills_add_to_the_skills_folder() {
+    let claude_home = TempDir::new().unwrap();
+    let skill = "---\nname: s\ndescription: S\n---\n";
+    let skill_roots = |plugin_root: &AbsolutePathBuf| {
+        let manifest = crate::manifest::load_plugin_manifest(plugin_root.as_path())
+            .expect("load plugin manifest");
+        crate::loader::plugin_skill_roots(
+            plugin_root,
+            &manifest.paths,
+            crate::manifest::PluginManifestFormat::Legacy,
+        )
+    };
+
+    let plugin_root = claude_home.path().join("plugins/cache/demo").abs();
+    write_file(
+        &plugin_root.join(".claude-plugin/plugin.json"),
+        r#"{"name":"demo","skills":["./extra"]}"#,
+    );
+    write_file(&plugin_root.join("skills/a/SKILL.md"), skill);
+    write_file(&plugin_root.join("extra/b/SKILL.md"), skill);
+    assert_eq!(
+        skill_roots(&plugin_root),
+        vec![plugin_root.join("extra"), plugin_root.join("skills")]
+    );
+
+    // In Codex's own plugin format the manifest's list replaces `skills/`.
+    let codex_root = claude_home.path().join("plugins/cache/codex-format").abs();
+    write_file(
+        &codex_root.join(".codex-plugin/plugin.json"),
+        r#"{"name":"codex-format","skills":["./extra"]}"#,
+    );
+    write_file(&codex_root.join("skills/a/SKILL.md"), skill);
+    write_file(&codex_root.join("extra/b/SKILL.md"), skill);
+    assert_eq!(skill_roots(&codex_root), vec![codex_root.join("extra")]);
+}

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins; load Claude Code's custom slash commands
+// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins; load Claude Code's custom slash commands; scan skills/ beside the skills a Claude Code manifest lists
 
 use crate::PluginGitMode;
 use crate::app_mcp_routing::apply_app_mcp_routing_policy;
@@ -1145,6 +1145,12 @@ pub(crate) fn plugin_skill_roots(
 ) -> Vec<AbsolutePathBuf> {
     let mut paths = if manifest_paths.skills.is_empty() {
         default_skill_roots(plugin_root)
+    } else if has_claude_manifest(plugin_root) {
+        // In a Claude Code plugin the manifest's `skills` add to `skills/`.
+        default_skill_roots(plugin_root)
+            .into_iter()
+            .chain(manifest_paths.skills.iter().cloned())
+            .collect()
     } else {
         manifest_paths.skills.clone()
     };
@@ -1165,9 +1171,7 @@ pub(crate) fn plugin_skill_roots(
 /// already migrated the commands into skills of their own at install time. A `commands` entry
 /// naming a single file is left out.
 pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {
-    let claude_manifest = find_plugin_manifest_path(plugin_root.as_path())
-        .is_some_and(|path| path.ends_with(CLAUDE_PLUGIN_MANIFEST_PATH));
-    if !claude_manifest || migrated_command_skills_root(plugin_root).is_dir() {
+    if !has_claude_manifest(plugin_root) || migrated_command_skills_root(plugin_root).is_dir() {
         return Vec::new();
     }
     let declared = match load_plugin_command_paths(plugin_root.as_path()) {
@@ -1179,6 +1183,12 @@ pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<Absolut
         Err(_) => Vec::new(),
     };
     declared.into_iter().filter(|path| path.is_dir()).collect()
+}
+
+/// Whether the plugin's manifest is Claude Code's, `.claude-plugin/plugin.json`.
+fn has_claude_manifest(plugin_root: &AbsolutePathBuf) -> bool {
+    find_plugin_manifest_path(plugin_root.as_path())
+        .is_some_and(|path| path.ends_with(CLAUDE_PLUGIN_MANIFEST_PATH))
 }
 
 fn default_skill_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {
