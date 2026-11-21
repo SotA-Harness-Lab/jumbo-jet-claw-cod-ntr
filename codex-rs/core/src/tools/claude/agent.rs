@@ -13,6 +13,7 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::sync::Arc;
+use std::time::Duration;
 
 use codex_claude_compat::tools::AGENT;
 use codex_claude_compat::tools::agent;
@@ -350,9 +351,14 @@ async fn final_status(control: &LocalAgentControl, thread_id: ThreadId) -> Agent
     control.get_status(thread_id).await
 }
 
+/// How long a finished background agent waits for Codex's completion watcher before it is
+/// closed anyway; the watcher reads one status change and injects one notice.
+const COMPLETION_WATCHER_LIMIT: Duration = Duration::from_secs(60);
+
 /// Closes a background V1 agent once it has finished, so that it gives back its thread slot
 /// as a foreground one does. Its result still reaches the conversation through Codex's
-/// completion notice, which has read the final status by then.
+/// completion notice: the close waits until the completion watcher has injected it. The
+/// final status is kept before the close, so that `wait_agent` on the agent still returns it.
 fn close_when_finished(control: LocalAgentControl, thread_id: ThreadId) {
     let Ok(membership) = control.runtime.admit_start() else {
         return;
@@ -364,14 +370,24 @@ fn close_when_finished(control: LocalAgentControl, thread_id: ThreadId) {
             _ = control.runtime.shutdown.cancelled() => None,
             status = final_status(&control, thread_id) => Some(status),
         };
-        if matches!(
-            status,
-            Some(AgentStatus::Completed(_) | AgentStatus::Errored(_))
-        ) {
-            // Closing turns the status into `Shutdown`; let the completion notice, woken by
-            // the same change, take the final status first.
-            tokio::task::yield_now().await;
-            let _ = control.close_agent(thread_id).await;
+        if let Some(status @ (AgentStatus::Completed(_) | AgentStatus::Errored(_))) = status {
+            // Closing turns the status into `Shutdown` and removes the thread; the
+            // completion notice takes the final status first.
+            let watcher = control.wait_for_completion_watcher(thread_id, COMPLETION_WATCHER_LIMIT);
+            let noticed = tokio::select! {
+                biased;
+                _ = control.runtime.shutdown.cancelled() => None,
+                noticed = watcher => Some(noticed),
+            };
+            if let Some(noticed) = noticed {
+                if !noticed {
+                    tracing::debug!(
+                        "closing background agent {thread_id} before its completion notice"
+                    );
+                }
+                control.record_closed_result(thread_id, status);
+                let _ = control.close_agent(thread_id).await;
+            }
         }
         teardown.complete();
     });

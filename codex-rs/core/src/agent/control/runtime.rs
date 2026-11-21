@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: close a background Agent only after its completion notice
+
 //! Shared state and startup bindings for one local agent tree.
 //! Registry identity is allocation identity; cloning this handle preserves ownership checks.
 
@@ -239,6 +244,7 @@ pub(crate) struct LocalAgentRuntime {
     pub(super) residency: Arc<V2Residency>,
     pub(super) unconfirmed_results: Arc<AtomicUsize>,
     pub(super) mailboxes: Arc<super::mailbox::Mailboxes>,
+    pub(super) background_closes: Arc<super::background_close::BackgroundCloses>,
     /// Shared by every session in this tree, including private delegates.
     pub(crate) shutdown: CancellationToken,
     shutdown_state: Arc<AgentTreeShutdownState>,
@@ -257,6 +263,7 @@ impl LocalAgentRuntime {
             residency: Arc::default(),
             unconfirmed_results: Arc::default(),
             mailboxes: Arc::default(),
+            background_closes: Arc::default(),
             shutdown: CancellationToken::new(),
             shutdown_state: Arc::default(),
             agent_execution_limiter: Arc::default(),

@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: return the result of a background Agent closed once it finished
+
 use super::*;
 use crate::agent::control::StatusSubscription;
 use crate::agent::status::is_final;
@@ -142,7 +147,11 @@ impl Handler {
                     status_rxs.push((*id, updates));
                 }
                 Err(err) if matches!(err.details(), CodexErrorDetails::ThreadNotFound(_)) => {
-                    initial_final_statuses.push((*id, AgentStatus::NotFound));
+                    // A background agent closed once it finished keeps its result.
+                    let status = local_agent_control
+                        .closed_result(*id)
+                        .unwrap_or(AgentStatus::NotFound);
+                    initial_final_statuses.push((*id, status));
                 }
                 Err(err) => {
                     let mut statuses = HashMap::with_capacity(1);
@@ -328,7 +337,10 @@ async fn wait_for_final_status(
         let snapshot = snapshot.map_err(|err| collab_agent_error(thread_id, err))?;
         let status = snapshot.status().cloned().unwrap_or(AgentStatus::NotFound);
         if is_final(&status) {
-            return Ok(Some((thread_id, status)));
+            return Ok(Some((
+                thread_id,
+                closed_result_or(&session, thread_id, status),
+            )));
         }
     }
     let latest = session
@@ -337,5 +349,20 @@ async fn wait_for_final_status(
         .control(session.session_id())
         .get_status(thread_id)
         .await;
+    let latest = closed_result_or(&session, thread_id, latest);
     Ok(is_final(&latest).then_some((thread_id, latest)))
+}
+
+/// The result of a background agent closed once it finished, in place of the `Shutdown` or
+/// `NotFound` its close leaves; `status` otherwise.
+fn closed_result_or(session: &Session, thread_id: ThreadId, status: AgentStatus) -> AgentStatus {
+    match status {
+        AgentStatus::Shutdown | AgentStatus::NotFound => session
+            .services
+            .local_agent_runtime
+            .control(session.session_id())
+            .closed_result(thread_id)
+            .unwrap_or(status),
+        status => status,
+    }
 }

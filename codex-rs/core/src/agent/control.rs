@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: close a background Agent only after its completion notice
+
 use crate::TurnInputRequest;
 use crate::TurnInputSubmission;
 use crate::TurnStartOptions;
@@ -68,6 +73,7 @@ pub(in crate::agent) use spawn_guard::PendingSpawn;
 pub(in crate::agent) use spawn_guard::SpawnOwner;
 
 mod api;
+mod background_close;
 mod budget;
 mod completion;
 mod delivery;
@@ -503,6 +509,13 @@ impl LocalAgentControl {
                 }
                 Err(_) => control.get_status(child_thread_id).await,
             };
+            // A background agent closed before this watcher read its final status.
+            let status = match status {
+                AgentStatus::Shutdown => control
+                    .closed_result(child_thread_id)
+                    .unwrap_or(AgentStatus::Shutdown),
+                status => status,
+            };
             // Tree shutdown is a lifecycle handoff, not a child result for the parent.
             if !is_final(&status)
                 || (matches!(&status, AgentStatus::Shutdown)
@@ -586,8 +599,11 @@ impl LocalAgentControl {
                 )
                 .await;
         };
+        let finished = self.clone();
         tokio::spawn(async move {
             watcher.await;
+            // A background agent of the `Agent` tool waits for this before it is closed.
+            finished.completion_watcher_finished(child_thread_id);
             teardown.complete();
         });
     }
