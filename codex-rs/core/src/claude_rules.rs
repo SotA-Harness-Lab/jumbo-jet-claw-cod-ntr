@@ -14,6 +14,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+use codex_claude_compat::InstructionFile;
 use codex_claude_compat::LocalFiles;
 use codex_claude_compat::file_instructions;
 use codex_claude_compat::render_instruction_files;
@@ -26,6 +27,9 @@ use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolPayload;
 
 const APPLY_PATCH_FILE_MARKERS: &[&str] = &["*** Add File: ", "*** Update File: ", "*** Move to: "];
+
+/// Claude Code's size limit for an instruction file, in characters.
+const MAX_ON_DEMAND_CHARACTERS: usize = 40_000;
 
 /// Instruction files already shown in this session.
 #[derive(Default)]
@@ -120,6 +124,7 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
         found
             .into_iter()
             .filter(|instruction| shown.insert(instruction.path.clone()))
+            .map(cut_to_limit)
             .collect::<Vec<_>>()
     };
     if new.is_empty() {
@@ -133,6 +138,23 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
         ))],
     )
     .await;
+}
+
+/// Keeps the start of a file over Claude Code's size limit for an instruction file, so
+/// that a generated, very large `CLAUDE.md` does not fill the context each time a file
+/// below it is worked on, and again after each compaction.
+fn cut_to_limit(mut instruction: InstructionFile) -> InstructionFile {
+    if let Some((end, _)) = instruction
+        .content
+        .char_indices()
+        .nth(MAX_ON_DEMAND_CHARACTERS)
+    {
+        instruction.content.truncate(end);
+        instruction.content.push_str(&format!(
+            "\n\n(Cut: only the first {MAX_ON_DEMAND_CHARACTERS} characters of this file are shown.)"
+        ));
+    }
+    instruction
 }
 
 /// The files a shell command read or a patch changed, as absolute paths.
@@ -267,10 +289,38 @@ fn patch_files(patch: &str) -> impl Iterator<Item = &str> {
 
 #[cfg(test)]
 mod tests {
+    use super::MAX_ON_DEMAND_CHARACTERS;
+    use super::cut_to_limit;
     use super::patch_files;
     use super::searched_file;
     use super::shell_command_files;
+    use codex_claude_compat::InstructionFile;
+    use codex_claude_compat::InstructionKind;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn a_file_over_the_size_limit_is_cut_to_its_start() {
+        let file = |content: String| InstructionFile {
+            path: "/repo/sub/CLAUDE.md".into(),
+            kind: InstructionKind::Project,
+            content,
+        };
+        let small = file("é".repeat(MAX_ON_DEMAND_CHARACTERS));
+        assert_eq!(cut_to_limit(small.clone()), small);
+
+        let cut = cut_to_limit(file(format!(
+            "{}tail",
+            "é".repeat(MAX_ON_DEMAND_CHARACTERS)
+        )));
+        assert_eq!(
+            cut.content,
+            format!(
+                "{}\n\n(Cut: only the first {MAX_ON_DEMAND_CHARACTERS} characters of this file \
+                 are shown.)",
+                "é".repeat(MAX_ON_DEMAND_CHARACTERS)
+            )
+        );
+    }
 
     #[test]
     fn a_search_of_one_file_counts_as_reading_it() {
