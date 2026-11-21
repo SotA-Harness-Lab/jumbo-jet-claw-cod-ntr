@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; read the
+// target of a symbolic link
 
 use bytes::Bytes;
 use codex_file_system::FILE_WRITE_CHUNK_SIZE;
@@ -157,6 +158,15 @@ impl LocalFileSystem {
         file_system.canonicalize(path, sandbox).await
     }
 
+    async fn read_link(
+        &self,
+        path: &PathUri,
+        sandbox: Option<&FileSystemSandboxContext>,
+    ) -> FileSystemResult<String> {
+        let (file_system, sandbox) = self.file_system_for_reads(sandbox)?;
+        file_system.read_link(path, sandbox).await
+    }
+
     #[tracing::instrument(
         name = "fs.read_file",
         skip_all,
@@ -300,6 +310,14 @@ impl ExecutorFileSystem for LocalFileSystem {
         Box::pin(LocalFileSystem::canonicalize(self, path, sandbox))
     }
 
+    fn read_link<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> ExecutorFileSystemFuture<'a, String> {
+        Box::pin(LocalFileSystem::read_link(self, path, sandbox))
+    }
+
     fn read_file<'a>(
         &'a self,
         path: &'a PathUri,
@@ -400,6 +418,15 @@ impl UnsandboxedFileSystem {
     ) -> FileSystemResult<PathUri> {
         reject_platform_sandbox_context(sandbox)?;
         self.file_system.canonicalize(path, /*sandbox*/ None).await
+    }
+
+    async fn read_link(
+        &self,
+        path: &PathUri,
+        sandbox: Option<&FileSystemSandboxContext>,
+    ) -> FileSystemResult<String> {
+        reject_platform_sandbox_context(sandbox)?;
+        self.file_system.read_link(path, /*sandbox*/ None).await
     }
 
     async fn read_file(
@@ -511,6 +538,14 @@ impl ExecutorFileSystem for UnsandboxedFileSystem {
         sandbox: Option<&'a FileSystemSandboxContext>,
     ) -> ExecutorFileSystemFuture<'a, PathUri> {
         Box::pin(UnsandboxedFileSystem::canonicalize(self, path, sandbox))
+    }
+
+    fn read_link<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> ExecutorFileSystemFuture<'a, String> {
+        Box::pin(UnsandboxedFileSystem::read_link(self, path, sandbox))
     }
 
     fn read_file<'a>(
@@ -633,6 +668,25 @@ impl DirectFileSystem {
         let canonicalized =
             AbsolutePathBuf::from_absolute_path(tokio::fs::canonicalize(path.as_path()).await?)?;
         Ok(PathUri::from_abs_path(&canonicalized))
+    }
+
+    async fn read_link(
+        &self,
+        path: &PathUri,
+        sandbox: Option<&FileSystemSandboxContext>,
+    ) -> FileSystemResult<String> {
+        reject_sandbox_context(sandbox)?;
+        let path = path.to_abs_path()?;
+        tokio::fs::read_link(path.as_path())
+            .await?
+            .into_os_string()
+            .into_string()
+            .map_err(|_| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "the link's target is not valid UTF-8",
+                )
+            })
     }
 
     async fn read_file(
@@ -992,6 +1046,14 @@ impl ExecutorFileSystem for DirectFileSystem {
         sandbox: Option<&'a FileSystemSandboxContext>,
     ) -> ExecutorFileSystemFuture<'a, PathUri> {
         Box::pin(DirectFileSystem::canonicalize(self, path, sandbox))
+    }
+
+    fn read_link<'a>(
+        &'a self,
+        path: &'a PathUri,
+        sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> ExecutorFileSystemFuture<'a, String> {
+        Box::pin(DirectFileSystem::read_link(self, path, sandbox))
     }
 
     fn read_file<'a>(
@@ -1461,6 +1523,42 @@ mod walk_tests {
                 }],
                 truncated: true,
             },
+        );
+        Ok(())
+    }
+}
+
+#[cfg(all(test, unix))]
+mod read_link_tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[tokio::test]
+    async fn read_link_gives_the_target_as_the_link_holds_it() -> io::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let link = temp.path().join("link");
+        // A dangling link is read too.
+        std::os::unix::fs::symlink("../elsewhere/file", &link)?;
+        let file = temp.path().join("file");
+        std::fs::write(&file, "x")?;
+        let fs = LocalFileSystem::unsandboxed();
+
+        let target = ExecutorFileSystem::read_link(
+            &fs,
+            &PathUri::from_host_native_path(&link)?,
+            /*sandbox*/ None,
+        )
+        .await?;
+        assert_eq!(target, "../elsewhere/file");
+        // A file that is no link is an error.
+        assert!(
+            ExecutorFileSystem::read_link(
+                &fs,
+                &PathUri::from_host_native_path(&file)?,
+                /*sandbox*/ None,
+            )
+            .await
+            .is_err()
         );
         Ok(())
     }

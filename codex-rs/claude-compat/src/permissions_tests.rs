@@ -18,6 +18,7 @@ use super::bash::matches_wildcard;
 use super::bash::split_command;
 use super::bash::strip_output_redirections;
 use super::bash::strip_safe_wrappers;
+use super::link_target;
 use super::parse_rule;
 
 const HOME: &str = "/home/user";
@@ -1106,5 +1107,69 @@ fn rules_are_loaded_from_the_user_project_and_local_files() {
             }
         ),
         ask("Bash(ls)")
+    );
+}
+
+#[test]
+fn deny_and_ask_rules_through_a_linked_directory_meet_its_real_location() {
+    // `/tmp` leads to `/private/tmp` and `~/vault` to `/mnt/vault`, as on macOS; nothing
+    // else is a link.
+    let resolve = |path: &Path| -> Option<PathBuf> {
+        let text = path.to_str()?;
+        if let Some(rest) = text.strip_prefix("/tmp") {
+            return Some(PathBuf::from(format!("/private/tmp{rest}")));
+        }
+        if let Some(rest) = text.strip_prefix("/home/user/vault") {
+            return Some(PathBuf::from(format!("/mnt/vault{rest}")));
+        }
+        matches!(text, "/" | "/home" | "/home/user").then(|| path.to_path_buf())
+    };
+    let rules = local_rules(
+        &["Read(//tmp/open/**)"],
+        &["Edit(~/vault/*.txt)"],
+        &["Read(//tmp/x/**)", "Read(//etc/**)"],
+    );
+    // Without resolving, the real location is not covered.
+    assert_eq!(read(&rules, "/private/tmp/x/a"), RuleVerdict::NoMatch);
+
+    let rules = rules.with_resolved_rule_places(resolve);
+    let denied = |rule: &str, path: &str| RuleVerdict::Deny {
+        rule: rule.to_string(),
+        message: format!("Permission to read {path} has been denied."),
+    };
+    assert_eq!(
+        read(&rules, "/private/tmp/x/a"),
+        denied("Read(//tmp/x/**)", "/private/tmp/x/a")
+    );
+    assert_eq!(
+        read(&rules, "/tmp/x/a"),
+        denied("Read(//tmp/x/**)", "/tmp/x/a")
+    );
+    // A rule whose place is no link stays as it is, and so do allow rules.
+    assert_eq!(
+        read(&rules, "/etc/passwd"),
+        denied("Read(//etc/**)", "/etc/passwd")
+    );
+    assert_eq!(read(&rules, "/private/etc/passwd"), RuleVerdict::NoMatch);
+    assert_eq!(read(&rules, "/private/tmp/open/a"), RuleVerdict::NoMatch);
+    assert_eq!(
+        edit(&rules, "Edit", "/mnt/vault/notes.txt"),
+        ask("Edit(~/vault/*.txt)")
+    );
+}
+
+#[test]
+fn link_targets_are_taken_relative_to_the_link() {
+    assert_eq!(
+        link_target(Path::new("/w/docs/link"), "../secret/key"),
+        PathBuf::from("/w/secret/key")
+    );
+    assert_eq!(
+        link_target(Path::new("/w/link"), "/etc/passwd"),
+        PathBuf::from("/etc/passwd")
+    );
+    assert_eq!(
+        link_target(Path::new("/w/link"), "./same"),
+        PathBuf::from("/w/same")
     );
 }
