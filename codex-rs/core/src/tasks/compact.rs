@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: read the project instructions again for a compaction
+
 use std::sync::Arc;
 
 use super::SessionTask;
@@ -45,6 +50,8 @@ impl SessionTask for CompactTask {
         let step_context = session
             .capture_step_context(Arc::clone(&ctx), &cancellation_token)
             .await?;
+        let step_context =
+            crate::claude_rules::with_fresh_instructions(&session, step_context).await;
         let world_state = Arc::new(
             session
                 .build_world_state_for_step(&step_context, /*new_window*/ true)

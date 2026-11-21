@@ -1050,6 +1050,43 @@ fn load_plugin_hooks_supports_inline_manifest_hooks() {
 }
 
 #[test]
+fn load_plugin_hooks_reads_http_handlers_of_a_claude_code_plugin() {
+    let http_hooks = r#"{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "http", "url": "https://hooks.example.com/post" }]
+      }
+    ]
+  }
+}"#;
+    let (_claude_tmp, claude_root) = plugin_root();
+    fs::create_dir_all(claude_root.join(".claude-plugin")).expect("create manifest dir");
+    fs::write(
+        claude_root.join(".claude-plugin/plugin.json"),
+        r#"{ "name": "demo-plugin" }"#,
+    )
+    .expect("write manifest");
+    fs::write(claude_root.join("hooks/hooks.json"), http_hooks).expect("write hooks");
+
+    let (sources, warnings) = load_sources(&claude_root);
+
+    assert_eq!(warnings, Vec::<String>::new());
+    assert_sources(&sources, &["hooks/hooks.json"]);
+
+    // Codex's own plugins keep Codex's format, which has no `http` handlers.
+    let (_codex_tmp, codex_root) = plugin_root();
+    write_manifest(&codex_root, r#"{ "name": "demo-plugin" }"#);
+    fs::write(codex_root.join("hooks/hooks.json"), http_hooks).expect("write hooks");
+
+    let (sources, warnings) = load_sources(&codex_root);
+
+    assert_eq!(sources, Vec::<PluginHookSource>::new());
+    assert_eq!(warnings.len(), 1);
+}
+
+#[test]
 fn load_plugin_hooks_reports_invalid_hook_file() {
     let (_tmp, plugin_root) = plugin_root();
     write_manifest(&plugin_root, r#"{ "name": "demo-plugin" }"#);
@@ -1293,5 +1330,135 @@ async fn external_plugins_load_in_place_unless_codex_has_one_of_that_name() {
     assert_eq!(
         external.mcp_servers.keys().collect::<Vec<_>>(),
         vec!["review"]
+    );
+}
+
+/// A plugin in Claude Code's format, with `manifest` as its `.claude-plugin/plugin.json`.
+fn claude_plugin_root(manifest: &str) -> (tempfile::TempDir, AbsolutePathBuf) {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let plugin_root =
+        AbsolutePathBuf::try_from(tmp.path().join("demo-plugin")).expect("plugin root");
+    write_file(
+        plugin_root.join(".claude-plugin/plugin.json").as_path(),
+        manifest,
+    );
+    (tmp, plugin_root)
+}
+
+#[test]
+fn claude_manifest_commands_may_name_files_and_map_names_to_them() {
+    let (_tmp, listed) = claude_plugin_root(
+        r#"{"name": "demo-plugin", "commands": ["./extra", "./one.md", "./missing.md"]}"#,
+    );
+    write_file(listed.join("extra/two.md").as_path(), "Two\n");
+    write_file(listed.join("one.md").as_path(), "One\n");
+    write_file(listed.join("commands/ignored.md").as_path(), "Ignored\n");
+    assert_eq!(
+        plugin_command_roots(&listed),
+        vec![listed.join("extra"), listed.join("one.md")]
+    );
+
+    let (_tmp, mapped) = claude_plugin_root(
+        r#"{"name": "demo-plugin", "commands": {
+            "status": {"source": "./commands/status.md", "description": "Show the status"},
+            "about": {"content": "Explain the plugin."}
+        }}"#,
+    );
+    write_file(mapped.join("commands/status.md").as_path(), "Status\n");
+    write_file(mapped.join("commands/other.md").as_path(), "Other\n");
+    assert_eq!(
+        plugin_command_roots(&mapped),
+        vec![mapped.join("commands/status.md")]
+    );
+}
+
+#[test]
+fn claude_manifest_hooks_load_after_the_default_hooks_file() {
+    let (_tmp, plugin_root) = claude_plugin_root(
+        r#"{
+  "name": "demo-plugin",
+  "hooks": [
+    "./hooks/hooks.json",
+    "./config/extra.json",
+    {
+      "PostToolUse": [
+        {
+          "matcher": "Write",
+          "hooks": [{ "type": "command", "command": "echo inline" }]
+        }
+      ]
+    }
+  ]
+}"#,
+    );
+    fs::create_dir_all(plugin_root.join("hooks")).expect("create hooks dir");
+    fs::create_dir_all(plugin_root.join("config")).expect("create config dir");
+    write_hook_file(
+        &plugin_root,
+        "hooks/hooks.json",
+        "PreToolUse",
+        "echo default",
+    );
+    write_hook_file(&plugin_root, "config/extra.json", "Stop", "echo extra");
+
+    let (sources, warnings) = load_sources(&plugin_root);
+
+    assert_eq!(warnings, Vec::<String>::new());
+    // The default file, listed again, is loaded once.
+    assert_sources(
+        &sources,
+        &[
+            "hooks/hooks.json",
+            "config/extra.json",
+            "plugin.json#hooks[2]",
+        ],
+    );
+}
+
+#[tokio::test]
+async fn claude_manifest_mcp_servers_merge_with_mcp_json() {
+    let (_tmp, plugin_root) = claude_plugin_root(
+        r#"{
+  "name": "demo-plugin",
+  "mcpServers": [
+    "./mcp/extra.json",
+    { "shared": { "command": "shared-inline" } },
+    "./bundle.mcpb"
+  ]
+}"#,
+    );
+    write_file(
+        plugin_root.join(".mcp.json").as_path(),
+        r#"{"mcpServers":{"default":{"command":"default-server"},"shared":{"command":"shared-default"}}}"#,
+    );
+    write_file(
+        plugin_root.join("mcp/extra.json").as_path(),
+        r#"{"mcpServers":{"extra":{"command":"extra-server"}}}"#,
+    );
+    let manifest = load_plugin_manifest(plugin_root.as_path()).expect("load manifest");
+
+    let discovered = load_plugin_mcp_servers_from_manifest_with_format(
+        plugin_root.as_path(),
+        &manifest.paths,
+        /*plugin_policy*/ None,
+        /*plugin_data_root*/ None,
+        PluginManifestFormat::Legacy,
+    )
+    .await;
+
+    let commands = discovered
+        .iter()
+        .map(|(name, server)| match &server.transport {
+            McpServerTransportConfig::Stdio { command, .. } => (name.as_str(), command.as_str()),
+            _ => panic!("expected stdio transport"),
+        })
+        .collect::<std::collections::BTreeMap<_, _>>();
+    assert_eq!(
+        commands,
+        std::collections::BTreeMap::from([
+            ("default", "default-server"),
+            ("extra", "extra-server"),
+            ("shared", "shared-inline"),
+        ])
     );
 }

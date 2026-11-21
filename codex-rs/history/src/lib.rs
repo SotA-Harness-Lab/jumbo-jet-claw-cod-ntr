@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the stamp of a file read in part with its result
+
 //! Model-history and persisted-rollout domain types.
 
 mod heartbeat;
@@ -181,6 +186,18 @@ pub struct CodexHarnessMetadata {
     /// Sender context captured by the host when this task message was accepted.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sender_user_messages: Option<Box<SenderUserMessages>>,
+
+    /// The file a tool result showed only some lines of, as it was then, so that a resumed
+    /// session still knows the file was read. Never model-visible.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partial_read: Option<PartialReadStamp>,
+}
+
+/// A file's modification time, in milliseconds since the epoch, and size, in bytes.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, JsonSchema)]
+pub struct PartialReadStamp {
+    pub modified_at_ms: i64,
+    pub size: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, JsonSchema)]

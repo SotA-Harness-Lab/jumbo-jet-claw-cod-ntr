@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+"""Draws how far CodClaw NTR is compatible with Claude Code, from docs/claude-compat.md.
+
+Counts the rows of the four chapters of that file and writes:
+
+- .github/compat-progress.svg (and -zh.svg, its legend in Chinese): a bar of three coloured parts (fully compatible, partly compatible,
+  not started yet), each with its share of the planned features, and a grey end in proportion to
+  the features that are not planned (the chapter "Incompatible"), which carries no percentage;
+- the block between `<!-- compat-progress -->` and `<!-- /compat-progress -->` of README.md and
+  README/README_CN.md: the bar and a line with the numbers.
+
+Run it from anywhere after changing docs/claude-compat.md:
+
+    python3 scripts/compat-progress.py          # rewrite the SVG and the README blocks
+    python3 scripts/compat-progress.py --check  # exit 1 when they are out of date
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DOC = ROOT / "docs" / "claude-compat.md"
+SVGS = {
+    "en": ROOT / ".github" / "compat-progress.svg",
+    "zh": ROOT / ".github" / "compat-progress-zh.svg",
+}
+READMES = {
+    ROOT / "README.md": ("./.github/compat-progress.svg", "en"),
+    ROOT / "README" / "README_CN.md": ("../.github/compat-progress-zh.svg", "zh"),
+}
+
+# Chapter heading prefix -> kind.
+CHAPTERS = {
+    "Fully compatible": "full",
+    "Differences from Claude Code": "partial",
+    "Not yet implemented": "todo",
+    "Incompatible": "never",
+}
+# A pill in the flat style: each kind a light tint of its own hue (green done, amber partly done,
+# blue not started, grey not planned) with its share in a deep shade of the same hue, never a solid
+# fill. Each kind: (fill, text) for the light theme, then the dark theme.
+COLORS = {
+    "full": (("#DCFCE7", "#166534"), ("#14301F", "#86EFAC")),
+    "partial": (("#FEF3C7", "#92400E"), ("#33280E", "#FCD34D")),
+    "todo": (("#DBEAFE", "#1E40AF"), ("#172A46", "#93C5FD")),
+    "never": (("#E5E7EB", None), ("#262B33", None)),
+}
+LABELS = {
+    "en": {"full": "Fully compatible", "partial": "Partly compatible", "todo": "Not started", "never": "Not planned"},
+    "zh": {"full": "完全兼容", "partial": "部分兼容", "todo": "尚未开始", "never": "不计划"},
+}
+SEPARATOR = re.compile(r"^\|\s*:?-{3,}")
+
+
+def count_rows(text: str) -> dict[str, int]:
+    """Table rows of each kind; a table's header row (the one above `| --- |`) is not counted."""
+    counts = dict.fromkeys(COLORS, 0)
+    kind = None
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("## "):
+            title = line[3:].strip()
+            kind = next((k for prefix, k in CHAPTERS.items() if title.startswith(prefix)), None)
+            continue
+        if kind is None or not line.startswith("|") or SEPARATOR.match(line):
+            continue
+        if i + 1 < len(lines) and SEPARATOR.match(lines[i + 1]):
+            continue
+        counts[kind] += 1
+    return counts
+
+
+def shares(counts: dict[str, int]) -> dict[str, float]:
+    """Percent of the planned features (all but `never`), one decimal, summing to 100."""
+    planned = counts["full"] + counts["partial"] + counts["todo"]
+    full = round(100 * counts["full"] / planned, 1)
+    partial = round(100 * counts["partial"] / planned, 1)
+    return {"full": full, "partial": partial, "todo": round(100 - full - partial, 1)}
+
+
+def svg(counts: dict[str, int], percent: dict[str, float], language: str) -> str:
+    width, height, gap = 800, 36, 3
+    total = sum(counts.values())
+    kinds = ("full", "partial", "todo", "never")
+    parts, x = [], 0.0
+    for n, kind in enumerate(kinds):
+        w = width * counts[kind] / total - (gap if n < len(kinds) - 1 else 0)
+        parts.append(f'<rect class="{kind}" x="{x:.2f}" y="0" width="{max(w, 0):.2f}" height="{height}"/>')
+        if COLORS[kind][0][1] and w >= 150:
+            parts.append(
+                f'<text class="t-{kind}" x="{x + 16:.2f}" y="{height / 2 + 4.5:.1f}">'
+                f'<tspan class="share">{percent[kind]:.1f}%</tspan>'
+                f'<tspan class="name" dx="8">{LABELS[language][kind]}</tspan></text>'
+            )
+        x += w + gap
+    label = (
+        f"Claude Code compatibility: {percent['full']:.1f}% fully compatible, "
+        f"{percent['partial']:.1f}% partly, {percent['todo']:.1f}% not started; "
+        f"{counts['never']} features not planned"
+    )
+
+    def theme(which: int, indent: str) -> str:
+        rules = []
+        for kind, colors in COLORS.items():
+            fill, ink = colors[which]
+            rules.append(f"{indent}.{kind} {{ fill: {fill}; }}")
+            if ink:
+                rules.append(f"{indent}.t-{kind} {{ fill: {ink}; }}")
+        return "\n".join(rules)
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Generated by scripts/compat-progress.py from docs/claude-compat.md; do not edit. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="{label}">
+  <title>{label}</title>
+  <style>
+    text {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Noto Sans", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; font-size: 13px; }}
+    .share {{ font-weight: 700; font-variant-numeric: tabular-nums; }}
+    .name {{ font-weight: 500; }}
+{theme(0, "    ")}
+    @media (prefers-color-scheme: dark) {{
+{theme(1, "      ")}
+    }}
+  </style>
+  <clipPath id="pill"><rect width="{width}" height="{height}" rx="{height / 2}"/></clipPath>
+  <g clip-path="url(#pill)">
+  {"".join(parts)}
+  </g>
+</svg>
+"""
+
+
+def block(counts: dict[str, int], percent: dict[str, float], image: str, language: str) -> str:
+    planned = counts["full"] + counts["partial"] + counts["todo"]
+    if language == "zh":
+        alt = f"Claude Code 兼容度：完全兼容 {percent['full']:.1f}%，部分兼容 {percent['partial']:.1f}%，尚未开始 {percent['todo']:.1f}%"
+        line = (
+            f"在计划兼容的 {planned} 项 Claude Code 功能中："
+            f"完全兼容 **{percent['full']:.1f}%**（{counts['full']} 项），"
+            f"部分兼容 **{percent['partial']:.1f}%**（{counts['partial']} 项，差异逐条写明），"
+            f"尚未开始 **{percent['todo']:.1f}%**（{counts['todo']} 项）。"
+            f"条末的灰色是不计划兼容的 {counts['never']} 项（和 Codex 的核心冲突），按全部 "
+            f"{planned + counts['never']} 项的比例画出，不计入百分比。"
+        )
+    else:
+        alt = (
+            f"Claude Code compatibility: {percent['full']:.1f}% fully compatible, "
+            f"{percent['partial']:.1f}% partly, {percent['todo']:.1f}% not started"
+        )
+        line = (
+            f"Of the {planned} Claude Code features planned: "
+            f"**{percent['full']:.1f}%** fully compatible ({counts['full']}), "
+            f"**{percent['partial']:.1f}%** partly compatible ({counts['partial']}, each difference written "
+            f"down), **{percent['todo']:.1f}%** not started yet ({counts['todo']}). The grey end of the bar is "
+            f"the {counts['never']} features not planned (they contradict Codex's core), drawn in proportion to all "
+            f"{planned + counts['never']} and left out of the percentages."
+        )
+    return (
+        "<!-- compat-progress -->\n"
+        "<!-- Generated by scripts/compat-progress.py from docs/claude-compat.md; do not edit. -->\n"
+        f'<p><img src="{image}" alt="{alt}" width="100%"></p>\n\n'
+        f"{line}\n"
+        "<!-- /compat-progress -->"
+    )
+
+
+BLOCK = re.compile(r"<!-- compat-progress -->.*?<!-- /compat-progress -->", re.S)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--check", action="store_true", help="exit 1 when the outputs are out of date")
+    args = parser.parse_args()
+
+    counts = count_rows(DOC.read_text(encoding="utf-8"))
+    percent = shares(counts)
+    wanted = {path: svg(counts, percent, language) for language, path in SVGS.items()}
+    for path, (image, language) in READMES.items():
+        text = path.read_text(encoding="utf-8")
+        if not BLOCK.search(text):
+            print(f"{path.relative_to(ROOT)}: no <!-- compat-progress --> block", file=sys.stderr)
+            return 2
+        wanted[path] = BLOCK.sub(lambda _: block(counts, percent, image, language), text, count=1)
+
+    stale = [path for path, text in wanted.items() if not path.exists() or path.read_text(encoding="utf-8") != text]
+    if args.check:
+        for path in stale:
+            print(f"out of date: {path.relative_to(ROOT)}", file=sys.stderr)
+        return 1 if stale else 0
+    for path in stale:
+        path.write_text(wanted[path], encoding="utf-8")
+    print(
+        f"full {counts['full']} ({percent['full']}%), partial {counts['partial']} ({percent['partial']}%), "
+        f"not started {counts['todo']} ({percent['todo']}%), not planned {counts['never']}; "
+        f"updated {len(stale)} file(s)"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables, and read
-// Claude Code's `headers` and `timeout`
+// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables and give its
+// local servers its paths, and read Claude Code's `headers` and `timeout`
+// Claude Code's `headers`, `timeout`, `headersHelper` and `oauth.scopes`
 
 use codex_config::McpServerAuth;
 use codex_config::McpServerConfig;
@@ -145,7 +146,7 @@ fn normalize_plugin_mcp_declarations(
     let mut outcome = PluginMcpConfigParseOutcome::default();
 
     for (name, config_value) in declarations {
-        match normalize_plugin_mcp_server(config_value, source) {
+        match normalize_plugin_mcp_server(&name, config_value, source) {
             Ok(config) => {
                 outcome.servers.insert(name, config);
             }
@@ -159,10 +160,23 @@ fn normalize_plugin_mcp_declarations(
 }
 
 fn normalize_plugin_mcp_server(
+    name: &str,
     value: JsonValue,
     source: PluginMcpSource<'_>,
 ) -> Result<McpServerConfig, String> {
-    let mut object = normalize_plugin_mcp_server_value(value, source);
+    // As in Claude Code, a `headersHelper` runs in a shell, so the plugin's options cannot be
+    // put into it; the declaration is refused rather than run with them left out.
+    if value
+        .get(codex_claude_compat::HEADERS_HELPER)
+        .and_then(JsonValue::as_str)
+        .is_some_and(|command| command.contains("${user_config."))
+    {
+        return Err(
+            "`headersHelper` cannot reference ${user_config.*}; put the option in `headers`"
+                .to_string(),
+        );
+    }
+    let mut object = normalize_plugin_mcp_server_value(name, value, source);
     if let PluginMcpSource::Environment {
         root,
         environment_id,
@@ -276,25 +290,55 @@ fn bind_environment_env_vars(config: &mut McpServerConfig) -> Result<(), String>
 }
 
 fn normalize_plugin_mcp_server_value(
+    name: &str,
     value: JsonValue,
     source: PluginMcpSource<'_>,
 ) -> JsonMap<String, JsonValue> {
     let mut value = value;
-    // A Claude Code plugin's server may refer to the plugin's install path and to the
-    // options the user set for it (`${CLAUDE_PLUGIN_ROOT}`, `${user_config.KEY}`).
-    if let PluginMcpSource::Host { root } = source
-        && let Some(plugin) = codex_claude_compat::PluginVariables::load(root)
-    {
-        substitute_plugin_variables(&mut value, &plugin, &source.display());
+    // A Claude Code plugin's server may refer to the plugin's install path, its data
+    // directory and the options the user set for it (`${CLAUDE_PLUGIN_ROOT}`,
+    // `${CLAUDE_PLUGIN_DATA}`, `${user_config.KEY}`).
+    let plugin = match source {
+        PluginMcpSource::Host { root } => codex_claude_compat::PluginVariables::load(root),
+        PluginMcpSource::Environment { .. } => None,
+    };
+    let mut claude_plugin_root = None;
+    if let Some(plugin) = &plugin {
+        substitute_plugin_variables(&mut value, plugin, &source.display());
+        if let PluginMcpSource::Host { root } = source {
+            claude_plugin_root = Some(root);
+        }
     }
     let mut object = match value {
         JsonValue::Object(object) => object,
         _ => return JsonMap::new(),
     };
 
+    // As in Claude Code, the plugin's local server also finds the two paths in its
+    // environment, unless its own `env` sets them.
+    if let Some(plugin) = &plugin
+        && object.contains_key("command")
+    {
+        let env = object
+            .entry("env".to_string())
+            .or_insert_with(|| JsonValue::Object(JsonMap::new()));
+        if let JsonValue::Object(env) = env {
+            for (name, path) in plugin.server_env() {
+                env.entry(name).or_insert(JsonValue::String(path));
+            }
+        }
+    }
+
     if let Some(JsonValue::String(transport_type)) = object.remove("type") {
         match transport_type.as_str() {
             "http" | "streamable_http" | "streamable-http" | "stdio" => {}
+            // Claude Code's deprecated `sse` transport. Codex has no client for it, so the
+            // url is tried over streamable HTTP, which a server that speaks both answers.
+            "sse" => warn!(
+                server = name,
+                "MCP server uses the deprecated `sse` transport, which this client does not \
+                 speak; trying streamable HTTP at its url"
+            ),
             other => {
                 let plugin_display = source.display();
                 warn!(
@@ -329,6 +373,26 @@ fn normalize_plugin_mcp_server_value(
                 .or_insert(client_secret);
         }
 
+        // Claude Code's `oauth.scopes` is one space-separated string; Codex requests the
+        // server's `scopes`. Its `authServerMetadataUrl` has no counterpart and is dropped.
+        if let Some(JsonValue::String(scopes)) = oauth.remove("scopes")
+            && !object.contains_key("scopes")
+        {
+            let scopes = scopes
+                .split_whitespace()
+                .map(|scope| JsonValue::String(scope.to_string()))
+                .collect::<Vec<_>>();
+            if !scopes.is_empty() {
+                object.insert("scopes".to_string(), JsonValue::Array(scopes));
+            }
+        }
+        if oauth.remove("authServerMetadataUrl").is_some() {
+            warn!(
+                server = name,
+                "MCP server's oauth.authServerMetadataUrl is not supported; discovery is used"
+            );
+        }
+
         if !oauth.is_empty() {
             object.insert("oauth".to_string(), JsonValue::Object(oauth));
         }
@@ -340,6 +404,26 @@ fn normalize_plugin_mcp_server_value(
         && let Some(headers) = object.remove("headers")
     {
         object.insert("http_headers".to_string(), headers);
+    }
+
+    // Claude Code's `headersHelper` prints headers to send, as Codex's `http_headers_helper`
+    // does; it is run with the variables Claude Code gives it, a plugin's from the plugin's
+    // root. Codex's own helper of the same server wins.
+    if let Some(helper) = object.remove(codex_claude_compat::HEADERS_HELPER)
+        && let JsonValue::String(command) = helper
+        && let Some(JsonValue::String(url)) = object.get("url")
+        && !object.contains_key("http_headers_helper")
+    {
+        // WINDOWS-REMNANT
+        let command = if cfg!(windows) {
+            command
+        } else {
+            codex_claude_compat::headers_helper_script(&command, name, url, claude_plugin_root)
+        };
+        object.insert(
+            "http_headers_helper".to_string(),
+            JsonValue::String(command),
+        );
     }
 
     // Claude Code's per-server tool timeout is `timeout`, in milliseconds; as in Claude

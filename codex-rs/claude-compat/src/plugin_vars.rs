@@ -2,8 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 //! What a Claude Code plugin's files may refer to: its install path, as
-//! `${CLAUDE_PLUGIN_ROOT}`, and the options its manifest declares under `userConfig`, as
-//! `${user_config.KEY}` in text and `CLAUDE_PLUGIN_OPTION_<KEY>` in a hook's environment.
+//! `${CLAUDE_PLUGIN_ROOT}`, its data directory, as `${CLAUDE_PLUGIN_DATA}`, and the options its
+//! manifest declares under `userConfig`, as `${user_config.KEY}` in text and
+//! `CLAUDE_PLUGIN_OPTION_<KEY>` in a hook's environment.
+//!
+//! The data directory is the one Codex keeps for the plugin, `$CODEX_HOME/plugins/data/
+//! <plugin>-<marketplace>`, which the plugin's hooks are given too; like Claude Code, it is
+//! created when something refers to it.
 //!
 //! The values are the ones Claude Code stored when the user filled them in: the plain ones
 //! under `pluginConfigs.<plugin id>.options` of `~/.claude/settings.json`, the ones marked
@@ -14,6 +19,7 @@
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -28,6 +34,9 @@ use crate::settings::read_settings;
 
 const MANIFEST: &str = ".claude-plugin/plugin.json";
 const PLUGIN_ROOT: &str = "${CLAUDE_PLUGIN_ROOT}";
+const PLUGIN_DATA: &str = "${CLAUDE_PLUGIN_DATA}";
+/// Where Codex keeps its plugins' data directories, below `$CODEX_HOME`.
+const PLUGINS_DATA_DIR: &str = "plugins/data";
 
 static USER_CONFIG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\$\{user_config\.([^}]+)\}")
@@ -43,6 +52,10 @@ pub struct PluginVariables {
     pub root: PathBuf,
     /// The manifest's `agents` entries, relative to the root as written.
     pub agent_paths: Vec<String>,
+    /// `<plugin>@<marketplace>`, from Claude Code's record of installed plugins.
+    id: Option<String>,
+    /// The plugin's data directory, once known.
+    data: Option<PathBuf>,
     /// The options that have a value, as text.
     options: BTreeMap<String, String>,
     /// The options the manifest marks `sensitive`.
@@ -57,7 +70,27 @@ impl PluginVariables {
     /// the user's home directory. `None` when `root` holds no Claude Code plugin manifest.
     pub fn load(root: &Path) -> Option<Self> {
         let claude_home = std::env::var_os("HOME").map(|home| Path::new(&home).join(CLAUDE_DIR));
-        Self::load_with_home(root, claude_home.as_deref())
+        let plugin = Self::load_with_home(root, claude_home.as_deref())?;
+        Some(match codex_home() {
+            Some(codex_home) => plugin.with_codex_home(&codex_home),
+            None => plugin,
+        })
+    }
+
+    /// The same variables, with the data directory Codex keeps for the plugin under
+    /// `codex_home`. Without a record of the plugin's id there is none.
+    pub fn with_codex_home(mut self, codex_home: &Path) -> Self {
+        self.data = self
+            .id
+            .as_deref()
+            .and_then(|id| id.rsplit_once('@'))
+            .filter(|(name, marketplace)| !name.is_empty() && !marketplace.is_empty())
+            .map(|(name, marketplace)| {
+                codex_home
+                    .join(PLUGINS_DATA_DIR)
+                    .join(format!("{name}-{marketplace}"))
+            });
+        self
     }
 
     /// As [`Self::load`], with Claude Code's configuration directory given.
@@ -108,9 +141,10 @@ impl PluginVariables {
             .flatten()
             .filter_map(|(key, option)| Some((key.clone(), option_text(option.get("default")?)?)))
             .collect::<BTreeMap<_, _>>();
+        let id = claude_home.and_then(|claude_home| plugin_id(root, claude_home));
         if declared.is_some()
             && let Some(claude_home) = claude_home
-            && let Some(id) = plugin_id(root, claude_home)
+            && let Some(id) = &id
         {
             let stored = |file: &str, pointer: &[&str]| {
                 let mut value = read_settings(&claude_home.join(file)).ok()??;
@@ -125,8 +159,8 @@ impl PluginVariables {
             };
             // The secure store comes last and wins where both name an option.
             for values in [
-                stored("settings.json", &["pluginConfigs", &id, "options"]),
-                stored(".credentials.json", &["pluginSecrets", &id]),
+                stored("settings.json", &["pluginConfigs", id, "options"]),
+                stored(".credentials.json", &["pluginSecrets", id]),
             ]
             .into_iter()
             .flatten()
@@ -142,18 +176,51 @@ impl PluginVariables {
             name,
             root: root.to_path_buf(),
             agent_paths,
+            id,
+            data: None,
             options,
             sensitive,
             optional,
         })
     }
 
-    /// `text` with `${CLAUDE_PLUGIN_ROOT}` and every `${user_config.KEY}` filled in, for a
-    /// command or a server's configuration; an option declared without `required` that has
-    /// no value reads as empty. `Err` names the first other option that has no value: one
-    /// the manifest does not declare, or a required one.
-    pub fn substitute(&self, text: &str) -> Result<String, String> {
+    /// `text` with `${CLAUDE_PLUGIN_ROOT}` filled in, and `${CLAUDE_PLUGIN_DATA}` when the
+    /// data directory is known, which is then created.
+    fn substitute_paths(&self, text: &str) -> String {
         let text = text.replace(PLUGIN_ROOT, &self.root.to_string_lossy());
+        match &self.data {
+            Some(data) if text.contains(PLUGIN_DATA) => {
+                ensure_dir(data);
+                text.replace(PLUGIN_DATA, &data.to_string_lossy())
+            }
+            _ => text,
+        }
+    }
+
+    /// The variables a plugin's MCP server sees in its environment, as in Claude Code:
+    /// `CLAUDE_PLUGIN_ROOT`, and `CLAUDE_PLUGIN_DATA` when the data directory is known, which
+    /// is then created.
+    pub fn server_env(&self) -> Vec<(String, String)> {
+        let mut env = vec![(
+            "CLAUDE_PLUGIN_ROOT".to_string(),
+            self.root.to_string_lossy().into_owned(),
+        )];
+        if let Some(data) = &self.data {
+            ensure_dir(data);
+            env.push((
+                "CLAUDE_PLUGIN_DATA".to_string(),
+                data.to_string_lossy().into_owned(),
+            ));
+        }
+        env
+    }
+
+    /// `text` with `${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_PLUGIN_DATA}` and every
+    /// `${user_config.KEY}` filled in, for a command or a server's configuration; an option
+    /// declared without `required` that has no value reads as empty. `Err` names the first
+    /// other option that has no value: one the manifest does not declare, or a required one.
+    pub fn substitute(&self, text: &str) -> Result<String, String> {
+        let text = self.substitute_paths(text);
         let mut missing = None;
         let substituted = USER_CONFIG.replace_all(&text, |captures: &regex_lite::Captures<'_>| {
             let key = &captures[1];
@@ -173,10 +240,10 @@ impl PluginVariables {
     }
 
     /// `text` with the same variables filled in, for prose a model reads (an agent's
-    /// instructions): a sensitive option is named, not shown, and an option without a value
-    /// stays as written.
+    /// instructions, a skill or a command): a sensitive option is named, not shown, and an
+    /// option without a value stays as written.
     pub fn substitute_in_content(&self, text: &str) -> String {
-        let text = text.replace(PLUGIN_ROOT, &self.root.to_string_lossy());
+        let text = self.substitute_paths(text);
         USER_CONFIG
             .replace_all(&text, |captures: &regex_lite::Captures<'_>| {
                 let key = &captures[1];
@@ -230,6 +297,65 @@ impl PluginVariables {
         dirs.retain(|dir| dir.starts_with(&self.root) && dir.is_dir());
         dirs
     }
+
+    /// The single agent files among the manifest's `agents` entries: those that name a
+    /// Markdown file inside the plugin. Such an agent is `<plugin>:<name>`, with no
+    /// directories in between, as in Claude Code.
+    pub fn agent_files(&self) -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        for path in &self.agent_paths {
+            let relative = Path::new(path.trim_start_matches("./"));
+            if relative
+                .components()
+                .any(|part| !matches!(part, Component::Normal(_)))
+            {
+                continue;
+            }
+            let file = self.root.join(relative);
+            if file.extension().is_some_and(|extension| extension == "md")
+                && file.is_file()
+                && !files.contains(&file)
+            {
+                files.push(file);
+            }
+        }
+        files
+    }
+}
+
+/// A command that the `commands` map of a plugin's manifest declares from a file.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MappedCommand {
+    /// The map's key, the name the command is known by after the plugin's prefix.
+    pub name: String,
+    /// The entry's `description`, which stands in place of the file's.
+    pub description: Option<String>,
+}
+
+/// The entry of the `commands` map in the manifest of the plugin at `root` whose `source` is
+/// `file`. `None` when the manifest gives `commands` in another form or has no entry for the
+/// file.
+pub fn mapped_plugin_command(root: &Path, file: &Path) -> Option<MappedCommand> {
+    let manifest = read_settings(&root.join(MANIFEST)).ok()??;
+    let commands = manifest.get("commands")?.as_object()?;
+    let file = canonical(file);
+    commands.iter().find_map(|(name, entry)| {
+        let source = entry.get("source")?.as_str()?;
+        (canonical(&root.join(source.trim_start_matches("./"))) == file).then(|| MappedCommand {
+            name: name.clone(),
+            description: entry
+                .get("description")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|description| !description.is_empty())
+                .map(str::to_string),
+        })
+    })
+}
+
+/// `path` with its links resolved, or as given when it cannot be.
+fn canonical(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 /// The plugin a file belongs to: the nearest directory above it with a Claude Code plugin
@@ -238,6 +364,37 @@ pub fn plugin_root_of(file: &Path) -> Option<&Path> {
     file.ancestors()
         .skip(1)
         .find(|dir| dir.join(MANIFEST).is_file())
+}
+
+/// `contents` of `file`, a skill's or a command's, with its plugin's variables filled in as
+/// [`PluginVariables::substitute_in_content`] fills them, when the file belongs to a Claude
+/// Code plugin; as it is otherwise.
+pub fn substitute_in_plugin_content(contents: String, file: &Path) -> String {
+    match plugin_root_of(file).and_then(PluginVariables::load) {
+        Some(plugin) => plugin.substitute_in_content(&contents),
+        None => contents,
+    }
+}
+
+/// Codex's home directory: `$CODEX_HOME` when set, else `~/.codex`, as Codex finds it.
+fn codex_home() -> Option<PathBuf> {
+    match std::env::var_os("CODEX_HOME").filter(|home| !home.is_empty()) {
+        Some(home) => {
+            let home = PathBuf::from(home);
+            Some(std::fs::canonicalize(&home).unwrap_or(home))
+        }
+        None => std::env::var_os("HOME").map(|home| Path::new(&home).join(".codex")),
+    }
+}
+
+/// Creates `dir` if it is missing; a failure is left to whatever then uses it.
+fn ensure_dir(dir: &Path) {
+    if let Err(err) = std::fs::create_dir_all(dir) {
+        tracing::warn!(
+            "failed to create plugin data directory {}: {err}",
+            dir.display()
+        );
+    }
 }
 
 /// `<plugin>@<marketplace>` of the plugin installed at `root`, from Claude Code's record of

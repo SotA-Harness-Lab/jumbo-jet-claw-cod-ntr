@@ -1,8 +1,15 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: recursive watches that leave hidden folders out
+
 //! Watches subscribed files or directories and routes coarse-grained change
 //! notifications to the subscribers that own matching watched paths.
 
 use std::collections::BTreeSet;
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -219,6 +226,150 @@ impl PathWatchCounts {
 struct FileWatcherInner {
     watcher: RecommendedWatcher,
     watched_paths: HashMap<PathBuf, RecursiveMode>,
+    /// Whether a recursive watch is made of one watch per directory, walked here so that
+    /// hidden folders are left out, instead of the backend's own recursion.
+    walk_trees: bool,
+    /// The directories below each walked recursive root, each watched on its own.
+    walked_dirs: HashMap<PathBuf, BTreeSet<PathBuf>>,
+}
+
+impl FileWatcherInner {
+    /// Watches the directories below a walked recursive root.
+    fn walk_tree(&mut self, root: &Path) {
+        let mut dirs = self.walked_dirs.remove(root).unwrap_or_default();
+        for dir in visible_dirs_below(root) {
+            self.watch_walked_dir(&mut dirs, dir);
+        }
+        self.walked_dirs.insert(root.to_path_buf(), dirs);
+    }
+
+    /// Stops watching the directories below a walked root.
+    fn release_walked_tree(&mut self, root: &Path) {
+        let Some(dirs) = self.walked_dirs.remove(root) else {
+            return;
+        };
+        for dir in dirs {
+            self.unwatch_walked_dir(&dir);
+        }
+    }
+
+    /// Adds one directory to a walked tree whose set has been taken out of `walked_dirs`.
+    fn watch_walked_dir(&mut self, dirs: &mut BTreeSet<PathBuf>, dir: PathBuf) {
+        if dirs.contains(&dir) {
+            return;
+        }
+        if !self.is_watched_elsewhere(&dir)
+            && let Err(err) = self.watcher.watch(&dir, RecursiveMode::NonRecursive)
+        {
+            warn!("failed to watch {}: {err}", dir.display());
+            return;
+        }
+        dirs.insert(dir);
+    }
+
+    /// Removes the OS watch of a directory taken out of its walked tree, unless a
+    /// registration or another tree still needs it.
+    fn unwatch_walked_dir(&mut self, dir: &Path) {
+        if !self.is_watched_elsewhere(dir) {
+            // A directory that was removed has lost its watch already.
+            let _ = self.watcher.unwatch(dir);
+        }
+    }
+
+    fn is_watched_elsewhere(&self, dir: &Path) -> bool {
+        self.watched_paths.contains_key(dir)
+            || self.walked_dirs.values().any(|dirs| dirs.contains(dir))
+    }
+
+    /// Keeps the walked trees in step with changed paths: a directory that appeared is
+    /// watched together with what lies below it, one that went away is dropped together
+    /// with what lay below it.
+    fn update_walked_trees(&mut self, paths: &[PathBuf]) {
+        if self.walked_dirs.is_empty() {
+            return;
+        }
+        for path in paths {
+            let Some(root) = self
+                .walked_dirs
+                .keys()
+                .filter(|root| path != *root && path.starts_with(root))
+                .max_by_key(|root| root.components().count())
+                .cloned()
+            else {
+                continue;
+            };
+            let mut dirs = self.walked_dirs.remove(&root).unwrap_or_default();
+            if path.is_dir() {
+                let parent_watched = path
+                    .parent()
+                    .is_some_and(|parent| parent == root || dirs.contains(parent));
+                let skipped = path.strip_prefix(&root).is_ok_and(|relative| {
+                    relative
+                        .components()
+                        .any(|component| is_skipped_dir_name(component.as_os_str()))
+                });
+                if parent_watched && !skipped && !dirs.contains(path) {
+                    self.watch_walked_dir(&mut dirs, path.clone());
+                    for dir in visible_dirs_below(path) {
+                        self.watch_walked_dir(&mut dirs, dir);
+                    }
+                }
+            } else {
+                let gone: Vec<PathBuf> = dirs
+                    .iter()
+                    .filter(|dir| dir.starts_with(path))
+                    .cloned()
+                    .collect();
+                for dir in gone {
+                    dirs.remove(&dir);
+                    self.unwatch_walked_dir(&dir);
+                }
+            }
+            self.walked_dirs.insert(root, dirs);
+        }
+    }
+}
+
+/// Whether a recursive watch that leaves hidden folders out skips a directory of this
+/// name: a hidden folder (`.git`, `.pixi`, `.trash`), `__pycache__` or `node_modules`.
+fn is_skipped_dir_name(name: &OsStr) -> bool {
+    name.as_encoded_bytes().starts_with(b".") || name == "__pycache__" || name == "node_modules"
+}
+
+/// The directories below `root` that a recursive watch leaving hidden folders out
+/// watches, sorted: directory symlinks are followed, each directory is taken once, and
+/// nothing in a skipped folder is entered.
+fn visible_dirs_below(root: &Path) -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    let mut seen = HashSet::new();
+    if let Ok(canonical) = root.canonicalize() {
+        seen.insert(canonical);
+    }
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(dir) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            if is_skipped_dir_name(&entry.file_name()) {
+                continue;
+            }
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let Ok(canonical) = path.canonicalize() else {
+                continue;
+            };
+            if !seen.insert(canonical) {
+                continue;
+            }
+            dirs.push(path.clone());
+            pending.push(path);
+        }
+    }
+    dirs.sort();
+    dirs
 }
 
 /// Coalesces bursts of watch notifications and emits at most once per interval.
@@ -387,6 +538,19 @@ impl FileWatcher {
     /// Creates a live filesystem watcher and starts its background event loop
     /// on the current Tokio runtime.
     pub fn new() -> notify::Result<Self> {
+        Self::with_walked_trees(/*walk_trees*/ false)
+    }
+
+    /// Creates a live filesystem watcher whose recursive watches leave hidden folders
+    /// (`.git`, `.pixi`, `.trash`), `__pycache__` and `node_modules` out, so that what
+    /// lies in them takes no watch handles. Where the backend watches every directory
+    /// on its own (inotify), the tree is walked here and each other directory watched;
+    /// elsewhere one watch covers the whole tree and nothing is left out.
+    pub fn new_skipping_hidden_dirs() -> notify::Result<Self> {
+        Self::with_walked_trees(cfg!(any(target_os = "linux", target_os = "android")))
+    }
+
+    fn with_walked_trees(walk_trees: bool) -> notify::Result<Self> {
         let (raw_tx, raw_rx) = mpsc::unbounded_channel();
         let raw_tx_clone = raw_tx;
         let watcher = notify::recommended_watcher(move |res| {
@@ -395,6 +559,8 @@ impl FileWatcher {
         let inner = FileWatcherInner {
             watcher,
             watched_paths: HashMap::new(),
+            walk_trees,
+            walked_dirs: HashMap::new(),
         };
         let state = Arc::new(RwLock::new(WatchState::default()));
         let file_watcher = Self {
@@ -624,20 +790,34 @@ impl FileWatcher {
                 warn!("failed to unwatch {}: {err}", path.display());
             }
             guard.watched_paths.remove(path);
+            guard.release_walked_tree(path);
         }
 
         let Some(next_mode) = next_mode else {
+            // A directory that a walked tree also holds keeps its own watch.
+            if guard.is_watched_elsewhere(path) {
+                let _ = guard.watcher.watch(path, RecursiveMode::NonRecursive);
+            }
             return;
         };
         if !path.exists() {
             return;
         }
 
-        if let Err(err) = guard.watcher.watch(path, next_mode) {
+        let walk = next_mode == RecursiveMode::Recursive && guard.walk_trees && path.is_dir();
+        let os_mode = if walk {
+            RecursiveMode::NonRecursive
+        } else {
+            next_mode
+        };
+        if let Err(err) = guard.watcher.watch(path, os_mode) {
             warn!("failed to watch {}: {err}", path.display());
             return;
         }
         guard.watched_paths.insert(path.to_path_buf(), next_mode);
+        if walk {
+            guard.walk_tree(path);
+        }
     }
 
     fn apply_actual_watch_move<'a>(
@@ -690,6 +870,12 @@ impl FileWatcher {
                                 continue;
                             }
                             let inner = inner.as_ref().and_then(std::sync::Weak::upgrade);
+                            if let Some(inner) = &inner {
+                                inner
+                                    .lock()
+                                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                                    .update_walked_trees(&event.paths);
+                            }
                             Self::notify_subscribers(&state, inner.as_ref(), &event.paths).await;
                         }
                         Some(Err(err)) => {
@@ -776,6 +962,34 @@ impl FileWatcher {
         raw_rx: mpsc::UnboundedReceiver<notify::Result<Event>>,
     ) {
         self.spawn_event_loop(raw_rx);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_walking_trees_for_test() -> notify::Result<Self> {
+        Self::with_walked_trees(/*walk_trees*/ true)
+    }
+
+    /// The directories below `root` that its walked recursive watch watches on their own.
+    #[cfg(test)]
+    pub(crate) fn walked_dirs_for_test(&self, root: &Path) -> Option<Vec<PathBuf>> {
+        let inner = self.inner.as_ref()?;
+        let inner = inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        inner
+            .walked_dirs
+            .get(root)
+            .map(|dirs| dirs.iter().cloned().collect())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn update_walked_trees_for_test(&self, paths: &[PathBuf]) {
+        if let Some(inner) = self.inner.as_ref() {
+            inner
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .update_walked_trees(paths);
+        }
     }
 
     #[cfg(test)]

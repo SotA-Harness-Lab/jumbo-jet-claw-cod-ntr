@@ -7,6 +7,7 @@ use crate::engine::ClaudeHooksEngine;
 use crate::engine::CommandShell;
 use crate::engine::ConfiguredHandler;
 use crate::engine::HookListEntry;
+use crate::engine::claude_settings::ClaudeSettingsStamp;
 use crate::engine::command_runner::CommandHookRuntime;
 use crate::events::claude_only::ClaudeOnlyEvent;
 use crate::events::claude_only::NotificationRequest;
@@ -82,6 +83,8 @@ pub struct Hooks {
     engine: ClaudeHooksEngine,
     plugin_hook_sources: Arc<[PluginHookSource]>,
     plugin_hook_load_warnings: Arc<[String]>,
+    /// Claude Code's settings files as they were when the hooks were read from them.
+    claude_settings_stamp: Option<Arc<ClaudeSettingsStamp>>,
 }
 
 impl Hooks {
@@ -201,6 +204,12 @@ impl Hooks {
             program: config.shell_program.unwrap_or_default(),
             args: config.shell_args,
         });
+        // Taken before the files are read, so that a write while they are read shows as a
+        // change.
+        let claude_settings_stamp = config
+            .claude_settings
+            .as_ref()
+            .map(|settings| Arc::new(ClaudeSettingsStamp::of(settings)));
         let engine = ClaudeHooksEngine::new_with_claude_settings(
             config.feature_enabled,
             config.bypass_hook_trust,
@@ -217,7 +226,16 @@ impl Hooks {
             engine,
             plugin_hook_sources: config.plugin_hook_sources.into(),
             plugin_hook_load_warnings: config.plugin_hook_load_warnings.into(),
+            claude_settings_stamp,
         }
+    }
+
+    /// Whether one of Claude Code's settings files these hooks were read from was written,
+    /// created or removed since, so that the hooks are to be read again.
+    pub fn claude_settings_changed(&self) -> bool {
+        self.claude_settings_stamp
+            .as_ref()
+            .is_some_and(|stamp| stamp.changed())
     }
 
     /// Abort and join outstanding async hooks during session shutdown.

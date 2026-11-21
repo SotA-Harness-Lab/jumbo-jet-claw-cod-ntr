@@ -33,9 +33,13 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::PoisonError;
 
+use codex_claude_compat::CLAUDE_DIR;
+use codex_claude_compat::MAX_LINK_DEPTH;
 use codex_claude_compat::PermissionRules;
 use codex_claude_compat::RuleVerdict;
+use codex_claude_compat::SettingsStamp;
 use codex_claude_compat::ToolInput;
+use codex_claude_compat::link_target;
 use codex_claude_compat::tools::ripgrep;
 use codex_protocol::approvals::ExecApprovalKind;
 use codex_protocol::protocol::AskForApproval;
@@ -95,9 +99,17 @@ enum RuleDecision {
     Approved,
 }
 
-/// The rules of each project directory of the session, read once.
+/// The rules of each project directory of the session, with what the settings files looked
+/// like and whether the project was trusted when they were read. They are read again once a
+/// file changes, as Claude Code applies an edit to its settings in the running session.
 #[derive(Default)]
-struct SessionRules(Mutex<HashMap<PathBuf, Arc<PermissionRules>>>);
+struct SessionRules(Mutex<HashMap<PathBuf, CachedRules>>);
+
+struct CachedRules {
+    stamp: SettingsStamp,
+    project_trusted: bool,
+    rules: Arc<PermissionRules>,
+}
 
 /// Decisions of the calls in flight, by call id.
 #[derive(Default)]
@@ -157,33 +169,52 @@ impl Drop for PermissionGuard {
     }
 }
 
-/// The rules for the session's project directory.
+/// The rules for the session's project directory, as its settings files are now.
 fn rules_for(session: &Session, project_dir: &Path, project_trusted: bool) -> Arc<PermissionRules> {
+    // Unit tests never read the real home directory's Claude Code settings.
+    if cfg!(test) {
+        return Arc::new(PermissionRules::default());
+    }
+    let home = dirs::home_dir();
+    let claude_home = home.as_ref().map(|home| home.join(CLAUDE_DIR));
+    // The files `PermissionRules::load` reads.
+    let paths = codex_claude_compat::settings_paths(claude_home.as_deref(), Some(project_dir));
+    let stamp = codex_claude_compat::settings_stamp(&paths);
     let cache = session
         .services
         .session_extension_data
         .get_or_init::<SessionRules>(SessionRules::default);
     let mut cache = cache.0.lock().unwrap_or_else(PoisonError::into_inner);
-    let rules = cache.entry(project_dir.to_path_buf()).or_insert_with(|| {
-        // Unit tests never read the real home directory's Claude Code settings.
-        if cfg!(test) {
-            return Arc::new(PermissionRules::default());
-        }
-        let home = dirs::home_dir();
-        let (rules, errors) = PermissionRules::load(home.as_deref(), Some(project_dir));
-        for (path, err) in errors {
-            tracing::warn!(
-                "failed to read Claude Code settings {}: {err}",
-                path.display()
-            );
-        }
-        Arc::new(if project_trusted {
-            rules
-        } else {
-            rules.without_project_allow_rules()
-        })
-    });
-    Arc::clone(rules)
+    if let Some(cached) = cache.get(project_dir)
+        && cached.stamp == stamp
+        && cached.project_trusted == project_trusted
+    {
+        return Arc::clone(&cached.rules);
+    }
+    let (rules, errors) = PermissionRules::load(home.as_deref(), Some(project_dir));
+    for (path, err) in errors {
+        tracing::warn!(
+            "failed to read Claude Code settings {}: {err}",
+            path.display()
+        );
+    }
+    let rules = if project_trusted {
+        rules
+    } else {
+        rules.without_project_allow_rules()
+    };
+    // A deny or ask rule written through a linked directory also meets the paths given by its
+    // real location.
+    let rules = Arc::new(rules.with_resolved_rule_places(|path| std::fs::canonicalize(path).ok()));
+    cache.insert(
+        project_dir.to_path_buf(),
+        CachedRules {
+            stamp,
+            project_trusted,
+            rules: Arc::clone(&rules),
+        },
+    );
+    rules
 }
 
 /// The working directory of the call: its executor's, or the session's when the call has
@@ -284,6 +315,13 @@ pub(crate) async fn check_permission(
         invocation.turn.config.cwd.as_path(),
         invocation.turn.config.active_project.is_trusted(),
     );
+    // The `allowed-tools` of the skills invoked in this turn allow what they name.
+    let granted = codex_skills_extension::granted_skill_tools(&invocation.turn.extension_data);
+    let rules = if granted.is_empty() {
+        rules
+    } else {
+        Arc::new((*rules).clone().with_granted_allow_rules(&granted))
+    };
     if rules.is_empty() {
         return Ok(guard);
     }
@@ -355,10 +393,12 @@ pub(crate) async fn check_permission(
     Ok(guard)
 }
 
-/// The paths a file rule is checked against: `path` as given, and where its symbolic links
-/// lead when that is elsewhere, as Claude Code checks both (a deny or ask rule for either
-/// decides, an allow rule has to cover both). A path that does not exist yet is resolved
-/// through its nearest ancestor that does.
+/// The paths a file rule is checked against: `path` as given, each place the symbolic
+/// links it is one by one lead to, and where its links lead in the end when that is
+/// elsewhere, as Claude Code checks them all (a deny or ask rule for any of them decides,
+/// an allow rule has to cover them all). A path that does not exist yet is resolved
+/// through its nearest ancestor that does. An executor that cannot read links gives no
+/// places in between.
 async fn rule_paths(
     invocation: &ToolInvocation,
     cwd_uri: &PathUri,
@@ -376,6 +416,23 @@ async fn rule_paths(
         return paths;
     };
     let fs = environment.environment().get_filesystem();
+    // Read outside the sandbox: only where the links lead is looked at.
+    let mut link = uri.clone();
+    for _ in 0..MAX_LINK_DEPTH {
+        let Ok(target) = fs.read_link(&link, /*sandbox*/ None).await else {
+            break;
+        };
+        let next = link_target(&link.to_path_buf(), &target);
+        if paths.contains(&next) {
+            break;
+        }
+        let next_uri = PathUri::from_host_native_path(&next);
+        paths.push(next);
+        match next_uri {
+            Ok(next_uri) => link = next_uri,
+            Err(_) => break,
+        }
+    }
     for ancestor in uri.ancestors() {
         // Resolved outside the sandbox: only where the links lead is looked at.
         let Ok(resolved) = fs.canonicalize(&ancestor, /*sandbox*/ None).await else {

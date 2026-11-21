@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; test
+// Claude Code's MCP time limits
 
 use crate::config::edit::ConfigEdit;
 use crate::config::edit::ConfigEditsBuilder;
@@ -454,6 +455,39 @@ async fn goal_max_token_budget_requires_positive_integer() {
             "invalid goal token budget should be rejected: {invalid}"
         );
     }
+}
+
+#[test]
+fn claude_code_mcp_timeouts_fill_only_what_a_server_leaves_unset() {
+    let timeouts = codex_claude_compat::McpTimeouts {
+        startup: Some(Duration::from_secs(45)),
+        tool: Some(Duration::from_secs(600)),
+    };
+    let mut bare = stdio_mcp("bare");
+    apply_claude_code_mcp_timeouts(&mut bare, timeouts);
+    assert_eq!(
+        (bare.startup_timeout_sec, bare.tool_timeout_sec),
+        (
+            Some(Duration::from_secs(45)),
+            Some(Duration::from_secs(600))
+        )
+    );
+
+    // A server's own `timeout` became its `tool_timeout_sec`, which wins.
+    let mut own = stdio_mcp("own");
+    own.tool_timeout_sec = Some(Duration::from_secs(5));
+    apply_claude_code_mcp_timeouts(&mut own, timeouts);
+    assert_eq!(
+        (own.startup_timeout_sec, own.tool_timeout_sec),
+        (Some(Duration::from_secs(45)), Some(Duration::from_secs(5)))
+    );
+
+    let mut unset = stdio_mcp("unset");
+    apply_claude_code_mcp_timeouts(&mut unset, codex_claude_compat::McpTimeouts::default());
+    assert_eq!(
+        (unset.startup_timeout_sec, unset.tool_timeout_sec),
+        (None, None)
+    );
 }
 
 #[test]
@@ -14471,6 +14505,8 @@ fn an_untrusted_project_supplies_no_claude_code_subagents() {
         .join(".claude")
         .join("agents");
     let project_agents = cwd.join(".claude").join("agents");
+    std::fs::create_dir_all(project_agents.as_path()).expect("project agents");
+    std::fs::create_dir_all(cwd.join(".git").as_path()).expect(".git");
 
     assert_eq!(
         claude_code_agents_dirs(
@@ -14487,6 +14523,115 @@ fn an_untrusted_project_supplies_no_claude_code_subagents() {
             /*include_project*/ false
         ),
         vec![user_agents]
+    );
+}
+
+#[test]
+fn claude_code_subagents_come_from_each_directory_up_to_the_repository_root() {
+    let home = tempdir().expect("home");
+    let outer = tempdir().expect("outer");
+    let outer = AbsolutePathBuf::from_absolute_path_checked(outer.path()).expect("outer");
+    let repo = outer.join("repo");
+    let sub = repo.join("sub");
+    let cwd = sub.join("deeper");
+    std::fs::create_dir_all(cwd.as_path()).expect("cwd");
+    std::fs::create_dir_all(repo.join(".git").as_path()).expect(".git");
+    for dir in [&outer, &repo, &sub] {
+        std::fs::create_dir_all(dir.join(".claude").join("agents").as_path()).expect("agents");
+    }
+    let user_agents = AbsolutePathBuf::from_absolute_path_checked(home.path())
+        .expect("home")
+        .join(".claude")
+        .join("agents");
+
+    // The repository's root first and the nearest last, so that the nearest wins; nothing
+    // above the repository, and no directory without `.claude/agents` (`deeper`).
+    assert_eq!(
+        claude_code_agents_dirs(
+            Some(home.path().to_path_buf()),
+            &cwd,
+            /*include_project*/ true
+        ),
+        vec![
+            user_agents,
+            repo.join(".claude").join("agents"),
+            sub.join(".claude").join("agents"),
+        ]
+    );
+}
+
+#[test]
+fn claude_code_subagents_outside_a_repository_stop_below_the_home_directory() {
+    let home = tempdir().expect("home");
+    let home = AbsolutePathBuf::from_absolute_path_checked(home.path()).expect("home");
+    let project = home.join("work").join("project");
+    std::fs::create_dir_all(project.join(".claude").join("agents").as_path()).expect("agents");
+    std::fs::create_dir_all(home.join("work").join(".claude").join("agents").as_path())
+        .expect("agents");
+    std::fs::create_dir_all(home.join(".claude").join("agents").as_path()).expect("agents");
+
+    assert_eq!(
+        claude_code_agents_dirs(
+            Some(home.as_path().to_path_buf()),
+            &project,
+            /*include_project*/ true
+        ),
+        vec![
+            home.join(".claude").join("agents"),
+            home.join("work").join(".claude").join("agents"),
+            project.join(".claude").join("agents"),
+        ]
+    );
+}
+
+#[test]
+fn a_worktree_without_claude_code_subagents_takes_its_main_checkouts() {
+    let home = tempdir().expect("home");
+    let root = tempdir().expect("root");
+    let root = AbsolutePathBuf::from_absolute_path_checked(
+        std::fs::canonicalize(root.path()).expect("canonical root"),
+    )
+    .expect("root");
+    let main = root.join("main");
+    let worktree = root.join("wt");
+    let worktree_git_dir = main.join(".git").join("worktrees").join("wt");
+    std::fs::create_dir_all(worktree_git_dir.as_path()).expect("worktree git dir");
+    std::fs::create_dir_all(worktree.as_path()).expect("worktree");
+    std::fs::create_dir_all(main.join(".claude").join("agents").as_path()).expect("agents");
+    std::fs::write(
+        worktree.join(".git").as_path(),
+        format!("gitdir: {}\n", worktree_git_dir.as_path().display()),
+    )
+    .expect(".git file");
+    std::fs::write(worktree_git_dir.join("commondir").as_path(), "../..\n").expect("commondir");
+    std::fs::write(
+        worktree_git_dir.join("gitdir").as_path(),
+        format!("{}\n", worktree.join(".git").as_path().display()),
+    )
+    .expect("gitdir");
+    let user_agents = AbsolutePathBuf::from_absolute_path_checked(home.path())
+        .expect("home")
+        .join(".claude")
+        .join("agents");
+
+    assert_eq!(
+        claude_code_agents_dirs(
+            Some(home.path().to_path_buf()),
+            &worktree,
+            /*include_project*/ true
+        ),
+        vec![user_agents.clone(), main.join(".claude").join("agents")]
+    );
+
+    // A worktree with agents of its own keeps to them.
+    std::fs::create_dir_all(worktree.join(".claude").join("agents").as_path()).expect("agents");
+    assert_eq!(
+        claude_code_agents_dirs(
+            Some(home.path().to_path_buf()),
+            &worktree,
+            /*include_project*/ true
+        ),
+        vec![user_agents, worktree.join(".claude").join("agents")]
     );
 }
 

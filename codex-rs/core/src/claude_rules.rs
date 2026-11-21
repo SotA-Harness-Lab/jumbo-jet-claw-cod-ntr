@@ -12,6 +12,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::Mutex;
 
 use codex_claude_compat::InstructionFile;
@@ -23,9 +24,11 @@ use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseItem;
 use codex_protocol::parse_command::ParsedCommand;
 use codex_shell_command::parse_command::parse_command;
+use codex_utils_output_truncation::approx_token_count;
 use serde::Deserialize;
 
 use crate::hook_runtime::record_additional_contexts;
+use crate::session::step_context::StepContext;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolPayload;
 
@@ -34,7 +37,8 @@ const APPLY_PATCH_FILE_MARKERS: &[&str] = &["*** Add File: ", "*** Update File: 
 /// Claude Code's size limit for an instruction file, in characters.
 const MAX_ON_DEMAND_CHARACTERS: usize = 40_000;
 
-/// Instruction files already shown in this session.
+/// Instruction files already shown in this session, or left out of it as too large for
+/// the context left.
 #[derive(Default)]
 struct ShownFiles(Mutex<HashSet<PathBuf>>);
 
@@ -53,6 +57,42 @@ pub(crate) async fn forget_shown_files(session: &crate::session::session::Sessio
     }
     if codex_claude_compat::enabled() {
         session.services.agents_md_manager.forget_repository().await;
+    }
+}
+
+/// The step a compaction rebuilds the context from, with the project's instructions read
+/// from disk again: Claude Code gives the context that follows a compaction the project's
+/// `CLAUDE.md` and `MEMORY.md` as they are now, not as they were when the step began, so
+/// that edits made during the session are in it from the start.
+pub(crate) async fn with_fresh_instructions(
+    session: &crate::session::session::Session,
+    step_context: Arc<StepContext>,
+) -> Arc<StepContext> {
+    if !codex_claude_compat::enabled() {
+        return step_context;
+    }
+    reload_instructions(session, step_context).await
+}
+
+async fn reload_instructions(
+    session: &crate::session::session::Session,
+    step_context: Arc<StepContext>,
+) -> Arc<StepContext> {
+    let manager = &session.services.agents_md_manager;
+    manager.forget_repository().await;
+    let (loaded, warnings) = manager
+        .refresh(&step_context.turn.config, &step_context.environments)
+        .await;
+    session.emit_instruction_warnings(warnings).await;
+    match loaded {
+        Ok(loaded_agents_md) => Arc::new(StepContext {
+            loaded_agents_md,
+            ..(*step_context).clone()
+        }),
+        Err(err) => {
+            tracing::warn!("failed to read the project instructions again for a compaction: {err}");
+            step_context
+        }
     }
 }
 
@@ -99,6 +139,13 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
         .as_ref()
         .map(|home| home.join(codex_claude_compat::CLAUDE_DIR).join("rules"));
     let include_project = !invocation.turn.config.active_project.is_untrusted();
+    crate::claude_skill_paths::files_worked_on(
+        &invocation.session.services.session_extension_data,
+        cwd.as_path(),
+        &files,
+        include_project,
+    )
+    .await;
     let mut found = Vec::new();
     for file in files {
         match file_instructions(
@@ -119,6 +166,12 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
         }
     }
 
+    let tokens_left = crate::session::context_window::context_window_token_status(
+        invocation.session.as_ref(),
+        invocation.turn.as_ref(),
+    )
+    .await
+    .base_window_tokens_remaining;
     let extension_data = &invocation.session.services.session_extension_data;
     let shown = match extension_data.get::<ShownFiles>() {
         Some(shown) => shown,
@@ -129,28 +182,89 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
             extension_data.get_or_init::<ShownFiles>(|| ShownFiles(Mutex::new(seed)))
         }
     };
-    let new = {
+    let (new, too_large) = {
         let mut shown = shown
             .0
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        found
+        // A file too large is noted once, and tried again after a compaction or a resume.
+        let new = found
             .into_iter()
             .filter(|instruction| shown.insert(instruction.path.clone()))
             .map(cut_to_limit)
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        fit_in_context(new, tokens_left)
     };
-    if new.is_empty() {
+    let text = [render_instruction_files(&new), too_large_note(&too_large)]
+        .into_iter()
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    if text.is_empty() {
         return;
     }
     record_additional_contexts(
         &invocation.session,
         &invocation.turn,
-        vec![codex_hooks::HookContext::harness(render_instruction_files(
-            &new,
-        ))],
+        vec![codex_hooks::HookContext::harness(text)],
     )
     .await;
+}
+
+/// An instruction file left out because it is larger than the context left.
+#[derive(Debug, PartialEq)]
+struct TooLarge {
+    path: PathBuf,
+    tokens: usize,
+    tokens_left: i64,
+}
+
+/// Keeps, in order, the files that fit in the `tokens_left` of the context once the files
+/// kept before them are counted, and lists the others: attaching a file larger than what
+/// is left would only force a compaction, after which it would be attached again.
+fn fit_in_context(
+    files: Vec<InstructionFile>,
+    tokens_left: Option<i64>,
+) -> (Vec<InstructionFile>, Vec<TooLarge>) {
+    let Some(mut tokens_left) = tokens_left else {
+        return (files, Vec::new());
+    };
+    let mut fit = Vec::new();
+    let mut too_large = Vec::new();
+    for file in files {
+        let tokens = approx_token_count(&render_instruction_files(std::slice::from_ref(&file)));
+        let cost = i64::try_from(tokens).unwrap_or(i64::MAX);
+        if cost <= tokens_left {
+            tokens_left -= cost;
+            fit.push(file);
+        } else {
+            too_large.push(TooLarge {
+                path: file.path,
+                tokens,
+                tokens_left,
+            });
+        }
+    }
+    (fit, too_large)
+}
+
+/// Tells the model which instruction files apply but were not attached, so that it knows
+/// they exist and can read them itself when it needs them.
+fn too_large_note(files: &[TooLarge]) -> String {
+    files
+        .iter()
+        .map(|file| {
+            format!(
+                "Not shown: the instructions in {} apply to the files worked on, but they take \
+                 about {} tokens and only about {} are left in the context. They are shown when \
+                 a file they cover is worked on after the conversation is compacted.",
+                file.path.display(),
+                file.tokens,
+                file.tokens_left
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// The instruction files the developer messages of `history` show, read back from their
@@ -320,11 +434,14 @@ fn patch_files(patch: &str) -> impl Iterator<Item = &str> {
 #[cfg(test)]
 mod tests {
     use super::MAX_ON_DEMAND_CHARACTERS;
+    use super::TooLarge;
     use super::cut_to_limit;
+    use super::fit_in_context;
     use super::patch_files;
     use super::searched_file;
     use super::shell_command_files;
     use super::shown_in_history;
+    use super::too_large_note;
     use crate::context::ContextualUserFragment;
     use crate::context::HookAdditionalContext;
     use codex_claude_compat::InstructionFile;
@@ -334,6 +451,64 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::collections::HashSet;
     use std::path::PathBuf;
+
+    struct EditedInstructions(std::sync::Mutex<String>);
+
+    impl codex_extension_api::UserInstructionsProvider for EditedInstructions {
+        fn load_user_instructions(&self) -> codex_extension_api::LoadInstructionsFuture<'_> {
+            let text = self.0.lock().expect("instructions").clone();
+            Box::pin(async move {
+                codex_extension_api::LoadedUserInstructions {
+                    instructions: Some(codex_extension_api::Instructions { text, source: None }),
+                    warnings: Vec::new(),
+                }
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn a_compaction_rebuilds_the_context_from_the_instructions_as_they_are_now() {
+        let (mut session, turn) = crate::session::tests::make_session_and_context().await;
+        let turn = std::sync::Arc::new(turn);
+        let provider = std::sync::Arc::new(EditedInstructions(std::sync::Mutex::new(
+            "BEFORE-COMPACTION-MARKER".to_string(),
+        )));
+        session.services.agents_md_manager =
+            std::sync::Arc::new(crate::agents_md_manager::AgentsMdManager::new(
+                crate::agents_md_manager::SessionInstructions {
+                    user_provider: Some(provider.clone()),
+                    ..Default::default()
+                },
+            ));
+        let session = std::sync::Arc::new(session);
+        let step = session
+            .capture_step_context(
+                std::sync::Arc::clone(&turn),
+                &tokio_util::sync::CancellationToken::new(),
+            )
+            .await
+            .expect("capture step");
+        // The project's own files may follow the user's instructions.
+        let marker = |step: &crate::session::step_context::StepContext| {
+            let text = step.loaded_agents_md.as_ref().expect("instructions").text();
+            ["BEFORE-COMPACTION-MARKER", "AFTER-COMPACTION-MARKER"]
+                .into_iter()
+                .filter(|wanted| text.contains(wanted))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(marker(&step), vec!["BEFORE-COMPACTION-MARKER"]);
+
+        *provider.0.lock().expect("instructions") = "AFTER-COMPACTION-MARKER".to_string();
+        let fresh = super::reload_instructions(&session, std::sync::Arc::clone(&step)).await;
+
+        assert_eq!(
+            (marker(&step), marker(&fresh)),
+            (
+                vec!["BEFORE-COMPACTION-MARKER"],
+                vec!["AFTER-COMPACTION-MARKER"]
+            )
+        );
+    }
 
     #[test]
     fn files_shown_before_a_resume_are_read_back_from_the_history() {
@@ -374,6 +549,59 @@ mod tests {
                 "é".repeat(MAX_ON_DEMAND_CHARACTERS)
             )
         );
+    }
+
+    #[test]
+    fn a_file_larger_than_the_context_left_is_noted_instead_of_shown() {
+        let file = |path: &str, content: String| InstructionFile {
+            path: path.into(),
+            kind: InstructionKind::Project,
+            content,
+        };
+        let small = file("/repo/a/CLAUDE.md", "a".repeat(400));
+        let large = file("/repo/b/CLAUDE.md", "b".repeat(4_000));
+        let tokens = |file: &InstructionFile| {
+            codex_utils_output_truncation::approx_token_count(&render_instruction_files(
+                std::slice::from_ref(file),
+            ))
+        };
+        let (small_tokens, large_tokens) = (tokens(&small), tokens(&large));
+
+        let all = fit_in_context(
+            vec![small.clone(), large.clone()],
+            /*tokens_left*/ None,
+        );
+        assert_eq!(all, (vec![small.clone(), large.clone()], Vec::new()));
+
+        let left = i64::try_from(small_tokens + 10).expect("tokens");
+        assert_eq!(
+            fit_in_context(vec![small.clone(), large], Some(left)),
+            (
+                vec![small],
+                vec![TooLarge {
+                    path: "/repo/b/CLAUDE.md".into(),
+                    tokens: large_tokens,
+                    tokens_left: 10,
+                }]
+            )
+        );
+
+        let note = too_large_note(&[TooLarge {
+            path: "/repo/b/CLAUDE.md".into(),
+            tokens: 1_000,
+            tokens_left: 10,
+        }]);
+        assert_eq!(
+            note,
+            "Not shown: the instructions in /repo/b/CLAUDE.md apply to the files worked on, but \
+             they take about 1000 tokens and only about 10 are left in the context. They are \
+             shown when a file they cover is worked on after the conversation is compacted."
+        );
+        // The note is not read back as a file shown.
+        let message: ResponseItem = ContextualUserFragment::into(HookAdditionalContext::new(
+            codex_hooks::HookContext::harness(note),
+        ));
+        assert_eq!(shown_in_history([message].iter()), HashSet::new());
     }
 
     #[test]

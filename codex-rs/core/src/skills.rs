@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: load the Claude Code skills found below the working directory;
+// offer skills with `paths:` once a file they cover is worked on
+
 use crate::config::Config;
 use crate::environment_selection::TurnEnvironmentSnapshot;
 use crate::session::session::Session;
@@ -104,14 +110,28 @@ impl Session {
         let repository = workspace
             .as_ref()
             .map(|(environment, _, access)| (environment.cwd().clone(), access.cache_key()));
-        if cached.repository == repository {
-            return Arc::clone(&cached.snapshot);
-        }
-
+        // Claude Code compatibility: `.claude/skills` folders found below the working
+        // directory since the turn started count from the next step.
+        let nested_roots =
+            crate::claude_nested_skills::nested_skill_roots(&self.services.session_extension_data);
         let cwd = workspace
             .as_ref()
             .map_or_else(|| turn.config.cwd.clone(), |(_, cwd, _)| cwd.clone());
-        let input = cached.input.for_cwd(cwd);
+        if cached.repository == repository
+            && cached.input.nested_repository_skill_roots() == nested_roots.as_slice()
+        {
+            return crate::claude_skill_paths::offered_skills(
+                &self.services.session_extension_data,
+                cwd.as_path(),
+                Arc::clone(&cached.snapshot),
+            )
+            .await;
+        }
+
+        let input = cached
+            .input
+            .for_cwd(cwd.clone())
+            .with_nested_repository_skill_roots(nested_roots);
         let input = Arc::new(match &workspace {
             Some((environment, _, _)) => {
                 input.with_environment_id(&environment.selection.environment_id)
@@ -138,7 +158,12 @@ impl Session {
             repository,
             snapshot: Arc::clone(&snapshot),
         });
-        snapshot
+        crate::claude_skill_paths::offered_skills(
+            &self.services.session_extension_data,
+            cwd.as_path(),
+            snapshot,
+        )
+        .await
     }
 }
 

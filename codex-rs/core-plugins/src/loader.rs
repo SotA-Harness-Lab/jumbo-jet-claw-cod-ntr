@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins; load Claude Code's custom slash commands; scan skills/ beside the skills a Claude Code manifest lists
+// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins; load Claude Code's custom slash commands; scan skills/ beside the skills a Claude Code manifest lists; merge a Claude Code manifest's hooks and MCP servers with the default files
+// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins; load Claude Code's custom slash commands; scan skills/ beside the skills a Claude Code manifest lists;
+// read the http hooks of a Claude Code plugin's hooks file
 
 use crate::PluginGitMode;
 use crate::app_mcp_routing::apply_app_mcp_routing_policy;
@@ -15,7 +17,9 @@ use crate::manifest::PluginManifestHooks;
 use crate::manifest::PluginManifestMcpServers;
 use crate::manifest::PluginManifestPaths;
 use crate::manifest::load_plugin_command_paths;
+use crate::manifest::load_plugin_manifest_value;
 use crate::manifest::load_plugin_manifest_with_format;
+use crate::manifest::resolve_host_manifest_path;
 use crate::marketplace::MarketplacePluginSource;
 use crate::marketplace::find_marketplace_plugin;
 use crate::marketplace::list_marketplaces_with_home;
@@ -30,6 +34,7 @@ use crate::store::PluginStore;
 use crate::store::plugin_version_for_source;
 use crate::store::plugin_version_for_source_with_fallback_manifest;
 use codex_config::ConfigLayerStack;
+use codex_config::HookEventsToml;
 use codex_config::HooksFile;
 use codex_config::SkillConfigRules;
 use codex_config::skill_config_rules_from_stack;
@@ -1165,11 +1170,11 @@ pub(crate) fn plugin_skill_roots(
     paths
 }
 
-/// The directories of a Claude Code plugin's commands (its manifest is
+/// The directories and files of a Claude Code plugin's commands (its manifest is
 /// `.claude-plugin/plugin.json`), read in place as skills named `<plugin>:<command>`: those
-/// the manifest's `commands` lists, else `commands/`. None for other plugins, and when Codex
-/// already migrated the commands into skills of their own at install time. A `commands` entry
-/// naming a single file is left out.
+/// the manifest's `commands` lists or maps, else `commands/`. None for other plugins, and when
+/// Codex already migrated the commands into skills of their own at install time. A file is
+/// one Markdown command.
 pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {
     if !has_claude_manifest(plugin_root) || migrated_command_skills_root(plugin_root).is_dir() {
         return Vec::new();
@@ -1182,13 +1187,38 @@ pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<Absolut
         Ok(None) => vec![plugin_root.join(DEFAULT_COMMANDS_DIR_NAME)],
         Err(_) => Vec::new(),
     };
-    declared.into_iter().filter(|path| path.is_dir()).collect()
+    let mut roots = Vec::new();
+    for path in declared {
+        let is_command_file = path.is_file()
+            && path
+                .as_path()
+                .extension()
+                .is_some_and(|extension| extension == "md");
+        if (path.is_dir() || is_command_file) && !roots.contains(&path) {
+            roots.push(path);
+        }
+    }
+    roots
 }
 
 /// Whether the plugin's manifest is Claude Code's, `.claude-plugin/plugin.json`.
-fn has_claude_manifest(plugin_root: &AbsolutePathBuf) -> bool {
-    find_plugin_manifest_path(plugin_root.as_path())
+fn has_claude_manifest(plugin_root: &Path) -> bool {
+    find_plugin_manifest_path(plugin_root)
         .is_some_and(|path| path.ends_with(CLAUDE_PLUGIN_MANIFEST_PATH))
+}
+
+/// The manifest's entries for `key`: each element of an array, or the one value given.
+fn claude_manifest_entries(plugin_root: &Path, key: &str) -> Vec<JsonValue> {
+    match load_plugin_manifest_value(plugin_root, key) {
+        Some(JsonValue::Array(entries)) => entries,
+        Some(JsonValue::Null) | None => Vec::new(),
+        Some(entry) => vec![entry],
+    }
+}
+
+/// `path` with its links resolved, to tell two names of one file apart from two files.
+fn canonical_path(path: &Path) -> std::path::PathBuf {
+    fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 fn default_skill_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {
@@ -1286,6 +1316,9 @@ pub fn load_plugin_hooks(
     plugin_data_root: &AbsolutePathBuf,
     manifest_paths: &PluginManifestPaths,
 ) -> (Vec<PluginHookSource>, Vec<String>) {
+    if has_claude_manifest(plugin_root) {
+        return load_claude_plugin_hooks(plugin_root, plugin_id, plugin_data_root);
+    }
     let mut sources = Vec::new();
     let mut warnings = Vec::new();
     match &manifest_paths.hooks {
@@ -1336,6 +1369,88 @@ pub fn load_plugin_hooks(
     (sources, warnings)
 }
 
+/// A Claude Code plugin's hooks, merged as Claude Code merges them: `hooks/hooks.json` first,
+/// then each entry of the manifest's `hooks` in order, a path to a further hooks file (one
+/// that names a file already loaded is skipped) or an inline map of events.
+fn load_claude_plugin_hooks(
+    plugin_root: &AbsolutePathBuf,
+    plugin_id: &PluginId,
+    plugin_data_root: &AbsolutePathBuf,
+) -> (Vec<PluginHookSource>, Vec<String>) {
+    let mut sources = Vec::new();
+    let mut warnings = Vec::new();
+    let mut loaded_files = Vec::new();
+    let default_path = plugin_root.join(DEFAULT_HOOKS_CONFIG_FILE);
+    if default_path.as_path().is_file() {
+        loaded_files.push(canonical_path(default_path.as_path()));
+        append_plugin_hook_file(
+            plugin_root,
+            plugin_id,
+            plugin_data_root,
+            &default_path,
+            &mut sources,
+            &mut warnings,
+        );
+    }
+    let manifest_path = plugin_root.join(CLAUDE_PLUGIN_MANIFEST_PATH);
+    for (index, entry) in claude_manifest_entries(plugin_root.as_path(), "hooks")
+        .into_iter()
+        .enumerate()
+    {
+        match entry {
+            JsonValue::String(path) => {
+                let Some(path) = resolve_host_manifest_path(plugin_root.as_path(), "hooks", &path)
+                else {
+                    continue;
+                };
+                let canonical = canonical_path(path.as_path());
+                if loaded_files.contains(&canonical) {
+                    continue;
+                }
+                loaded_files.push(canonical);
+                append_plugin_hook_file(
+                    plugin_root,
+                    plugin_id,
+                    plugin_data_root,
+                    &path,
+                    &mut sources,
+                    &mut warnings,
+                );
+            }
+            // Claude Code's inline hooks are the map of events itself; Codex's own form wraps
+            // it in `hooks`, as a hooks file does.
+            JsonValue::Object(inline) => {
+                let inline = JsonValue::Object(inline);
+                let parsed = if inline.get("hooks").is_some() {
+                    serde_json::from_value::<HooksFile>(inline).map(|file| file.hooks)
+                } else {
+                    serde_json::from_value::<HookEventsToml>(inline)
+                };
+                match parsed {
+                    Ok(hooks) if hooks.is_empty() => {}
+                    Ok(hooks) => sources.push(PluginHookSource {
+                        plugin_id: plugin_id.clone(),
+                        plugin_root: plugin_root.clone(),
+                        plugin_data_root: plugin_data_root.clone(),
+                        source_path: manifest_path.clone(),
+                        source_relative_path: format!("plugin.json#hooks[{index}]"),
+                        hooks,
+                    }),
+                    Err(err) => warnings.push(format!(
+                        "failed to parse plugin hooks in {}: {err}",
+                        manifest_path.display()
+                    )),
+                }
+            }
+            other => warnings.push(format!(
+                "ignoring a hooks entry of {}: expected a path or an object, found {other}",
+                manifest_path.display()
+            )),
+        }
+    }
+    (sources, warnings)
+}
+
 // Append one resolved plugin hook file, keeping source metadata for runtime
 // reporting and collecting load warnings for startup surfacing.
 fn append_plugin_hook_file(
@@ -1356,7 +1471,7 @@ fn append_plugin_hook_file(
             return;
         }
     };
-    let parsed = match serde_json::from_str::<HooksFile>(&contents) {
+    let parsed = match parse_plugin_hooks_file(&contents, has_claude_manifest(plugin_root)) {
         Ok(parsed) => parsed,
         Err(err) => {
             warnings.push(format!(
@@ -1385,6 +1500,34 @@ fn append_plugin_hook_file(
         source_relative_path,
         hooks: parsed.hooks,
     });
+}
+
+/// Parses a plugin's hooks file. A Claude Code plugin's file may have `http` handlers, which
+/// `HooksFile` has no place for: they are read as `prompt` handlers, which keep their place,
+/// and the hooks engine reads what they are to do from the file itself.
+fn parse_plugin_hooks_file(contents: &str, claude_plugin: bool) -> serde_json::Result<HooksFile> {
+    if !claude_plugin {
+        return serde_json::from_str(contents);
+    }
+    let mut file = serde_json::from_str::<serde_json::Value>(contents)?;
+    if let Some(events) = file
+        .get_mut("hooks")
+        .and_then(serde_json::Value::as_object_mut)
+    {
+        for handler in events
+            .values_mut()
+            .filter_map(serde_json::Value::as_array_mut)
+            .flatten()
+            .filter_map(|group| group.get_mut("hooks"))
+            .filter_map(serde_json::Value::as_array_mut)
+            .flatten()
+        {
+            if handler.get("type").and_then(serde_json::Value::as_str) == Some("http") {
+                handler["type"] = serde_json::Value::String("prompt".to_string());
+            }
+        }
+    }
+    serde_json::from_value(file)
 }
 
 async fn load_apps_from_paths(
@@ -1627,6 +1770,9 @@ pub(crate) async fn load_plugin_mcp_servers_from_manifest_with_format(
     plugin_data_root: Option<&Path>,
     manifest_format: PluginManifestFormat,
 ) -> HashMap<String, McpServerConfig> {
+    if manifest_format == PluginManifestFormat::Legacy && has_claude_manifest(plugin_root) {
+        return load_claude_plugin_mcp_servers(plugin_root, plugin_policy, plugin_data_root).await;
+    }
     let mut mcp_servers = HashMap::new();
     match &manifest_paths.mcp_servers {
         Some(PluginManifestMcpServers::Object(object_servers)) => {
@@ -1675,6 +1821,94 @@ pub(crate) async fn load_plugin_mcp_servers_from_manifest_with_format(
     }
 
     mcp_servers
+}
+
+/// A Claude Code plugin's MCP servers, merged as Claude Code merges them: `.mcp.json` first,
+/// then each entry of the manifest's `mcpServers` in order, a path to a further servers file
+/// or an inline map of servers, a server declared later replacing one of the same name. MCP
+/// bundles (`.mcpb`, `.dxt`) are not loaded.
+async fn load_claude_plugin_mcp_servers(
+    plugin_root: &Path,
+    plugin_policy: Option<&HashMap<String, PluginMcpServerConfig>>,
+    plugin_data_root: Option<&Path>,
+) -> HashMap<String, McpServerConfig> {
+    let mut declared = Vec::new();
+    let default_path = plugin_root.join(DEFAULT_MCP_CONFIG_FILE);
+    if default_path.is_file()
+        && let Ok(default_path) = AbsolutePathBuf::try_from(default_path)
+    {
+        declared.push(ClaudeMcpDeclaration::File(default_path));
+    }
+    for entry in claude_manifest_entries(plugin_root, "mcpServers") {
+        match entry {
+            JsonValue::String(path)
+                if path.ends_with(".mcpb") || path.ends_with(".dxt") || path.contains("://") =>
+            {
+                warn!(
+                    plugin = %plugin_root.display(),
+                    bundle = path,
+                    "plugin MCP bundles are not loaded"
+                );
+            }
+            JsonValue::String(path) => {
+                match resolve_host_manifest_path(plugin_root, "mcpServers", &path) {
+                    Some(path) if path.as_path().is_file() => {
+                        declared.push(ClaudeMcpDeclaration::File(path));
+                    }
+                    Some(path) => warn!(
+                        plugin = %plugin_root.display(),
+                        path = %path.display(),
+                        "plugin MCP file declared in the manifest is missing"
+                    ),
+                    None => {}
+                }
+            }
+            JsonValue::Object(servers) => match serde_json::to_string(&servers) {
+                Ok(servers) => declared.push(ClaudeMcpDeclaration::Inline(servers)),
+                Err(err) => warn!(
+                    plugin = %plugin_root.display(),
+                    "ignoring mcpServers: failed to serialize object: {err}"
+                ),
+            },
+            other => warn!(
+                plugin = %plugin_root.display(),
+                "ignoring an mcpServers entry: expected a path or an object, found {other}"
+            ),
+        }
+    }
+
+    let mut mcp_servers = HashMap::new();
+    for declaration in declared {
+        let plugin_mcp = match &declaration {
+            ClaudeMcpDeclaration::File(path) => {
+                load_mcp_servers_from_file(
+                    plugin_root,
+                    plugin_data_root,
+                    PluginManifestFormat::Legacy,
+                    path,
+                )
+                .await
+            }
+            ClaudeMcpDeclaration::Inline(servers) => {
+                load_mcp_servers_from_manifest_object(plugin_root, servers)
+            }
+        };
+        for (name, mut config) in plugin_mcp.mcp_servers {
+            if let Some(policy) = plugin_policy.and_then(|policy| policy.get(&name)) {
+                apply_plugin_mcp_server_policy(&mut config, policy);
+            }
+            mcp_servers.insert(name, config);
+        }
+    }
+    mcp_servers
+}
+
+/// One declaration of a Claude Code plugin's MCP servers.
+enum ClaudeMcpDeclaration {
+    /// A servers file.
+    File(AbsolutePathBuf),
+    /// An inline map of servers, as JSON.
+    Inline(String),
 }
 
 async fn load_mcp_servers_from_file(

@@ -181,12 +181,22 @@ pub fn owner_of(codex_tool: &str) -> Option<&'static str> {
 /// The tool names in a `tools` value (Claude Code's `parseToolListFromCLI`): entries split
 /// at commas and spaces outside parentheses, each reduced to its tool name.
 fn tool_names(value: &YamlValue) -> Vec<String> {
+    tool_list_entries(value)
+        .iter()
+        .map(|entry| rule_tool_name(entry))
+        .collect()
+}
+
+/// The entries of a list of tools or rules (`tools`, a skill's `allowed-tools`) as Claude
+/// Code's `parseToolListFromCLI` splits them: a string or a list of strings, split at
+/// commas and spaces outside parentheses, so that `Bash(git add *)` stays one entry.
+pub(crate) fn tool_list_entries(value: &YamlValue) -> Vec<String> {
     let entries: Vec<&str> = match value {
         YamlValue::String(text) => vec![text.as_str()],
         YamlValue::Sequence(items) => items.iter().filter_map(YamlValue::as_str).collect(),
         _ => Vec::new(),
     };
-    let mut names = Vec::new();
+    let mut parts = Vec::new();
     for entry in entries {
         let mut current = String::new();
         let mut in_parens = false;
@@ -202,7 +212,7 @@ fn tool_names(value: &YamlValue) -> Vec<String> {
                 }
                 ',' | ' ' if !in_parens => {
                     if !current.trim().is_empty() {
-                        names.push(rule_tool_name(current.trim()));
+                        parts.push(current.trim().to_string());
                     }
                     current.clear();
                 }
@@ -210,10 +220,10 @@ fn tool_names(value: &YamlValue) -> Vec<String> {
             }
         }
         if !current.trim().is_empty() {
-            names.push(rule_tool_name(current.trim()));
+            parts.push(current.trim().to_string());
         }
     }
-    names
+    parts
 }
 
 /// The tool a rule like `Bash(git *)` names, with the legacy `Task` read as `Agent`.

@@ -7,11 +7,14 @@
 //! Claude tools, `mcp__<server>__<tool>` for MCP tools). Codex tools that only serve a
 //! Claude tool (`write_stdin` for `Bash`, the other agent tools for `Agent`) go with it.
 
+use codex_claude_compat::Subagent;
 use codex_claude_compat::tools::agent::ToolList;
 use codex_claude_compat::tools::agent::owner_of;
+use codex_protocol::protocol::AskForApproval;
 use codex_tools::ToolName;
 
 use crate::config::AgentRoleConfig;
+use crate::config::Config;
 use crate::session::turn_context::TurnContext;
 use crate::tools::registry::ToolRegistry;
 
@@ -36,6 +39,12 @@ pub(crate) fn restrict_to_subagent_tools(turn_context: &TurnContext, registry: &
 /// The tool list of a role read from a Claude Code subagent file (`agents/*.md`); `None`
 /// for any other role.
 pub(super) fn role_tool_list(role: &AgentRoleConfig) -> Option<ToolList> {
+    Some(role_subagent(role)?.tools)
+}
+
+/// The Claude Code subagent definition a role was read from (`agents/*.md`), read again from
+/// its file; `None` for any other role.
+pub(crate) fn role_subagent(role: &AgentRoleConfig) -> Option<Subagent> {
     let path = role.config_file.as_ref()?;
     if path.extension().is_none_or(|extension| extension != "md") {
         return None;
@@ -45,7 +54,102 @@ pub(super) fn role_tool_list(role: &AgentRoleConfig) -> Option<ToolList> {
             tracing::warn!("cannot read the subagent file {}: {err}", path.display());
         })
         .ok()?;
-    Some(codex_claude_compat::parse_subagent_at(&contents, path)?.tools)
+    codex_claude_compat::parse_subagent_at(&contents, path)
+}
+
+/// `maxTurns` of the Claude Code subagent definition the turn's agent was started from: how
+/// many model requests a turn of it may make. `None` for any other agent.
+pub(crate) fn subagent_max_turns(turn_context: &TurnContext) -> Option<u32> {
+    let role_name = turn_context.session_source.get_agent_role()?;
+    let role = crate::agent::role::resolve_role_config(&turn_context.config, &role_name)?;
+    role_subagent(role)?.max_turns
+}
+
+/// Applies the `permissionMode` of the Claude Code subagent definition of `role_name` to the
+/// configuration of an agent about to start, where Codex has a counterpart that asks no
+/// more than the parent does: `dontAsk`, which denies what would be asked, runs the agent
+/// with the approval policy `never`. `default` (and `manual`) keeps the parent's, as Claude
+/// Code does under a parent in default mode; `acceptEdits`, `plan`, `auto` and
+/// `bypassPermissions` have no counterpart and keep the parent's too.
+pub(crate) fn apply_subagent_permission_mode(config: &mut Config, role_name: Option<&str>) {
+    let Some(subagent) = role_name
+        .and_then(|role_name| crate::agent::role::resolve_role_config(config, role_name))
+        .and_then(role_subagent)
+    else {
+        return;
+    };
+    if subagent.permission_mode.as_deref() == Some("dontAsk")
+        && let Err(err) = config
+            .permissions
+            .approval_policy
+            .set(AskForApproval::Never)
+    {
+        tracing::warn!(
+            "agent {}: permissionMode dontAsk is not allowed here: {err}",
+            subagent.name
+        );
+    }
+}
+
+/// Adds the MCP servers the Claude Code subagent definition of `role_name` defines inline in
+/// its `mcpServers` to the configuration of an agent about to start, so that the agent alone
+/// has them, beside its parent's. As in Claude Code, a project's agent file brings them only
+/// once the project is trusted, while the user's own (`~/.claude/agents`) always does; a
+/// server of a name the agent already has is left out, and one the requirements forbid too.
+pub(crate) fn apply_subagent_mcp_servers(config: &mut Config, role_name: Option<&str>) {
+    let Some(role) =
+        role_name.and_then(|role_name| crate::agent::role::resolve_role_config(config, role_name))
+    else {
+        return;
+    };
+    let Some(path) = role.config_file.clone() else {
+        return;
+    };
+    let Some(subagent) = role_subagent(role).filter(|subagent| !subagent.mcp_servers.is_empty())
+    else {
+        return;
+    };
+    let users_agent = dirs::home_dir().is_some_and(|home| {
+        path.starts_with(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"))
+    });
+    if !users_agent && !config.active_project.is_trusted() {
+        tracing::warn!(
+            "agent {}: the MCP servers of {} wait for the project to be trusted",
+            subagent.name,
+            path.display()
+        );
+        return;
+    }
+    let env = |name: &str| std::env::var(name).ok();
+    let declarations = subagent
+        .mcp_servers
+        .into_iter()
+        .map(|(name, server)| (name, codex_claude_compat::expand_mcp_server(server, &env)))
+        .collect::<serde_json::Map<_, _>>();
+    let contents = serde_json::json!({ "mcpServers": declarations }).to_string();
+    let parsed = match codex_mcp::parse_plugin_mcp_config(config.cwd.as_path(), &contents) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            tracing::warn!(
+                "agent {}: cannot read its MCP servers: {err}",
+                subagent.name
+            );
+            return;
+        }
+    };
+    for error in parsed.errors {
+        tracing::warn!("agent {}: skipping an MCP server: {error:?}", subagent.name);
+    }
+    let mut servers = config.mcp_servers.get().clone();
+    for (name, server) in parsed.servers {
+        servers.entry(name).or_insert(server);
+    }
+    if let Err(err) = config.mcp_servers.set(servers) {
+        tracing::warn!(
+            "agent {}: its MCP servers are not allowed here: {err}",
+            subagent.name
+        );
+    }
 }
 
 /// Keeps in the registry only the tools `tools` permits.

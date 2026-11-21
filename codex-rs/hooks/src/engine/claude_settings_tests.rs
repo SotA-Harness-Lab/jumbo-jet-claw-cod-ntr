@@ -9,8 +9,11 @@ use tempfile::TempDir;
 
 use super::ClaudeHandlerKind;
 use super::ClaudeHookSettings;
+use super::ClaudeSettingsStamp;
 use super::hook_conditions;
 use super::load;
+use super::plugin_handler_extras;
+use super::settings_http_hook_policy;
 
 fn absolute(path: std::path::PathBuf) -> AbsolutePathBuf {
     AbsolutePathBuf::from_absolute_path_checked(path).expect("absolute path")
@@ -257,6 +260,43 @@ fn prompt_agent_and_http_handlers_keep_what_they_declare() {
 }
 
 #[test]
+fn a_plugins_http_handlers_keep_what_they_declare_under_the_settings_policy() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{"allowedHttpHookUrls": ["https://hooks.example.com/*"]}"#,
+    )
+    .expect("write");
+    let hooks_file = tmp.path().join("plugin/hooks/hooks.json");
+    fs::create_dir_all(hooks_file.parent().expect("parent")).expect("create");
+    fs::write(
+        &hooks_file,
+        r#"{"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [
+            {"type": "command", "command": "plain.sh"},
+            {"type": "http", "url": "https://hooks.example.com/post", "timeout": 5}
+        ]}]}}"#,
+    )
+    .expect("write");
+
+    let extras = plugin_handler_extras(
+        &absolute(hooks_file),
+        &settings_http_hook_policy(&settings(&tmp)),
+    );
+
+    let http = &extras.handlers[&("PostToolUse".to_string(), 0, 1)];
+    assert_eq!(http.timeout_sec, Some(5));
+    let ClaudeHandlerKind::Http(hook) = &http.kind else {
+        panic!("expected an http handler, got {:?}", http.kind);
+    };
+    assert_eq!(hook.url, "https://hooks.example.com/post");
+    assert_eq!(
+        hook.policy.allowed_urls,
+        Some(vec!["https://hooks.example.com/*".to_string()])
+    );
+}
+
+#[test]
 fn a_malformed_entry_is_left_out_and_the_rest_of_the_file_kept() {
     let tmp = TempDir::new().expect("temp dir");
     fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
@@ -312,4 +352,33 @@ fn a_malformed_entry_is_left_out_and_the_rest_of_the_file_kept() {
             .map(String::as_str),
         Some("Bash(rm *)")
     );
+}
+
+#[test]
+fn a_stamp_tells_when_a_settings_file_changed() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::create_dir_all(tmp.path().join("project")).expect("create");
+    fs::write(tmp.path().join("home/.claude/settings.json"), "{}").expect("write");
+    let settings = settings(&tmp);
+
+    let stamp = ClaudeSettingsStamp::of(&settings);
+    assert!(!stamp.changed());
+
+    // A project file created during the session, its `.claude` folder with it.
+    fs::create_dir_all(tmp.path().join("project/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("project/.claude/settings.local.json"),
+        r#"{"hooks": {}}"#,
+    )
+    .expect("write");
+    assert!(stamp.changed());
+
+    let stamp = ClaudeSettingsStamp::of(&settings);
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{"disableAllHooks": true}"#,
+    )
+    .expect("write");
+    assert!(stamp.changed());
 }

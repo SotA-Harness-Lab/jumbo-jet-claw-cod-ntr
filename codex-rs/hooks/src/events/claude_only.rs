@@ -30,7 +30,8 @@ use crate::output_spill::AdditionalContext;
 /// A Claude Code hook event that Codex's own configuration does not have.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ClaudeOnlyEvent {
-    /// Codex waits for the user: an approval prompt or an MCP elicitation.
+    /// Codex waits for the user: an approval prompt, an MCP elicitation, a subagent's
+    /// prompt, or the next prompt after a turn.
     Notification,
     /// A tool call failed, including a shell command that exited with a non-zero code.
     PostToolUseFailure,
@@ -80,7 +81,8 @@ pub struct NotificationRequest {
     pub transcript_path: Option<PathBuf>,
     pub permission_mode: String,
     /// Claude Code's notification type, matched by the handlers' matchers:
-    /// `permission_prompt`, `elicitation_dialog` or `elicitation_url_dialog`.
+    /// `permission_prompt`, `elicitation_dialog`, `elicitation_url_dialog`, `idle_prompt` or
+    /// `agent_needs_input`.
     pub notification_type: String,
     pub message: String,
     pub title: Option<String>,

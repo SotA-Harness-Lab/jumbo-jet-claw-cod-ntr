@@ -1,7 +1,10 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks; grant a skill's allowed-tools
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks;
+// read the project instructions again for a compaction
+// stop a subagent at its maxTurns
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -630,6 +633,10 @@ pub(crate) async fn run_turn(
     let mut next_step_context = Some(first_step_context);
     let mut guardian_budget_compacted = false;
     let mut unfinished_plan_id = None;
+    // As in Claude Code, an agent whose subagent definition sets `maxTurns` stops after that
+    // many model requests, its last answer standing as its result.
+    let max_turns = crate::tools::claude::subagent_max_turns(&turn_context);
+    let mut sampling_requests = 0u32;
     loop {
         // Note that pending_input would be something like a message the user
         // submitted through the UI while the model was running. Though the UI
@@ -771,6 +778,7 @@ pub(crate) async fn run_turn(
                     trailing_commentary,
                 } = sampling_request_last_agent_message;
                 let sampling_request_last_agent_message = trailing_commentary.or(final_answer);
+                sampling_requests = sampling_requests.saturating_add(1);
                 let hooks = TurnCompletionHooks {
                     last_assistant_message: sampling_request_last_agent_message,
                     notify_messages: Some(notify_messages),
@@ -803,7 +811,9 @@ pub(crate) async fn run_turn(
                 }
                 .instrument(trace_span!("run_turn.collect_post_sampling_state"))
                 .await;
-                let needs_follow_up = model_needs_follow_up || has_pending_input;
+                let max_turns_reached = max_turns.is_some_and(|max| sampling_requests >= max);
+                let needs_follow_up =
+                    (model_needs_follow_up || has_pending_input) && !max_turns_reached;
                 let token_limit_reached = token_status.token_limit_reached;
 
                 super::async_compaction::maybe_start(
@@ -1497,6 +1507,7 @@ async fn build_skills_and_plugins(
         fragments,
         injected: injected_host_skills,
         warnings: host_skill_warnings,
+        claude_allowed_tools,
     } = skills_snapshot
         .load_skill_prompts(
             &mentioned_skills,
@@ -1517,6 +1528,7 @@ async fn build_skills_and_plugins(
         sess.send_event(turn_context, EventMsg::Warning(WarningEvent { message }))
             .await;
     }
+    codex_skills_extension::grant_skill_tools(&turn_context.extension_data, claude_allowed_tools);
     let skill_items = fragments
         .into_iter()
         .map(ContextualUserFragment::into_boxed_response_item)
@@ -1867,6 +1879,8 @@ async fn run_auto_compact(
     {
         return Ok(false);
     }
+    let replacement_step_context =
+        crate::claude_rules::with_fresh_instructions(sess, replacement_step_context).await;
     let world_state = Arc::new(
         sess.build_world_state_for_step(&replacement_step_context, /*new_window*/ true)
             .await?,

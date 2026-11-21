@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: skip a byte order mark at the start of plugin.json
+// Modified by Tianyu (Sky) Lu in 2026: skip a byte order mark at the start of plugin.json;
+// read a manifest's values as written; read Claude Code's map of commands
 
 use codex_config::HooksFile;
 use codex_utils_absolute_path::AbsolutePathBuf;
@@ -80,7 +81,22 @@ struct RawPluginManifest {
 #[derive(Deserialize)]
 struct RawPluginCommandManifest {
     #[serde(default)]
-    commands: Option<RawPluginManifestPaths>,
+    commands: Option<RawPluginCommands>,
+}
+
+/// A Claude Code manifest's `commands`: a map of names to entries, or paths.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RawPluginCommands {
+    Map(std::collections::BTreeMap<String, RawPluginCommandEntry>),
+    Paths(RawPluginManifestPaths),
+}
+
+/// An entry of the map: a command read from `source`, or one given inline as `content`.
+#[derive(Deserialize)]
+struct RawPluginCommandEntry {
+    #[serde(default)]
+    source: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -189,11 +205,45 @@ pub(crate) fn load_plugin_command_paths(plugin_root: &Path) -> io::Result<Option
         return Ok(None);
     };
     let plugin_root = PathUri::from_host_native_path(plugin_root)?;
-    resolve_manifest_paths(&plugin_root, "commands", Some(&commands))
+    let paths = match commands {
+        RawPluginCommands::Paths(paths) => {
+            resolve_manifest_paths(&plugin_root, "commands", Some(&paths))
+        }
+        // The files the map's entries name; an entry given inline has no file and is not read.
+        RawPluginCommands::Map(entries) => entries
+            .values()
+            .filter_map(|entry| {
+                resolve_manifest_path(&plugin_root, "commands", entry.source.as_deref())
+            })
+            .collect(),
+    };
+    paths
         .into_iter()
         .map(|path| Ok(path.to_abs_path()?.into_path_buf()))
         .collect::<io::Result<Vec<_>>>()
         .map(Some)
+}
+
+/// The value the plugin's manifest gives `key`, as written. `None` when there is no manifest,
+/// it cannot be read, or it leaves `key` out.
+pub(crate) fn load_plugin_manifest_value(plugin_root: &Path, key: &str) -> Option<JsonValue> {
+    let manifest_path = find_plugin_manifest_path(plugin_root)?;
+    let contents = fs::read_to_string(manifest_path).ok()?;
+    let mut manifest = serde_json::from_str::<JsonValue>(without_bom(&contents)).ok()?;
+    manifest.get_mut(key).map(JsonValue::take)
+}
+
+/// A manifest path given for `field`, resolved under the plugin root on this machine with the
+/// rules of the manifest's other paths (`./` first, no `..`, inside the root).
+pub(crate) fn resolve_host_manifest_path(
+    plugin_root: &Path,
+    field: &'static str,
+    path: &str,
+) -> Option<AbsolutePathBuf> {
+    let plugin_root = PathUri::from_host_native_path(plugin_root).ok()?;
+    resolve_manifest_path(&plugin_root, field, Some(path))?
+        .to_abs_path()
+        .ok()
 }
 
 // TODO: share an owner-provided cache if inline fallback manifests are parsed repeatedly.

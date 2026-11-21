@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code skill frontmatter; load Claude Code's custom slash commands; skip a byte order mark
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code skill frontmatter; load Claude Code's custom slash commands; skip a byte order mark; name the commands a plugin manifest maps
 
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 
 use codex_exec_server::EnvironmentAccess;
@@ -319,8 +320,23 @@ async fn load_skills_under_root(
                     .path
                     .to_abs_path()
                     .unwrap_or_else(|_| skill.path.clone());
+                // A command the plugin's manifest maps to a name takes that name, and the
+                // entry's description, as in Claude Code.
+                let mapped = (discovery_mode == SkillDiscoveryMode::CommandFiles)
+                    .then(|| {
+                        plugin_root.and_then(|plugin_root| {
+                            codex_claude_compat::mapped_plugin_command(
+                                plugin_root.as_path(),
+                                discovery_path.as_path(),
+                            )
+                        })
+                    })
+                    .flatten();
                 let command_name = (discovery_mode == SkillDiscoveryMode::CommandFiles)
-                    .then(|| command_skill_name(root, &discovery_path))
+                    .then(|| match &mapped {
+                        Some(mapped) => Some(mapped.name.clone()),
+                        None => command_skill_name(root, &discovery_path),
+                    })
                     .flatten();
                 let result = parse_skill_file(
                     file_system,
@@ -332,7 +348,13 @@ async fn load_skills_under_root(
                     plugin_root,
                     command_name,
                 )
-                .await;
+                .await
+                .map(|mut parsed| {
+                    if let Some(description) = mapped.and_then(|mapped| mapped.description) {
+                        parsed.description = description;
+                    }
+                    parsed
+                });
                 (skill.path, skill.path_uri, discovery_path, result)
             }
         })
@@ -443,8 +465,14 @@ async fn parse_skill_file(
 
 /// The name Claude Code gives the command file at `path` below the commands directory `root`:
 /// its path without `.md`, the directories joined with `:` (`git/commit.md` is `git:commit`).
+/// A file a plugin's manifest names on its own is its own root, and is named after itself.
 fn command_skill_name(root: &AbsolutePathBuf, path: &AbsolutePathBuf) -> Option<String> {
     let relative = path.as_path().strip_prefix(root.as_path()).ok()?;
+    let relative = if relative.as_os_str().is_empty() {
+        Path::new(path.as_path().file_name()?)
+    } else {
+        relative
+    };
     let parts = relative
         .iter()
         .map(|part| part.to_str().map(str::to_string))

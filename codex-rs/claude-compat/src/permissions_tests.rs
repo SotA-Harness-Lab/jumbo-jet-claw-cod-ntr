@@ -18,6 +18,7 @@ use super::bash::matches_wildcard;
 use super::bash::split_command;
 use super::bash::strip_output_redirections;
 use super::bash::strip_safe_wrappers;
+use super::link_target;
 use super::parse_rule;
 
 const HOME: &str = "/home/user";
@@ -1027,6 +1028,38 @@ fn other_tools_match_their_content_exactly() {
 }
 
 #[test]
+fn the_local_rules_of_the_repository_root_apply_in_a_subdirectory() {
+    let home = tempfile::tempdir().expect("tempdir");
+    let repo = tempfile::tempdir().expect("tempdir");
+    std::fs::create_dir_all(repo.path().join(".git")).expect("create .git");
+    let root = repo.path().to_path_buf();
+    let project = root.join("sub");
+    for (dir, rule) in [(&project, "WebSearch"), (&root, "WebFetch")] {
+        let dot_claude = dir.join(".claude");
+        std::fs::create_dir_all(&dot_claude).expect("create .claude");
+        std::fs::write(
+            dot_claude.join("settings.local.json"),
+            json!({ "permissions": { "deny": [rule] } }).to_string(),
+        )
+        .expect("write settings");
+    }
+    let (rules, errors) = PermissionRules::load(Some(home.path()), Some(&project));
+    assert!(errors.is_empty());
+    let sources = rules
+        .rules()
+        .iter()
+        .map(|rule| (rule.source, rule.text.as_str()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        sources,
+        vec![
+            (RuleSource::Local, "WebSearch"),
+            (RuleSource::Local, "WebFetch"),
+        ]
+    );
+}
+
+#[test]
 fn rules_are_loaded_from_the_user_project_and_local_files() {
     let home = tempfile::tempdir().expect("tempdir");
     let project = tempfile::tempdir().expect("tempdir");
@@ -1075,4 +1108,81 @@ fn rules_are_loaded_from_the_user_project_and_local_files() {
         ),
         ask("Bash(ls)")
     );
+}
+
+#[test]
+fn deny_and_ask_rules_through_a_linked_directory_meet_its_real_location() {
+    // `/tmp` leads to `/private/tmp` and `~/vault` to `/mnt/vault`, as on macOS; nothing
+    // else is a link.
+    let resolve = |path: &Path| -> Option<PathBuf> {
+        let text = path.to_str()?;
+        if let Some(rest) = text.strip_prefix("/tmp") {
+            return Some(PathBuf::from(format!("/private/tmp{rest}")));
+        }
+        if let Some(rest) = text.strip_prefix("/home/user/vault") {
+            return Some(PathBuf::from(format!("/mnt/vault{rest}")));
+        }
+        matches!(text, "/" | "/home" | "/home/user").then(|| path.to_path_buf())
+    };
+    let rules = local_rules(
+        &["Read(//tmp/open/**)"],
+        &["Edit(~/vault/*.txt)"],
+        &["Read(//tmp/x/**)", "Read(//etc/**)"],
+    );
+    // Without resolving, the real location is not covered.
+    assert_eq!(read(&rules, "/private/tmp/x/a"), RuleVerdict::NoMatch);
+
+    let rules = rules.with_resolved_rule_places(resolve);
+    let denied = |rule: &str, path: &str| RuleVerdict::Deny {
+        rule: rule.to_string(),
+        message: format!("Permission to read {path} has been denied."),
+    };
+    assert_eq!(
+        read(&rules, "/private/tmp/x/a"),
+        denied("Read(//tmp/x/**)", "/private/tmp/x/a")
+    );
+    assert_eq!(
+        read(&rules, "/tmp/x/a"),
+        denied("Read(//tmp/x/**)", "/tmp/x/a")
+    );
+    // A rule whose place is no link stays as it is, and so do allow rules.
+    assert_eq!(
+        read(&rules, "/etc/passwd"),
+        denied("Read(//etc/**)", "/etc/passwd")
+    );
+    assert_eq!(read(&rules, "/private/etc/passwd"), RuleVerdict::NoMatch);
+    assert_eq!(read(&rules, "/private/tmp/open/a"), RuleVerdict::NoMatch);
+    assert_eq!(
+        edit(&rules, "Edit", "/mnt/vault/notes.txt"),
+        ask("Edit(~/vault/*.txt)")
+    );
+}
+
+#[test]
+fn link_targets_are_taken_relative_to_the_link() {
+    assert_eq!(
+        link_target(Path::new("/w/docs/link"), "../secret/key"),
+        PathBuf::from("/w/secret/key")
+    );
+    assert_eq!(
+        link_target(Path::new("/w/link"), "/etc/passwd"),
+        PathBuf::from("/etc/passwd")
+    );
+    assert_eq!(
+        link_target(Path::new("/w/link"), "./same"),
+        PathBuf::from("/w/same")
+    );
+}
+
+#[test]
+fn granted_allow_rules_allow_what_no_deny_or_ask_rule_holds_back() {
+    let rules = local_rules(&[], &["Bash(git push *)"], &["Bash(rm *)"])
+        .with_granted_allow_rules(&["Bash".to_string(), "Read".to_string()]);
+    assert_eq!(bash(&rules, "ls -la"), allow("Bash"));
+    assert_eq!(bash(&rules, "git push origin"), ask("Bash(git push *)"));
+    assert_eq!(
+        bash(&rules, "rm -rf x"),
+        denied_command("Bash(rm *)", "rm -rf x")
+    );
+    assert_eq!(read(&rules, "/work/project/a.rs"), allow("Read"));
 }

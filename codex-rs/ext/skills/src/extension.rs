@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; grant a skill's allowed-tools
 
 use std::sync::Arc;
 
@@ -450,6 +450,13 @@ where
                 {
                     Ok(read_result) => {
                         let contents = if entry.authority.kind == SkillSourceKind::Host {
+                            crate::claude_grants::grant_skill_tools(
+                                turn_store,
+                                crate::claude_grants::skill_tool_grants(
+                                    &read_result.contents,
+                                    entry.rendered_path(),
+                                ),
+                            );
                             expand_explicit_skill(
                                 read_result.contents,
                                 &entry.name,

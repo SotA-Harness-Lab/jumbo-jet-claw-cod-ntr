@@ -9,6 +9,7 @@ mod catalog_delta;
 mod catalog_observability;
 mod catalog_prompt;
 mod catalog_state;
+mod claude_grants;
 mod claude_invocation;
 mod config;
 mod dynamic_skill_selector;
@@ -39,6 +40,9 @@ mod world_state;
 mod world_state_catalogs;
 
 pub use catalog::merge_catalogs;
+pub use claude_grants::grant_skill_tools;
+pub use claude_grants::granted_skill_tools;
+pub use claude_grants::skill_tool_grants;
 pub use config::SkillsExtensionConfig;
 pub use extension::install;
 pub use extension::install_with_providers;

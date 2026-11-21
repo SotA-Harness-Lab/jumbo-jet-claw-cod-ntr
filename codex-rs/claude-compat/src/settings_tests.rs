@@ -10,9 +10,12 @@ use serde_json::json;
 use super::BashPrefixRule;
 use super::PermissionDecision;
 use super::bash_prefix_rules;
+use super::local_settings_paths;
 use super::read_settings;
+use super::settings_effort_level;
 use super::settings_env;
 use super::settings_paths;
+use super::settings_stamp;
 
 fn rule(prefix: &[&str], decision: PermissionDecision) -> BashPrefixRule {
     BashPrefixRule {
@@ -106,4 +109,125 @@ fn settings_linked_to_a_device_count_as_missing() {
     std::os::unix::fs::symlink("/dev/null", &path).unwrap();
 
     assert_eq!(read_settings(&path).unwrap(), None);
+}
+
+#[test]
+fn effort_levels_become_codex_efforts() {
+    let effort = |value: serde_json::Value| settings_effort_level(&json!({ "effortLevel": value }));
+    assert_eq!(effort(json!("low")), Some("low"));
+    assert_eq!(effort(json!("medium")), Some("medium"));
+    assert_eq!(effort(json!("high")), Some("high"));
+    assert_eq!(effort(json!("xhigh")), Some("xhigh"));
+    assert_eq!(effort(json!("max")), Some("xhigh"));
+    assert_eq!(effort(json!("auto")), None);
+    assert_eq!(effort(json!("High")), None);
+    assert_eq!(effort(json!(3)), None);
+    assert_eq!(settings_effort_level(&json!({})), None);
+}
+
+#[test]
+fn the_local_file_of_the_repository_root_is_read_from_a_subdirectory() {
+    let base = tempfile::tempdir().unwrap();
+    let root = base.path().join("repo");
+    let sub = root.join("a").join("b");
+    std::fs::create_dir_all(root.join(".git")).unwrap();
+    std::fs::create_dir_all(&sub).unwrap();
+    let home = base.path().join("home");
+
+    assert_eq!(
+        local_settings_paths(&sub, Some(&home)),
+        vec![
+            sub.join(".claude").join("settings.local.json"),
+            root.join(".claude").join("settings.local.json"),
+        ]
+    );
+    // At the root itself the two are one file.
+    assert_eq!(
+        local_settings_paths(&root, Some(&home)),
+        vec![root.join(".claude").join("settings.local.json")]
+    );
+    // Settings files come in Claude Code's order, the root's local file last.
+    let claude_home = home.join(".claude");
+    assert_eq!(
+        settings_paths(Some(&claude_home), Some(&sub)),
+        vec![
+            claude_home.join("settings.json"),
+            sub.join(".claude").join("settings.json"),
+            sub.join(".claude").join("settings.local.json"),
+            root.join(".claude").join("settings.local.json"),
+        ]
+    );
+}
+
+#[test]
+fn the_local_file_stays_in_the_working_directory_outside_a_repository_or_at_home() {
+    let base = tempfile::tempdir().unwrap();
+    let dir = base.path().join("plain").join("sub");
+    std::fs::create_dir_all(&dir).unwrap();
+    assert_eq!(
+        local_settings_paths(&dir, None),
+        vec![dir.join(".claude").join("settings.local.json")]
+    );
+
+    // A home directory that is a repository keeps the file where the session starts.
+    let home = base.path().join("home");
+    let project = home.join("project");
+    std::fs::create_dir_all(home.join(".git")).unwrap();
+    std::fs::create_dir_all(&project).unwrap();
+    assert_eq!(
+        local_settings_paths(&project, Some(&home)),
+        vec![project.join(".claude").join("settings.local.json")]
+    );
+}
+
+#[test]
+fn a_linked_worktree_reads_the_local_file_of_its_main_checkout() {
+    let base = tempfile::tempdir().unwrap();
+    let main = base.path().join("main");
+    let worktree = base.path().join("wt");
+    let worktree_git_dir = main.join(".git").join("worktrees").join("wt");
+    std::fs::create_dir_all(&worktree_git_dir).unwrap();
+    std::fs::create_dir_all(worktree.join("sub")).unwrap();
+    std::fs::write(worktree_git_dir.join("commondir"), "../..\n").unwrap();
+    std::fs::write(
+        worktree_git_dir.join("gitdir"),
+        format!("{}\n", worktree.join(".git").display()),
+    )
+    .unwrap();
+    std::fs::write(
+        worktree.join(".git"),
+        format!("gitdir: {}\n", worktree_git_dir.display()),
+    )
+    .unwrap();
+
+    let sub = worktree.join("sub");
+    assert_eq!(
+        local_settings_paths(&sub, None),
+        vec![
+            sub.join(".claude").join("settings.local.json"),
+            main.join(".claude").join("settings.local.json"),
+        ]
+    );
+}
+
+#[test]
+fn a_stamp_changes_when_a_settings_file_is_written_created_or_removed() {
+    let dir = tempfile::tempdir().unwrap();
+    let written = dir.path().join("settings.json");
+    let created = dir.path().join("settings.local.json");
+    std::fs::write(&written, "{}").unwrap();
+    let paths = vec![written.clone(), created.clone()];
+    let before = settings_stamp(&paths);
+    assert_eq!(settings_stamp(&paths), before);
+
+    std::fs::write(&written, "{\"env\": {}}").unwrap();
+    let after_write = settings_stamp(&paths);
+    assert!(after_write != before);
+
+    std::fs::write(&created, "{}").unwrap();
+    let after_create = settings_stamp(&paths);
+    assert!(after_create != after_write);
+
+    std::fs::remove_file(&created).unwrap();
+    assert!(settings_stamp(&paths) != after_create);
 }

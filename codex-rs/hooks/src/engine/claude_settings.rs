@@ -4,7 +4,8 @@
 //! Hooks declared in Claude Code's settings files, run by Codex in place.
 //!
 //! Claude Code keeps hooks under the `hooks` key of `~/.claude/settings.json` and of a
-//! project's `.claude/settings.json` and `.claude/settings.local.json`, in the same shape
+//! project's `.claude/settings.json` and `.claude/settings.local.json` (also the one at the
+//! root of its repository), in the same shape
 //! Codex reads from `hooks.json`. Handlers of a type Codex does not run are left out with
 //! a warning, so that one of them does not take the whole file with it. Of the events Codex
 //! does not have, `Notification`, `PostToolUseFailure` and `StopFailure` are kept apart and run
@@ -15,6 +16,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::path::PathBuf;
 
 use codex_config::HookEventsToml;
 use codex_config::HookHandlerConfig;
@@ -26,7 +28,6 @@ use super::http_runner::HttpHook;
 use super::http_runner::HttpHookPolicy;
 use crate::events::claude_only::ClaudeOnlyEvent;
 
-const SETTINGS_FILES: &[&str] = &["settings.json", "settings.local.json"];
 /// Handler types Codex runs; any other is dropped before parsing.
 const KNOWN_HANDLER_TYPES: &[&str] = &["command", "prompt", "agent", "http", "mcp_tool"];
 
@@ -245,6 +246,31 @@ pub(crate) fn disables_all_hooks(settings: &ClaudeHookSettings) -> bool {
     })
 }
 
+/// What the settings files looked like when hooks were read from them, to tell when one of
+/// them changed: Claude Code applies an edit to its settings files in the running session.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ClaudeSettingsStamp {
+    paths: Vec<PathBuf>,
+    stamp: codex_claude_compat::SettingsStamp,
+}
+
+impl ClaudeSettingsStamp {
+    /// The stamp of the files `settings` names, taken now.
+    pub(crate) fn of(settings: &ClaudeHookSettings) -> Self {
+        let paths = settings_files(settings)
+            .into_iter()
+            .map(|(path, _)| path.into_path_buf())
+            .collect::<Vec<_>>();
+        let stamp = codex_claude_compat::settings_stamp(&paths);
+        Self { paths, stamp }
+    }
+
+    /// Whether one of the files was written, created or removed since the stamp was taken.
+    pub(crate) fn changed(&self) -> bool {
+        codex_claude_compat::settings_stamp(&self.paths) != self.stamp
+    }
+}
+
 /// The settings files, user's first, each with whether it is the user's own.
 fn settings_files(settings: &ClaudeHookSettings) -> Vec<(AbsolutePathBuf, bool)> {
     let mut files = Vec::new();
@@ -255,10 +281,16 @@ fn settings_files(settings: &ClaudeHookSettings) -> Vec<(AbsolutePathBuf, bool)>
         let dot_claude = project_dir.join(".claude");
         // In the home directory, `.claude` is the user's own configuration.
         if settings.user_dir.as_ref() != Some(&dot_claude) {
+            files.push((dot_claude.join("settings.json"), false));
+            let home_dir = settings.user_dir.as_ref().and_then(AbsolutePathBuf::parent);
             files.extend(
-                SETTINGS_FILES
-                    .iter()
-                    .map(|name| (dot_claude.join(name), false)),
+                codex_claude_compat::local_settings_paths(
+                    project_dir.as_path(),
+                    home_dir.as_ref().map(AbsolutePathBuf::as_path),
+                )
+                .into_iter()
+                .filter_map(|path| AbsolutePathBuf::from_absolute_path_checked(path).ok())
+                .map(|path| (path, false)),
             );
         }
     }
@@ -434,15 +466,28 @@ fn stand_in_for_http(hooks: &mut Value) {
 }
 
 /// What a Claude Code plugin's hooks file, whose events are under its `hooks` key, says
-/// beyond `HookEventsToml`. A plugin's `http` handlers are not among them: Codex's plugin
-/// loader reads the file first and does not know the type.
-pub(crate) fn plugin_handler_extras(path: &AbsolutePathBuf) -> ClaudeHandlerExtras {
+/// beyond `HookEventsToml`. Codex's plugin loader reads its `http` handlers as `prompt` ones;
+/// `http_policy` is the settings files', which narrows them as it does theirs.
+pub(crate) fn plugin_handler_extras(
+    path: &AbsolutePathBuf,
+    http_policy: &HttpHookPolicy,
+) -> ClaudeHandlerExtras {
     read_settings(path, &mut Vec::new())
         .and_then(|file| {
             file.get("hooks")
-                .map(|hooks| handler_extras(hooks, &HttpHookPolicy::default()))
+                .map(|hooks| handler_extras(hooks, http_policy))
         })
         .unwrap_or_default()
+}
+
+/// `allowedHttpHookUrls` and `httpHookAllowedEnvVars` of the settings files, for the `http`
+/// handlers of plugins.
+pub(crate) fn settings_http_hook_policy(settings: &ClaudeHookSettings) -> HttpHookPolicy {
+    let files = settings_files(settings)
+        .into_iter()
+        .filter_map(|(path, _)| read_settings(&path, &mut Vec::new()))
+        .collect::<Vec<_>>();
+    http_hook_policy(files.iter())
 }
 
 /// Drops handlers of a type Codex does not know, such as `http`, reporting them.

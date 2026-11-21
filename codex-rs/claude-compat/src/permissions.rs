@@ -87,7 +87,8 @@ pub enum RuleSource {
     User,
     /// `.claude/settings.json` of the project: `/path` is in the project directory.
     Project,
-    /// `.claude/settings.local.json` of the project: as for `Project`.
+    /// A `.claude/settings.local.json` of the project, in `project_dir` or at the root of its
+    /// repository: as for `Project`, `/path` is in the project directory.
     Local,
 }
 
@@ -111,8 +112,8 @@ pub enum ToolInput<'a> {
     Tool,
     /// A `Bash` command, run in `cwd`.
     Command { command: &'a str, cwd: &'a Path },
-    /// A file or directory read (`Read`, `Glob`, `Grep`): the absolute path, and the path
-    /// with symbolic links resolved if it differs; relative patterns are under `cwd`. A
+    /// A file or directory read (`Read`, `Glob`, `Grep`): the absolute path, and the paths
+    /// its symbolic links lead to where they differ; relative patterns are under `cwd`. A
     /// deny or ask rule for any of the paths decides; an allow rule has to cover them all.
     Read { paths: &'a [PathBuf], cwd: &'a Path },
     /// A file written (`Edit`, `Write`), as for `Read`.
@@ -160,9 +161,11 @@ struct FileMatcher {
 }
 
 impl PermissionRules {
-    /// Reads the rules of the user's `~/.claude/settings.json` and of the project's
-    /// `.claude/settings.json` and `.claude/settings.local.json` in `project_dir`. Files
-    /// that cannot be read are returned with their error and skipped.
+    /// Reads the rules of the user's `~/.claude/settings.json`, of the project's
+    /// `.claude/settings.json` in `project_dir` and of its `.claude/settings.local.json`
+    /// files, the one at the repository's root included (see
+    /// [`crate::local_settings_paths`]). Files that cannot be read are returned with their
+    /// error and skipped.
     pub fn load(
         home_dir: Option<&Path>,
         project_dir: Option<&Path>,
@@ -177,7 +180,11 @@ impl PermissionRules {
             // In the home directory, `.claude` is the user's own configuration.
             if claude_home.as_deref() != Some(dot_claude.as_path()) {
                 files.push((RuleSource::Project, dot_claude.join("settings.json")));
-                files.push((RuleSource::Local, dot_claude.join("settings.local.json")));
+                files.extend(
+                    crate::settings::local_settings_paths(project_dir, home_dir)
+                        .into_iter()
+                        .map(|path| (RuleSource::Local, path)),
+                );
             }
         }
         let mut settings = Vec::new();
@@ -249,6 +256,89 @@ impl PermissionRules {
             rule.decision != PermissionDecision::Allow || rule.source == RuleSource::User
         });
         // What was wrong with the rules left was said when they were first built.
+        self.file_matchers = self.build_file_matchers(/*warn*/ false);
+        self
+    }
+
+    /// These rules with each `Read` and `Edit` deny or ask rule anchored at a fixed place
+    /// (`//tmp/x/**`, `~/.ssh/**`, `/secrets/**`) also matched where that place really is
+    /// when symbolic links lead it elsewhere (`//private/tmp/x/**` on macOS), as newer
+    /// versions of Claude Code apply such a rule to a path given by its real location. The
+    /// place is the part of the pattern before its first wildcard; `resolve` gives the real
+    /// path of an existing path, and a place not there yet is resolved through its nearest
+    /// existing ancestor. Allow rules are matched as written only.
+    pub fn with_resolved_rule_places(mut self, resolve: impl Fn(&Path) -> Option<PathBuf>) -> Self {
+        let mut added = Vec::new();
+        for rule in &self.rules {
+            if !matches!(
+                rule.decision,
+                PermissionDecision::Deny | PermissionDecision::Ask
+            ) || !(rule.tool == FILE_READ_TOOL || rule.tool == FILE_EDIT_TOOL)
+            {
+                continue;
+            }
+            let Some(content) = rule.content.as_deref() else {
+                continue;
+            };
+            let Some((pattern, Some(root))) = self.pattern_root(content, rule.source) else {
+                continue;
+            };
+            let components: Vec<&str> = pattern.trim_start_matches('/').split('/').collect();
+            let literal = components
+                .iter()
+                .take_while(|component| !component.is_empty() && is_literal(component))
+                .count();
+            if literal == 0 {
+                continue;
+            }
+            let place = normalize_path(
+                &components[..literal]
+                    .iter()
+                    .fold(root, |place, component| place.join(component)),
+            );
+            let Some(real) = resolve_through_ancestors(&place, &resolve) else {
+                continue;
+            };
+            let real = normalize_path(&real);
+            if real == place || !real.is_absolute() {
+                continue;
+            }
+            let mut resolved = format!("/{}", escape_glob(&real.to_string_lossy()));
+            for component in &components[literal..] {
+                resolved.push('/');
+                resolved.push_str(component);
+            }
+            added.push(PermissionRule {
+                tool: rule.tool.clone(),
+                content: Some(resolved),
+                decision: rule.decision,
+                source: rule.source,
+                text: rule.text.clone(),
+            });
+        }
+        if added.is_empty() {
+            return self;
+        }
+        self.rules.extend(added);
+        // What was wrong with the rules was said when they were first built.
+        self.file_matchers = self.build_file_matchers(/*warn*/ false);
+        self
+    }
+
+    /// These rules with `texts` added as allow rules granted for a while, such as the
+    /// `allowed-tools` of a skill for the turn that invokes it. Their `/path` patterns are
+    /// relative to the project directory, and deny and ask rules still win over them.
+    pub fn with_granted_allow_rules(mut self, texts: &[String]) -> Self {
+        for text in texts {
+            let (tool, content) = parse_rule(text);
+            self.rules.push(PermissionRule {
+                tool,
+                content,
+                decision: PermissionDecision::Allow,
+                source: RuleSource::Local,
+                text: text.clone(),
+            });
+        }
         self.file_matchers = self.build_file_matchers(/*warn*/ false);
         self
     }
@@ -890,6 +980,36 @@ fn search_glob(root: &Path, line: &str, search_dir: &Path) -> Option<String> {
     } else {
         format!("/{remaining}")
     })
+}
+
+/// Most symbolic links followed from one path, as Claude Code follows them
+/// (`SYMLOOP_MAX`).
+pub const MAX_LINK_DEPTH: usize = 40;
+
+/// Where the symbolic link at `link` leads, given the `target` it holds: a relative target
+/// is under the link's directory, and `.` and `..` are taken by name, as Claude Code takes
+/// them.
+pub fn link_target(link: &Path, target: &str) -> PathBuf {
+    normalize_path(&link.parent().unwrap_or(link).join(target))
+}
+
+/// `place` resolved by `resolve`, or, when it does not exist, its nearest ancestor that
+/// does resolved and the rest of it appended.
+fn resolve_through_ancestors(
+    place: &Path,
+    resolve: &impl Fn(&Path) -> Option<PathBuf>,
+) -> Option<PathBuf> {
+    for ancestor in place.ancestors() {
+        if let Some(real) = resolve(ancestor) {
+            let rest = place.strip_prefix(ancestor).ok()?;
+            return Some(if rest.as_os_str().is_empty() {
+                real
+            } else {
+                real.join(rest)
+            });
+        }
+    }
+    None
 }
 
 /// Whether a component of a glob has no wildcard in it.

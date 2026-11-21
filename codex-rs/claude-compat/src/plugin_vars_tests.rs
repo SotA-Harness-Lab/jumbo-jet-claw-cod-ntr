@@ -137,6 +137,59 @@ fn prose_hides_sensitive_values_and_keeps_unset_ones_as_written() {
 }
 
 #[test]
+fn the_data_directory_is_codex_s_and_is_created_when_named() {
+    let tmp = TempDir::new().expect("temp dir");
+    let (claude_home, root) = installed_plugin(&tmp);
+    let codex_home = tmp.path().join("codex");
+    let data = codex_home.join("plugins/data/demo-market");
+
+    // Without Codex's home the data directory is unknown and stays as written.
+    assert_eq!(
+        load(&claude_home, &root).substitute_in_content("${CLAUDE_PLUGIN_DATA}/cache"),
+        "${CLAUDE_PLUGIN_DATA}/cache"
+    );
+    let plugin = load(&claude_home, &root).with_codex_home(&codex_home);
+    assert!(!data.exists());
+    assert_eq!(
+        plugin.substitute_in_content(
+            "Read ${CLAUDE_PLUGIN_ROOT}/docs, keep notes in ${CLAUDE_PLUGIN_DATA}, at ${user_config.region}."
+        ),
+        format!(
+            "Read {}/docs, keep notes in {}, at eu.",
+            root.display(),
+            data.display()
+        )
+    );
+    assert!(data.is_dir());
+    assert_eq!(
+        plugin.server_env(),
+        vec![
+            ("CLAUDE_PLUGIN_ROOT".to_string(), root.display().to_string()),
+            ("CLAUDE_PLUGIN_DATA".to_string(), data.display().to_string()),
+        ]
+    );
+}
+
+#[test]
+fn a_plugin_s_skill_gets_its_variables_and_other_files_stay_as_written() {
+    let tmp = TempDir::new().expect("temp dir");
+    let (_, root) = installed_plugin(&tmp);
+    let text = "Run ${CLAUDE_PLUGIN_ROOT}/bin/check.".to_string();
+
+    assert_eq!(
+        super::substitute_in_plugin_content(text.clone(), &root.join("skills/x/SKILL.md")),
+        format!("Run {}/bin/check.", root.display())
+    );
+    assert_eq!(
+        super::substitute_in_plugin_content(
+            text.clone(),
+            &tmp.path().join("home/.claude/skills/x/SKILL.md")
+        ),
+        text
+    );
+}
+
+#[test]
 fn a_directory_without_a_manifest_is_no_plugin() {
     let tmp = TempDir::new().expect("temp dir");
     assert_eq!(PluginVariables::load_with_home(tmp.path(), None), None);
@@ -183,6 +236,55 @@ fn plugin_agents_are_named_after_the_plugin_and_their_directories() {
     let replaced = root.join("agents/old.md");
     assert_eq!(
         parse_subagent_at("An agent no longer listed.\n", &replaced),
+        None
+    );
+}
+
+#[test]
+fn a_single_agent_file_of_the_manifest_is_named_after_the_plugin_alone() {
+    let tmp = TempDir::new().expect("temp dir");
+    let (claude_home, root) = installed_plugin(&tmp);
+    fs::write(
+        root.join(".claude-plugin/plugin.json"),
+        r#"{"name": "demo", "agents": ["./extra", "./solo/reviewer.md", "./../outside.md"]}"#,
+    )
+    .expect("write");
+    let file = root.join("solo/reviewer.md");
+    fs::create_dir_all(file.parent().expect("parent")).expect("create");
+    fs::write(&file, "Review ${CLAUDE_PLUGIN_ROOT}.\n").expect("write");
+    fs::write(tmp.path().join("outside.md"), "Outside.\n").expect("write");
+
+    assert_eq!(load(&claude_home, &root).agent_files(), vec![file.clone()]);
+    let reviewer =
+        parse_subagent_at(&fs::read_to_string(&file).expect("read"), &file).expect("plugin agent");
+    assert_eq!(
+        (reviewer.name.as_str(), reviewer.prompt),
+        ("demo:reviewer", format!("Review {}.", root.display()))
+    );
+}
+
+#[test]
+fn the_commands_map_names_a_file_s_command() {
+    let tmp = TempDir::new().expect("temp dir");
+    let (_, root) = installed_plugin(&tmp);
+    fs::write(
+        root.join(".claude-plugin/plugin.json"),
+        r#"{"name": "demo", "commands": {
+            "status": {"source": "./commands/show.md", "description": " Show the status "},
+            "about": {"content": "Inline."}
+        }}"#,
+    )
+    .expect("write");
+
+    assert_eq!(
+        super::mapped_plugin_command(&root, &root.join("commands/show.md")),
+        Some(super::MappedCommand {
+            name: "status".to_string(),
+            description: Some("Show the status".to_string()),
+        })
+    );
+    assert_eq!(
+        super::mapped_plugin_command(&root, &root.join("commands/other.md")),
         None
     );
 }

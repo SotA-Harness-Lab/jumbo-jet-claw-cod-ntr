@@ -847,6 +847,7 @@ mod tests {
         composer.skill_commands = vec![SkillCommand {
             name: "zz-deploy".to_string(),
             description: "Deploy the app".to_string(),
+            argument_hint: None,
         }];
         composer.draft.textarea.set_text_clearing_elements(text);
         composer.draft.textarea.set_cursor(text.len());

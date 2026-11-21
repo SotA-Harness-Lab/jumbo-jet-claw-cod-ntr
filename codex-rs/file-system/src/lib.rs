@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: read the target of a symbolic link
+
 mod environment_accessor;
 mod exec_permission_profile_serde;
 mod find_up;
@@ -636,6 +641,22 @@ pub trait ExecutorFileSystem: Send + Sync {
         path: &'a PathUri,
         sandbox: Option<&'a FileSystemSandboxContext>,
     ) -> ExecutorFileSystemFuture<'a, PathUri>;
+
+    /// The target of the symbolic link at `path`, as the link holds it (a relative target
+    /// stays relative). Filesystems that cannot read links fail with
+    /// [`io::ErrorKind::Unsupported`].
+    fn read_link<'a>(
+        &'a self,
+        _path: &'a PathUri,
+        _sandbox: Option<&'a FileSystemSandboxContext>,
+    ) -> ExecutorFileSystemFuture<'a, String> {
+        Box::pin(async {
+            Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "this filesystem cannot read symbolic links",
+            ))
+        })
+    }
 
     fn read_file<'a>(
         &'a self,

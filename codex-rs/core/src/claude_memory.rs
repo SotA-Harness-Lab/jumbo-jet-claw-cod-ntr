@@ -45,25 +45,30 @@ pub(crate) async fn claude_auto_memory_for(
     let user = read_settings(&claude_home.join("settings.json"));
     let dot_claude = cwd.join(CLAUDE_DIR);
     // In the home directory, `.claude` is the user's own configuration.
+    // The local files are the one in `cwd` and the one at the repository's root.
     let (project, local) = if dot_claude == claude_home {
-        (None, None)
+        (None, Vec::new())
     } else {
         (
             read_settings(&dot_claude.join("settings.json")),
-            read_settings(&dot_claude.join("settings.local.json")),
+            codex_claude_compat::local_settings_paths(cwd, Some(home_dir))
+                .into_iter()
+                .filter_map(|path| read_settings(&path))
+                .collect::<Vec<Value>>(),
         )
     };
-    let settings = [&user, &project, &local]
-        .into_iter()
-        .flatten()
+    let settings = user
+        .iter()
+        .chain(&project)
+        .chain(&local)
         .collect::<Vec<&Value>>();
     let mut settings_env = HashMap::new();
     let env_settings = if project_trusted {
-        vec![&user, &project, &local]
+        settings.clone()
     } else {
-        vec![&user]
+        user.iter().collect()
     };
-    for settings in env_settings.into_iter().flatten() {
+    for settings in env_settings {
         settings_env.extend(codex_claude_compat::settings_env(settings));
     }
     let env = |name: &str| {
@@ -77,18 +82,15 @@ pub(crate) async fn claude_auto_memory_for(
     }
     // A project's shared settings never move the memory: a repository could otherwise
     // have Codex write wherever it names.
-    let no_settings = None;
-    let trusted_settings = [
-        &user,
-        if project_trusted {
-            &local
+    let no_settings: &[Value] = &[];
+    let trusted_settings = user
+        .iter()
+        .chain(if project_trusted {
+            local.as_slice()
         } else {
-            &no_settings
-        },
-    ]
-    .into_iter()
-    .flatten()
-    .collect::<Vec<&Value>>();
+            no_settings
+        })
+        .collect::<Vec<&Value>>();
     let dir = match codex_claude_compat::auto_memory_dir_override(
         &trusted_settings,
         Some(home_dir),

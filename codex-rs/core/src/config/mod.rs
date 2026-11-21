@@ -2026,6 +2026,12 @@ impl Config {
         }
         let use_launch_cwds = self.features.enabled(Feature::McpSharedReplCwd)
             && self.features.enabled(Feature::McpConnectionSharing);
+        let claude_compat = !cfg!(test) && codex_claude_compat::enabled();
+        let claude_mcp_timeouts = if claude_compat {
+            claude_code_mcp_timeouts(&self.cwd, self.active_project.is_trusted())
+        } else {
+            codex_claude_compat::McpTimeouts::default()
+        };
         for (plugin_order, plugin) in loaded_plugins
             .plugins()
             .iter()
@@ -2033,6 +2039,17 @@ impl Config {
             .enumerate()
         {
             let mut plugin_mcp_servers = plugin.mcp_servers.clone();
+            // A Claude Code plugin's servers take Claude Code's MCP time limits.
+            if plugin
+                .root
+                .as_path()
+                .join(".claude-plugin/plugin.json")
+                .is_file()
+            {
+                for server in plugin_mcp_servers.values_mut() {
+                    apply_claude_code_mcp_timeouts(server, claude_mcp_timeouts);
+                }
+            }
             self.apply_plugin_mcp_server_requirements(&plugin.config_name, &mut plugin_mcp_servers);
             let attribution = if plugin.is_agent_plugin() {
                 McpPluginAttribution::agent_plugin(
@@ -2070,9 +2087,10 @@ impl Config {
             catalog.register(registration);
         }
         // Claude Code's MCP servers, below Codex's own servers of the same name.
-        if !cfg!(test) && codex_claude_compat::enabled() {
+        if claude_compat {
             let project_trusted = self.active_project.is_trusted();
-            for (name, server) in claude_code_mcp_servers(&self.cwd, project_trusted) {
+            for (name, mut server) in claude_code_mcp_servers(&self.cwd, project_trusted) {
+                apply_claude_code_mcp_timeouts(&mut server, claude_mcp_timeouts);
                 if !self.mcp_servers.get().contains_key(&name) {
                     catalog.register(McpServerRegistration::from_config(name, server));
                 }
@@ -4191,7 +4209,8 @@ impl Config {
 
         let mut agent_roles =
             load_agent_roles(fs, &cfg, &config_layer_stack, &mut startup_warnings).await?;
-        // Claude Code subagents, the project's over the user's; Codex's own roles win.
+        // Claude Code subagents, the project's over the user's and the nearest project
+        // directory's over those above it; Codex's own roles win.
         if !cfg!(test) && codex_claude_compat::enabled() {
             let agents_dirs = claude_code_agents_dirs(
                 dirs::home_dir(),
@@ -4265,6 +4284,23 @@ impl Config {
                     )),
                 }
             }
+            // The agent files the manifest names one by one.
+            let agent_files = variables
+                .agent_files()
+                .into_iter()
+                .filter_map(|file| AbsolutePathBuf::from_absolute_path_checked(&file).ok())
+                .collect::<Vec<_>>();
+            if !agent_files.is_empty() {
+                for (name, role) in codex_agent_roles::load_claude_code_agent_role_files(
+                    fs,
+                    agent_files,
+                    &mut startup_warnings,
+                )
+                .await
+                {
+                    agent_roles.entry(name).or_insert(role);
+                }
+            }
         }
 
         let openai_base_url = cfg
@@ -4303,6 +4339,11 @@ impl Config {
             &resolved_cwd,
             active_project.is_trusted(),
         );
+        // Claude Code's `effortLevel` is the default only where Codex's own configuration
+        // names no reasoning effort.
+        let model_reasoning_effort = cfg.model_reasoning_effort.clone().or_else(|| {
+            claude_code_effort_level(&resolved_cwd, active_project.is_trusted())
+        });
         let allow_login_shell = cfg.allow_login_shell.unwrap_or(true);
 
         let history = cfg.history.unwrap_or_default();
@@ -4987,7 +5028,7 @@ impl Config {
                 .as_ref()
                 .and_then(|auto_review| auto_review.circuit_break_action)
                 .unwrap_or_default(),
-            model_reasoning_effort: cfg.model_reasoning_effort,
+            model_reasoning_effort,
             plan_mode_reasoning_effort: cfg.plan_mode_reasoning_effort,
             model_reasoning_summary: cfg.model_reasoning_summary,
             model_catalog,
@@ -5578,23 +5619,62 @@ mod config_loader_tests;
 #[path = "runtime_auth_tests.rs"]
 mod runtime_auth_tests;
 
-/// The directories of Claude Code subagents, the user's first: `~/.claude/agents`, and the
-/// project's `.claude/agents` unless the project is marked untrusted, as its instruction
-/// files are left out then.
+/// The directories of Claude Code subagents, the user's first, so that the later ones win:
+/// `~/.claude/agents`, then, unless the project is marked untrusted (its instruction files
+/// are left out then), each `.claude/agents` from the repository's root down to the working
+/// directory, the nearest last. As in Claude Code, the walk up from the working directory
+/// stops at the nearest directory holding `.git`, or, outside a repository, below the home
+/// directory, whose `.claude` is the user's; only directories that exist are listed. A linked
+/// worktree without `.claude/agents` of its own takes its main checkout's.
 fn claude_code_agents_dirs(
     home: Option<PathBuf>,
     cwd: &AbsolutePathBuf,
     include_project: bool,
 ) -> Vec<AbsolutePathBuf> {
+    let home = home.and_then(|home| AbsolutePathBuf::from_absolute_path_checked(home).ok());
     let mut agents_dirs = Vec::new();
-    if let Some(home) = home
-        && let Ok(home) = AbsolutePathBuf::from_absolute_path_checked(home)
-    {
+    if let Some(home) = &home {
         agents_dirs.push(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"));
     }
-    let project_agents = cwd.join(codex_claude_compat::CLAUDE_DIR).join("agents");
-    if include_project && !agents_dirs.contains(&project_agents) {
-        agents_dirs.push(project_agents);
+    if !include_project {
+        return agents_dirs;
+    }
+    let agents_of =
+        |dir: &std::path::Path| dir.join(codex_claude_compat::CLAUDE_DIR).join("agents");
+    let git_root = cwd
+        .as_path()
+        .ancestors()
+        .find(|dir| dir.join(".git").exists());
+    let mut project_dirs = Vec::new();
+    for dir in cwd.as_path().ancestors() {
+        if home.as_ref().is_some_and(|home| home.as_path() == dir) {
+            break;
+        }
+        let agents = agents_of(dir);
+        if agents.is_dir() {
+            project_dirs.push(agents);
+        }
+        if git_root == Some(dir) {
+            break;
+        }
+    }
+    if let Some(git_root) = git_root {
+        let main_checkout = codex_claude_compat::claude_json_project_root(cwd.as_path());
+        let main_agents = agents_of(main_checkout.as_path());
+        if main_checkout.as_path() != git_root
+            && !agents_of(git_root).is_dir()
+            && main_agents.is_dir()
+            && !project_dirs.contains(&main_agents)
+        {
+            project_dirs.push(main_agents);
+        }
+    }
+    for dir in project_dirs.into_iter().rev() {
+        if let Ok(dir) = AbsolutePathBuf::from_absolute_path_checked(dir)
+            && !agents_dirs.contains(&dir)
+        {
+            agents_dirs.push(dir);
+        }
     }
     agents_dirs
 }
@@ -5636,6 +5716,17 @@ fn add_claude_code_env(
     if cfg!(test) || !codex_claude_compat::enabled() {
         return;
     }
+    for (name, value) in claude_code_settings_env(cwd, project_trusted) {
+        policy.r#set.entry(name).or_insert(value);
+    }
+}
+
+/// The `env` entries of Claude Code's settings files (the user's, then the project's, later
+/// files winning); a project's files only once the project is trusted.
+fn claude_code_settings_env(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) -> std::collections::HashMap<String, String> {
     let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
     let mut env = std::collections::HashMap::new();
     let project_dir = project_trusted.then_some(cwd.as_path());
@@ -5651,9 +5742,69 @@ fn add_claude_code_env(
             }
         }
     }
-    for (name, value) in env {
-        policy.r#set.entry(name).or_insert(value);
+    env
+}
+
+/// The time limits Claude Code's `MCP_TIMEOUT` and `MCP_TOOL_TIMEOUT` give its MCP servers,
+/// read from the `env` of its settings files and then from Codex's own environment.
+fn claude_code_mcp_timeouts(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) -> codex_claude_compat::McpTimeouts {
+    let settings_env = claude_code_settings_env(cwd, project_trusted);
+    codex_claude_compat::mcp_timeouts(&|name| {
+        settings_env
+            .get(name)
+            .cloned()
+            .or_else(|| std::env::var(name).ok())
+    })
+}
+
+/// Gives a server of Claude Code's the time limits of Claude Code's environment where its
+/// declaration sets none; its own `timeout` (already its `tool_timeout_sec`) wins.
+fn apply_claude_code_mcp_timeouts(
+    server: &mut McpServerConfig,
+    timeouts: codex_claude_compat::McpTimeouts,
+) {
+    if server.startup_timeout_sec.is_none() {
+        server.startup_timeout_sec = timeouts.startup;
     }
+    if server.tool_timeout_sec.is_none() {
+        server.tool_timeout_sec = timeouts.tool;
+    }
+}
+
+/// The reasoning effort that `effortLevel` of Claude Code's settings files sets (the user's,
+/// then the project's, later files winning), as `env` is read: a project's files count only
+/// once the project is trusted.
+fn claude_code_effort_level(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) -> Option<ReasoningEffort> {
+    // Unit tests never read the real home directory's Claude Code settings.
+    if cfg!(test) || !codex_claude_compat::enabled() {
+        return None;
+    }
+    let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let project_dir = project_trusted.then_some(cwd.as_path());
+    let mut effort = None;
+    for path in codex_claude_compat::settings_paths(claude_home.as_deref(), project_dir) {
+        match codex_claude_compat::read_settings(&path) {
+            Ok(Some(settings)) => {
+                if let Some(level) = codex_claude_compat::settings_effort_level(&settings) {
+                    effort = Some(level);
+                }
+            }
+            Ok(None) => {}
+            Err(err) => {
+                tracing::warn!(
+                    "failed to read Claude Code settings {}: {err}",
+                    path.display()
+                );
+            }
+        }
+    }
+    effort.and_then(|level| level.parse().ok())
 }
 
 /// The MCP servers Claude Code would start in `cwd`, from `~/.claude.json` and the
@@ -5705,6 +5856,7 @@ fn claude_code_mcp_servers(
         &settings,
         &mcp_json_files,
         &project_root,
+        project_trusted,
         &|name| std::env::var(name).ok(),
     );
     if declarations.is_empty() {

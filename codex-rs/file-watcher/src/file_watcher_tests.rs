@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; recursive watches that leave hidden folders out
 
 use super::*;
 use notify::event::AccessKind;
@@ -726,4 +726,69 @@ fn noop_registration_reports_failure() -> Result<(), Box<dyn std::error::Error>>
     drop(registration);
     assert_eq!(watcher.watch_counts_for_test(directory.path()), None);
     Ok(())
+}
+
+#[test]
+fn walked_recursive_watch_leaves_hidden_dirs_out() {
+    let temp_dir = tempfile::tempdir().expect("temp dir");
+    let root = temp_dir.path().join("skills");
+    let skill = root.join("demo");
+    let scripts = skill.join("scripts");
+    std::fs::create_dir_all(scripts.join("__pycache__")).expect("create skill");
+    std::fs::create_dir_all(skill.join(".pixi/envs/default")).expect("create environment");
+    std::fs::create_dir_all(root.join(".trash/old")).expect("create trash");
+    std::fs::create_dir_all(root.join("node_modules/pkg")).expect("create packages");
+
+    let watcher = Arc::new(FileWatcher::new_walking_trees_for_test().expect("watcher"));
+    let (subscriber, _rx) = watcher.add_subscriber();
+    let registration = subscriber.register_path(root.clone(), /*recursive*/ true);
+    assert_eq!(registration.registration_succeeded(), true);
+    assert_eq!(
+        watcher.walked_dirs_for_test(&root),
+        Some(vec![skill.clone(), scripts.clone()])
+    );
+
+    // A folder added later is watched with what lies below it; a hidden one is not.
+    let added = root.join("added");
+    std::fs::create_dir_all(added.join("reference")).expect("create added skill");
+    std::fs::create_dir_all(root.join(".cache/entries")).expect("create cache");
+    watcher.update_walked_trees_for_test(&[added.clone(), root.join(".cache")]);
+    assert_eq!(
+        watcher.walked_dirs_for_test(&root),
+        Some(vec![
+            added.clone(),
+            added.join("reference"),
+            skill.clone(),
+            scripts.clone(),
+        ])
+    );
+
+    // A folder removed is dropped with what lay below it.
+    std::fs::remove_dir_all(&added).expect("remove added skill");
+    watcher.update_walked_trees_for_test(&[added]);
+    assert_eq!(
+        watcher.walked_dirs_for_test(&root),
+        Some(vec![skill, scripts])
+    );
+
+    drop(registration);
+    assert_eq!(watcher.walked_dirs_for_test(&root), None);
+    assert_eq!(watcher.watch_counts_for_test(&root), None);
+}
+
+#[cfg(unix)]
+#[test]
+fn walked_tree_takes_each_directory_once() {
+    let temp_dir = tempfile::tempdir().expect("temp dir");
+    let root = temp_dir.path().join("skills");
+    let skill = root.join("demo");
+    std::fs::create_dir_all(&skill).expect("create skill");
+    std::os::unix::fs::symlink(&root, skill.join("loop")).expect("link back to the root");
+    std::os::unix::fs::symlink(&skill, root.join("alias")).expect("link to the skill");
+
+    let dirs = visible_dirs_below(&root);
+    // The skill is kept under one of its two names, and the link back to the root,
+    // which would loop, is not entered.
+    assert_eq!(dirs.len(), 1);
+    assert_eq!(dirs[0] == skill || dirs[0] == root.join("alias"), true);
 }

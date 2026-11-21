@@ -311,6 +311,12 @@ impl AnyToolResult {
             ..
         } = self;
         let history_truncation_token_limit = result.fallback_token_limit_override();
+        let partial_read = result.partial_read_stamp().map(|(modified_at_ms, size)| {
+            codex_history::PartialReadStamp {
+                modified_at_ms,
+                size,
+            }
+        });
         let item = result.to_response_item(&call_id, &payload).into();
         let producer_bounded_tool_audio = file_backed_tool_audio
             && result.output_budget_applied()
@@ -318,12 +324,15 @@ impl AnyToolResult {
                  | ResponseItem::CustomToolCallOutput { output, .. } if output.contains_audio());
         ResponseItemEnvelope {
             item,
-            metadata: (producer_bounded_tool_audio || history_truncation_token_limit.is_some())
-                .then_some(CodexHarnessMetadata {
-                    producer_bounded_tool_audio,
-                    history_truncation_token_limit,
-                    ..Default::default()
-                }),
+            metadata: (producer_bounded_tool_audio
+                || history_truncation_token_limit.is_some()
+                || partial_read.is_some())
+            .then_some(CodexHarnessMetadata {
+                producer_bounded_tool_audio,
+                history_truncation_token_limit,
+                partial_read,
+                ..Default::default()
+            }),
         }
     }
 
@@ -367,6 +376,10 @@ impl ToolOutput for PostToolUseFeedbackOutput {
 
     fn tool_result_metadata(&self) -> Option<&Value> {
         self.original.tool_result_metadata()
+    }
+
+    fn partial_read_stamp(&self) -> Option<(i64, u64)> {
+        self.original.partial_read_stamp()
     }
 }
 

@@ -8,10 +8,14 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use codex_claude_compat::tools::EDIT;
+use codex_claude_compat::tools::READ;
+use codex_claude_compat::tools::WRITE;
 use codex_claude_compat::tools::read;
 use codex_claude_compat::tools::seen_files::PastCall;
 use codex_claude_compat::tools::seen_files::seen_files;
 use codex_exec_server::FileMetadata;
+use codex_history::ResponseItemEnvelope;
 use codex_protocol::models::ResponseItem;
 use codex_utils_path_uri::PathUri;
 use sha1::Digest;
@@ -126,11 +130,12 @@ impl ReadFiles {
 /// Rebuilds what the session knows of the files the model read and wrote from `history`, the
 /// conversation of a resumed or forked session, as Claude Code rebuilds it from the
 /// transcript: each file the model knew whole there is known by that content, so that it may
-/// be edited without a new read while its content is unchanged.
+/// be edited without a new read while its content is unchanged, and a file it last read in
+/// part is known by the modification time and size kept with that read.
 pub(crate) fn restore<'a>(
     session: &Session,
     turn_context: &TurnContext,
-    history: impl IntoIterator<Item = &'a ResponseItem>,
+    history: impl IntoIterator<Item = &'a ResponseItemEnvelope>,
 ) {
     if !super::enabled(turn_context) {
         return;
@@ -145,12 +150,14 @@ pub(crate) fn restore<'a>(
 fn restore_into<'a>(
     files: &ReadFiles,
     cwd: &PathUri,
-    history: impl IntoIterator<Item = &'a ResponseItem>,
+    history: impl IntoIterator<Item = &'a ResponseItemEnvelope>,
 ) {
     let mut calls: HashMap<&str, (&str, &str)> = HashMap::new();
     let mut past = Vec::new();
-    for item in history {
-        match item {
+    // The reads of some lines, by their place in `past`, with the file as it was then.
+    let mut partial_reads = Vec::new();
+    for envelope in history {
+        match &envelope.item {
             ResponseItem::FunctionCall {
                 name,
                 namespace: None,
@@ -168,6 +175,14 @@ fn restore_into<'a>(
                 if let (Some(&(tool, arguments)), Some(output)) =
                     (calls.get(call_id.as_str()), output.text_content())
                 {
+                    if let Some(stamp) = envelope
+                        .metadata
+                        .as_ref()
+                        .and_then(|metadata| metadata.partial_read)
+                        .filter(|_| tool == READ)
+                    {
+                        partial_reads.push((past.len(), stamp));
+                    }
                     past.push(PastCall {
                         tool,
                         arguments,
@@ -179,8 +194,38 @@ fn restore_into<'a>(
         }
     }
     let key_of = |file_path: &str| cwd.join(file_path).ok().map(|uri| uri.to_string());
+    // The call that used each file last: a read of some lines counts only when it was the last.
+    let key_of_call = |call: &PastCall<'_>| {
+        if ![READ, WRITE, EDIT].contains(&call.tool) {
+            return None;
+        }
+        let arguments = serde_json::from_str::<serde_json::Value>(call.arguments).ok()?;
+        key_of(arguments.get("file_path")?.as_str()?)
+    };
+    let mut last_use = HashMap::new();
+    for (index, call) in past.iter().enumerate() {
+        if let Some(key) = key_of_call(call) {
+            last_use.insert(key, index);
+        }
+    }
+    let read_in_part = partial_reads
+        .into_iter()
+        .filter_map(|(index, stamp)| {
+            let key = key_of_call(&past[index])?;
+            (last_use.get(&key) == Some(&index)).then_some((
+                key,
+                FileStamp {
+                    modified_at_ms: stamp.modified_at_ms,
+                    size: stamp.size,
+                },
+            ))
+        })
+        .collect::<Vec<_>>();
     for (key, content) in seen_files(past, key_of) {
         files.insert(key, FileRecord::Whole(ContentDigest::of(&content)));
+    }
+    for (key, stamp) in read_in_part {
+        files.insert(key, FileRecord::Part(stamp));
     }
 }
 

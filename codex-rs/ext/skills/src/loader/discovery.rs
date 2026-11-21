@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use std::io;
 
 use codex_exec_server::EnvironmentAccess;
+use codex_exec_server::GetMetadataOptions;
 use codex_exec_server::WalkEntryKind;
 use codex_exec_server::WalkOptions;
 use codex_utils_path_uri::PathUri;
@@ -72,6 +73,25 @@ pub(super) async fn discover_skills(
         warnings: Vec::new(),
         error: None,
     };
+    // A plugin's manifest may name a single command file rather than a directory.
+    if options.mode == SkillDiscoveryMode::CommandFiles
+        && root
+            .basename()
+            .is_some_and(|name| name.ends_with(COMMAND_FILE_SUFFIX))
+        && file_system
+            .get_metadata(root, GetMetadataOptions::default())
+            .await
+            .is_ok_and(|metadata| metadata.is_file)
+    {
+        return SkillDiscovery {
+            skills: vec![DiscoveredSkill {
+                path: root.clone(),
+                metadata: SkillMetadataDiscovery::Absent,
+            }],
+            namespace_roots: HashSet::from([root.clone()]),
+            ..empty_discovery()
+        };
+    }
     let walk = match file_system
         .walk(
             root,

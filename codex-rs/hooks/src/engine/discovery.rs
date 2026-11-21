@@ -340,6 +340,7 @@ pub(crate) fn discover_handlers_with_claude_settings(
         claude_plugins = ClaudePluginHooks {
             plugins: &claude_settings.plugins,
             env: claude_hook_env(claude_settings),
+            http_policy: super::claude_settings::settings_http_hook_policy(claude_settings),
         };
     }
     append_plugin_hook_sources(
@@ -385,6 +386,8 @@ fn claude_hook_env(
 struct ClaudePluginHooks<'a> {
     plugins: &'a [super::claude_settings::ClaudePluginRoot],
     env: HashMap<String, String>,
+    /// What the settings files allow the plugins' `http` hooks to do.
+    http_policy: super::http_runner::HttpHookPolicy,
 }
 
 /// Admits the command handlers of the Claude Code events Codex's own configuration does not
@@ -575,14 +578,17 @@ fn append_plugin_hook_sources(
         env.insert("PLUGIN_DATA".to_string(), plugin_data_root_value.clone());
         // For OOTB compat with existing plugins that use this env var.
         env.insert("CLAUDE_PLUGIN_DATA".to_string(), plugin_data_root_value);
-        // A Claude Code plugin's hooks file may give handlers an `if`, and have `prompt` and
-        // `agent` handlers. Hooks written into the manifest are not read for these: their
-        // position there is not the one they load with.
+        // A Claude Code plugin's hooks file may give handlers an `if`, and have `prompt`,
+        // `agent` and `http` handlers. Hooks written into the manifest are not read for these:
+        // their position there is not the one they load with.
         let plugin_extras = claude_plugin.map(|_| {
             let mut extras = if source_relative_path.starts_with("plugin.json#") {
                 Default::default()
             } else {
-                super::claude_settings::plugin_handler_extras(&source_path)
+                super::claude_settings::plugin_handler_extras(
+                    &source_path,
+                    &claude_plugins.http_policy,
+                )
             };
             // The options the user set for the plugin in Claude Code, for its hooks.
             extras.plugin = codex_claude_compat::PluginVariables::load(plugin_root.as_path());

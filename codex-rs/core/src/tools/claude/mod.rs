@@ -27,6 +27,7 @@ mod output;
 mod permissions;
 mod read;
 mod ripgrep;
+mod scratch_file;
 mod shell_cwd;
 mod skill;
 mod subagent_tools;
@@ -59,7 +60,10 @@ pub(crate) use permissions::check_permission;
 pub(crate) use permissions::remove_denied_tools;
 pub(crate) use permissions::rule_allows;
 pub(crate) use shell_cwd::take_cwd_report;
+pub(crate) use subagent_tools::apply_subagent_mcp_servers;
+pub(crate) use subagent_tools::apply_subagent_permission_mode;
 pub(crate) use subagent_tools::restrict_to_subagent_tools;
+pub(crate) use subagent_tools::subagent_max_turns;
 
 /// Whether the model is offered Claude Code's tools instead of Codex's: `[claude] tools = true`
 /// in `$CODEX_HOME/ccn-config.toml`, and `CCN_CLAUDE_COMPAT` is not `0`.

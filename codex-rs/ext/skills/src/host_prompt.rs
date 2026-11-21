@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name
+// Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; grant a skill's allowed-tools
 
 use std::collections::HashSet;
 
@@ -12,6 +12,7 @@ use codex_skills::SkillMetadata;
 use codex_skills::normalize_skill_path;
 
 use crate::HostSkillsSnapshot;
+use crate::claude_grants::skill_tool_grants;
 use crate::claude_invocation::expand_explicit_skill;
 use crate::fragments::SkillInstructions;
 use crate::render::truncate_main_prompt_contents;
@@ -59,6 +60,8 @@ pub struct HostSkillPrompts {
     pub fragments: Vec<Box<dyn ContextualUserFragment + Send>>,
     pub injected: Vec<SkillMetadata>,
     pub warnings: Vec<String>,
+    /// The permission rules the skills' `allowed-tools` grant for the turn.
+    pub claude_allowed_tools: Vec<String>,
 }
 
 fn normalize_host_skill_path(path: &str) -> String {
@@ -88,12 +91,16 @@ impl HostSkillsSnapshot {
             fragments: Vec::with_capacity(selected_skills.len()),
             injected: Vec::with_capacity(selected_skills.len()),
             warnings: Vec::new(),
+            claude_allowed_tools: Vec::new(),
         };
 
         for skill in selected_skills {
             match self.read_skill_text(skill, accessors).await {
                 Ok(contents) => {
                     let path = skill.path_to_skills_md.inferred_native_path_string();
+                    prompts
+                        .claude_allowed_tools
+                        .extend(skill_tool_grants(&contents, &path));
                     let contents =
                         expand_explicit_skill(contents, &skill.name, &path, session_id, user_input);
                     let (contents, truncated) = if self.outcome().is_agent_plugin_skill(skill) {

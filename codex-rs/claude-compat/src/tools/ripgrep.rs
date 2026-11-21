@@ -32,6 +32,37 @@ pub fn command_line(args: &[String], target: &str, shell: Shell) -> String {
     line
 }
 
+/// Most bytes of results read back from a search that wrote them to a file, as Claude
+/// Code keeps at most this much of ripgrep's output.
+pub const MAX_OUTPUT_BYTES: usize = 20_000_000;
+
+/// The size limit, in 512-byte blocks (1024-byte ones under bash, which then allows twice
+/// as much), that keeps ripgrep from writing a file much larger than [`MAX_OUTPUT_BYTES`]:
+/// it is stopped once the file reaches it.
+const OUTPUT_FILE_BLOCKS: usize = MAX_OUTPUT_BYTES.div_ceil(512);
+
+/// [`command_line`] for a POSIX shell, writing ripgrep's results to `file` instead of the
+/// output, where only the first and last 512 KiB of them would come back. Messages still go
+/// to the output.
+pub fn command_line_to_file(args: &[String], target: &str, file: &str) -> String {
+    format!(
+        "(ulimit -f {OUTPUT_FILE_BLOCKS}; exec {} > {})",
+        command_line(args, target, Shell::Posix),
+        quote(file, Shell::Posix)
+    )
+}
+
+/// Whether Codex's command execution cut `output` (stdout and stderr together) in the
+/// middle, as it does past 1 MiB, putting a line `... <n> bytes omitted ...` in place of
+/// what it left out.
+pub fn output_was_cut(output: &str) -> bool {
+    output.split('\n').any(|line| {
+        line.strip_prefix("... ")
+            .and_then(|rest| rest.strip_suffix(" bytes omitted ..."))
+            .is_some_and(|count| !count.is_empty() && count.bytes().all(|b| b.is_ascii_digit()))
+    })
+}
+
 /// The arguments that leave out of a search what `globs` match (`Read` deny patterns,
 /// relative to the directory `rg` runs in), compared without regard to case as the
 /// permission rules are.
@@ -64,6 +95,10 @@ fn quote(arg: &str, shell: Shell) -> String {
 pub struct RgRun<'a> {
     /// Output of the command, stdout and stderr together.
     pub output: &'a str,
+    /// ripgrep's results, when the command wrote them to a file instead of the output.
+    pub results: Option<&'a str>,
+    /// Whether the results were cut at [`MAX_OUTPUT_BYTES`].
+    pub truncated: bool,
     /// Exit code; `None` when the command did not exit by itself.
     pub exit_code: Option<i32>,
     /// Whether the command was stopped at its timeout.
@@ -76,23 +111,25 @@ pub struct RgRun<'a> {
 ///
 /// As in Claude Code: exit code 1 is "no matches"; other failures keep the results printed
 /// before them, and a search stopped at its timeout loses its last, maybe partial, line
-/// and fails only when nothing was found. ripgrep's own messages (`rg: ...`, on stderr,
-/// which Codex returns mixed with stdout) are not results; after a failure only lines
-/// that start with the path searched are. Unlike Claude Code, a failure without results
+/// and fails only when nothing was found. Results cut at their size limit lose their last
+/// line too, and never fail. ripgrep's own messages (`rg: ...`, on stderr, which Codex
+/// returns mixed with stdout) are not results; after a failure only lines that start with
+/// the path searched are. Unlike Claude Code, a failure without results
 /// reports ripgrep's message (an invalid pattern, a path that cannot be read) instead of
 /// "no matches".
 pub fn result_lines(run: &RgRun<'_>) -> Result<Vec<String>, String> {
     let mut lines: Vec<String> = run
-        .output
+        .results
+        .unwrap_or(run.output)
         .split('\n')
         .map(|line| line.strip_suffix('\r').unwrap_or(line))
         .filter(|line| !line.is_empty() && !line.starts_with("rg: "))
         .map(str::to_string)
         .collect();
 
-    if run.timed_out {
+    if run.timed_out || run.truncated {
         lines.pop();
-        if lines.is_empty() {
+        if lines.is_empty() && !run.truncated {
             return Err(timeout_message());
         }
         return Ok(lines);

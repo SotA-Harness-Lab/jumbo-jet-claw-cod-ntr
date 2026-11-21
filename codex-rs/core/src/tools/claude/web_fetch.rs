@@ -16,7 +16,6 @@
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::time::Instant;
 
@@ -26,8 +25,6 @@ use codex_claude_compat::tools::web_fetch;
 use codex_claude_compat::tools::web_fetch::CommandShell;
 use codex_claude_compat::tools::web_fetch::FetchCache;
 use codex_claude_compat::tools::web_fetch::FetchedContent;
-use codex_exec_server::ReadFileOptions;
-use codex_exec_server::RemoveOptions;
 use codex_protocol::error::CodexErr;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseItem;
@@ -53,6 +50,7 @@ use super::failed;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
 use super::rejected;
+use super::scratch_file;
 use crate::Prompt;
 use crate::client_common::ResponseEvent;
 use crate::function_tool::FunctionCallError;
@@ -290,9 +288,20 @@ impl WebFetchHandler {
         // command output reaches the tool cut to its first and last 512 KiB. Where the file
         // cannot be written or read (a sandbox that allows no writes there), the body comes
         // through the output as before.
-        let mut body_file = new_body_file(environment, shell, &target);
+        let mut body_file_enabled = true;
         for _ in 0..=web_fetch::MAX_REDIRECTS {
             let mut response = None;
+            let body_file = if body_file_enabled {
+                scratch_file::create(
+                    environment,
+                    shell == CommandShell::Posix,
+                    "ccn-webfetch",
+                    target.as_str().as_bytes(),
+                )
+                .await
+            } else {
+                None
+            };
             if let Some(file) = &body_file {
                 response = self
                     .request(
@@ -305,7 +314,7 @@ impl WebFetchHandler {
                     )
                     .await?;
                 if response.is_none() {
-                    body_file = None;
+                    body_file_enabled = false;
                 }
             }
             let response = match response {
@@ -382,7 +391,7 @@ impl WebFetchHandler {
             .handle(delegated(invocation, payload.clone()))
             .await;
         let body = match body_file {
-            Some(file) => Some(take_body_file(environment, file).await),
+            Some(file) => Some(scratch_file::take(environment, file).await),
             None => None,
         };
         let result = output?.code_mode_result(&payload);
@@ -428,63 +437,6 @@ struct Response {
     redirect_url: String,
     content_type: String,
     body: String,
-}
-
-/// A namespace drawn once per process, so that the names of body files cannot be guessed
-/// beforehand.
-static BODY_FILE_NAMESPACE: LazyLock<uuid::Uuid> = LazyLock::new(uuid::Uuid::new_v4);
-
-/// The file in the executor's temporary directory (`/tmp` on a POSIX shell that reports
-/// none) for the body of a request to `target`. The name depends on the URL alone within a
-/// process, so the command for one URL stays the same and an approval given for it still
-/// applies to the next fetch of that URL.
-fn new_body_file(
-    environment: &TurnEnvironment,
-    shell: CommandShell,
-    target: &Url,
-) -> Option<PathUri> {
-    let directory = match environment
-        .temporary_directories
-        .as_ref()
-        .and_then(|directories| directories.first())
-    {
-        Some(directory) => directory.clone(),
-        None if shell == CommandShell::Posix => PathUri::from_host_native_path("/tmp").ok()?,
-        None => return None,
-    };
-    directory
-        .join(&format!(
-            "ccn-webfetch-{}",
-            uuid::Uuid::new_v5(&BODY_FILE_NAMESPACE, target.as_str().as_bytes())
-        ))
-        .ok()
-}
-
-/// Reads the body curl wrote and removes the file. The file is the tool's own, so this
-/// is not sandboxed; links are not followed.
-async fn take_body_file(environment: &TurnEnvironment, file: &PathUri) -> std::io::Result<Vec<u8>> {
-    let fs = environment.environment().get_filesystem();
-    let body = fs
-        .read_file(
-            file,
-            ReadFileOptions {
-                follow_symlinks: false,
-            },
-            /*sandbox*/ None,
-        )
-        .await;
-    let _ = fs
-        .remove(
-            file,
-            RemoveOptions {
-                recursive: false,
-                force: true,
-                follow_symlinks: false,
-            },
-            /*sandbox*/ None,
-        )
-        .await;
-    body
 }
 
 /// Converts a page to Markdown on a blocking thread, so that a large page does not hold up

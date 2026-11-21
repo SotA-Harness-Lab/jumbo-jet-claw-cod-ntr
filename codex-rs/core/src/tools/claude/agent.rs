@@ -13,7 +13,9 @@
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::sync::Arc;
+use std::time::Duration;
 
+use codex_claude_compat::HooksModConfig;
 use codex_claude_compat::tools::AGENT;
 use codex_claude_compat::tools::agent;
 use codex_claude_compat::tools::agent::AgentType;
@@ -38,7 +40,9 @@ use super::check_permission;
 use super::failed;
 use super::output::ClaudeToolOutput;
 use super::parse_claude_arguments;
+use super::skill::preloaded_skills;
 use super::subagent_tools::list_entry;
+use super::subagent_tools::role_subagent;
 use super::subagent_tools::role_tool_list;
 use crate::agent::LocalAgentControl;
 use crate::agent::agent_resolver::resolve_agent_target;
@@ -123,6 +127,10 @@ struct AgentArgs {
     model: Option<String>,
     #[serde(default)]
     run_in_background: bool,
+    /// Not offered to the model: the effort level of a `context: fork` skill run through
+    /// this tool, as Codex's reasoning effort.
+    #[serde(default)]
+    effort: Option<String>,
 }
 
 impl ToolExecutor<ToolInvocation> for AgentHandler {
@@ -283,12 +291,35 @@ impl AgentHandler {
         role: Option<&str>,
     ) -> Result<(String, ThreadId), FunctionCallError> {
         let mut arguments = Map::new();
-        arguments.insert("message".to_string(), json!(args.prompt));
+        let subagent = role
+            .and_then(|role| crate::agent::role::resolve_role_config(&invocation.turn.config, role))
+            .and_then(role_subagent);
+        // As in Claude Code, the skills the subagent names come with the prompt, in full.
+        let preloaded = match (role, &subagent) {
+            (Some(role), Some(subagent)) => {
+                preloaded_skills(invocation, role, &subagent.skills).await
+            }
+            _ => Vec::new(),
+        };
+        let message = std::iter::once(args.prompt.clone())
+            .chain(preloaded)
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        arguments.insert("message".to_string(), json!(message));
         if let Some(role) = role {
             arguments.insert("agent_type".to_string(), json!(role));
         }
-        if let Some(model) = args.model.as_deref().filter(|model| !model.is_empty()) {
+        if let Some(model) = spawn_model(
+            &invocation.turn.config.mod_config.hooks,
+            args.model.as_deref(),
+            subagent
+                .as_ref()
+                .and_then(|subagent| subagent.model.as_deref()),
+        ) {
             arguments.insert("model".to_string(), json!(model));
+        }
+        if let Some(effort) = args.effort.as_deref() {
+            arguments.insert("reasoning_effort".to_string(), json!(effort));
         }
         let source = if self.version == MultiAgentVersion::V2 {
             arguments.insert(
@@ -335,6 +366,31 @@ impl AgentHandler {
     }
 }
 
+/// The model to start the agent on, as Claude Code picks it: the call's `model`, then the
+/// subagent's own, then (`None`) the parent's. A Claude model name is mapped to a Codex model
+/// by `[hooks.models]` of `ccn-config.toml`; the call's `model` is otherwise passed on as a
+/// model name Codex knows, while a subagent's that the table does not map, or `inherit`, is
+/// left out.
+fn spawn_model(
+    hooks: &HooksModConfig,
+    requested: Option<&str>,
+    subagent: Option<&str>,
+) -> Option<String> {
+    let mapped = |model: &str| {
+        (!model.eq_ignore_ascii_case("inherit"))
+            .then(|| hooks.model_for(Some(model)))
+            .flatten()
+            .map(str::to_string)
+    };
+    if let Some(requested) = requested.map(str::trim).filter(|model| !model.is_empty()) {
+        return Some(mapped(requested).unwrap_or_else(|| requested.to_string()));
+    }
+    subagent
+        .map(str::trim)
+        .filter(|model| !model.is_empty())
+        .and_then(mapped)
+}
+
 /// The agent's status once it is final, followed through Codex's status subscription as
 /// `wait_agent` follows it.
 async fn final_status(control: &LocalAgentControl, thread_id: ThreadId) -> AgentStatus {
@@ -350,9 +406,14 @@ async fn final_status(control: &LocalAgentControl, thread_id: ThreadId) -> Agent
     control.get_status(thread_id).await
 }
 
+/// How long a finished background agent waits for Codex's completion watcher before it is
+/// closed anyway; the watcher reads one status change and injects one notice.
+const COMPLETION_WATCHER_LIMIT: Duration = Duration::from_secs(60);
+
 /// Closes a background V1 agent once it has finished, so that it gives back its thread slot
 /// as a foreground one does. Its result still reaches the conversation through Codex's
-/// completion notice, which has read the final status by then.
+/// completion notice: the close waits until the completion watcher has injected it. The
+/// final status is kept before the close, so that `wait_agent` on the agent still returns it.
 fn close_when_finished(control: LocalAgentControl, thread_id: ThreadId) {
     let Ok(membership) = control.runtime.admit_start() else {
         return;
@@ -364,14 +425,24 @@ fn close_when_finished(control: LocalAgentControl, thread_id: ThreadId) {
             _ = control.runtime.shutdown.cancelled() => None,
             status = final_status(&control, thread_id) => Some(status),
         };
-        if matches!(
-            status,
-            Some(AgentStatus::Completed(_) | AgentStatus::Errored(_))
-        ) {
-            // Closing turns the status into `Shutdown`; let the completion notice, woken by
-            // the same change, take the final status first.
-            tokio::task::yield_now().await;
-            let _ = control.close_agent(thread_id).await;
+        if let Some(status @ (AgentStatus::Completed(_) | AgentStatus::Errored(_))) = status {
+            // Closing turns the status into `Shutdown` and removes the thread; the
+            // completion notice takes the final status first.
+            let watcher = control.wait_for_completion_watcher(thread_id, COMPLETION_WATCHER_LIMIT);
+            let noticed = tokio::select! {
+                biased;
+                _ = control.runtime.shutdown.cancelled() => None,
+                noticed = watcher => Some(noticed),
+            };
+            if let Some(noticed) = noticed {
+                if !noticed {
+                    tracing::debug!(
+                        "closing background agent {thread_id} before its completion notice"
+                    );
+                }
+                control.record_closed_result(thread_id, status);
+                let _ = control.close_agent(thread_id).await;
+            }
         }
         teardown.complete();
     });

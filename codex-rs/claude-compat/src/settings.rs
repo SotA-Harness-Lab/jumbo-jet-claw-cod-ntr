@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
 
-//! Claude Code's `settings.json`: the parts Codex can apply, `env` and the Bash
-//! permission rules.
+//! Claude Code's `settings.json`: the parts Codex can apply, `env`, `effortLevel` and the
+//! Bash permission rules.
 
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 use serde_json::Value;
 
@@ -28,8 +29,8 @@ pub struct BashPrefixRule {
 }
 
 /// The settings files Claude Code reads, lowest precedence first: the user's
-/// `~/.claude/settings.json`, then the project's `.claude/settings.json` and
-/// `.claude/settings.local.json` in `project_dir`.
+/// `~/.claude/settings.json`, then the project's `.claude/settings.json` in `project_dir`
+/// and its `.claude/settings.local.json` files (see [`local_settings_paths`]).
 pub fn settings_paths(claude_home: Option<&Path>, project_dir: Option<&Path>) -> Vec<PathBuf> {
     let mut paths = Vec::new();
     if let Some(claude_home) = claude_home {
@@ -40,10 +41,86 @@ pub fn settings_paths(claude_home: Option<&Path>, project_dir: Option<&Path>) ->
         // In the home directory, `.claude` is the user's own configuration.
         if claude_home != Some(dot_claude.as_path()) {
             paths.push(dot_claude.join("settings.json"));
-            paths.push(dot_claude.join("settings.local.json"));
+            paths.extend(local_settings_paths(
+                project_dir,
+                claude_home.and_then(Path::parent),
+            ));
         }
     }
     paths
+}
+
+const LOCAL_SETTINGS_FILE: &str = "settings.local.json";
+
+/// The `.claude/settings.local.json` files Claude Code reads for a session in `project_dir`,
+/// lowest precedence first. Below the root of a Git repository (the main checkout's root,
+/// from a linked worktree) Claude Code keeps the file at that root, and still reads one an
+/// earlier version left in `project_dir`, the root's file winning where both set a key. The
+/// file is read from `project_dir` alone outside a repository, when the root is the home
+/// directory `home_dir`, on Windows, and when the root, its `.git` or its `.claude` is not
+/// owned by the user.
+pub fn local_settings_paths(project_dir: &Path, home_dir: Option<&Path>) -> Vec<PathBuf> {
+    let mut paths = vec![project_dir.join(CLAUDE_DIR).join(LOCAL_SETTINGS_FILE)];
+    if let Some(root) = local_settings_root(project_dir, home_dir)
+        && root != project_dir
+    {
+        paths.push(root.join(CLAUDE_DIR).join(LOCAL_SETTINGS_FILE));
+    }
+    paths
+}
+
+/// The repository root whose `.claude/settings.local.json` Claude Code reads for
+/// `project_dir`, when it reads one there.
+fn local_settings_root(project_dir: &Path, home_dir: Option<&Path>) -> Option<PathBuf> {
+    if cfg!(windows) {
+        return None;
+    }
+    let root = crate::mcp::git_repository_root(project_dir)?;
+    if home_dir == Some(root.as_path()) {
+        return None;
+    }
+    [root.clone(), root.join(".git"), root.join(CLAUDE_DIR)]
+        .iter()
+        .all(|path| owned_by_user(path))
+        .then_some(root)
+}
+
+/// Whether `path` (not what a link there points to) belongs to the user Codex runs as; a
+/// missing entry passes.
+#[cfg(unix)]
+fn owned_by_user(path: &Path) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    match std::fs::symlink_metadata(path) {
+        // SAFETY: geteuid has no preconditions and cannot fail.
+        Ok(metadata) => metadata.uid() == unsafe { libc::geteuid() },
+        Err(err) => err.kind() == io::ErrorKind::NotFound,
+    }
+}
+
+#[cfg(not(unix))]
+fn owned_by_user(_path: &Path) -> bool {
+    true
+}
+
+/// What a list of settings files looked like at one moment: for each, its length and its
+/// modification time, or nothing when it did not exist. Two stamps of the same files differ
+/// once one of them was written, created or removed, which is when Claude Code applies an
+/// edit to its settings in the running session.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SettingsStamp(Vec<Option<(u64, Option<SystemTime>)>>);
+
+/// The [`SettingsStamp`] of `paths` now.
+pub fn settings_stamp(paths: &[PathBuf]) -> SettingsStamp {
+    SettingsStamp(
+        paths
+            .iter()
+            .map(|path| {
+                std::fs::metadata(path)
+                    .ok()
+                    .map(|metadata| (metadata.len(), metadata.modified().ok()))
+            })
+            .collect(),
+    )
 }
 
 /// The largest settings or `.mcp.json` file read; a larger one is an error.
@@ -101,6 +178,19 @@ pub fn settings_env(settings: &Value) -> Vec<(String, String)> {
             (name.clone(), value)
         })
         .collect()
+}
+
+/// The `effortLevel` of a settings file as a Codex reasoning effort: Claude Code's `low`,
+/// `medium`, `high` and `xhigh` are Codex's levels of the same name, and `max` becomes `xhigh`,
+/// as a subagent's `effort` does. Any other value is passed over.
+pub fn settings_effort_level(settings: &Value) -> Option<&'static str> {
+    match settings.get("effortLevel").and_then(Value::as_str)? {
+        "low" => Some("low"),
+        "medium" => Some("medium"),
+        "high" => Some("high"),
+        "xhigh" | "max" => Some("xhigh"),
+        _ => None,
+    }
 }
 
 /// The Bash rules of `permissions.allow`, `ask` and `deny` that name a command prefix,

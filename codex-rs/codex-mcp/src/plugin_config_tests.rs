@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; test reading
+// Claude Code's server declarations
 
 use super::PluginMcpConfigParseOutcome;
 use super::PluginMcpServerParseError;
@@ -1056,4 +1057,190 @@ fn claude_code_timeout_becomes_tool_timeout() {
             ("short", None),
         ])
     );
+}
+
+fn headers_helper_of(outcome: &PluginMcpConfigParseOutcome, name: &str) -> Option<String> {
+    match &outcome.servers[name].transport {
+        McpServerTransportConfig::StreamableHttp {
+            http_headers_helper,
+            ..
+        } => http_headers_helper.clone(),
+        McpServerTransportConfig::Stdio { .. } => None,
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn claude_code_headers_helper_becomes_http_headers_helper() {
+    let outcome = parse_plugin_mcp_config(
+        &plugin_root(),
+        r#"{"mcpServers":{
+            "remote":{"type":"http","url":"https://example.com/mcp","headersHelper":"get-headers"},
+            "codex":{"type":"http","url":"https://example.com/mcp","headersHelper":"theirs","http_headers_helper":"ours"},
+            "local":{"command":"demo-mcp","headersHelper":"get-headers"}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty(), "{:?}", outcome.errors);
+    assert_eq!(
+        headers_helper_of(&outcome, "remote"),
+        Some(
+            "export CLAUDE_CODE_MCP_SERVER_NAME='remote' \
+             CLAUDE_CODE_MCP_SERVER_URL='https://example.com/mcp'\nget-headers"
+                .to_string()
+        )
+    );
+    assert_eq!(
+        headers_helper_of(&outcome, "codex"),
+        Some("ours".to_string())
+    );
+    assert_eq!(headers_helper_of(&outcome, "local"), None);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_claude_code_plugin_s_headers_helper_runs_from_the_plugin_root() {
+    let temp = tempfile::tempdir().expect("temporary directory");
+    let root = temp.path();
+    std::fs::create_dir_all(root.join(".claude-plugin")).expect("manifest directory");
+    std::fs::write(
+        root.join(".claude-plugin/plugin.json"),
+        r#"{"name":"demo","userConfig":{"token":{"default":"t"}}}"#,
+    )
+    .expect("manifest");
+
+    let outcome = parse_plugin_mcp_config(
+        root,
+        r#"{"mcpServers":{
+            "remote":{"type":"http","url":"https://example.com/mcp","headersHelper":"./bin/headers"},
+            "option":{"type":"http","url":"https://example.com/mcp","headersHelper":"echo ${user_config.token}"}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    let root = root.display().to_string();
+    assert_eq!(
+        headers_helper_of(&outcome, "remote"),
+        Some(format!(
+            "export CLAUDE_CODE_MCP_SERVER_NAME='remote' \
+             CLAUDE_CODE_MCP_SERVER_URL='https://example.com/mcp'\n\
+             export CLAUDE_PLUGIN_ROOT='{root}'\ncd -- '{root}' || exit 1\n./bin/headers"
+        ))
+    );
+    assert!(!outcome.servers.contains_key("option"));
+    assert_eq!(
+        outcome
+            .errors
+            .iter()
+            .map(|error| error.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["option"]
+    );
+}
+
+#[test]
+fn claude_code_oauth_scopes_become_server_scopes() {
+    let outcome = parse_plugin_mcp_config(
+        &plugin_root(),
+        r#"{"mcpServers":{
+            "remote":{"type":"http","url":"https://example.com/mcp","oauth":{
+                "clientId":"client","callbackPort":8080,
+                "scopes":"channels:read  chat:write",
+                "authServerMetadataUrl":"https://auth.example.com/.well-known/openid-configuration"
+            }}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty(), "{:?}", outcome.errors);
+    let server = &outcome.servers["remote"];
+    assert_eq!(
+        server.scopes,
+        Some(vec!["channels:read".to_string(), "chat:write".to_string()])
+    );
+    assert_eq!(
+        server.oauth,
+        Some(McpServerOAuthConfig {
+            client_id: Some("client".to_string()),
+            callback_port: Some(8080),
+            ..Default::default()
+        })
+    );
+}
+
+#[test]
+fn claude_code_sse_server_is_tried_over_streamable_http() {
+    let outcome = parse_plugin_mcp_config(
+        &plugin_root(),
+        r#"{"mcpServers":{
+            "legacy":{"type":"sse","url":"https://example.com/sse","headers":{"X-Api-Key":"k"}}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty(), "{:?}", outcome.errors);
+    let McpServerTransportConfig::StreamableHttp {
+        url, http_headers, ..
+    } = &outcome.servers["legacy"].transport
+    else {
+        panic!("expected HTTP transport");
+    };
+    assert_eq!(url, "https://example.com/sse");
+    assert_eq!(
+        http_headers,
+        &Some(HashMap::from([("X-Api-Key".to_string(), "k".to_string())]))
+    );
+}
+
+#[test]
+fn claude_code_plugin_servers_find_the_plugin_root_in_their_environment() {
+    let tmp = tempfile::TempDir::new().expect("temp dir");
+    let root = tmp.path().join("demo");
+    std::fs::create_dir_all(root.join(".claude-plugin")).expect("create");
+    std::fs::write(
+        root.join(".claude-plugin/plugin.json"),
+        r#"{"name": "demo"}"#,
+    )
+    .expect("write");
+    let outcome = parse_plugin_mcp_config(
+        &root,
+        r#"{"mcpServers":{
+            "plain":{"command":"node","args":["${CLAUDE_PLUGIN_ROOT}/server.js"]},
+            "own":{"command":"node","env":{"CLAUDE_PLUGIN_ROOT":"elsewhere","MODE":"x"}},
+            "remote":{"type":"http","url":"https://example.com/mcp"}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty());
+    let root_text = root.display().to_string();
+    let stdio = |name: &str| {
+        let McpServerTransportConfig::Stdio { args, env, .. } = &outcome.servers[name].transport
+        else {
+            panic!("expected stdio transport");
+        };
+        (args.clone(), env.clone())
+    };
+    assert_eq!(
+        stdio("plain"),
+        (
+            vec![format!("{root_text}/server.js")],
+            Some(HashMap::from([(
+                "CLAUDE_PLUGIN_ROOT".to_string(),
+                root_text
+            )]))
+        )
+    );
+    assert_eq!(
+        stdio("own").1,
+        Some(HashMap::from([
+            ("CLAUDE_PLUGIN_ROOT".to_string(), "elsewhere".to_string()),
+            ("MODE".to_string(), "x".to_string()),
+        ]))
+    );
+    assert!(matches!(
+        outcome.servers["remote"].transport,
+        McpServerTransportConfig::StreamableHttp { .. }
+    ));
 }

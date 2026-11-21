@@ -12,6 +12,8 @@ use super::super::edit;
 use super::super::read;
 use super::super::todo_write;
 use super::super::write;
+use super::apply_subagent_mcp_servers;
+use super::apply_subagent_permission_mode;
 use super::restrict;
 use super::role_tool_list;
 use crate::config::AgentRoleConfig;
@@ -111,4 +113,96 @@ fn tool_lists_come_from_claude_subagent_files_only() {
         None
     );
     assert_eq!(role_tool_list(&role(None)), None);
+}
+
+#[tokio::test]
+async fn a_subagent_set_to_dont_ask_runs_without_approvals() {
+    use codex_protocol::protocol::AskForApproval;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let mut config = crate::config::test_config().await;
+    config
+        .permissions
+        .approval_policy
+        .set(AskForApproval::OnRequest)
+        .expect("on-request");
+    for (name, mode) in [("quiet", "dontAsk"), ("planner", "plan")] {
+        let file = dir.path().join(format!("{name}.md"));
+        std::fs::write(
+            &file,
+            format!("---\nname: {name}\ndescription: d\npermissionMode: {mode}\n---\nWork.\n"),
+        )
+        .expect("write subagent");
+        config.agent_roles.insert(
+            name.to_string(),
+            AgentRoleConfig {
+                description: None,
+                config_file: Some(file),
+                nickname_candidates: None,
+            },
+        );
+    }
+
+    // Modes without a Codex counterpart keep the parent's policy.
+    apply_subagent_permission_mode(&mut config, Some("planner"));
+    assert_eq!(
+        config.permissions.approval_policy.value(),
+        AskForApproval::OnRequest
+    );
+    apply_subagent_permission_mode(&mut config, None);
+    assert_eq!(
+        config.permissions.approval_policy.value(),
+        AskForApproval::OnRequest
+    );
+
+    apply_subagent_permission_mode(&mut config, Some("quiet"));
+    assert_eq!(
+        config.permissions.approval_policy.value(),
+        AskForApproval::Never
+    );
+}
+
+#[tokio::test]
+async fn a_subagents_inline_mcp_servers_wait_for_the_project_to_be_trusted() {
+    use codex_config::config_toml::ProjectConfig;
+    use codex_protocol::config_types::TrustLevel;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let file = dir.path().join("browser.md");
+    std::fs::write(
+        &file,
+        "---\nname: browser\ndescription: d\nmcpServers:\n  - playwright:\n      type: stdio\n      command: npx\n  - github\n---\nBrowse.\n",
+    )
+    .expect("write subagent");
+    let mut config = crate::config::test_config().await;
+    config.agent_roles.insert(
+        "browser".to_string(),
+        AgentRoleConfig {
+            description: None,
+            config_file: Some(file),
+            nickname_candidates: None,
+        },
+    );
+    let servers = |config: &crate::config::Config| {
+        let mut names = config.mcp_servers.get().keys().cloned().collect::<Vec<_>>();
+        names.sort();
+        names
+    };
+    let before = servers(&config);
+    assert!(!before.contains(&"playwright".to_string()));
+
+    config.active_project = ProjectConfig {
+        trust_level: Some(TrustLevel::Untrusted),
+    };
+    apply_subagent_mcp_servers(&mut config, Some("browser"));
+    assert_eq!(servers(&config), before);
+
+    config.active_project = ProjectConfig {
+        trust_level: Some(TrustLevel::Trusted),
+    };
+    apply_subagent_mcp_servers(&mut config, Some("browser"));
+    let mut expected = before;
+    expected.push("playwright".to_string());
+    expected.sort();
+    assert_eq!(servers(&config), expected);
 }
