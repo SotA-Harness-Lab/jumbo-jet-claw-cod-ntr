@@ -4164,18 +4164,11 @@ impl Config {
             load_agent_roles(fs, &cfg, &config_layer_stack, &mut startup_warnings).await?;
         // Claude Code subagents, the project's over the user's; Codex's own roles win.
         if !cfg!(test) && codex_claude_compat::enabled() {
-            let mut agents_dirs = Vec::new();
-            if let Some(home) = dirs::home_dir()
-                && let Ok(home) = AbsolutePathBuf::from_absolute_path_checked(home)
-            {
-                agents_dirs.push(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"));
-            }
-            let project_agents = resolved_cwd
-                .join(codex_claude_compat::CLAUDE_DIR)
-                .join("agents");
-            if !agents_dirs.contains(&project_agents) {
-                agents_dirs.push(project_agents);
-            }
+            let agents_dirs = claude_code_agents_dirs(
+                dirs::home_dir(),
+                &resolved_cwd,
+                !active_project.is_untrusted(),
+            );
             let mut claude_roles = std::collections::BTreeMap::new();
             for agents_dir in &agents_dirs {
                 match codex_agent_roles::load_claude_code_agent_roles(
@@ -5555,6 +5548,27 @@ mod config_loader_tests;
 #[cfg(test)]
 #[path = "runtime_auth_tests.rs"]
 mod runtime_auth_tests;
+
+/// The directories of Claude Code subagents, the user's first: `~/.claude/agents`, and the
+/// project's `.claude/agents` unless the project is marked untrusted, as its instruction
+/// files are left out then.
+fn claude_code_agents_dirs(
+    home: Option<PathBuf>,
+    cwd: &AbsolutePathBuf,
+    include_project: bool,
+) -> Vec<AbsolutePathBuf> {
+    let mut agents_dirs = Vec::new();
+    if let Some(home) = home
+        && let Ok(home) = AbsolutePathBuf::from_absolute_path_checked(home)
+    {
+        agents_dirs.push(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"));
+    }
+    let project_agents = cwd.join(codex_claude_compat::CLAUDE_DIR).join("agents");
+    if include_project && !agents_dirs.contains(&project_agents) {
+        agents_dirs.push(project_agents);
+    }
+    agents_dirs
+}
 
 /// The plugins installed and enabled in Claude Code for `cwd` that Codex uses, with a startup
 /// warning for each one left out; `enable` lists those to use even when found incompatible.

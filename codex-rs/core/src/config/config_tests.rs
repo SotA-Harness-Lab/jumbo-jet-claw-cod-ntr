@@ -14460,3 +14460,32 @@ fn sqlite_home_env_conflict_reports_an_override() -> std::io::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn an_untrusted_project_supplies_no_claude_code_subagents() {
+    let home = tempdir().expect("home");
+    let project = tempdir().expect("project");
+    let cwd = AbsolutePathBuf::from_absolute_path_checked(project.path()).expect("cwd");
+    let user_agents = AbsolutePathBuf::from_absolute_path_checked(home.path())
+        .expect("home")
+        .join(".claude")
+        .join("agents");
+    let project_agents = cwd.join(".claude").join("agents");
+
+    assert_eq!(
+        claude_code_agents_dirs(
+            Some(home.path().to_path_buf()),
+            &cwd,
+            /*include_project*/ true
+        ),
+        vec![user_agents.clone(), project_agents]
+    );
+    assert_eq!(
+        claude_code_agents_dirs(
+            Some(home.path().to_path_buf()),
+            &cwd,
+            /*include_project*/ false
+        ),
+        vec![user_agents]
+    );
+}
