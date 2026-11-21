@@ -32,6 +32,7 @@ NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一
 ## 目录
 
 - [概述](#概述)
+- [定位](#定位)
 - [功能特性](#功能特性)
 - [不兼容的部分](#不兼容的部分)
 - [安装](#安装)
@@ -46,6 +47,16 @@ NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一
 jjcn 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件），在其上加一层兼容层，到 Claude Code 存放文件的地方直接读取。不复制、不转换，没有同步步骤；`CCN_CLAUDE_COMPAT=0` 可以关掉整个兼容层。Codex 已经有的机制，兼容层直接交给它做，只补上 Codex 没有的部分。逐项的说明见 [Claude Code compatibility](../docs/claude-compat.md)。
 
 改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`。
+
+## 定位
+
+CodClaw NTR 是让 Codex 尽量完整地读懂 Claude Code 配置文件的版本。落到代码上：
+
+- **兼容 Claude Code 优先。** Codex 和 Claude Code 的配置有冲突的地方，改 Codex 去适应 Claude Code，哪怕改动很大。
+- **其余保持 Codex 原样。** Codex 自己不冲突的特性都保留，不过保留它们本身不是目标。Codex 的代码只改兼容需要的部分，为的是能持续跟进上游 Codex 的更新：可以和上游有一定分叉，但始终保持在手动解决冲突就能合并的程度。
+- **插件系统和程序设置沿用 Codex。** 它们是 Codex 的核心组件，不好大改，从头复刻一套兼容 Claude Code 的插件系统也没有必要。Claude Code 的插件在好做的范围内兼容；设置是 Codex 的 `config.toml` 和本改版的 `ccn-config.toml`，Claude Code 的设置只读兼容用得到的部分。
+
+想要完全转向 Claude Code 生态的 harness，见在本项目之上构建的 [jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr)。
 
 ## 功能特性
 
