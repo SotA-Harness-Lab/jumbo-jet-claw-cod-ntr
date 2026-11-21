@@ -42,6 +42,7 @@ pub use markdown::Document;
 pub use markdown::import_paths;
 pub use markdown::parse_document;
 pub use markdown::strip_block_comments;
+pub use mcp::claude_json_project_root;
 pub use mcp::mcp_json_paths;
 pub use mcp::mcp_server_declarations;
 pub use memory::auto_memory_dir;

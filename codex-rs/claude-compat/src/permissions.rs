@@ -630,7 +630,7 @@ fn tool_matches(rule: &PermissionRule, tool: &str) -> bool {
 }
 
 /// The path with `.` and `..` resolved, without touching the filesystem.
-fn normalize_path(path: &Path) -> PathBuf {
+pub(crate) fn normalize_path(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
     for component in path.components() {
         match component {

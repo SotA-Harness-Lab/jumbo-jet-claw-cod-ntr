@@ -11,6 +11,8 @@ use std::path::PathBuf;
 use serde_json::Map;
 use serde_json::Value;
 
+use crate::permissions::normalize_path;
+
 /// The MCP servers Claude Code would start in `cwd`, as Claude Code declares them, with
 /// `${VAR}` and `${VAR:-default}` expanded. Later sources win: the user's servers, then
 /// the approved servers of the project's `.mcp.json` files (the one nearest `cwd` winning),
@@ -101,6 +103,41 @@ fn expand_server(server: Value, env: &dyn Fn(&str) -> Option<String>) -> Value {
             })
             .collect(),
     )
+}
+
+/// The key of the project `cwd` is in, in `projects` of `~/.claude.json`: the main checkout
+/// of its Git repository, also from a linked worktree (Claude Code's `findCanonicalGitRoot`),
+/// or `cwd` itself outside a repository.
+pub fn claude_json_project_root(cwd: &Path) -> PathBuf {
+    match cwd.ancestors().find(|dir| dir.join(".git").exists()) {
+        Some(git_root) => canonical_git_root(git_root).unwrap_or_else(|| git_root.to_path_buf()),
+        None => cwd.to_path_buf(),
+    }
+}
+
+/// The main checkout of the linked worktree `git_root`, or of a bare repository its common
+/// directory; `None` for any other working tree. As in Claude Code, a `.git` file is
+/// followed only when it has the shape `git worktree add` gives it (its `gitdir` a direct
+/// child of the common directory's `worktrees`, whose own `gitdir` points back to this
+/// `.git`), so that a cloned repository cannot claim another project's entry.
+fn canonical_git_root(git_root: &Path) -> Option<PathBuf> {
+    let content = std::fs::read_to_string(git_root.join(".git")).ok()?;
+    let gitdir = content.trim().strip_prefix("gitdir:")?.trim();
+    let worktree_git_dir = normalize_path(&git_root.join(gitdir));
+    let commondir = std::fs::read_to_string(worktree_git_dir.join("commondir")).ok()?;
+    let common_dir = normalize_path(&worktree_git_dir.join(commondir.trim()));
+    if worktree_git_dir.parent()? != common_dir.join("worktrees").as_path() {
+        return None;
+    }
+    let backlink = std::fs::read_to_string(worktree_git_dir.join("gitdir")).ok()?;
+    let backlink = std::fs::canonicalize(backlink.trim()).ok()?;
+    if backlink != std::fs::canonicalize(git_root).ok()?.join(".git") {
+        return None;
+    }
+    if common_dir.file_name()? != ".git" {
+        return Some(common_dir);
+    }
+    common_dir.parent().map(Path::to_path_buf)
 }
 
 /// The `.mcp.json` files Claude Code reads for `cwd`, from the top of the filesystem down.

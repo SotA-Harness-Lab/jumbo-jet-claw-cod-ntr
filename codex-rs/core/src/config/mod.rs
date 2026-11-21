@@ -5668,18 +5668,14 @@ fn claude_code_mcp_servers(
         .iter()
         .filter_map(|path| read_json(path))
         .collect::<Vec<_>>();
-    // `~/.claude.json` keeps a project's servers under its Git root, or under the
-    // directory itself outside a repository.
-    let project_root = cwd
-        .as_path()
-        .ancestors()
-        .find(|dir| dir.join(".git").exists())
-        .unwrap_or(cwd.as_path());
+    // `~/.claude.json` keeps a project's servers under the main checkout of its repository,
+    // or under the directory itself outside a repository.
+    let project_root = codex_claude_compat::claude_json_project_root(cwd.as_path());
     let declarations = codex_claude_compat::mcp_server_declarations(
         claude_json.as_ref(),
         &settings,
         &mcp_json_files,
-        project_root,
+        &project_root,
         &|name| std::env::var(name).ok(),
     );
     if declarations.is_empty() {

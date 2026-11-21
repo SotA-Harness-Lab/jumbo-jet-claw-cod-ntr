@@ -116,3 +116,30 @@ fn the_walk_stops_below_the_root() {
         ]
     );
 }
+
+#[test]
+fn a_linked_worktree_is_known_by_its_main_checkout() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let base = std::fs::canonicalize(temp.path()).expect("canonical tempdir");
+    let main = base.join("main");
+    let worktree = base.join("wt");
+    let forged = base.join("forged");
+    let worktree_git_dir = main.join(".git").join("worktrees").join("wt");
+    std::fs::create_dir_all(&worktree_git_dir).expect("worktree git dir");
+    std::fs::create_dir_all(worktree.join("sub")).expect("worktree");
+    std::fs::create_dir_all(&forged).expect("forged");
+    std::fs::write(worktree_git_dir.join("commondir"), "../..\n").expect("commondir");
+    std::fs::write(
+        worktree_git_dir.join("gitdir"),
+        format!("{}\n", worktree.join(".git").display()),
+    )
+    .expect("gitdir");
+    let gitfile = format!("gitdir: {}\n", worktree_git_dir.display());
+    std::fs::write(worktree.join(".git"), &gitfile).expect("worktree .git");
+    // A clone whose `.git` names the worktree's entry, which does not point back to it.
+    std::fs::write(forged.join(".git"), &gitfile).expect("forged .git");
+
+    assert_eq!(super::claude_json_project_root(&main), main);
+    assert_eq!(super::claude_json_project_root(&worktree.join("sub")), main);
+    assert_eq!(super::claude_json_project_root(&forged), forged);
+}
