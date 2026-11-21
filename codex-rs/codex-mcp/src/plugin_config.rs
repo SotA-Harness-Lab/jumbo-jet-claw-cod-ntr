@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables, and read
+// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables and give its
+// local servers its paths, and read Claude Code's `headers` and `timeout`
 // Claude Code's `headers`, `timeout`, `headersHelper` and `oauth.scopes`
 
 use codex_config::McpServerAuth;
@@ -294,19 +295,39 @@ fn normalize_plugin_mcp_server_value(
     source: PluginMcpSource<'_>,
 ) -> JsonMap<String, JsonValue> {
     let mut value = value;
+    // A Claude Code plugin's server may refer to the plugin's install path, its data
+    // directory and the options the user set for it (`${CLAUDE_PLUGIN_ROOT}`,
+    // `${CLAUDE_PLUGIN_DATA}`, `${user_config.KEY}`).
+    let plugin = match source {
+        PluginMcpSource::Host { root } => codex_claude_compat::PluginVariables::load(root),
+        PluginMcpSource::Environment { .. } => None,
+    };
     let mut claude_plugin_root = None;
-    // A Claude Code plugin's server may refer to the plugin's install path and to the
-    // options the user set for it (`${CLAUDE_PLUGIN_ROOT}`, `${user_config.KEY}`).
-    if let PluginMcpSource::Host { root } = source
-        && let Some(plugin) = codex_claude_compat::PluginVariables::load(root)
-    {
-        substitute_plugin_variables(&mut value, &plugin, &source.display());
-        claude_plugin_root = Some(root);
+    if let Some(plugin) = &plugin {
+        substitute_plugin_variables(&mut value, plugin, &source.display());
+        if let PluginMcpSource::Host { root } = source {
+            claude_plugin_root = Some(root);
+        }
     }
     let mut object = match value {
         JsonValue::Object(object) => object,
         _ => return JsonMap::new(),
     };
+
+    // As in Claude Code, the plugin's local server also finds the two paths in its
+    // environment, unless its own `env` sets them.
+    if let Some(plugin) = &plugin
+        && object.contains_key("command")
+    {
+        let env = object
+            .entry("env".to_string())
+            .or_insert_with(|| JsonValue::Object(JsonMap::new()));
+        if let JsonValue::Object(env) = env {
+            for (name, path) in plugin.server_env() {
+                env.entry(name).or_insert(JsonValue::String(path));
+            }
+        }
+    }
 
     if let Some(JsonValue::String(transport_type)) = object.remove("type") {
         match transport_type.as_str() {

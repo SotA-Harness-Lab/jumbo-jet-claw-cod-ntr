@@ -425,9 +425,7 @@ Codex's `plugins` feature off leaves them all out.
 | --- | --- | --- | --- |
 | A plugin Codex configures under the same id, or has installed under the same name from any marketplace | Not applicable | Codex's wins, and the Claude Code one is left out | Done 2026-11-18 `471d20cf39` |
 | A plugin that relies on a mechanism only Claude Code has | Used | Disabled whole, with a startup warning; see "Which plugins are used" below | Done 2026-11-18 `471d20cf39` |
-| Where `${CLAUDE_PLUGIN_ROOT}` is filled in | Hook, MCP and LSP declarations, the bodies of skills, commands and agents, and the environment of hooks and of MCP and LSP servers | Hook commands, MCP server declarations, agent bodies, and the environment of hooks | Done 2026-11-19 `4ff3147125` |
 | Which files give `userConfig` its plain values | `pluginConfigs` of all the settings files, merged | `pluginConfigs` of `~/.claude/settings.json` only | Done 2026-11-19 `4ff3147125` |
-| `${CLAUDE_PLUGIN_DATA}` in an MCP server's declaration | Filled in | Left as written; a hook's environment has it | Done 2026-11-19 `4ff3147125` |
 | `${user_config.<key>}` in a hook's command written for a shell, a monitor or a `headersHelper` | Newer versions (2.1.207) refuse it as shell injection: a hook passes the value through `args` or `$CLAUDE_PLUGIN_OPTION_<KEY>` | Filled into the command's text | Done 2026-11-19 `4ff3147125` |
 
 #### Which plugins are used
@@ -627,9 +625,10 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | Which plugins are installed | `~/.claude/plugins/installed_plugins.json`; a plugin is read from the `installPath` of the first installation recorded for it, whatever its scope | The same | Done 2026-11-18 `471d20cf39` |
 | Which are enabled | `enabledPlugins` of `~/.claude/settings.json`, the project's `.claude/settings.json` and `.claude/settings.local.json`, merged in that order, a later file's value for a `<plugin>@<marketplace>` id winning; only `true` enables | The same. An enabled id that is not installed is reported at startup | Done 2026-11-18 `471d20cf39` |
 | What a plugin brings | Skills as `<plugin>:<skill>`, commands, agents, MCP servers, hooks | The same components, loaded by Codex's plugin loader from the install path | Done 2026-11-19 `471d20cf39`, `c58a3409c6`, `3134f1b61a`, `4ff3147125` |
-| `${CLAUDE_PLUGIN_ROOT}` in hook commands, MCP server declarations and agent bodies | The plugin's install path | The same | Done 2026-11-18 `471d20cf39` |
+| `${CLAUDE_PLUGIN_ROOT}` | The plugin's install path, filled in in hook, MCP and LSP declarations and in the bodies of skills, commands and agents, and set in the environment of hooks and of MCP and LSP servers (a server's own `env` wins) | The same; there are no LSP servers (see "Which plugins are used") | Done 2026-11-18 `471d20cf39`, 2026-11-21 |
+| `${CLAUDE_PLUGIN_DATA}` | The plugin's data directory, created when something names it; filled in and set in the same places as `${CLAUDE_PLUGIN_ROOT}` | The same, with the directory Codex keeps for the plugin, `$CODEX_HOME/plugins/data/<plugin>-<marketplace>` (see "Incompatible"), which its hooks see too | Done 2026-11-21 |
 | `userConfig`: where values are kept | The plain ones under `pluginConfigs.<plugin id>.options` of the settings, the ones marked `sensitive` in the secure store | The plain ones from `~/.claude/settings.json`, the sensitive ones from `pluginSecrets.<plugin id>` of `~/.claude/.credentials.json` | Done 2026-11-19 `4ff3147125` |
-| `userConfig`: `${user_config.KEY}` | Filled in in MCP server declarations and agent bodies, and in the reference source in hook commands (newer versions refuse it in a hook's shell command and want `CLAUDE_PLUGIN_OPTION_<KEY>` there) | Filled in in all three | Done 2026-11-19 `4ff3147125` |
+| `userConfig`: `${user_config.KEY}` | Filled in in MCP server declarations and in the bodies of skills, commands and agents (a sensitive option is named, not shown), and in the reference source in hook commands (newer versions refuse it in a hook's shell command and want `CLAUDE_PLUGIN_OPTION_<KEY>` there) | Filled in in all of these | Done 2026-11-19 `4ff3147125`, 2026-11-21 |
 | `userConfig`: `CLAUDE_PLUGIN_OPTION_<KEY>` | In the environment of the plugin's hooks, the key in upper case with anything but letters, digits and `_` turned into `_` | The same | Done 2026-11-19 `4ff3147125` |
 | The manifest's `agents` list | Stands in place of `agents/` | The same, for the directories it lists | Done 2026-11-20 `f987126bd2` |
 | A plugin skill whose frontmatter `name` already starts with `<plugin>:` | Newer versions (2.1.246) do not add the prefix again: `name: acme:review` in plugin `acme` is `/acme:review` | The same | Done 2026-11-21 |
@@ -759,7 +758,6 @@ thing Codex has, where there is one.
 | Hosted tools and the tools code mode and tool search add, under `tools` | Not applicable | Not filtered | Not planned |
 | A project's subagents in directories above the working directory | Found, up to the repository's root, the nearest winning | Only `.claude/agents` of the working directory is read | Not planned |
 | A plugin's `agents` entry that names a single file | Read | Not read; directories are | Not planned |
-| `${CLAUDE_PLUGIN_DATA}` in a plugin agent's body | Filled in | Left as written | Not planned |
 | A subagent's own memory (`memory: user`, `project` or `local`) | A directory of its own (`~/.claude/agent-memory/<name>/` and the like), shown to that subagent | Not kept | Not planned |
 | Subagents given with `--agents`, managed subagents, those of directories added with `--add-dir` | Loaded | Not loaded | Not planned |
 | A session that runs as a subagent (`--agent`, the `agent` setting) | The whole session takes the subagent's prompt, tools and model | No such option. Nearest: a Codex profile | Not planned |
@@ -799,13 +797,11 @@ thing Codex has, where there is one.
 | A change to the installed or enabled plugins | Shows once the plugins are reloaded | Shows at the start of the next session | Not planned |
 | A value for a `userConfig` option that was never set | Asked for in `/plugin`, when the plugin is installed, enabled or configured; the manifest's `default` is used when the user gives nothing, and an option not marked `required` that is left blank reads as empty (2.1.119) | Cannot be asked for. The manifest's `default` is used, and an option not marked `required` reads as empty (done 2026-11-21). A hook whose command names a required option without a value is skipped with a warning, and an MCP server's string that names it is left as written, with a warning in the log. Set the option in Claude Code | Not planned |
 | `sensitive` `userConfig` values on macOS | Read from the keychain | Not read: a sensitive option has no value there. On other systems they are read from `~/.claude/.credentials.json` | Not planned |
-| `userConfig` values in a plugin's skills and commands | Filled in | Not filled in | Not planned |
 | LSP servers of a plugin (`lspServers`, `.lsp.json`) | Started | The plugin is disabled whole (see "Which plugins are used") | Not planned; [jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr): planned |
 | A plugin without a `plugin.json`, whose marketplace entry is its manifest; a marketplace entry that adds components to the `plugin.json` | Loaded | Not read: only `plugin.json` at the install path is | Not planned |
 | Managed `enabledPlugins` (`false` there blocks a plugin the user enables), plugins from `--add-dir` and `--plugin-dir`, Claude Code's built-in plugins | Applied | Not read: a plugin the managed settings block is still used | Not planned |
 | A path the manifest declares for `hooks` or `mcpServers` | Loaded beside `hooks/hooks.json` or `.mcp.json` | Replaces it. An `mcpServers` list mixing paths and objects is not read | Not planned |
 | The plugin's `settings.json` | Its `agent` key is kept, which makes the session run as that agent | Not loaded | Not planned |
-| `${CLAUDE_PLUGIN_ROOT}` in a plugin's skills and commands, and in the environment of its MCP servers | Filled in | Not filled in | Not planned |
 | A plugin's `dependencies` | A plugin whose dependency is missing is not loaded; newer versions also install a missing one from the marketplaces added (2.1.116), enable them along with the plugin and refuse to disable one another plugin needs (2.1.143), and remove orphans with `claude plugin prune` (2.1.121) | Not checked | Not planned |
 | Marketplace policy (`strictKnownMarketplaces`, `blockedMarketplaces`; owner wildcards `"owner/*"`, 2.1.223, and the names `additionalMarketplaces` and `allowedMarketplaces`, 2.1.232, in newer versions) | A plugin of a marketplace that is not allowed does not load | Not read | Not planned |
 | The manifest's `commands` as a map of names to files or inline text | Loaded | Only directories are read | Not planned |

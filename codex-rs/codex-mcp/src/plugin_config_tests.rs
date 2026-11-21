@@ -1192,3 +1192,55 @@ fn claude_code_sse_server_is_tried_over_streamable_http() {
         &Some(HashMap::from([("X-Api-Key".to_string(), "k".to_string())]))
     );
 }
+
+#[test]
+fn claude_code_plugin_servers_find_the_plugin_root_in_their_environment() {
+    let tmp = tempfile::TempDir::new().expect("temp dir");
+    let root = tmp.path().join("demo");
+    std::fs::create_dir_all(root.join(".claude-plugin")).expect("create");
+    std::fs::write(
+        root.join(".claude-plugin/plugin.json"),
+        r#"{"name": "demo"}"#,
+    )
+    .expect("write");
+    let outcome = parse_plugin_mcp_config(
+        &root,
+        r#"{"mcpServers":{
+            "plain":{"command":"node","args":["${CLAUDE_PLUGIN_ROOT}/server.js"]},
+            "own":{"command":"node","env":{"CLAUDE_PLUGIN_ROOT":"elsewhere","MODE":"x"}},
+            "remote":{"type":"http","url":"https://example.com/mcp"}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty());
+    let root_text = root.display().to_string();
+    let stdio = |name: &str| {
+        let McpServerTransportConfig::Stdio { args, env, .. } = &outcome.servers[name].transport
+        else {
+            panic!("expected stdio transport");
+        };
+        (args.clone(), env.clone())
+    };
+    assert_eq!(
+        stdio("plain"),
+        (
+            vec![format!("{root_text}/server.js")],
+            Some(HashMap::from([(
+                "CLAUDE_PLUGIN_ROOT".to_string(),
+                root_text
+            )]))
+        )
+    );
+    assert_eq!(
+        stdio("own").1,
+        Some(HashMap::from([
+            ("CLAUDE_PLUGIN_ROOT".to_string(), "elsewhere".to_string()),
+            ("MODE".to_string(), "x".to_string()),
+        ]))
+    );
+    assert!(matches!(
+        outcome.servers["remote"].transport,
+        McpServerTransportConfig::StreamableHttp { .. }
+    ));
+}

@@ -73,6 +73,7 @@ pub use permissions::ToolInput;
 pub use permissions::parse_rule as parse_permission_rule;
 pub use plugin_vars::PluginVariables;
 pub use plugin_vars::plugin_root_of;
+pub use plugin_vars::substitute_in_plugin_content;
 pub use plugins::ClaudePlugin;
 pub use plugins::INSTALLED_PLUGINS_FILE;
 pub use plugins::applicable_plugins;

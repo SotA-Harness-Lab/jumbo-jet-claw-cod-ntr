@@ -5,8 +5,8 @@
 //!
 //! Nothing is delegated: the skill is one of those Codex lists for the turn, read from this
 //! machine and expanded as `/<name> <arguments>` expands it (frontmatter left out, headed by
-//! its directory, arguments and `${CLAUDE_SKILL_DIR}` filled in). Added: Claude Code's
-//! parameters, description, refusals and result text.
+//! its directory, arguments, `${CLAUDE_SKILL_DIR}` and a plugin's variables filled in).
+//! Added: Claude Code's parameters, description, refusals and result text.
 
 use std::collections::BTreeMap;
 
@@ -140,6 +140,7 @@ async fn handle_call(invocation: ToolInvocation) -> Result<Box<dyn ToolOutput>, 
         &session_id,
         args.args.as_deref().unwrap_or_default(),
     );
+    let expanded = codex_claude_compat::substitute_in_plugin_content(expanded, path.as_path());
     Ok(boxed_tool_output(ClaudeToolOutput::new(
         skill::result_text(&name, &expanded),
         json!({ "success": true, "commandName": name }),
