@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks
+// Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks; keep the stamp of a
+// file read in part with its result
 
 use codex_protocol::models::AudioReference;
 use codex_protocol::models::FunctionCallOutputBody;
@@ -95,6 +96,13 @@ pub trait ToolOutput: Send {
     fn tool_result_metadata(&self) -> Option<&JsonValue> {
         None
     }
+
+    /// The modification time (milliseconds since the epoch) and size of the file this output
+    /// shows only some lines of, kept with it in the history so that a resumed session knows
+    /// the file was read. Never model-visible.
+    fn partial_read_stamp(&self) -> Option<(i64, u64)> {
+        None
+    }
 }
 
 impl<T> ToolOutput for Box<T>
@@ -159,6 +167,10 @@ where
 
     fn tool_result_metadata(&self) -> Option<&JsonValue> {
         (**self).tool_result_metadata()
+    }
+
+    fn partial_read_stamp(&self) -> Option<(i64, u64)> {
+        (**self).partial_read_stamp()
     }
 }
 

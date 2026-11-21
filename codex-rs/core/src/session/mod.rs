@@ -2051,11 +2051,7 @@ impl Session {
         }
         file_audio::resolve(self, file_audio::file_ids(&history).cloned().collect()).await;
         // Claude Code's file tools know the files the model read and wrote before.
-        crate::tools::claude::restore_read_files(
-            self,
-            turn_context,
-            history.iter().map(|envelope| &envelope.item),
-        );
+        crate::tools::claude::restore_read_files(self, turn_context, history.iter());
         // Ordinary replay needs no reviewer refresh. Only an opaque
         // checkpoint can make reconstruction depend on reviewer compatibility.
         let reviewer_compaction_hash = if codex_history::CompactionCheckpoint::latest(&history)

@@ -220,6 +220,10 @@ impl ReadHandler {
             Some(digest) => FileRecord::Whole(digest),
             None => FileRecord::Part(FileStamp::of(&metadata)),
         };
+        let partial_read = match &record {
+            FileRecord::Part(stamp) => Some(*stamp),
+            FileRecord::Whole(_) => None,
+        };
         ReadFiles::of(&invocation.session).insert(target.key(), record);
 
         let tool_response = json!({
@@ -232,10 +236,11 @@ impl ReadHandler {
                 "totalLines": slice.total_lines,
             }
         });
-        Ok(boxed_tool_output(ClaudeToolOutput::new(
-            read::render(&slice),
-            tool_response,
-        )))
+        let output = ClaudeToolOutput::new(read::render(&slice), tool_response);
+        Ok(boxed_tool_output(match partial_read {
+            Some(stamp) => output.with_partial_read(stamp.modified_at_ms, stamp.size),
+            None => output,
+        }))
     }
 }
 

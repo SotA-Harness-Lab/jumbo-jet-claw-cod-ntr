@@ -21,6 +21,8 @@ pub(crate) struct ClaudeToolOutput {
     /// Text and images in place of `text`, for a result with images (a PDF's pages, a
     /// notebook's plots); `text` is then what logs and code mode see.
     content: Option<Vec<FunctionCallOutputContentItem>>,
+    /// The modification time and size of a file `Read` showed only some lines of.
+    partial_read: Option<(i64, u64)>,
 }
 
 impl ClaudeToolOutput {
@@ -31,6 +33,7 @@ impl ClaudeToolOutput {
             tool_response,
             external_context: false,
             content: None,
+            partial_read: None,
         }
     }
 
@@ -55,6 +58,7 @@ impl ClaudeToolOutput {
             tool_response,
             external_context: false,
             content: None,
+            partial_read: None,
         }
     }
 
@@ -62,6 +66,14 @@ impl ClaudeToolOutput {
     /// as Codex's own web tools do.
     pub(crate) fn with_external_context(mut self) -> Self {
         self.external_context = true;
+        self
+    }
+
+    /// Keeps with the result, in the session's history, the modification time and size of
+    /// the file it shows only some lines of, so that a resumed session knows the file was
+    /// read, as Claude Code knows it from its transcript.
+    pub(crate) fn with_partial_read(mut self, modified_at_ms: i64, size: u64) -> Self {
+        self.partial_read = Some((modified_at_ms, size));
         self
     }
 }
@@ -102,5 +114,9 @@ impl ToolOutput for ClaudeToolOutput {
 
     fn code_mode_result(&self, _payload: &ToolPayload) -> Value {
         Value::String(self.text.clone())
+    }
+
+    fn partial_read_stamp(&self) -> Option<(i64, u64)> {
+        self.partial_read
     }
 }
