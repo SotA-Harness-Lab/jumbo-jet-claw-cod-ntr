@@ -93,6 +93,14 @@ static ANY_ENV_VAR: LazyLock<Regex> = LazyLock::new(|| {
     )
 });
 
+/// A word that assigns a variable (`NAME=`, `NAME+=`, `NAME[i]=`), its name unquoted.
+static ASSIGNMENT: LazyLock<Regex> =
+    LazyLock::new(|| regex(r"^[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?\+?="));
+
+/// The shell builtins and zsh's `noglob` Claude Code drops from the front of a command, like
+/// the wrappers above.
+const SAFE_BUILTIN_WRAPPERS: &[&str] = &["command", "builtin", "noglob"];
+
 /// What a `Bash(...)` rule's content asks for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum ShellRule<'a> {
@@ -206,6 +214,17 @@ pub(crate) fn strip_safe_wrappers(command: &str) -> String {
         stripped = strip_comment_lines(&stripped);
         for wrapper in SAFE_WRAPPERS.iter() {
             stripped = wrapper.replace(&stripped, "").into_owned();
+        }
+        for wrapper in SAFE_BUILTIN_WRAPPERS.iter().copied() {
+            if let Some(rest) = stripped.strip_prefix(wrapper)
+                && rest.starts_with([' ', '\t'])
+            {
+                let rest = rest.trim_start_matches([' ', '\t']);
+                // `command -v` looks a command up instead of running it.
+                if !rest.starts_with('-') {
+                    stripped = rest.to_string();
+                }
+            }
         }
         if stripped == previous {
             break;
@@ -990,11 +1009,19 @@ fn candidates(command: &str, mode: MatchMode, strip_all_env_vars: bool) -> Vec<S
     };
     let mut candidates = Vec::new();
     for candidate in for_matching {
-        let stripped = strip_safe_wrappers(&candidate);
-        let differs = stripped != candidate;
-        candidates.push(candidate);
-        if differs {
-            candidates.push(stripped);
+        // Runs of blanks between words are one space to a rule.
+        let collapsed = collapse_blanks(&candidate);
+        let mut forms = vec![candidate];
+        if collapsed != forms[0] {
+            forms.push(collapsed);
+        }
+        for candidate in forms {
+            let stripped = strip_safe_wrappers(&candidate);
+            let differs = stripped != candidate;
+            candidates.push(candidate);
+            if differs {
+                candidates.push(stripped);
+            }
         }
     }
     if strip_all_env_vars {
@@ -1014,8 +1041,186 @@ fn candidates(command: &str, mode: MatchMode, strip_all_env_vars: bool) -> Vec<S
             }
             start = end;
         }
+        for index in 0..candidates.len() {
+            for form in word_forms(&candidates[index]) {
+                if seen.insert(form.clone()) {
+                    candidates.push(form);
+                }
+            }
+        }
     }
     candidates
+}
+
+/// The forms of a command deny and ask rules meet, for hook conditions too: as written and as
+/// Claude Code strips it, then as its words are read by the shell, without the wrappers in
+/// front that run the rest.
+pub(crate) fn deny_forms(command: &str) -> Vec<String> {
+    candidates(command, MatchMode::Prefix, true)
+}
+
+/// The command with its words, quotes kept, one space apart.
+fn collapse_blanks(command: &str) -> String {
+    words(command)
+        .into_iter()
+        .map(|word| word.text)
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// The forms of a simple command its words give, for deny and ask rules: the words as the
+/// shell passes them on (quotes removed, escapes resolved, one space apart) without the
+/// variable assignments in front, and again without each wrapper in front that runs the rest
+/// as the command (`sudo rm -rf build` is also `rm -rf build`).
+fn word_forms(command: &str) -> Vec<String> {
+    let raw = words(command);
+    let assignments = raw
+        .iter()
+        .take_while(|word| ASSIGNMENT.is_match(&word.text))
+        .count();
+    let mut words = raw[assignments..]
+        .iter()
+        .map(|word| unquote(&word.text))
+        .collect::<Vec<_>>();
+    let mut forms = vec![words.join(" ")];
+    while let Some(rest) = strip_exec_wrapper(&words) {
+        words = rest;
+        forms.push(words.join(" "));
+    }
+    forms
+}
+
+/// A word as the shell passes it on: quotes removed, escapes resolved; expansions are left as
+/// they are written.
+fn unquote(word: &str) -> String {
+    let mut text = String::new();
+    let mut chars = word.chars().peekable();
+    let mut quote = None;
+    while let Some(c) = chars.next() {
+        match (quote, c) {
+            (Some(open), _) if c == open => quote = None,
+            (None, '\'' | '"') => quote = Some(c),
+            // `$'...'` and `$"..."`.
+            (None, '$') if matches!(chars.peek(), Some(&('\'' | '"'))) => quote = chars.next(),
+            (None, '\\') => text.extend(chars.next()),
+            (Some('"'), '\\') if matches!(chars.peek(), Some(&('$' | '`' | '"' | '\\'))) => {
+                text.extend(chars.next());
+            }
+            _ => text.push(c),
+        }
+    }
+    text
+}
+
+/// What a wrapper in front of a command runs, as words: the words after `!`, `sudo`, `doas`,
+/// `env`, `command`, `builtin`, `exec`, `noglob`, `nohup`, `time`, `nice`, `timeout`,
+/// `stdbuf`, `watch`, `ionice`, `setsid` or `flock` and their options. `None` when the command
+/// has no such wrapper in front, or nothing after it.
+fn strip_exec_wrapper(words: &[String]) -> Option<Vec<String>> {
+    let (first, rest) = words.split_first()?;
+    let rest = match first.as_str() {
+        "!" | "builtin" | "noglob" | "nohup" | "time" | "setsid" => skip_options(rest, "", &[]),
+        // `command -v` and `-V` look a command up instead of running it.
+        "command"
+            if rest
+                .first()
+                .is_some_and(|word| word.starts_with("-v") || word.starts_with("-V")) =>
+        {
+            return None;
+        }
+        "command" => skip_options(rest, "", &[]),
+        "exec" => skip_options(rest, "a", &[]),
+        "sudo" => skip_assignments(skip_options(
+            rest,
+            "CDRTUacgprtu",
+            &[
+                "auth-type",
+                "chdir",
+                "chroot",
+                "close-from",
+                "command-timeout",
+                "group",
+                "host",
+                "login-class",
+                "other-user",
+                "prompt",
+                "role",
+                "type",
+                "user",
+            ],
+        )),
+        "doas" => skip_options(rest, "aCu", &[]),
+        "env" => skip_assignments(skip_options(rest, "uCP", &["unset", "chdir"])),
+        "nice" => skip_options(rest, "n", &["adjustment"]),
+        "timeout" => {
+            let rest = skip_options(rest, "ks", &["kill-after", "signal"]);
+            let (duration, rest) = rest.split_first()?;
+            if !duration.starts_with(|c: char| c.is_ascii_digit() || c == '.') {
+                return None;
+            }
+            rest
+        }
+        "stdbuf" => skip_options(rest, "ioe", &["input", "output", "error"]),
+        "watch" => skip_options(rest, "nq", &["interval", "equexit"]),
+        "ionice" => skip_options(rest, "cnpPu", &["class", "classdata", "pid", "pgid", "uid"]),
+        "flock" => {
+            let rest = skip_options(rest, "wE", &["timeout", "wait", "conflict-exit-code"]);
+            // The lock file, then the command or `-c` and a command line.
+            let (_, rest) = rest.split_first()?;
+            match rest.first().map(String::as_str) {
+                Some("-c" | "--command") => &rest[1..],
+                _ => rest,
+            }
+        }
+        _ => return None,
+    };
+    (!rest.is_empty()).then(|| rest.to_vec())
+}
+
+/// The words after a wrapper's options: the words starting with `-`, up to `--` or the first
+/// other word, with the value of each option that takes one (`short_with_value` lists the
+/// letters, `long_with_value` the names).
+fn skip_options<'w>(
+    words: &'w [String],
+    short_with_value: &str,
+    long_with_value: &[&str],
+) -> &'w [String] {
+    let mut index = 0;
+    while let Some(word) = words.get(index) {
+        if word == "--" {
+            index += 1;
+            break;
+        }
+        if let Some(long) = word.strip_prefix("--") {
+            index += 1;
+            if !long.contains('=') && long_with_value.contains(&long) {
+                index += 1;
+            }
+            continue;
+        }
+        let Some(flags) = word.strip_prefix('-').filter(|flags| !flags.is_empty()) else {
+            break;
+        };
+        index += 1;
+        // An option that takes a value takes the rest of its word, or else the next word.
+        if let Some((position, flag)) = flags
+            .char_indices()
+            .find(|(_, flag)| short_with_value.contains(*flag))
+            && position + flag.len_utf8() == flags.len()
+        {
+            index += 1;
+        }
+    }
+    words.get(index..).unwrap_or_default()
+}
+
+/// The words after the variable assignments in front.
+fn skip_assignments(words: &[String]) -> &[String] {
+    let assignments = words
+        .iter()
+        .take_while(|word| ASSIGNMENT.is_match(word))
+        .count();
+    &words[assignments..]
 }
 
 fn rule_matches(rule: ShellRule<'_>, candidate: &str, mode: MatchMode, compound: bool) -> bool {

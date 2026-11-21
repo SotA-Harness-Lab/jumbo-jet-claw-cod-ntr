@@ -11,11 +11,10 @@
 use serde_json::Value;
 
 use crate::permissions::bash::ShellRule;
+use crate::permissions::bash::deny_forms;
 use crate::permissions::bash::matches_wildcard;
 use crate::permissions::bash::parse_shell_rule;
 use crate::permissions::bash::split_command;
-use crate::permissions::bash::strip_all_leading_env_vars;
-use crate::permissions::bash::strip_output_redirections;
 use crate::permissions::normalize_tool_name;
 use crate::permissions::parse_rule;
 
@@ -63,20 +62,23 @@ fn command_matches(content: &str, command: &str) -> bool {
         return true;
     };
     let rule = parse_shell_rule(content);
-    split.subcommands.iter().any(|subcommand| {
-        let subcommand = strip_all_leading_env_vars(&strip_output_redirections(subcommand));
-        match rule {
+    // Each simple command in the forms deny rules meet: `sudo rm x` and `"rm" x` still run a
+    // hook for `Bash(rm *)`.
+    split
+        .subcommands
+        .iter()
+        .flat_map(|subcommand| deny_forms(subcommand))
+        .any(|form| match rule {
             ShellRule::Prefix(prefix) => {
-                subcommand == prefix
-                    || subcommand
+                form == prefix
+                    || form
                         .strip_prefix(prefix)
                         .is_some_and(|rest| rest.starts_with(' '))
             }
             ShellRule::Exact(pattern) | ShellRule::Wildcard(pattern) => {
-                matches_wildcard(pattern, &subcommand)
+                matches_wildcard(pattern, &form)
             }
-        }
-    })
+        })
 }
 
 #[cfg(test)]

@@ -246,6 +246,10 @@ fn redirections_and_wrappers_are_dropped_before_matching() {
         strip_safe_wrappers("timeout -k$(id) 10 ls"),
         "timeout -k$(id) 10 ls"
     );
+    assert_eq!(strip_safe_wrappers("command git status"), "git status");
+    assert_eq!(strip_safe_wrappers("builtin cd x"), "cd x");
+    assert_eq!(strip_safe_wrappers("noglob ls *"), "ls *");
+    assert_eq!(strip_safe_wrappers("command -v git"), "command -v git");
 }
 
 #[test]
@@ -347,6 +351,68 @@ fn deny_rules_see_through_assignments_wrappers_and_complex_commands() {
     }
     // A command Claude Code cannot take apart meets deny rules on the whole text.
     assert_eq!(bash(&rules, "curl $(cat url)"), deny("curl $(cat url)"));
+}
+
+#[test]
+fn deny_and_ask_rules_meet_the_words_the_shell_runs() {
+    let rules = local_rules(&[], &["Bash(git push:*)"], &["Bash(rm:*)"]);
+    let deny = |command: &str| denied_command("Bash(rm:*)", command);
+    for command in [
+        "sudo rm -rf build",
+        "sudo -u root -E rm -rf build",
+        "doas -u root rm -rf build",
+        "env rm -rf build",
+        "env -i -- FOO=1 rm -rf build",
+        "command rm -rf build",
+        "builtin rm -rf build",
+        "exec rm -rf build",
+        "! rm -rf build",
+        "\"rm\" -rf build",
+        "'rm' -rf build",
+        "\\rm -rf build",
+        "rm\t-rf build",
+        "TZ=\"$HOME\" rm -rf build",
+        "X=$PWD rm -rf build",
+        "nice -n 5 rm -rf build",
+        "timeout --signal KILL 5 rm -rf build",
+        "watch -n 1 rm -rf build",
+        "ionice -c 3 rm -rf build",
+        "setsid -f rm -rf build",
+        "flock /tmp/lock rm -rf build",
+        "flock -w 5 /tmp/lock -c 'rm -rf build'",
+        "sudo env FOO=1 nohup rm -rf build",
+        "ls; sudo rm -rf build",
+    ] {
+        assert_eq!(bash(&rules, command), deny(command), "{command}");
+    }
+    for command in [
+        "git  push --force",
+        "git\tpush",
+        "sudo git push",
+        "\"git\" push",
+    ] {
+        assert_eq!(bash(&rules, command), ask("Bash(git push:*)"), "{command}");
+    }
+    // A lookup is not a run, and other words are other commands.
+    for command in ["command -v rm", "echo rm -rf build", "rmdir build"] {
+        assert_eq!(bash(&rules, command), RuleVerdict::NoMatch, "{command}");
+    }
+}
+
+#[test]
+fn allow_rules_meet_blanks_and_builtin_wrappers_but_not_unquoted_words() {
+    let rules = local_rules(&["Bash(git commit:*)", "Bash(npm test *)"], &[], &[]);
+    assert_eq!(
+        bash(&rules, "git  commit\t-m x"),
+        allow("Bash(git commit:*)")
+    );
+    assert_eq!(
+        bash(&rules, "npm   test --watch"),
+        allow("Bash(npm test *)")
+    );
+    assert_eq!(bash(&rules, "command npm test"), allow("Bash(npm test *)"));
+    assert_eq!(bash(&rules, "sudo npm test"), RuleVerdict::NoMatch);
+    assert_eq!(bash(&rules, "\"npm\" test"), RuleVerdict::NoMatch);
 }
 
 #[test]

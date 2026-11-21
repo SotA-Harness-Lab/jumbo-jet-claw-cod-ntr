@@ -54,6 +54,20 @@ fn bash_content_is_matched_against_each_simple_command() {
 }
 
 #[test]
+fn bash_content_is_matched_against_the_words_the_shell_runs() {
+    let matches = |condition: &str, command: &str| {
+        hook_condition_matches(condition, &["Bash"], &json!({"command": command}))
+    };
+    check(matches("Bash(rm *)", "sudo rm -rf build"), true);
+    check(matches("Bash(rm *)", "env -i rm -rf build"), true);
+    check(matches("Bash(rm *)", "\"rm\" -rf build"), true);
+    check(matches("Bash(rm *)", "TZ=\"$HOME\" rm -rf build"), true);
+    check(matches("Bash(rm:*)", "timeout 5 rm -rf build"), true);
+    check(matches("Bash(git push *)", "git  push --force"), true);
+    check(matches("Bash(rm *)", "sudo ls"), false);
+}
+
+#[test]
 fn a_command_that_cannot_be_taken_apart_runs_the_hook() {
     let matches = |command: &str| {
         hook_condition_matches("Bash(git *)", &["Bash"], &json!({"command": command}))
