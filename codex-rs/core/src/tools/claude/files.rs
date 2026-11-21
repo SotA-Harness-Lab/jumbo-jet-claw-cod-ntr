@@ -8,12 +8,14 @@
 use std::io;
 use std::sync::Arc;
 
+use codex_claude_compat::tools::read;
 use codex_exec_server::ExecutorFileSystem;
 use codex_exec_server::FileMetadata;
 use codex_exec_server::FileSystemSandboxContext;
 use codex_exec_server::GetMetadataOptions;
 use codex_exec_server::ReadFileOptions;
 use codex_utils_path_uri::PathUri;
+use futures::StreamExt;
 
 use super::delegated;
 use super::failed;
@@ -102,6 +104,32 @@ impl<'a> FileTarget<'a> {
             .read_file(&self.uri, ReadFileOptions::default(), Some(&self.sandbox))
             .await
             .map_err(|err| failed(format!("unable to read {}: {err}", self.native_path())))
+    }
+
+    /// Selects lines of the file as [`read::slice_text`] does, reading it in chunks so that
+    /// only the selected lines are held, as Claude Code reads a range of a large file.
+    pub(crate) async fn read_lines(
+        &self,
+        offset: Option<usize>,
+        limit: Option<usize>,
+    ) -> Result<read::TextSlice, FunctionCallError> {
+        let unreadable =
+            |err: io::Error| failed(format!("unable to read {}: {err}", self.native_path()));
+        let mut stream = self
+            .fs
+            .read_file_stream(&self.uri, Some(&self.sandbox))
+            .await
+            .map_err(unreadable)?;
+        let mut slicer = read::LineSlicer::new(offset, limit);
+        while let Some(chunk) = stream.next().await {
+            slicer.push(&chunk.map_err(unreadable)?);
+            if slicer.too_long() {
+                break;
+            }
+        }
+        slicer
+            .finish()
+            .map_err(|bytes| failed(read::token_limit_message(bytes.div_ceil(4))))
     }
 
     /// The file as text; a file that is not UTF-8 cannot be edited.

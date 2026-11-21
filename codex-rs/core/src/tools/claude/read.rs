@@ -170,6 +170,9 @@ impl ReadHandler {
         if metadata.is_directory {
             return Err(rejected(&read::directory_message(&args.file_path)));
         }
+        if !metadata.is_file {
+            return Err(rejected(&read::not_a_regular_file_message(&args.file_path)));
+        }
         // A notebook's limit applies to its cells as shown, not to the file.
         if read::is_notebook(&args.file_path) {
             let bytes = target.read_bytes().await?;
@@ -179,9 +182,13 @@ impl ReadHandler {
         if args.limit.is_none() && metadata.size > read::MAX_SIZE_BYTES {
             return Err(failed(read::too_large_message(metadata.size)));
         }
-        let bytes = target.read_bytes().await?;
-        let text = String::from_utf8_lossy(&bytes);
-        let slice = read::slice_text(&text, args.offset, args.limit);
+        // A file too large to read whole is read in chunks, keeping only the lines asked for.
+        let slice = if metadata.size > read::MAX_SIZE_BYTES {
+            target.read_lines(args.offset, args.limit).await?
+        } else {
+            let bytes = target.read_bytes().await?;
+            read::slice_text(&String::from_utf8_lossy(&bytes), args.offset, args.limit)
+        };
         if read::exceeds_token_limit(&slice.content) {
             return Err(failed(read::token_limit_message(read::estimated_tokens(
                 &slice.content,

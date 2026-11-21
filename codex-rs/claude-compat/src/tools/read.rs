@@ -301,6 +301,134 @@ pub fn slice_text(text: &str, offset: Option<usize>, limit: Option<usize>) -> Te
     }
 }
 
+/// [`slice_text`] over a file read in chunks, as Claude Code streams a ranged read of a
+/// large file: only the selected lines are kept, the others are counted. Each line is decoded
+/// as UTF-8 on its own, with a replacement character for what is not.
+#[derive(Debug)]
+pub struct LineSlicer {
+    start_line: usize,
+    first: usize,
+    end: usize,
+    /// Index of the line being read.
+    index: usize,
+    /// The bytes of the line being read so far, when it is selected.
+    line: Vec<u8>,
+    /// Whether the line being read has any byte yet.
+    line_started: bool,
+    selected: Vec<String>,
+    /// Bytes of the selected lines, with the line breaks that join them.
+    selected_bytes: usize,
+    /// Bytes of a byte order mark matched at the start of the file, while it may be one.
+    bom: Option<usize>,
+}
+
+const UTF8_BOM: &[u8] = b"\xef\xbb\xbf";
+
+impl LineSlicer {
+    pub fn new(offset: Option<usize>, limit: Option<usize>) -> Self {
+        let offset = offset.unwrap_or(1);
+        let first = offset.saturating_sub(1);
+        Self {
+            start_line: offset.max(1),
+            first,
+            end: limit.map_or(usize::MAX, |limit| first.saturating_add(limit)),
+            index: 0,
+            line: Vec::new(),
+            line_started: false,
+            selected: Vec::new(),
+            selected_bytes: 0,
+            bom: Some(0),
+        }
+    }
+
+    fn selecting(&self) -> bool {
+        self.index >= self.first && self.index < self.end
+    }
+
+    /// Takes the next chunk of the file.
+    pub fn push(&mut self, chunk: &[u8]) {
+        let mut chunk = chunk;
+        while let Some(matched) = self.bom {
+            if matched == UTF8_BOM.len() {
+                self.bom = None;
+                break;
+            }
+            let Some((&byte, rest)) = chunk.split_first() else {
+                return;
+            };
+            if byte == UTF8_BOM[matched] {
+                self.bom = Some(matched + 1);
+                chunk = rest;
+            } else {
+                self.bom = None;
+                self.feed(&UTF8_BOM[..matched]);
+            }
+        }
+        self.feed(chunk);
+    }
+
+    fn feed(&mut self, chunk: &[u8]) {
+        for (position, part) in chunk.split(|byte| *byte == b'\n').enumerate() {
+            if position > 0 {
+                self.end_line();
+            }
+            if !part.is_empty() {
+                self.line_started = true;
+                if self.selecting() {
+                    self.selected_bytes += part.len();
+                    if !self.too_long() {
+                        self.line.extend_from_slice(part);
+                    }
+                }
+            }
+        }
+    }
+
+    fn end_line(&mut self) {
+        if self.selecting() {
+            if !self.selected.is_empty() {
+                self.selected_bytes += 1;
+            }
+            let line = self
+                .line
+                .strip_suffix(b"\r")
+                .unwrap_or(self.line.as_slice());
+            self.selected
+                .push(String::from_utf8_lossy(line).into_owned());
+        }
+        self.line.clear();
+        self.line_started = false;
+        self.index += 1;
+    }
+
+    /// Whether the selected lines are already past what a read may return
+    /// ([`exceeds_token_limit`]), so that the rest of the file need not be read.
+    pub fn too_long(&self) -> bool {
+        self.selected_bytes > MAX_TOKENS * 4
+    }
+
+    /// The selected lines; `Err` with their size in bytes when they are too long to return.
+    pub fn finish(mut self) -> Result<TextSlice, usize> {
+        if let Some(matched) = self.bom.take()
+            && matched < UTF8_BOM.len()
+        {
+            self.feed(&UTF8_BOM[..matched]);
+        }
+        if self.line_started {
+            self.end_line();
+        }
+        if self.too_long() {
+            return Err(self.selected_bytes);
+        }
+        Ok(TextSlice {
+            num_lines: self.selected.len(),
+            content: self.selected.join("\n"),
+            start_line: self.start_line,
+            total_lines: self.index,
+        })
+    }
+}
+
 /// Numbers lines `N<TAB>line`, Claude Code's compact `cat -n` format.
 pub fn number_lines(content: &str, start_line: usize) -> String {
     content
@@ -354,6 +482,12 @@ pub fn too_large_message(size: u64) -> String {
 pub fn directory_message(file_path: &str) -> String {
     format!(
         "Cannot read '{file_path}': the specified path is an existing directory. Use {BASH} ls to list files in this directory, or specify a filename path to read a specific file."
+    )
+}
+
+pub fn not_a_regular_file_message(file_path: &str) -> String {
+    format!(
+        "Cannot read '{file_path}': it is not a regular file but a pipe, socket or device, which would block or produce infinite output."
     )
 }
 

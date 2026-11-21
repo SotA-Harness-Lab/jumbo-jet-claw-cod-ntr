@@ -3,6 +3,7 @@
 
 use pretty_assertions::assert_eq;
 
+use super::LineSlicer;
 use super::TextSlice;
 use super::binary_extension;
 use super::description;
@@ -160,4 +161,53 @@ fn poppler_output_is_read() {
         pdftoppm_failed_message("Syntax Error: Couldn't find trailer dictionary; damaged"),
         "PDF file is corrupted or invalid."
     );
+}
+
+/// The slice a [`LineSlicer`] makes of `text` read in chunks of `chunk` bytes.
+fn sliced(text: &str, chunk: usize, offset: Option<usize>, limit: Option<usize>) -> TextSlice {
+    let mut slicer = LineSlicer::new(offset, limit);
+    for part in text.as_bytes().chunks(chunk) {
+        slicer.push(part);
+    }
+    slicer.finish().expect("within the limit")
+}
+
+#[test]
+fn a_file_read_in_chunks_is_sliced_as_a_whole_file_is() {
+    let texts = [
+        "",
+        "\n",
+        "\n\n",
+        "a",
+        "a\n",
+        "\u{feff}fn main() {\r\n}\r\n",
+        "one\ntwo\r\nthree\n\nfive",
+        "héllo\nwörld\n",
+    ];
+    let ranges = [
+        (None, None),
+        (Some(2), Some(2)),
+        (Some(0), Some(1)),
+        (Some(4), None),
+    ];
+    for text in texts {
+        for (offset, limit) in ranges {
+            for chunk in [1, 2, 3, 64] {
+                assert_eq!(
+                    sliced(text, chunk, offset, limit),
+                    slice_text(text, offset, limit),
+                    "{text:?} {offset:?} {limit:?} in chunks of {chunk}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn chunked_reads_keep_only_what_may_be_returned() {
+    let mut slicer = LineSlicer::new(Some(2), Some(1));
+    slicer.push(b"short\n");
+    slicer.push("x".repeat(100_001).as_bytes());
+    assert!(slicer.too_long());
+    assert_eq!(slicer.finish(), Err(100_001));
 }
