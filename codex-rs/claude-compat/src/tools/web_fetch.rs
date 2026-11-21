@@ -315,8 +315,9 @@ pub fn to_markdown(body: &str, content_type: &str) -> String {
     let converter = htmd::HtmlToMarkdown::builder()
         .skip_tags(vec!["script", "style"])
         .build();
+    let cells = header_cells_as_data_cells(body);
     converter
-        .convert(&header_cells_as_data_cells(body))
+        .convert(&expand_column_spans(&cells))
         .unwrap_or_else(|_| body.to_string())
 }
 
@@ -352,6 +353,153 @@ fn header_cells_as_data_cells(html: &str) -> Cow<'_, str> {
         }
         None => Cow::Borrowed(html),
     }
+}
+
+/// Most columns one cell may span, as HTML caps `colspan`.
+const MAX_COLSPAN: usize = 1_000;
+/// Most empty cells [`expand_column_spans`] adds to one page, so that a page of spanning
+/// cells cannot make the converter's work grow without bound.
+const MAX_ADDED_CELLS: usize = 10_000;
+/// The cell [`expand_column_spans`] adds.
+const EMPTY_CELL: &str = "<td></td>";
+
+/// `html` with each `<td>` that spans columns (`colspan`) followed by an empty cell for
+/// each further column it spans. The converter gives every cell one column, so the cells
+/// after a spanning one moved left, and a header row with one cut off the columns beyond
+/// its length. The empty cells go in before whatever ends the spanning cell (the next cell,
+/// the end of its row, its row group or its table); a table inside the cell does not.
+fn expand_column_spans(html: &str) -> Cow<'_, str> {
+    let bytes = html.as_bytes();
+    let mut rewritten: Option<String> = None;
+    let mut copied = 0;
+    // The empty cells the last spanning cell of each open table still needs, the innermost
+    // table last.
+    let mut owed: Vec<usize> = vec![0];
+    let mut budget = MAX_ADDED_CELLS;
+    let mut pos = 0;
+    while let Some(offset) = html[pos..].find('<') {
+        let start = pos + offset;
+        pos = start + 1;
+        let closing = bytes.get(start + 1) == Some(&b'/');
+        let name_start = start + 1 + usize::from(closing);
+        let name_end = bytes[name_start..]
+            .iter()
+            .position(|byte| !byte.is_ascii_alphanumeric())
+            .map_or(bytes.len(), |length| name_start + length);
+        let name = &html[name_start..name_end];
+        let is = |tag: &str| name.eq_ignore_ascii_case(tag);
+        if !(is("td") || is("tr") || is("tbody") || is("thead") || is("tfoot") || is("table")) {
+            continue;
+        }
+        if is("table") && !closing {
+            owed.push(0);
+            continue;
+        }
+        // The end tag of a cell is still inside it; the empty cells go after it.
+        if is("td") && closing {
+            continue;
+        }
+        let count = owed.last_mut().map(std::mem::take).unwrap_or(0);
+        if count > 0 {
+            let rewritten = rewritten.get_or_insert_with(|| String::with_capacity(html.len()));
+            rewritten.push_str(&html[copied..start]);
+            for _ in 0..count {
+                rewritten.push_str(EMPTY_CELL);
+            }
+            copied = start;
+        }
+        if is("table") {
+            if owed.len() > 1 {
+                owed.pop();
+            }
+            continue;
+        }
+        if is("td") && !closing {
+            let tag_end = html[name_end..]
+                .find('>')
+                .map_or(html.len(), |length| name_end + length);
+            let extra = column_span(&html[name_end..tag_end])
+                .saturating_sub(1)
+                .min(budget);
+            budget -= extra;
+            if let Some(last) = owed.last_mut() {
+                *last = extra;
+            }
+        }
+    }
+    let remaining: usize = owed.iter().sum();
+    if remaining == 0 {
+        return match rewritten {
+            Some(mut rewritten) => {
+                rewritten.push_str(&html[copied..]);
+                Cow::Owned(rewritten)
+            }
+            None => Cow::Borrowed(html),
+        };
+    }
+    let mut rewritten = rewritten.unwrap_or_else(|| String::with_capacity(html.len()));
+    rewritten.push_str(&html[copied..]);
+    for _ in 0..remaining {
+        rewritten.push_str(EMPTY_CELL);
+    }
+    Cow::Owned(rewritten)
+}
+
+/// The number of columns a cell spans, from the attributes of its start tag: its `colspan`
+/// read as HTML reads it (leading digits, 0 or none meaning 1), at most [`MAX_COLSPAN`].
+fn column_span(attributes: &str) -> usize {
+    let lower = attributes.to_ascii_lowercase();
+    let lower = lower.as_bytes();
+    let mut search = 0;
+    while let Some(offset) = find_bytes(&lower[search..], b"colspan") {
+        let at = search + offset;
+        search = at + 1;
+        let after_name = at + b"colspan".len();
+        let starts_name = at == 0
+            || matches!(
+                lower[at - 1],
+                b' ' | b'\t' | b'\n' | b'\r' | b'\x0c' | b'/' | b'"' | b'\''
+            );
+        let ends_name = lower
+            .get(after_name)
+            .is_none_or(|next| !(next.is_ascii_alphanumeric() || matches!(*next, b'-' | b'_')));
+        if !(starts_name && ends_name) {
+            continue;
+        }
+        let mut index = after_name;
+        while lower.get(index).is_some_and(u8::is_ascii_whitespace) {
+            index += 1;
+        }
+        if lower.get(index) != Some(&b'=') {
+            return 1;
+        }
+        index += 1;
+        while lower
+            .get(index)
+            .is_some_and(|byte| byte.is_ascii_whitespace() || matches!(*byte, b'"' | b'\''))
+        {
+            index += 1;
+        }
+        if lower.get(index) == Some(&b'+') {
+            index += 1;
+        }
+        let mut span: usize = 0;
+        while let Some(digit) = lower.get(index).filter(|byte| byte.is_ascii_digit()) {
+            span = span
+                .saturating_mul(10)
+                .saturating_add(usize::from(digit - b'0'));
+            index += 1;
+        }
+        return span.clamp(1, MAX_COLSPAN);
+    }
+    1
+}
+
+/// Where `needle` first occurs in `haystack`.
+fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
 }
 
 /// Elements that have no content, and never nest.

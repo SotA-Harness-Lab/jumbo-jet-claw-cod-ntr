@@ -13,6 +13,7 @@ use super::FetchCache;
 use super::FetchOutput;
 use super::FetchedContent;
 use super::MAX_MARKDOWN_LENGTH;
+use super::column_span;
 use super::command_error_message;
 use super::description;
 use super::fetch_command;
@@ -198,6 +199,46 @@ fn row_headers_keep_their_column() {
         "text/html",
     );
     assert_eq!(markdown, "|       | 2025 |\n| Sales | 9    |");
+}
+
+#[test]
+fn cells_that_span_columns_keep_the_columns_after_them_in_place() {
+    // A header spanning two columns no longer cuts off the last one.
+    let markdown = to_markdown(
+        "<table><thead><tr><th>Region</th><th colspan=\"2\">2025</th></tr></thead>\
+         <tbody><tr><td>North</td><td>1</td><td>2</td></tr></tbody></table>",
+        "text/html",
+    );
+    assert_eq!(
+        markdown,
+        "| Region | 2025 |   |\n| ------ | ---- | - |\n| North  | 1    | 2 |"
+    );
+    // A body cell spanning two columns, without end tags, leaves the next value in its column.
+    let markdown = to_markdown(
+        "<table><tr><td>a</td><td>b</td><td>c</td></tr>\
+         <tr><TD COLSPAN=2>wide<td>z</table>",
+        "text/html",
+    );
+    assert_eq!(markdown, "| a    | b | c |\n| wide |   | z |");
+    // A table inside a spanning cell keeps its own cells, and the outer row its columns.
+    let markdown = to_markdown(
+        "<table><tr><td>a</td><td>b</td><td>c</td></tr>\
+         <tr><td colspan=\"2\"><table><tr><td>in</td></tr></table></td><td>z</td></tr></table>",
+        "text/html",
+    );
+    assert!(markdown.ends_with("|   | z |"), "{markdown}");
+}
+
+#[test]
+fn column_span_is_read_as_html_reads_it() {
+    assert_eq!(column_span(""), 1);
+    assert_eq!(column_span(" colspan=\"3\""), 3);
+    assert_eq!(column_span(" class=x COLSPAN = '2' "), 2);
+    assert_eq!(column_span(" colspan=2px"), 2);
+    assert_eq!(column_span(" data-colspan=4"), 1);
+    assert_eq!(column_span(" colspan=0"), 1);
+    assert_eq!(column_span(" colspan"), 1);
+    assert_eq!(column_span(" colspan=99999999999999999999999"), 1_000);
 }
 
 #[test]
