@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; bounded the time
+// spent diffing a file
 
 use anyhow::Context;
 use gix::hash::ObjectId;
@@ -20,9 +21,13 @@ use std::io::Read;
 use std::os::windows::fs::FileTypeExt;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 use tokio::task;
 
 use crate::operations::run_git_for_status;
+
+/// The longest a file's diff may take.
+const DIFF_TIMEOUT: Duration = Duration::from_secs(1);
 
 // Match the default file limit for automatic ghost snapshots. A baseline is derived data.
 const MAX_BASELINE_FILE_BYTES: u64 = 10 * 1024 * 1024;
@@ -532,7 +537,12 @@ fn render_change_diff(
         (None, None) => return Ok(String::new()),
     }
 
-    let diff = TextDiff::from_lines(&old_text, &new_text)
+    // Bounded as the turn diff tracker bounds its own: Myers on two large texts with few lines
+    // in common takes minutes, and past the deadline `similar` gives a coarser diff that is
+    // still correct.
+    let diff = TextDiff::configure()
+        .timeout(DIFF_TIMEOUT)
+        .diff_lines(&old_text, &new_text)
         .unified_diff()
         .context_radius(3)
         .header(&old_header, &new_header)
