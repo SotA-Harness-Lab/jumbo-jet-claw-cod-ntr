@@ -359,6 +359,12 @@ fn shell_quote(text: &str) -> String {
     format!("'{}'", text.replace('\'', "'\\''"))
 }
 
+/// Put before a command run by zsh: `EQUALS` off, so that a word starting with `=`
+/// (`[ a == b ]`, `echo ====`) is not expanded to the path of a command and does not stop
+/// the command with `= not found`, as in Claude Code. On the same line as the command, so
+/// that the line numbers of its errors stay the same.
+pub const ZSH_PRELUDE: &str = "setopt NO_EQUALS; ";
+
 /// The working directory recorded by [`cwd_trailer`]: the file's text without its line end.
 pub fn recorded_cwd(contents: &str) -> Option<&str> {
     let cwd = contents.trim_end_matches(['\n', '\r']);

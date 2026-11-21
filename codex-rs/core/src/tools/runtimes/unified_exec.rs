@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: record where a Claude Bash command ends up
+// Modified by Tianyu (Sky) Lu in 2026: record where a Claude Bash command ends up; run a
+// Claude Bash command under zsh without `=` expansion
 
 /*
 Runtime: unified exec
@@ -472,6 +473,9 @@ impl<'a> ToolRuntime<UnifiedExecRequest<'_>, UnifiedExecAttempt> for UnifiedExec
             .cwd_report
             .as_ref()
             .and_then(|file| append_cwd_trailer(&mut command, file));
+        if prepared.zsh_prelude {
+            prepend_zsh_prelude(&mut command);
+        }
         let mut snapshot_used = false;
         if !environment_is_remote {
             let wrapped = maybe_wrap_shell_lc_with_snapshot(
@@ -707,6 +711,20 @@ fn append_cwd_trailer(
     })
 }
 
+/// Puts [`codex_claude_compat::tools::bash::ZSH_PRELUDE`] before a zsh `-c` or `-lc`
+/// script. Other shells and commands are left as they are.
+fn prepend_zsh_prelude(command: &mut [String]) {
+    let [shell, flag, script] = command else {
+        return;
+    };
+    let zsh = std::path::Path::new(shell.as_str())
+        .file_name()
+        .is_some_and(|name| name == "zsh");
+    if zsh && matches!(flag.as_str(), "-c" | "-lc") {
+        script.insert_str(0, codex_claude_compat::tools::bash::ZSH_PRELUDE);
+    }
+}
+
 async fn warn_if_remote_credential_masking_unavailable(
     ctx: &ToolCtx,
     req: &UnifiedExecRequest<'_>,
@@ -882,7 +900,11 @@ mod tests {
     fn cwd_trailer_goes_after_a_shell_script_and_may_write_its_directory() {
         let dir = tempfile::tempdir().expect("temp dir");
         let file = AbsolutePathBuf::from_absolute_path(dir.path().join("cwd")).expect("absolute");
-        let mut command = vec!["/bin/zsh".to_string(), "-lc".to_string(), "cd src".to_string()];
+        let mut command = vec![
+            "/bin/zsh".to_string(),
+            "-lc".to_string(),
+            "cd src".to_string(),
+        ];
         let permissions = append_cwd_trailer(&mut command, &file).expect("a shell script");
         assert!(command[2].starts_with("cd src\n__ccn_status=$?\n"));
         assert!(command[2].contains(file.as_path().to_str().expect("utf-8")));
@@ -900,6 +922,28 @@ mod tests {
         let mut direct = vec!["/usr/bin/env".to_string(), "ls".to_string()];
         assert_eq!(append_cwd_trailer(&mut direct, &file), None);
         assert_eq!(direct, vec!["/usr/bin/env".to_string(), "ls".to_string()]);
+    }
+
+    #[test]
+    fn zsh_runs_a_claude_bash_command_without_equals_expansion() {
+        let mut command = vec![
+            "/bin/zsh".to_string(),
+            "-lc".to_string(),
+            "[ a == b ] || echo ====".to_string(),
+        ];
+        prepend_zsh_prelude(&mut command);
+        assert_eq!(command[2], "setopt NO_EQUALS; [ a == b ] || echo ====");
+
+        let mut bash = vec![
+            "/bin/bash".to_string(),
+            "-lc".to_string(),
+            "[ a == b ]".to_string(),
+        ];
+        prepend_zsh_prelude(&mut bash);
+        assert_eq!(bash[2], "[ a == b ]");
+        let mut direct = vec!["zsh".to_string(), "script.zsh".to_string()];
+        prepend_zsh_prelude(&mut direct);
+        assert_eq!(direct, vec!["zsh".to_string(), "script.zsh".to_string()]);
     }
 
     fn test_prepared_command() -> PreparedExecCommand {
@@ -927,6 +971,7 @@ mod tests {
             justification: None,
             prefix_rule: None,
             cwd_report: None,
+            zsh_prelude: false,
             tty: false,
             yield_time_ms: 10_000,
             max_output_tokens: None,

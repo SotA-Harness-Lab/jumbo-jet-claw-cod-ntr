@@ -12,6 +12,9 @@
 //! carries over from one command to the next (see `shell_cwd`).
 
 use std::collections::BTreeMap;
+use std::collections::HashSet;
+use std::sync::Mutex;
+use std::sync::PoisonError;
 
 use codex_claude_compat::tools::BASH;
 use codex_claude_compat::tools::bash;
@@ -32,6 +35,7 @@ use super::parse_claude_arguments;
 use super::rejected;
 use super::shell_cwd::Tracking;
 use crate::function_tool::FunctionCallError;
+use crate::session::session::Session;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolOutput;
 use crate::tools::context::ToolPayload;
@@ -196,11 +200,13 @@ impl BashHandler {
             .as_ref()
             .filter(|_| !background)
             .and_then(|tracking| tracking.request_report(&invocation.session, &invocation.call_id));
+        request_zsh_prelude(&invocation.session, &invocation.call_id);
         let output = handler
             .handle(delegated(&invocation, payload.clone()))
             .await;
         // The exec runtime took the request unless the command never ran.
         let _ = super::take_cwd_report(&invocation.session, &invocation.call_id);
+        let _ = take_zsh_prelude(&invocation.session, &invocation.call_id);
         let output = output?;
 
         // The structured result of `exec_command`: its truncated output, exit code, and the
@@ -271,6 +277,35 @@ impl BashHandler {
             ClaudeToolOutput::new(model_text, tool_response)
         }))
     }
+}
+
+/// `Bash` calls whose command the exec runtime starts with
+/// [`bash::ZSH_PRELUDE`] when zsh runs it, by call id.
+#[derive(Default)]
+struct ZshPreludes(Mutex<HashSet<String>>);
+
+fn request_zsh_prelude(session: &Session, call_id: &str) {
+    session
+        .services
+        .session_extension_data
+        .get_or_init::<ZshPreludes>(ZshPreludes::default)
+        .0
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .insert(call_id.to_string());
+}
+
+/// Whether the command of `call_id` is a `Bash` call's, to be started with
+/// [`bash::ZSH_PRELUDE`] when zsh runs it; takes the request.
+pub(crate) fn take_zsh_prelude(session: &Session, call_id: &str) -> bool {
+    session
+        .services
+        .session_extension_data
+        .get_or_init::<ZshPreludes>(ZshPreludes::default)
+        .0
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .remove(call_id)
 }
 
 #[cfg(test)]

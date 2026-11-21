@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: record where a Claude Bash command ends up
+// Modified by Tianyu (Sky) Lu in 2026: record where a Claude Bash command ends up; run a
+// Claude Bash command under zsh without `=` expansion
 
 //! Resolves exec arguments against the selected environment and effective turn permissions.
 //! The live handler emits its skill event between parsing and preparation.
@@ -65,6 +66,8 @@ pub(crate) struct PreparedExecCommand {
     /// File the command's working directory is written to after it succeeds, for a Claude
     /// `Bash` call whose `cd` carries over to the next command.
     pub(crate) cwd_report: Option<AbsolutePathBuf>,
+    /// Whether the command is a Claude `Bash` call's, which zsh runs with `EQUALS` off.
+    pub(crate) zsh_prelude: bool,
 }
 
 impl PreparedExecCommand {
@@ -322,6 +325,7 @@ impl<'a> ParsedExecCommand<'a> {
             justification: args.justification,
             prefix_rule: args.prefix_rule,
             cwd_report: None,
+            zsh_prelude: false,
         })
     }
 }
