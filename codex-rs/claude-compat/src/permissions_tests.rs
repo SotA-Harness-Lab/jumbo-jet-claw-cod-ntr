@@ -727,6 +727,62 @@ fn an_untrusted_project_keeps_its_deny_and_ask_rules_but_not_its_allow_rules() {
 }
 
 #[test]
+fn path_rules_left_after_dropping_project_allow_rules_still_match() {
+    let rules = rules_from(&[
+        (
+            RuleSource::User,
+            json!({ "permissions": { "allow": ["Read(~/notes/**)"] } }),
+        ),
+        (
+            RuleSource::Project,
+            json!({ "permissions": {
+                "allow": ["Edit(src/**)", "Read(docs/**)"],
+                "deny": ["Read(.env)"]
+            } }),
+        ),
+        (
+            RuleSource::Local,
+            json!({ "permissions": { "allow": ["Read(*.md)"], "ask": ["Edit(*.lock)"] } }),
+        ),
+    ]);
+    // The matchers are built once; reading the same path again gives the same rule.
+    for _ in 0..2 {
+        assert_eq!(
+            read(&rules, "/work/project/docs/a.txt"),
+            allow("Read(docs/**)")
+        );
+    }
+    let rules = rules.without_project_allow_rules();
+    assert_eq!(
+        read(&rules, "/work/project/app/.env"),
+        RuleVerdict::Deny {
+            rule: "Read(.env)".to_string(),
+            message: "Permission to read /work/project/app/.env has been denied.".to_string(),
+        }
+    );
+    assert_eq!(
+        read(&rules, "/work/project/docs/a.txt"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        read(&rules, "/work/project/README.md"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/src/main.rs"),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/work/project/Cargo.lock"),
+        ask("Edit(*.lock)")
+    );
+    assert_eq!(
+        read(&rules, "/home/user/notes/todo.txt"),
+        allow("Read(~/notes/**)")
+    );
+}
+
+#[test]
 fn web_fetch_rules_name_the_host() {
     let rules = local_rules(
         &["WebFetch(domain:docs.rs)"],

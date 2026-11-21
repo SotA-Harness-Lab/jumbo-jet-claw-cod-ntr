@@ -30,6 +30,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use ignore::Match;
+use ignore::gitignore::Gitignore;
 use ignore::gitignore::GitignoreBuilder;
 use serde_json::Value;
 
@@ -43,8 +44,9 @@ pub(crate) mod bash;
 use bash::ShellDecision;
 use bash::ShellRules;
 
-/// Rules grouped by the directory their patterns are relative to.
-type RulesByRoot<'a> = (Option<PathBuf>, Vec<(String, &'a PermissionRule)>);
+/// Patterns grouped by the directory they are relative to, each with the index of its
+/// rule.
+type PatternsByRoot = (Option<PathBuf>, Vec<(String, usize)>);
 
 /// The tool whose rules govern every file read (`Read`, `Glob`, `Grep`).
 const FILE_READ_TOOL: &str = "Read";
@@ -139,6 +141,21 @@ pub struct PermissionRules {
     rules: Vec<PermissionRule>,
     home_dir: Option<PathBuf>,
     project_dir: Option<PathBuf>,
+    /// The matchers of the `Read` and `Edit` rules, built once from `rules`.
+    file_matchers: Vec<FileMatcher>,
+}
+
+/// The `Read` or `Edit` rules of one decision anchored at one place, as one gitignore
+/// matcher.
+#[derive(Clone, Debug)]
+struct FileMatcher {
+    tool: &'static str,
+    decision: PermissionDecision,
+    /// Where the patterns are anchored; `None` for the working directory of the call.
+    root: Option<PathBuf>,
+    matcher: Gitignore,
+    /// Each line of the matcher, with the index of the rule it was made from.
+    lines: Vec<(String, usize)>,
 }
 
 impl PermissionRules {
@@ -205,11 +222,14 @@ impl PermissionRules {
                 }
             }
         }
-        Self {
+        let mut this = Self {
             rules,
             home_dir: home_dir.map(Path::to_path_buf),
             project_dir: project_dir.map(Path::to_path_buf),
-        }
+            file_matchers: Vec::new(),
+        };
+        this.file_matchers = this.build_file_matchers();
+        this
     }
 
     pub fn is_empty(&self) -> bool {
@@ -227,6 +247,7 @@ impl PermissionRules {
         self.rules.retain(|rule| {
             rule.decision != PermissionDecision::Allow || rule.source == RuleSource::User
         });
+        self.file_matchers = self.build_file_matchers();
         self
     }
 
@@ -497,6 +518,75 @@ impl PermissionRules {
         Some((relative.to_string(), None))
     }
 
+    /// The gitignore matchers of the `Read` and `Edit` rules, one for each tool, decision
+    /// and place the patterns are anchored at.
+    fn build_file_matchers(&self) -> Vec<FileMatcher> {
+        let mut matchers = Vec::new();
+        for tool in [FILE_READ_TOOL, FILE_EDIT_TOOL] {
+            for decision in [
+                PermissionDecision::Deny,
+                PermissionDecision::Ask,
+                PermissionDecision::Allow,
+            ] {
+                // Patterns by the place they are anchored at, each pattern once (the last
+                // rule with it), in the order Claude Code builds its maps.
+                let mut roots: Vec<PatternsByRoot> = Vec::new();
+                for (index, rule) in self.rules.iter().enumerate() {
+                    if rule.decision != decision || rule.tool != tool {
+                        continue;
+                    }
+                    let Some(content) = rule.content.as_deref() else {
+                        continue;
+                    };
+                    let Some((pattern, root)) = self.pattern_root(content, rule.source) else {
+                        continue;
+                    };
+                    let position = match roots.iter().position(|(seen, _)| *seen == root) {
+                        Some(position) => position,
+                        None => {
+                            roots.push((root, Vec::new()));
+                            roots.len() - 1
+                        }
+                    };
+                    let patterns = &mut roots[position].1;
+                    match patterns.iter_mut().find(|(seen, _)| *seen == pattern) {
+                        Some(entry) => entry.1 = index,
+                        None => patterns.push((pattern, index)),
+                    }
+                }
+                for (root, patterns) in roots {
+                    let root = root.as_deref().map(normalize_path);
+                    // Paths are matched relative to the root, so the matcher's own root only
+                    // has to be one that no relative path starts with.
+                    let mut builder =
+                        GitignoreBuilder::new(root.as_deref().unwrap_or(Path::new("/")));
+                    // Claude Code's `ignore` library compares case-insensitively.
+                    if builder.case_insensitive(true).is_err() {
+                        continue;
+                    }
+                    let lines = patterns
+                        .into_iter()
+                        .map(|(pattern, index)| (gitignore_line(&pattern, decision), index))
+                        .collect::<Vec<_>>();
+                    for (line, _) in &lines {
+                        let _ = builder.add_line(None, line);
+                    }
+                    let Ok(matcher) = builder.build() else {
+                        continue;
+                    };
+                    matchers.push(FileMatcher {
+                        tool,
+                        decision,
+                        root,
+                        matcher,
+                        lines,
+                    });
+                }
+            }
+        }
+        matchers
+    }
+
     /// The `tool` rule (`Read` or `Edit`) of `decision` whose pattern matches `path`
     /// (`matchingRuleForInput`).
     fn file_rule(
@@ -506,61 +596,31 @@ impl PermissionRules {
         path: &Path,
         cwd: &Path,
     ) -> Option<&PermissionRule> {
-        // Patterns by the place they are anchored at, each pattern once (the last rule
-        // with it), in the order Claude Code builds its maps.
-        let mut roots: Vec<RulesByRoot<'_>> = Vec::new();
-        for rule in self.with_content(tool, decision) {
-            let content = rule.content.as_deref().unwrap_or_default();
-            let Some((pattern, root)) = self.pattern_root(content, rule.source) else {
-                continue;
-            };
-            let index = match roots.iter().position(|(seen, _)| *seen == root) {
-                Some(index) => index,
-                None => {
-                    roots.push((root, Vec::new()));
-                    roots.len() - 1
-                }
-            };
-            let patterns = &mut roots[index].1;
-            match patterns.iter_mut().find(|(seen, _)| *seen == pattern) {
-                Some(entry) => entry.1 = rule,
-                None => patterns.push((pattern, rule)),
-            }
-        }
-
         let path = normalize_path(path);
-        for (root, patterns) in &roots {
-            let root = normalize_path(root.as_deref().unwrap_or(cwd));
-            let Ok(relative) = path.strip_prefix(&root) else {
+        let cwd = normalize_path(cwd);
+        for matcher in self
+            .file_matchers
+            .iter()
+            .filter(|matcher| matcher.tool == tool && matcher.decision == decision)
+        {
+            let root = matcher.root.as_deref().unwrap_or(&cwd);
+            let Ok(relative) = path.strip_prefix(root) else {
                 continue;
             };
             if relative.as_os_str().is_empty() {
                 continue;
             }
-            let mut builder = GitignoreBuilder::new(&root);
-            // Claude Code's `ignore` library compares case-insensitively.
-            if builder.case_insensitive(true).is_err() {
-                continue;
-            }
-            let lines = patterns
-                .iter()
-                .map(|(pattern, rule)| (gitignore_line(pattern, decision), *rule))
-                .collect::<Vec<_>>();
-            for (line, _) in &lines {
-                let _ = builder.add_line(None, line);
-            }
-            let Ok(matcher) = builder.build() else {
-                continue;
-            };
-            if let Match::Ignore(glob) =
-                matcher.matched_path_or_any_parents(relative, /*is_dir*/ false)
+            if let Match::Ignore(glob) = matcher
+                .matcher
+                .matched_path_or_any_parents(relative, /*is_dir*/ false)
             {
                 let original = glob.original();
-                return lines
+                return matcher
+                    .lines
                     .iter()
                     // The matcher keeps a line without its trailing spaces.
                     .find(|(line, _)| line == original || line.trim_end() == original)
-                    .map(|(_, rule)| *rule);
+                    .and_then(|(_, index)| self.rules.get(*index));
             }
         }
         None
