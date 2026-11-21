@@ -181,10 +181,24 @@ pub const OUTPUT_MARKER: &str = "\n__CODEX_WEBFETCH__\t";
 const WRITE_OUT: &str =
     "\\n__CODEX_WEBFETCH__\\t%{http_code}\\t%{size_download}\\t%{redirect_url}\\t%{content_type}";
 
+/// curl's exit code when it could not write the body (to [`fetch_command_to_file`]'s file).
+pub const CURL_WRITE_ERROR: i32 = 23;
+
 /// The command that fetches `url` (already upgraded to HTTPS) without following
 /// redirects: `curl` with Claude Code's limits (timeout, body size) and `Accept` header.
 /// Proxy settings come from the environment Codex gives the command.
 pub fn fetch_command(url: &Url, shell: CommandShell) -> String {
+    curl_command(url, shell, /*body_file*/ None)
+}
+
+/// [`fetch_command`] writing the body to `body_file` instead of the output, which then
+/// holds only what `--write-out` reports. Command output reaches the tool cut to its first
+/// and last 512 KiB, so a body larger than that is read from the file.
+pub fn fetch_command_to_file(url: &Url, shell: CommandShell, body_file: &str) -> String {
+    curl_command(url, shell, Some(body_file))
+}
+
+fn curl_command(url: &Url, shell: CommandShell, body_file: Option<&str>) -> String {
     let program = match shell {
         CommandShell::PowerShell | CommandShell::Cmd => "curl.exe",
         CommandShell::Posix => "curl",
@@ -207,10 +221,14 @@ pub fn fetch_command(url: &Url, shell: CommandShell) -> String {
         USER_AGENT,
         "--write-out",
         WRITE_OUT,
-        url.as_str(),
     ];
+    let output = body_file.map(|file| ["--output", file]);
     let mut command = program.to_string();
-    for arg in args {
+    for arg in args
+        .into_iter()
+        .chain(output.into_iter().flatten())
+        .chain([url.as_str()])
+    {
         command.push(' ');
         command.push_str(&quote(arg, shell));
     }

@@ -16,6 +16,7 @@
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::time::Instant;
 
@@ -25,6 +26,8 @@ use codex_claude_compat::tools::web_fetch;
 use codex_claude_compat::tools::web_fetch::CommandShell;
 use codex_claude_compat::tools::web_fetch::FetchCache;
 use codex_claude_compat::tools::web_fetch::FetchedContent;
+use codex_exec_server::ReadFileOptions;
+use codex_exec_server::RemoveOptions;
 use codex_protocol::error::CodexErr;
 use codex_protocol::models::ContentItem;
 use codex_protocol::models::ResponseItem;
@@ -34,6 +37,7 @@ use codex_tools::JsonSchema;
 use codex_tools::ResponsesApiTool;
 use codex_tools::ToolName;
 use codex_tools::ToolSpec;
+use codex_utils_path_uri::PathUri;
 use futures::StreamExt;
 use serde::Deserialize;
 use serde_json::Value;
@@ -54,6 +58,7 @@ use crate::client_common::ResponseEvent;
 use crate::function_tool::FunctionCallError;
 use crate::responses_metadata::CodexResponsesRequestKind;
 use crate::session::session::Session;
+use crate::session::turn_context::TurnEnvironment;
 use crate::shell::ShellType;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolOutput;
@@ -281,42 +286,38 @@ impl WebFetchHandler {
         let escalate = !invocation.turn.network_sandbox_policy().is_enabled()
             && invocation.turn.network.is_none();
 
+        // The body goes to a file of its own in the executor's temporary directory, since
+        // command output reaches the tool cut to its first and last 512 KiB. Where the file
+        // cannot be written or read (a sandbox that allows no writes there), the body comes
+        // through the output as before.
+        let mut body_file = new_body_file(environment, shell, &target);
         for _ in 0..=web_fetch::MAX_REDIRECTS {
-            let mut arguments = json!({
-                "cmd": web_fetch::fetch_command(&target, shell),
-                "timeout_ms": (web_fetch::FETCH_TIMEOUT_SECS + 10) * 1000,
-                "max_output_tokens": crate::unified_exec::UNIFIED_EXEC_OUTPUT_MAX_TOKENS,
-            });
-            if escalate {
-                arguments["sandbox_permissions"] = json!("require_escalated");
-                arguments["justification"] = json!(format!("{WEB_FETCH}: fetch {target}"));
+            let mut response = None;
+            if let Some(file) = &body_file {
+                response = self
+                    .request(
+                        invocation,
+                        environment,
+                        &target,
+                        shell,
+                        escalate,
+                        Some(file),
+                    )
+                    .await?;
+                if response.is_none() {
+                    body_file = None;
+                }
             }
-            let payload = ToolPayload::Function {
-                arguments: arguments.to_string(),
-            };
-            let output = self
-                .exec
-                .handle(delegated(invocation, payload.clone()))
-                .await?;
-            let result = output.code_mode_result(&payload);
-            let text = result
-                .get("output")
-                .and_then(Value::as_str)
-                .unwrap_or_default();
-            let exit_code = result
-                .get("exit_code")
-                .and_then(Value::as_i64)
-                .and_then(|code| i32::try_from(code).ok());
-            let response = match exit_code {
-                Some(0) => web_fetch::parse_fetch_output(text),
-                _ => None,
-            };
-            let Some(response) = response else {
-                return Err(failed(web_fetch::command_error_message(exit_code, text)));
+            let response = match response {
+                Some(response) => response,
+                None => self
+                    .request(invocation, environment, &target, shell, escalate, None)
+                    .await?
+                    .ok_or_else(|| failed("Fetch did not finish"))?,
             };
 
             if web_fetch::is_redirect(response.status) {
-                let Ok(redirect) = Url::parse(response.redirect_url) else {
+                let Ok(redirect) = Url::parse(&response.redirect_url) else {
                     return Err(failed("Redirect missing Location header"));
                 };
                 if web_fetch::is_permitted_redirect(&target, &redirect) {
@@ -332,14 +333,13 @@ impl WebFetchHandler {
             if !(200..300).contains(&response.status) {
                 return Err(failed(web_fetch::status_error_message(response.status)));
             }
-            let content =
-                convert_page(response.body.to_string(), response.content_type.to_string()).await?;
+            let content = convert_page(response.body, response.content_type.clone()).await?;
             return Ok(Fetched::Content(FetchedContent {
                 bytes: response.bytes,
                 code: response.status,
                 code_text: web_fetch::status_text(response.status).to_string(),
                 content,
-                content_type: response.content_type.to_string(),
+                content_type: response.content_type,
             }));
         }
         Err(failed(format!(
@@ -347,6 +347,144 @@ impl WebFetchHandler {
             web_fetch::MAX_REDIRECTS
         )))
     }
+
+    /// Runs one request. With `body_file`, curl writes the body there and it is read back
+    /// and removed; `Ok(None)` then means the file could not be written or read.
+    async fn request(
+        &self,
+        invocation: &ToolInvocation,
+        environment: &TurnEnvironment,
+        target: &Url,
+        shell: CommandShell,
+        escalate: bool,
+        body_file: Option<&PathUri>,
+    ) -> Result<Option<Response>, FunctionCallError> {
+        let command = match body_file {
+            Some(file) => {
+                web_fetch::fetch_command_to_file(target, shell, &file.inferred_native_path_string())
+            }
+            None => web_fetch::fetch_command(target, shell),
+        };
+        let mut arguments = json!({
+            "cmd": command,
+            "timeout_ms": (web_fetch::FETCH_TIMEOUT_SECS + 10) * 1000,
+            "max_output_tokens": crate::unified_exec::UNIFIED_EXEC_OUTPUT_MAX_TOKENS,
+        });
+        if escalate {
+            arguments["sandbox_permissions"] = json!("require_escalated");
+            arguments["justification"] = json!(format!("{WEB_FETCH}: fetch {target}"));
+        }
+        let payload = ToolPayload::Function {
+            arguments: arguments.to_string(),
+        };
+        let output = self
+            .exec
+            .handle(delegated(invocation, payload.clone()))
+            .await;
+        let body = match body_file {
+            Some(file) => Some(take_body_file(environment, file).await),
+            None => None,
+        };
+        let result = output?.code_mode_result(&payload);
+        let text = result
+            .get("output")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let exit_code = result
+            .get("exit_code")
+            .and_then(Value::as_i64)
+            .and_then(|code| i32::try_from(code).ok());
+        if body_file.is_some() && exit_code == Some(web_fetch::CURL_WRITE_ERROR) {
+            return Ok(None);
+        }
+        let response = match exit_code {
+            Some(0) => web_fetch::parse_fetch_output(text),
+            _ => None,
+        };
+        let Some(response) = response else {
+            return Err(failed(web_fetch::command_error_message(exit_code, text)));
+        };
+        let body = match body {
+            None => response.body.to_string(),
+            Some(Ok(bytes)) => String::from_utf8_lossy(&bytes).into_owned(),
+            // curl creates no file for an empty body.
+            Some(Err(err)) if err.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Some(Err(_)) => return Ok(None),
+        };
+        Ok(Some(Response {
+            status: response.status,
+            bytes: response.bytes,
+            redirect_url: response.redirect_url.to_string(),
+            content_type: response.content_type.to_string(),
+            body,
+        }))
+    }
+}
+
+/// A response, with its body however it came.
+struct Response {
+    status: u16,
+    bytes: u64,
+    redirect_url: String,
+    content_type: String,
+    body: String,
+}
+
+/// A namespace drawn once per process, so that the names of body files cannot be guessed
+/// beforehand.
+static BODY_FILE_NAMESPACE: LazyLock<uuid::Uuid> = LazyLock::new(uuid::Uuid::new_v4);
+
+/// The file in the executor's temporary directory (`/tmp` on a POSIX shell that reports
+/// none) for the body of a request to `target`. The name depends on the URL alone within a
+/// process, so the command for one URL stays the same and an approval given for it still
+/// applies to the next fetch of that URL.
+fn new_body_file(
+    environment: &TurnEnvironment,
+    shell: CommandShell,
+    target: &Url,
+) -> Option<PathUri> {
+    let directory = match environment
+        .temporary_directories
+        .as_ref()
+        .and_then(|directories| directories.first())
+    {
+        Some(directory) => directory.clone(),
+        None if shell == CommandShell::Posix => PathUri::from_host_native_path("/tmp").ok()?,
+        None => return None,
+    };
+    directory
+        .join(&format!(
+            "ccn-webfetch-{}",
+            uuid::Uuid::new_v5(&BODY_FILE_NAMESPACE, target.as_str().as_bytes())
+        ))
+        .ok()
+}
+
+/// Reads the body curl wrote and removes the file. The file is the tool's own, so this
+/// is not sandboxed; links are not followed.
+async fn take_body_file(environment: &TurnEnvironment, file: &PathUri) -> std::io::Result<Vec<u8>> {
+    let fs = environment.environment().get_filesystem();
+    let body = fs
+        .read_file(
+            file,
+            ReadFileOptions {
+                follow_symlinks: false,
+            },
+            /*sandbox*/ None,
+        )
+        .await;
+    let _ = fs
+        .remove(
+            file,
+            RemoveOptions {
+                recursive: false,
+                force: true,
+                follow_symlinks: false,
+            },
+            /*sandbox*/ None,
+        )
+        .await;
+    body
 }
 
 /// Converts a page to Markdown on a blocking thread, so that a large page does not hold up

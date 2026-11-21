@@ -16,6 +16,7 @@ use super::MAX_MARKDOWN_LENGTH;
 use super::command_error_message;
 use super::description;
 use super::fetch_command;
+use super::fetch_command_to_file;
 use super::html_text;
 use super::is_permitted_redirect;
 use super::is_preapproved;
@@ -109,6 +110,21 @@ fn fetch_command_quotes_for_each_shell() {
     assert!(powershell.ends_with("'https://example.com/it''s?q=a%20b'"));
     let cmd = fetch_command(&target, CommandShell::Cmd);
     assert!(cmd.ends_with("\"https://example.com/it's?q=a%20b\""));
+}
+
+#[test]
+fn fetch_command_can_write_the_body_to_a_file() {
+    let target = url("https://example.com/");
+    let posix = fetch_command_to_file(&target, CommandShell::Posix, "/tmp/ccn webfetch");
+    assert!(
+        posix.ends_with(" --output '/tmp/ccn webfetch' 'https://example.com/'"),
+        "{posix}"
+    );
+    let cmd = fetch_command_to_file(&target, CommandShell::Cmd, r"C:\Temp\body");
+    assert!(
+        cmd.ends_with(r#" --output "C:\Temp\body" "https://example.com/""#),
+        "{cmd}"
+    );
 }
 
 #[test]
