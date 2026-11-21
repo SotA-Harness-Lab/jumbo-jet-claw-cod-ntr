@@ -28,8 +28,12 @@ use codex_utils_pty::Command;
 // WINDOWS-REMNANT
 #[cfg(windows)]
 use codex_utils_pty::JobObject;
+use futures::future::Either;
+use futures::future::select;
 use futures::future::try_join;
 use serde_json::Value;
+use tokio::io::AsyncRead;
+use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 #[cfg(not(unix))]
 use tokio::process::Command;
@@ -61,6 +65,11 @@ use codex_protocol::protocol::HookOutputEntry;
 use codex_protocol::protocol::HookOutputEntryKind;
 
 const MAX_CONCURRENT_ASYNC_HOOKS: usize = 8;
+
+/// How long output is still read once the hook's own process has exited. A process the hook
+/// left in the background (`some-daemon &`) may keep the pipes open for as long as it runs, so
+/// the hook ends shortly after its process does, as in Claude Code, not at end of file.
+const OUTPUT_GRACE_AFTER_EXIT: Duration = Duration::from_millis(200);
 
 /// Owns command execution and bounded asynchronous work for one session.
 #[derive(Clone)]
@@ -344,22 +353,56 @@ pub(crate) async fn run_command(
         }
         Ok(())
     };
-    let wait_with_output = async {
-        child
-            .wait_with_output()
-            .await
-            .map_err(|err| ("wait_error", err.to_string()))
-    };
-
+    let mut stdout_pipe = child.stdout.take();
+    let mut stderr_pipe = child.stderr.take();
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
     // Drain output while sending input so neither pipe can block the other, and
     // include stdin writes in the deadline even when the hook never reads them.
-    match timeout(
+    // The hook is done when its own process exits: input not yet taken is dropped
+    // and output is read for a short grace period only, since a background process
+    // it started may hold the pipes open.
+    let wait_with_output = async {
+        let exited = async {
+            let write_stdin = std::pin::pin!(write_stdin);
+            let wait = std::pin::pin!(child.wait());
+            let status = match select(write_stdin, wait).await {
+                Either::Left((written, wait)) => {
+                    written?;
+                    wait.await
+                }
+                // The hook exited without taking all of its input.
+                Either::Right((status, _)) => status,
+            };
+            status.map_err(|err| ("wait_error", err.to_string()))
+        };
+        let exited = std::pin::pin!(exited);
+        let drain_output = std::pin::pin!(try_join(
+            drain_pipe(stdout_pipe.as_mut(), &mut stdout),
+            drain_pipe(stderr_pipe.as_mut(), &mut stderr),
+        ));
+        match select(drain_output, exited).await {
+            Either::Left((drained, exited)) => {
+                drained.map_err(|err| ("wait_error", err.to_string()))?;
+                exited.await
+            }
+            Either::Right((status, drain_output)) => {
+                let status = status?;
+                if let Ok(drained) = timeout(OUTPUT_GRACE_AFTER_EXIT, drain_output).await {
+                    drained.map_err(|err| ("wait_error", err.to_string()))?;
+                }
+                Ok(status)
+            }
+        }
+    };
+    let outcome = timeout(
         duration.saturating_sub(timeout_started.elapsed()),
-        try_join(write_stdin, wait_with_output),
+        wait_with_output,
     )
-    .await
-    {
-        Ok(Ok(((), output))) => {
+    .await;
+
+    match outcome {
+        Ok(Ok(status)) => {
             // Successfully completed hooks may intentionally leave detached helpers running.
             // WINDOWS-REMNANT
             #[cfg(windows)]
@@ -371,9 +414,9 @@ pub(crate) async fn run_command(
                 started_at,
                 started,
                 CommandRunCompletion {
-                    exit_code: output.status.code(),
-                    stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-                    stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+                    exit_code: status.code(),
+                    stdout: String::from_utf8_lossy(&stdout).to_string(),
+                    stderr: String::from_utf8_lossy(&stderr).to_string(),
                     error: None,
                     outcome: "completed",
                 },
@@ -401,6 +444,25 @@ pub(crate) async fn run_command(
                 outcome: "timeout",
             },
         ),
+    }
+}
+
+/// Appends what `pipe` yields to `buf` until end of file. What was read stays in `buf` when
+/// the future is dropped before that.
+async fn drain_pipe<R: AsyncRead + Unpin>(
+    pipe: Option<&mut R>,
+    buf: &mut Vec<u8>,
+) -> std::io::Result<()> {
+    let Some(pipe) = pipe else {
+        return Ok(());
+    };
+    let mut chunk = [0u8; 8192];
+    loop {
+        let read = pipe.read(&mut chunk).await?;
+        if read == 0 {
+            return Ok(());
+        }
+        buf.extend_from_slice(&chunk[..read]);
     }
 }
 

@@ -354,6 +354,57 @@ time.sleep(30)
     assert_eq!(result.error, Some("hook timed out after 2s".to_string()));
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn hook_ends_when_its_process_exits_though_a_background_child_holds_the_pipes() {
+    let temp = tempdir().expect("create temp dir");
+    let source_path = AbsolutePathBuf::try_from(temp.path().join("hooks.json"))
+        .expect("absolute hook configuration path");
+    // The background sleep inherits stdout and stderr and keeps them open.
+    let command = "sleep 20 & echo started; echo note >&2; exit 3";
+    let env = HashMap::new();
+    let handler = ConfiguredHandler {
+        builtin: false,
+        plugin_trust: None,
+        event_name: HookEventName::SessionStart,
+        matcher: None,
+        timeout_sec: 15,
+        status_message: None,
+        additional_context_limit: Default::default(),
+        source_path: source_path.into(),
+        source: HookSource::User,
+        display_order: 0,
+        kind: ConfiguredHandlerKind::Command {
+            command: command.to_string(),
+            r#async: false,
+            posix_sh: true,
+            env: env.clone(),
+        },
+    };
+    let (runtime, _result_receiver) = runtime();
+    let runtime = runtime.reconfigured(CommandShell {
+        program: "/bin/sh".to_string(),
+        args: vec!["-c".to_string()],
+    });
+
+    let result = timeout(
+        Duration::from_secs(5),
+        run_command(&runtime, &handler, command, &env, "{}", temp.path()),
+    )
+    .await
+    .expect("the hook must end once its own process has exited");
+
+    assert_eq!(
+        (
+            result.exit_code,
+            result.stdout.trim(),
+            result.stderr.trim(),
+            result.error
+        ),
+        (Some(3), "started", "note", None)
+    );
+}
+
 #[tokio::test]
 async fn command_hook_does_not_expose_configured_noise_auth_token() {
     let temp = tempdir().expect("create temp dir");
@@ -886,7 +937,7 @@ raise SystemExit({exit_code})
 
 #[cfg(unix)]
 #[tokio::test]
-async fn exited_hook_leader_with_open_descendant_output_still_times_out() {
+async fn exited_hook_leader_ends_the_hook_while_a_descendant_keeps_its_output() {
     let temp = tempdir().expect("create temp dir");
     let mut handler = write_handler(
         &temp,
@@ -897,24 +948,27 @@ child = subprocess.Popen(['sleep', '60'])
 Path('descendant-pid').write_text(str(child.pid))
 "#,
     );
-    handler.timeout_sec = 2;
+    handler.timeout_sec = 20;
     let ConfiguredHandlerKind::Command { command, env, .. } = &handler.kind else {
         panic!("expected command hook");
     };
     let (mut runtime, _result_receiver) = runtime();
     runtime.shell.program = "/bin/sh".into();
     runtime.shell.args = vec!["-c".into()];
+    let started = std::time::Instant::now();
     let result = run_command(&runtime, &handler, command, env, "{}", temp.path()).await;
-    assert_eq!(result.error, Some("hook timed out after 2s".to_string()));
+    // As in Claude Code, the hook is done once its own process exits, although a process it
+    // started still holds its output open; that process is left running.
+    assert_eq!(result.error, None);
+    assert!(started.elapsed() < Duration::from_secs(10));
     let pid = std::fs::read_to_string(temp.path().join("descendant-pid"))
         .expect("descendant started before its parent exited");
-    timeout(Duration::from_secs(10), async {
-        while process_is_running(pid.trim()).await {
-            sleep(Duration::from_millis(10)).await;
-        }
-    })
-    .await
-    .expect("hook timeout must stop the descendant after the leader exits");
+    assert!(process_is_running(pid.trim()).await);
+    let _ = tokio::process::Command::new("kill")
+        .arg(pid.trim())
+        .stdin(std::process::Stdio::null())
+        .status()
+        .await;
 }
 
 #[cfg(unix)]
