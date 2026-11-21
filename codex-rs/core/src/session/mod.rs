@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks; added Claude Code's tool set; load Claude Code plugins
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks; added Claude Code's tool set; load Claude Code plugins;
+// keep estimating context use when a reply reports zero tokens
 
 pub(crate) mod startup;
 
@@ -5814,7 +5815,14 @@ impl Session {
         usage: crate::client_common::SamplingUsage,
         context: TokenUsageContext,
     ) -> CodexResult<()> {
-        let token_info = if let Some(token_usage) = usage.provider.as_ref() {
+        // A reply that reports zero tokens counts as one that reports none: moving the
+        // usage boundary to it would drop the estimate of the history and keep
+        // auto-compaction from ever firing.
+        let provider_usage = usage
+            .provider
+            .as_ref()
+            .filter(|token_usage| !token_usage.is_zero());
+        let token_info = if let Some(token_usage) = provider_usage {
             let token_info = {
                 let mut state = self.state.lock().await;
                 match context {

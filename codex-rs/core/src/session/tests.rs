@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code
+// Modified by Tianyu (Sky) Lu in 2026: marked the remaining Windows-only code; test usage that
+// reports zero tokens
 
 use crate::McpRefreshReason;
 use crate::agent::LocalAgentControl;
@@ -3522,6 +3523,53 @@ async fn record_token_usage_info_notifies_extension_contributors(
     assert_eq!(
         session.token_usage_info().await,
         Some(expected_session_info)
+    );
+}
+
+#[tokio::test]
+async fn record_token_usage_info_ignores_usage_that_reports_zero_tokens() {
+    let (session, turn_context) = make_session_and_context().await;
+    let usage = TokenUsage {
+        input_tokens: 10,
+        cached_input_tokens: 2,
+        cache_write_input_tokens: 0,
+        output_tokens: 20,
+        reasoning_output_tokens: 3,
+        total_tokens: 33,
+        codex_rollout_budget_units: None,
+    };
+    let sampling = crate::session::TokenUsageContext::Sampling {
+        includes_reasoning: true,
+        input_item_count: 0,
+    };
+
+    session
+        .record_token_usage_info(
+            &turn_context,
+            &turn_context.initial_settings,
+            usage.clone().into(),
+            sampling,
+        )
+        .await
+        .expect("usage should be recorded");
+    session
+        .record_token_usage_info(
+            &turn_context,
+            &turn_context.initial_settings,
+            TokenUsage::default().into(),
+            sampling,
+        )
+        .await
+        .expect("zero usage should be accepted");
+
+    assert_eq!(
+        session.token_usage_info().await,
+        Some(TokenUsageInfo {
+            total_token_usage: usage.clone(),
+            last_usage_includes_reasoning: Some(true),
+            last_token_usage: usage,
+            model_context_window: turn_context.model_context_window(),
+        })
     );
 }
 
