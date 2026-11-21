@@ -46,14 +46,43 @@ pub fn settings_paths(claude_home: Option<&Path>, project_dir: Option<&Path>) ->
     paths
 }
 
-/// Reads a settings file; `Ok(None)` when it does not exist.
+/// The largest settings or `.mcp.json` file read; a larger one is an error.
+const MAX_SETTINGS_BYTES: u64 = 16 * 1024 * 1024;
+
+/// Reads a settings file; `Ok(None)` when it does not exist or is not a regular file
+/// (a FIFO or a link to a device would hang or never end). A leading UTF-8 byte-order
+/// mark is ignored, as Claude Code does.
 pub fn read_settings(path: &Path) -> io::Result<Option<Value>> {
-    let contents = match std::fs::read_to_string(path) {
-        Ok(contents) => contents,
+    match std::fs::metadata(path) {
+        Ok(metadata) if metadata.is_file() => {
+            if metadata.len() > MAX_SETTINGS_BYTES {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("larger than {MAX_SETTINGS_BYTES} bytes"),
+                ));
+            }
+        }
+        Ok(_) => {
+            tracing::warn!("ignoring {}: not a regular file", path.display());
+            return Ok(None);
+        }
         Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(err) => return Err(err),
-    };
-    serde_json::from_str(&contents)
+    }
+    let mut contents = String::new();
+    match std::fs::File::open(path) {
+        Ok(file) => {
+            // The file may have grown since it was measured.
+            io::Read::read_to_string(
+                &mut io::Read::take(file, MAX_SETTINGS_BYTES),
+                &mut contents,
+            )?;
+        }
+        Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(err) => return Err(err),
+    }
+    let contents = contents.strip_prefix('\u{feff}').unwrap_or(&contents);
+    serde_json::from_str(contents)
         .map(Some)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))
 }

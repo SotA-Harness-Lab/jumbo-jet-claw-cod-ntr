@@ -10,6 +10,7 @@ use serde_json::json;
 use super::BashPrefixRule;
 use super::PermissionDecision;
 use super::bash_prefix_rules;
+use super::read_settings;
 use super::settings_env;
 use super::settings_paths;
 
@@ -74,4 +75,35 @@ fn settings_paths_skip_the_home_directory_as_a_project() {
             PathBuf::from("/work/p/.claude/settings.local.json"),
         ]
     );
+}
+
+#[test]
+fn settings_with_a_byte_order_mark_are_read() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("settings.json");
+    std::fs::write(&path, "\u{feff}{\"env\": {\"A\": \"1\"}}").unwrap();
+
+    assert_eq!(
+        read_settings(&path).unwrap(),
+        Some(json!({"env": {"A": "1"}}))
+    );
+}
+
+#[test]
+fn settings_that_are_not_a_regular_file_count_as_missing() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("settings.json");
+    std::fs::create_dir(&path).unwrap();
+
+    assert_eq!(read_settings(&path).unwrap(), None);
+}
+
+#[cfg(unix)]
+#[test]
+fn settings_linked_to_a_device_count_as_missing() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(".mcp.json");
+    std::os::unix::fs::symlink("/dev/null", &path).unwrap();
+
+    assert_eq!(read_settings(&path).unwrap(), None);
 }

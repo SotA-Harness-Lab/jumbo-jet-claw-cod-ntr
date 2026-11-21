@@ -581,6 +581,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | Variables in a server's declaration | `${VAR}` and `${VAR:-default}` are expanded in `command`, `args`, `env`, `url` and `headers`; a variable that is not set and has no default stays as written | The same | Done 2026-11-17 `80c1279420` |
 | A remote server's `headers` | Sent with every request to the server | The same: they become the server's `http_headers`, in `~/.claude.json`, `.mcp.json` and a Claude Code plugin's servers | Done 2026-11-21 |
 | A server's `timeout` | The time limit of each of its tool calls, in milliseconds; a value below 1000 is ignored | The same: it becomes the server's `tool_timeout_sec`. What applies without it is under "Differences from Claude Code" | Done 2026-11-21 |
+| How the settings files, `~/.claude.json` and `.mcp.json` are read | A leading UTF-8 byte-order mark is ignored; a `.mcp.json` that is a FIFO or a link to a device is not read (2.1.257) | The same: a file that is not a regular file counts as missing, with a warning in the log, and one over 16 MiB is an error | Done 2026-11-21 |
 
 ### Auto memory
 
