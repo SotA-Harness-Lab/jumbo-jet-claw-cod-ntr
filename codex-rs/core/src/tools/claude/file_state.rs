@@ -9,11 +9,16 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use codex_claude_compat::tools::read;
+use codex_claude_compat::tools::seen_files::PastCall;
+use codex_claude_compat::tools::seen_files::seen_files;
 use codex_exec_server::FileMetadata;
+use codex_protocol::models::ResponseItem;
+use codex_utils_path_uri::PathUri;
 use sha1::Digest;
 use sha1::Sha1;
 
 use crate::session::session::Session;
+use crate::session::turn_context::TurnContext;
 
 /// How many files the session remembers: the ones it used last, as Claude Code keeps its
 /// `READ_FILE_STATE_CACHE_SIZE`. A file it forgot has to be read again before it is changed.
@@ -115,6 +120,67 @@ impl ReadFiles {
                 records.by_key.remove(&oldest);
             }
         }
+    }
+}
+
+/// Rebuilds what the session knows of the files the model read and wrote from `history`, the
+/// conversation of a resumed or forked session, as Claude Code rebuilds it from the
+/// transcript: each file the model knew whole there is known by that content, so that it may
+/// be edited without a new read while its content is unchanged.
+pub(crate) fn restore<'a>(
+    session: &Session,
+    turn_context: &TurnContext,
+    history: impl IntoIterator<Item = &'a ResponseItem>,
+) {
+    if !super::enabled(turn_context) {
+        return;
+    }
+    let Some(environment) = turn_context.initial_environments.primary() else {
+        return;
+    };
+    restore_into(&ReadFiles::of(session), environment.cwd(), history);
+}
+
+/// [`restore`] into `files`, with relative paths resolved against `cwd`.
+fn restore_into<'a>(
+    files: &ReadFiles,
+    cwd: &PathUri,
+    history: impl IntoIterator<Item = &'a ResponseItem>,
+) {
+    let mut calls: HashMap<&str, (&str, &str)> = HashMap::new();
+    let mut past = Vec::new();
+    for item in history {
+        match item {
+            ResponseItem::FunctionCall {
+                name,
+                namespace: None,
+                arguments,
+                call_id,
+                ..
+            } => {
+                calls.insert(call_id.as_str(), (name.as_str(), arguments.as_str()));
+            }
+            ResponseItem::FunctionCallOutput {
+                call_id: Some(call_id),
+                output,
+                ..
+            } => {
+                if let (Some(&(tool, arguments)), Some(output)) =
+                    (calls.get(call_id.as_str()), output.text_content())
+                {
+                    past.push(PastCall {
+                        tool,
+                        arguments,
+                        output,
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    let key_of = |file_path: &str| cwd.join(file_path).ok().map(|uri| uri.to_string());
+    for (key, content) in seen_files(past, key_of) {
+        files.insert(key, FileRecord::Whole(ContentDigest::of(&content)));
     }
 }
 

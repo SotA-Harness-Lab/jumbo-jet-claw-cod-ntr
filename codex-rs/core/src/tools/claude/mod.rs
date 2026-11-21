@@ -49,6 +49,7 @@ use crate::tools::registry::CoreToolRuntime;
 use crate::tools::registry::ToolRegistry;
 
 pub(crate) use bash::register as register_bash;
+pub(crate) use file_state::restore as restore_read_files;
 pub(crate) use permissions::PermissionGuard;
 pub(crate) use permissions::PermissionInput;
 pub(crate) use permissions::apply_hook_permission;
