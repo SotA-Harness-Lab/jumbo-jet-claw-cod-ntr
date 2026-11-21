@@ -102,3 +102,16 @@ fn large_outputs_point_to_jq() {
 fn a_file_that_is_not_a_notebook_fails() {
     assert!(read_cells("not json").is_err());
 }
+
+#[test]
+fn a_byte_order_mark_before_the_json_is_skipped() {
+    let json = format!(
+        "\u{feff}{}",
+        notebook(
+            json!([{ "cell_type": "code", "source": "x", "outputs": [] }]),
+            None
+        )
+    );
+    let cells = read_cells(&json).expect("a notebook");
+    assert_eq!(cells.len(), 1);
+}
