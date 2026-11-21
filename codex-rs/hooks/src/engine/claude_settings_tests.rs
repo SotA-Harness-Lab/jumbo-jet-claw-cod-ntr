@@ -12,6 +12,8 @@ use super::ClaudeHookSettings;
 use super::ClaudeSettingsStamp;
 use super::hook_conditions;
 use super::load;
+use super::plugin_handler_extras;
+use super::settings_http_hook_policy;
 
 fn absolute(path: std::path::PathBuf) -> AbsolutePathBuf {
     AbsolutePathBuf::from_absolute_path_checked(path).expect("absolute path")
@@ -255,6 +257,43 @@ fn prompt_agent_and_http_handlers_keep_what_they_declare() {
     assert_eq!(hook.policy.allowed_env_vars, None);
     // The `http` handler is parsed in the place of a `prompt` one.
     assert_eq!(loaded[0].events.post_tool_use[0].hooks.len(), 1);
+}
+
+#[test]
+fn a_plugins_http_handlers_keep_what_they_declare_under_the_settings_policy() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        r#"{"allowedHttpHookUrls": ["https://hooks.example.com/*"]}"#,
+    )
+    .expect("write");
+    let hooks_file = tmp.path().join("plugin/hooks/hooks.json");
+    fs::create_dir_all(hooks_file.parent().expect("parent")).expect("create");
+    fs::write(
+        &hooks_file,
+        r#"{"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [
+            {"type": "command", "command": "plain.sh"},
+            {"type": "http", "url": "https://hooks.example.com/post", "timeout": 5}
+        ]}]}}"#,
+    )
+    .expect("write");
+
+    let extras = plugin_handler_extras(
+        &absolute(hooks_file),
+        &settings_http_hook_policy(&settings(&tmp)),
+    );
+
+    let http = &extras.handlers[&("PostToolUse".to_string(), 0, 1)];
+    assert_eq!(http.timeout_sec, Some(5));
+    let ClaudeHandlerKind::Http(hook) = &http.kind else {
+        panic!("expected an http handler, got {:?}", http.kind);
+    };
+    assert_eq!(hook.url, "https://hooks.example.com/post");
+    assert_eq!(
+        hook.policy.allowed_urls,
+        Some(vec!["https://hooks.example.com/*".to_string()])
+    );
 }
 
 #[test]

@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins; load Claude Code's custom slash commands; scan skills/ beside the skills a Claude Code manifest lists
+// Modified by Tianyu (Sky) Lu in 2026: load Claude Code plugins; load Claude Code's custom slash commands; scan skills/ beside the skills a Claude Code manifest lists;
+// read the http hooks of a Claude Code plugin's hooks file
 
 use crate::PluginGitMode;
 use crate::app_mcp_routing::apply_app_mcp_routing_policy;
@@ -1356,7 +1357,7 @@ fn append_plugin_hook_file(
             return;
         }
     };
-    let parsed = match serde_json::from_str::<HooksFile>(&contents) {
+    let parsed = match parse_plugin_hooks_file(&contents, has_claude_manifest(plugin_root)) {
         Ok(parsed) => parsed,
         Err(err) => {
             warnings.push(format!(
@@ -1385,6 +1386,34 @@ fn append_plugin_hook_file(
         source_relative_path,
         hooks: parsed.hooks,
     });
+}
+
+/// Parses a plugin's hooks file. A Claude Code plugin's file may have `http` handlers, which
+/// `HooksFile` has no place for: they are read as `prompt` handlers, which keep their place,
+/// and the hooks engine reads what they are to do from the file itself.
+fn parse_plugin_hooks_file(contents: &str, claude_plugin: bool) -> serde_json::Result<HooksFile> {
+    if !claude_plugin {
+        return serde_json::from_str(contents);
+    }
+    let mut file = serde_json::from_str::<serde_json::Value>(contents)?;
+    if let Some(events) = file
+        .get_mut("hooks")
+        .and_then(serde_json::Value::as_object_mut)
+    {
+        for handler in events
+            .values_mut()
+            .filter_map(serde_json::Value::as_array_mut)
+            .flatten()
+            .filter_map(|group| group.get_mut("hooks"))
+            .filter_map(serde_json::Value::as_array_mut)
+            .flatten()
+        {
+            if handler.get("type").and_then(serde_json::Value::as_str) == Some("http") {
+                handler["type"] = serde_json::Value::String("prompt".to_string());
+            }
+        }
+    }
+    serde_json::from_value(file)
 }
 
 async fn load_apps_from_paths(

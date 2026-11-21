@@ -466,15 +466,28 @@ fn stand_in_for_http(hooks: &mut Value) {
 }
 
 /// What a Claude Code plugin's hooks file, whose events are under its `hooks` key, says
-/// beyond `HookEventsToml`. A plugin's `http` handlers are not among them: Codex's plugin
-/// loader reads the file first and does not know the type.
-pub(crate) fn plugin_handler_extras(path: &AbsolutePathBuf) -> ClaudeHandlerExtras {
+/// beyond `HookEventsToml`. Codex's plugin loader reads its `http` handlers as `prompt` ones;
+/// `http_policy` is the settings files', which narrows them as it does theirs.
+pub(crate) fn plugin_handler_extras(
+    path: &AbsolutePathBuf,
+    http_policy: &HttpHookPolicy,
+) -> ClaudeHandlerExtras {
     read_settings(path, &mut Vec::new())
         .and_then(|file| {
             file.get("hooks")
-                .map(|hooks| handler_extras(hooks, &HttpHookPolicy::default()))
+                .map(|hooks| handler_extras(hooks, http_policy))
         })
         .unwrap_or_default()
+}
+
+/// `allowedHttpHookUrls` and `httpHookAllowedEnvVars` of the settings files, for the `http`
+/// handlers of plugins.
+pub(crate) fn settings_http_hook_policy(settings: &ClaudeHookSettings) -> HttpHookPolicy {
+    let files = settings_files(settings)
+        .into_iter()
+        .filter_map(|(path, _)| read_settings(&path, &mut Vec::new()))
+        .collect::<Vec<_>>();
+    http_hook_policy(files.iter())
 }
 
 /// Drops handlers of a type Codex does not know, such as `http`, reporting them.

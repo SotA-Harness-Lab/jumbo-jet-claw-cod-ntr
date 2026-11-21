@@ -1050,6 +1050,43 @@ fn load_plugin_hooks_supports_inline_manifest_hooks() {
 }
 
 #[test]
+fn load_plugin_hooks_reads_http_handlers_of_a_claude_code_plugin() {
+    let http_hooks = r#"{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "http", "url": "https://hooks.example.com/post" }]
+      }
+    ]
+  }
+}"#;
+    let (_claude_tmp, claude_root) = plugin_root();
+    fs::create_dir_all(claude_root.join(".claude-plugin")).expect("create manifest dir");
+    fs::write(
+        claude_root.join(".claude-plugin/plugin.json"),
+        r#"{ "name": "demo-plugin" }"#,
+    )
+    .expect("write manifest");
+    fs::write(claude_root.join("hooks/hooks.json"), http_hooks).expect("write hooks");
+
+    let (sources, warnings) = load_sources(&claude_root);
+
+    assert_eq!(warnings, Vec::<String>::new());
+    assert_sources(&sources, &["hooks/hooks.json"]);
+
+    // Codex's own plugins keep Codex's format, which has no `http` handlers.
+    let (_codex_tmp, codex_root) = plugin_root();
+    write_manifest(&codex_root, r#"{ "name": "demo-plugin" }"#);
+    fs::write(codex_root.join("hooks/hooks.json"), http_hooks).expect("write hooks");
+
+    let (sources, warnings) = load_sources(&codex_root);
+
+    assert_eq!(sources, Vec::<PluginHookSource>::new());
+    assert_eq!(warnings.len(), 1);
+}
+
+#[test]
 fn load_plugin_hooks_reports_invalid_hook_file() {
     let (_tmp, plugin_root) = plugin_root();
     write_manifest(&plugin_root, r#"{ "name": "demo-plugin" }"#);
