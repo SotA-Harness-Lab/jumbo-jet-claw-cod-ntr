@@ -68,6 +68,35 @@ fn tool_lists_keep_the_listed_tools_and_their_helpers() {
 }
 
 #[test]
+fn tool_lists_name_whole_mcp_servers() {
+    let github = tool_list(Some("Read, mcp__github__*"), None);
+    assert!(github.permits("mcp__github__create_issue", None));
+    assert!(!github.permits("mcp__gitlab__create_issue", None));
+    assert!(!github.permits("mcp__github_enterprise__create_issue", None));
+    assert!(tool_list(Some("mcp__github"), None).permits("mcp__github__create_issue", None));
+    // Without `__*`, `mcp__reports__v2` names the tool `v2` of the server `reports`.
+    let reports = tool_list(Some("mcp__reports__v2"), None);
+    assert!(!reports.permits("mcp__reports__v2__run_query", None));
+    assert!(
+        tool_list(Some("mcp__reports__v2__*"), None).permits("mcp__reports__v2__run_query", None)
+    );
+    // `mcp__*` gives no tool, but takes every MCP tool away.
+    assert!(!tool_list(Some("mcp__*"), None).permits("mcp__github__create_issue", None));
+
+    for denied in ["mcp__github", "mcp__github__*"] {
+        let no_github = tool_list(None, Some(denied));
+        assert!(!no_github.permits("mcp__github__create_issue", None));
+        assert!(no_github.permits("mcp__gitlab__create_issue", None));
+        assert!(no_github.permits("Read", None));
+    }
+    let no_reports = tool_list(None, Some("mcp__reports"));
+    assert!(!no_reports.permits("mcp__reports__v2__run_query", None));
+    let no_mcp = tool_list(None, Some("mcp__*"));
+    assert!(!no_mcp.permits("mcp__github__create_issue", None));
+    assert!(no_mcp.permits("Read", None));
+}
+
+#[test]
 fn tool_lists_are_summed_up_as_in_claude_code() {
     assert_eq!(tool_list(None, None).summary(), "All tools");
     assert_eq!(

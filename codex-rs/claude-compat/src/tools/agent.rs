@@ -80,16 +80,22 @@ impl ToolList {
     /// serves a Claude tool (`write_stdin` for `Bash`) names that tool as `owner`, and is kept
     /// with it unless it is denied itself.
     pub fn permits(&self, name: &str, owner: Option<&str>) -> bool {
-        if self.disallowed.iter().any(|denied| denied == name) {
+        if self
+            .disallowed
+            .iter()
+            .any(|denied| entry_covers(denied, name, /*any_mcp*/ true))
+        {
             return false;
         }
         // A helper tool goes with the tool it serves (`write_stdin` with `Bash`).
         if let Some(owner) = owner {
             return self.permits(owner, None);
         }
-        self.allowed
-            .as_ref()
-            .is_none_or(|allowed| allowed.iter().any(|allowed| allowed == name))
+        self.allowed.as_ref().is_none_or(|allowed| {
+            allowed
+                .iter()
+                .any(|allowed| entry_covers(allowed, name, /*any_mcp*/ false))
+        })
     }
 
     /// Claude Code's summary of the list in the `Agent` description.
@@ -111,6 +117,32 @@ impl ToolList {
             (None, true) => "All tools".to_string(),
         }
     }
+}
+
+/// Whether an entry of a tool list covers the tool `name`: the tool itself, or, for an MCP
+/// tool, the whole server as `mcp__<server>` or `mcp__<server>__*` (every tool whose name
+/// starts with `mcp__<server>__`, as in Claude Code), and with `any_mcp` every MCP tool as
+/// `mcp__*`, which Claude Code takes in `disallowedTools`.
+fn entry_covers(entry: &str, name: &str, any_mcp: bool) -> bool {
+    if entry == name {
+        return true;
+    }
+    let (Some(entry), Some(tool)) = (entry.strip_prefix("mcp__"), name.strip_prefix("mcp__"))
+    else {
+        return false;
+    };
+    if entry == "*" {
+        return any_mcp;
+    }
+    let server = match entry.strip_suffix("__*") {
+        Some(server) => server,
+        None if !entry.contains("__") => entry,
+        None => return false,
+    };
+    !server.is_empty()
+        && tool
+            .strip_prefix(server)
+            .is_some_and(|rest| rest.starts_with("__"))
 }
 
 /// The Claude tool a Codex tool kept beside the Claude tools works for, if any: it goes
