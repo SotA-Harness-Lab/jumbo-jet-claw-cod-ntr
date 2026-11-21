@@ -993,3 +993,36 @@ fn local_environment_placement_rejects_remote_env_vars() {
         }
     );
 }
+
+#[test]
+fn claude_code_headers_become_http_headers() {
+    let outcome = parse_plugin_mcp_config(
+        &plugin_root(),
+        r#"{"mcpServers":{
+            "remote":{"type":"http","url":"https://example.com/mcp","headers":{"Authorization":"Bearer token"}},
+            "both":{"type":"http","url":"https://example.com/mcp","headers":{"X-Old":"a"},"http_headers":{"X-New":"b"}}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty());
+    let headers = |name: &str| {
+        let McpServerTransportConfig::StreamableHttp { http_headers, .. } =
+            &outcome.servers[name].transport
+        else {
+            panic!("expected HTTP transport");
+        };
+        http_headers.clone()
+    };
+    assert_eq!(
+        headers("remote"),
+        Some(HashMap::from([(
+            "Authorization".to_string(),
+            "Bearer token".to_string()
+        )]))
+    );
+    assert_eq!(
+        headers("both"),
+        Some(HashMap::from([("X-New".to_string(), "b".to_string())]))
+    );
+}

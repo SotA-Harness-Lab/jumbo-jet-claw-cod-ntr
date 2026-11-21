@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables
+// Modified by Tianyu (Sky) Lu in 2026: fill in a Claude Code plugin's variables, and read
+// Claude Code's `headers`
 
 use codex_config::McpServerAuth;
 use codex_config::McpServerConfig;
@@ -331,6 +332,14 @@ fn normalize_plugin_mcp_server_value(
         if !oauth.is_empty() {
             object.insert("oauth".to_string(), JsonValue::Object(oauth));
         }
+    }
+
+    // Claude Code names a remote server's headers `headers`.
+    if object.contains_key("url")
+        && !object.contains_key("http_headers")
+        && let Some(headers) = object.remove("headers")
+    {
+        object.insert("http_headers".to_string(), headers);
     }
 
     if let PluginMcpSource::Host { root } = source

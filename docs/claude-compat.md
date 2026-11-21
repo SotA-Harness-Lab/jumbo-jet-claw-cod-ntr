@@ -572,6 +572,7 @@ where a row has a limit, it is in "Differences from Claude Code" above, under th
 | MCP servers of the user | `mcpServers` of `~/.claude.json` | The same | Done 2026-11-17 `80c1279420` |
 | MCP servers of a project | The `.mcp.json` files of the working directory and the directories above it, the root of the filesystem left out, the nearer winning; a server there only once approved by `enabledMcpjsonServers` or `enableAllProjectMcpServers` and not listed in `disabledMcpjsonServers`; then the servers `~/.claude.json` keeps for the project, which win; the servers turned off in `/mcp` (`disabledMcpServers` of the project's entry in `~/.claude.json`) left out | The same | Done 2026-11-20 `f987126bd2` |
 | Variables in a server's declaration | `${VAR}` and `${VAR:-default}` are expanded in `command`, `args`, `env`, `url` and `headers`; a variable that is not set and has no default stays as written | The same | Done 2026-11-17 `80c1279420` |
+| A remote server's `headers` | Sent with every request to the server | The same: they become the server's `http_headers`, in `~/.claude.json`, `.mcp.json` and a Claude Code plugin's servers | Done 2026-11-21 |
 
 ### Auto memory
 
