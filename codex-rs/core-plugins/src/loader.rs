@@ -1170,11 +1170,11 @@ pub(crate) fn plugin_skill_roots(
     paths
 }
 
-/// The directories of a Claude Code plugin's commands (its manifest is
+/// The directories and files of a Claude Code plugin's commands (its manifest is
 /// `.claude-plugin/plugin.json`), read in place as skills named `<plugin>:<command>`: those
-/// the manifest's `commands` lists, else `commands/`. None for other plugins, and when Codex
-/// already migrated the commands into skills of their own at install time. A `commands` entry
-/// naming a single file is left out.
+/// the manifest's `commands` lists or maps, else `commands/`. None for other plugins, and when
+/// Codex already migrated the commands into skills of their own at install time. A file is
+/// one Markdown command.
 pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<AbsolutePathBuf> {
     if !has_claude_manifest(plugin_root) || migrated_command_skills_root(plugin_root).is_dir() {
         return Vec::new();
@@ -1187,7 +1187,18 @@ pub(crate) fn plugin_command_roots(plugin_root: &AbsolutePathBuf) -> Vec<Absolut
         Ok(None) => vec![plugin_root.join(DEFAULT_COMMANDS_DIR_NAME)],
         Err(_) => Vec::new(),
     };
-    declared.into_iter().filter(|path| path.is_dir()).collect()
+    let mut roots = Vec::new();
+    for path in declared {
+        let is_command_file = path.is_file()
+            && path
+                .as_path()
+                .extension()
+                .is_some_and(|extension| extension == "md");
+        if (path.is_dir() || is_command_file) && !roots.contains(&path) {
+            roots.push(path);
+        }
+    }
+    roots
 }
 
 /// Whether the plugin's manifest is Claude Code's, `.claude-plugin/plugin.json`.

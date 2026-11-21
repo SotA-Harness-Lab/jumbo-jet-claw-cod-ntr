@@ -1346,6 +1346,33 @@ fn claude_plugin_root(manifest: &str) -> (tempfile::TempDir, AbsolutePathBuf) {
 }
 
 #[test]
+fn claude_manifest_commands_may_name_files_and_map_names_to_them() {
+    let (_tmp, listed) = claude_plugin_root(
+        r#"{"name": "demo-plugin", "commands": ["./extra", "./one.md", "./missing.md"]}"#,
+    );
+    write_file(listed.join("extra/two.md").as_path(), "Two\n");
+    write_file(listed.join("one.md").as_path(), "One\n");
+    write_file(listed.join("commands/ignored.md").as_path(), "Ignored\n");
+    assert_eq!(
+        plugin_command_roots(&listed),
+        vec![listed.join("extra"), listed.join("one.md")]
+    );
+
+    let (_tmp, mapped) = claude_plugin_root(
+        r#"{"name": "demo-plugin", "commands": {
+            "status": {"source": "./commands/status.md", "description": "Show the status"},
+            "about": {"content": "Explain the plugin."}
+        }}"#,
+    );
+    write_file(mapped.join("commands/status.md").as_path(), "Status\n");
+    write_file(mapped.join("commands/other.md").as_path(), "Other\n");
+    assert_eq!(
+        plugin_command_roots(&mapped),
+        vec![mapped.join("commands/status.md")]
+    );
+}
+
+#[test]
 fn claude_manifest_hooks_load_after_the_default_hooks_file() {
     let (_tmp, plugin_root) = claude_plugin_root(
         r#"{

@@ -4254,6 +4254,23 @@ impl Config {
                     )),
                 }
             }
+            // The agent files the manifest names one by one.
+            let agent_files = variables
+                .agent_files()
+                .into_iter()
+                .filter_map(|file| AbsolutePathBuf::from_absolute_path_checked(&file).ok())
+                .collect::<Vec<_>>();
+            if !agent_files.is_empty() {
+                for (name, role) in codex_agent_roles::load_claude_code_agent_role_files(
+                    fs,
+                    agent_files,
+                    &mut startup_warnings,
+                )
+                .await
+                {
+                    agent_roles.entry(name).or_insert(role);
+                }
+            }
         }
 
         let openai_base_url = cfg

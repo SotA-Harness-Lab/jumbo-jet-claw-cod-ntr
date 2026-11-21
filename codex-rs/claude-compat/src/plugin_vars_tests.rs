@@ -239,3 +239,52 @@ fn plugin_agents_are_named_after_the_plugin_and_their_directories() {
         None
     );
 }
+
+#[test]
+fn a_single_agent_file_of_the_manifest_is_named_after_the_plugin_alone() {
+    let tmp = TempDir::new().expect("temp dir");
+    let (claude_home, root) = installed_plugin(&tmp);
+    fs::write(
+        root.join(".claude-plugin/plugin.json"),
+        r#"{"name": "demo", "agents": ["./extra", "./solo/reviewer.md", "./../outside.md"]}"#,
+    )
+    .expect("write");
+    let file = root.join("solo/reviewer.md");
+    fs::create_dir_all(file.parent().expect("parent")).expect("create");
+    fs::write(&file, "Review ${CLAUDE_PLUGIN_ROOT}.\n").expect("write");
+    fs::write(tmp.path().join("outside.md"), "Outside.\n").expect("write");
+
+    assert_eq!(load(&claude_home, &root).agent_files(), vec![file.clone()]);
+    let reviewer =
+        parse_subagent_at(&fs::read_to_string(&file).expect("read"), &file).expect("plugin agent");
+    assert_eq!(
+        (reviewer.name.as_str(), reviewer.prompt),
+        ("demo:reviewer", format!("Review {}.", root.display()))
+    );
+}
+
+#[test]
+fn the_commands_map_names_a_file_s_command() {
+    let tmp = TempDir::new().expect("temp dir");
+    let (_, root) = installed_plugin(&tmp);
+    fs::write(
+        root.join(".claude-plugin/plugin.json"),
+        r#"{"name": "demo", "commands": {
+            "status": {"source": "./commands/show.md", "description": " Show the status "},
+            "about": {"content": "Inline."}
+        }}"#,
+    )
+    .expect("write");
+
+    assert_eq!(
+        super::mapped_plugin_command(&root, &root.join("commands/show.md")),
+        Some(super::MappedCommand {
+            name: "status".to_string(),
+            description: Some("Show the status".to_string()),
+        })
+    );
+    assert_eq!(
+        super::mapped_plugin_command(&root, &root.join("commands/other.md")),
+        None
+    );
+}

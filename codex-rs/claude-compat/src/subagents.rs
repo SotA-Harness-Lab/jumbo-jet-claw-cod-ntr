@@ -44,16 +44,27 @@ pub fn parse_subagent_at(contents: &str, path: &Path) -> Option<Subagent> {
     let plugin_agent = plugin_root_of(path)
         .and_then(PluginVariables::load)
         .and_then(|plugin| {
-            let namespace = plugin.agent_dirs().iter().find_map(|dir| {
-                let relative = path.strip_prefix(dir).ok()?;
-                Some(
-                    relative
-                        .parent()?
-                        .components()
-                        .map(|part| part.as_os_str().to_string_lossy().into_owned())
-                        .collect::<Vec<_>>(),
-                )
-            })?;
+            let namespace = plugin
+                .agent_dirs()
+                .iter()
+                .find_map(|dir| {
+                    let relative = path.strip_prefix(dir).ok()?;
+                    Some(
+                        relative
+                            .parent()?
+                            .components()
+                            .map(|part| part.as_os_str().to_string_lossy().into_owned())
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                // A file the manifest names on its own has no directories in between.
+                .or_else(|| {
+                    plugin
+                        .agent_files()
+                        .iter()
+                        .any(|file| file == path)
+                        .then(Vec::new)
+                })?;
             let file_name = path.file_stem()?.to_string_lossy().into_owned();
             Some(PluginAgent {
                 plugin,

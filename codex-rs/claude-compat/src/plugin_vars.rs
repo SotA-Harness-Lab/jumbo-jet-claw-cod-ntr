@@ -19,6 +19,7 @@
 
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -296,6 +297,65 @@ impl PluginVariables {
         dirs.retain(|dir| dir.starts_with(&self.root) && dir.is_dir());
         dirs
     }
+
+    /// The single agent files among the manifest's `agents` entries: those that name a
+    /// Markdown file inside the plugin. Such an agent is `<plugin>:<name>`, with no
+    /// directories in between, as in Claude Code.
+    pub fn agent_files(&self) -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        for path in &self.agent_paths {
+            let relative = Path::new(path.trim_start_matches("./"));
+            if relative
+                .components()
+                .any(|part| !matches!(part, Component::Normal(_)))
+            {
+                continue;
+            }
+            let file = self.root.join(relative);
+            if file.extension().is_some_and(|extension| extension == "md")
+                && file.is_file()
+                && !files.contains(&file)
+            {
+                files.push(file);
+            }
+        }
+        files
+    }
+}
+
+/// A command that the `commands` map of a plugin's manifest declares from a file.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MappedCommand {
+    /// The map's key, the name the command is known by after the plugin's prefix.
+    pub name: String,
+    /// The entry's `description`, which stands in place of the file's.
+    pub description: Option<String>,
+}
+
+/// The entry of the `commands` map in the manifest of the plugin at `root` whose `source` is
+/// `file`. `None` when the manifest gives `commands` in another form or has no entry for the
+/// file.
+pub fn mapped_plugin_command(root: &Path, file: &Path) -> Option<MappedCommand> {
+    let manifest = read_settings(&root.join(MANIFEST)).ok()??;
+    let commands = manifest.get("commands")?.as_object()?;
+    let file = canonical(file);
+    commands.iter().find_map(|(name, entry)| {
+        let source = entry.get("source")?.as_str()?;
+        (canonical(&root.join(source.trim_start_matches("./"))) == file).then(|| MappedCommand {
+            name: name.clone(),
+            description: entry
+                .get("description")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|description| !description.is_empty())
+                .map(str::to_string),
+        })
+    })
+}
+
+/// `path` with its links resolved, or as given when it cannot be.
+fn canonical(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 /// The plugin a file belongs to: the nearest directory above it with a Claude Code plugin

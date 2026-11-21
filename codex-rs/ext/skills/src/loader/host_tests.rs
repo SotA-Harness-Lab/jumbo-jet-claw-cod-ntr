@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: load Claude Code's custom slash commands
+// Modified by Tianyu (Sky) Lu in 2026: load Claude Code's custom slash commands, and a plugin's
+// single command files
 
 use std::fs;
 
@@ -796,6 +797,65 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
                 "Commit staged changes".to_string()
             ),
             ("review".to_string(), "Review the current diff".to_string()),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn plugin_command_files_are_named_after_themselves_or_the_manifest_map() {
+    let access = FileSystemEnvironmentAccessor::unrestricted(&LOCAL_FS);
+    let root = TempDir::new().expect("temp dir");
+    let plugin_root = AbsolutePathBuf::from_absolute_path(
+        fs::canonicalize(root.path()).expect("canonical plugin root"),
+    )
+    .expect("absolute plugin root");
+    let write = |relative: &str, contents: &str| {
+        let path = plugin_root.join(relative);
+        fs::create_dir_all(path.parent().expect("parent")).expect("create directory");
+        fs::write(path, contents).expect("write");
+    };
+    write(
+        ".claude-plugin/plugin.json",
+        r#"{"name": "deploy", "commands": {
+            "status": {"source": "./commands/show-status.md", "description": "Show the status"},
+            "about": {"content": "Inline."}
+        }}"#,
+    );
+    write(
+        "commands/show-status.md",
+        "---\ndescription: From the file\n---\nShow it.\n",
+    );
+    write("extra/run.md", "Run the deployment\n");
+
+    let mut skills = Vec::new();
+    for file in ["commands/show-status.md", "extra/run.md"] {
+        let snapshot = load_host_skill_root(HostSkillRoot::plugin(
+            PluginSkillRoot {
+                path: plugin_root.join(file),
+                plugin_identity: PluginIdentity {
+                    plugin_id: "deploy@market".to_string(),
+                    remote_plugin_id: None,
+                },
+                plugin_namespace: "deploy".to_string(),
+                plugin_root: plugin_root.clone(),
+                discovery_mode: SkillDiscoveryMode::CommandFiles,
+            },
+            &access,
+        ))
+        .await;
+        assert_eq!(snapshot.errors, Vec::new());
+        skills.extend(
+            snapshot
+                .skills
+                .into_iter()
+                .map(|skill| (skill.name, skill.description)),
+        );
+    }
+    assert_eq!(
+        skills,
+        vec![
+            ("deploy:status".to_string(), "Show the status".to_string()),
+            ("deploy:run".to_string(), "Run the deployment".to_string()),
         ]
     );
 }
