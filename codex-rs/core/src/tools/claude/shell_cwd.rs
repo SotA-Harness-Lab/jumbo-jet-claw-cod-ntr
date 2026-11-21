@@ -113,17 +113,18 @@ impl Tracking {
     pub(super) fn finish(&self, session: &Session, reported: &str) -> Option<String> {
         let project_display = self.project.as_path().display().to_string();
         let reported = Path::new(reported);
-        let inside = |root: &Path| reported.starts_with(root);
         let physical_project = std::fs::canonicalize(self.project.as_path()).ok();
-        let at_project = reported == self.project.as_path()
-            || physical_project.as_deref() == Some(reported);
-        let (next, reset) = if at_project {
-            (None, false)
-        } else if inside(self.project.as_path()) || physical_project.as_deref().is_some_and(inside)
-        {
-            (AbsolutePathBuf::from_absolute_path(reported).ok(), false)
-        } else {
-            (None, true)
+        let (next, reset) = match next_cwd(
+            self.start.as_ref().map(AbsolutePathBuf::as_path),
+            self.project.as_path(),
+            physical_project.as_deref(),
+            reported,
+        ) {
+            // Calls run side by side: one that did not move must not undo another's `cd`.
+            NextCwd::Unchanged => return None,
+            NextCwd::Project => (None, false),
+            NextCwd::Carry(cwd) => (AbsolutePathBuf::from_absolute_path(&cwd).ok(), false),
+            NextCwd::Reset => (None, true),
         };
         *state(session)
             .0
@@ -134,6 +135,44 @@ impl Tracking {
             cwd,
         });
         reset.then(|| codex_claude_compat::tools::bash::shell_reset_message(&project_display))
+    }
+}
+
+/// Where the next command starts, after one that started in `start` (the project when
+/// `None`) ended in `reported`.
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum NextCwd {
+    /// The command ended where it started; the directory carried over stays as it is.
+    Unchanged,
+    /// In the project.
+    Project,
+    /// In this directory inside the project.
+    Carry(PathBuf),
+    /// In the project again, since the command left it.
+    Reset,
+}
+
+pub(super) fn next_cwd(
+    start: Option<&Path>,
+    project: &Path,
+    physical_project: Option<&Path>,
+    reported: &Path,
+) -> NextCwd {
+    let at_project = reported == project || physical_project == Some(reported);
+    let unchanged = match start {
+        Some(start) => reported == start,
+        None => at_project,
+    };
+    if unchanged {
+        NextCwd::Unchanged
+    } else if at_project {
+        NextCwd::Project
+    } else if reported.starts_with(project)
+        || physical_project.is_some_and(|physical| reported.starts_with(physical))
+    {
+        NextCwd::Carry(reported.to_path_buf())
+    } else {
+        NextCwd::Reset
     }
 }
 

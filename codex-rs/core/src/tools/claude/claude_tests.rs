@@ -16,6 +16,8 @@ use super::ToolSwap;
 use super::bash::exec_command_arguments_for_test;
 use super::edit;
 use super::read;
+use super::shell_cwd::NextCwd;
+use super::shell_cwd::next_cwd;
 use super::write;
 use super::written_file_path;
 use crate::tools::handlers::ApplyPatchHandler;
@@ -131,4 +133,38 @@ fn the_file_a_write_or_edit_wrote_is_found_for_its_post_tool_use_hooks() {
         Some("/b.rs".to_string())
     );
     assert_eq!(written_file_path("Read", r#"{"file_path":"/a.rs"}"#), None);
+}
+
+#[test]
+fn a_bash_call_that_did_not_move_keeps_the_directory_carried_over() {
+    let project = std::path::Path::new("/w/link");
+    let physical = Some(std::path::Path::new("/w/real"));
+    let sub = std::path::Path::new("/w/real/crates/foo");
+    // `cd crates/foo && cargo check` and `git log` sent together: `git log` ends where it
+    // started, after the `cd` was recorded, and leaves it in place.
+    assert_eq!(
+        next_cwd(None, project, physical, std::path::Path::new("/w/real")),
+        NextCwd::Unchanged
+    );
+    assert_eq!(
+        next_cwd(Some(sub), project, physical, sub),
+        NextCwd::Unchanged
+    );
+    assert_eq!(
+        next_cwd(None, project, physical, sub),
+        NextCwd::Carry(sub.to_path_buf())
+    );
+    assert_eq!(
+        next_cwd(
+            Some(sub),
+            project,
+            physical,
+            std::path::Path::new("/w/link")
+        ),
+        NextCwd::Project
+    );
+    assert_eq!(
+        next_cwd(Some(sub), project, physical, std::path::Path::new("/tmp")),
+        NextCwd::Reset
+    );
 }
