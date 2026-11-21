@@ -771,7 +771,7 @@ thing Codex has, where there is one.
 
 | Feature | Claude Code | Codex today, and the nearest thing it has | Status |
 | --- | --- | --- | --- |
-| `sse` and `ws` servers | Started (`sse` is deprecated) | Do not start: Codex speaks stdio and streamable HTTP | Not planned |
+| `sse` and `ws` servers | Started (`sse` is deprecated) | Codex speaks stdio and streamable HTTP only. An `sse` server is tried over streamable HTTP at its `url`, with a warning in the log, so one that also answers streamable HTTP there works and one that speaks only the old SSE transport fails to start; a `ws` server fails to start | Not planned |
 | MCP bundles (`.mcpb`) of a plugin | Used | Not loaded; the plugin is still used | Not planned |
 | `managed-mcp.json`, `allowedMcpServers`, `deniedMcpServers`, `managedMcpServers` (newer versions, 2.1.259) | Decide which servers may run | Not read | Not planned |
 | `--mcp-config`, `--strict-mcp-config` | Servers for one run | No such options. Nearest: `-c mcp_servers.<name>...` | Not planned |

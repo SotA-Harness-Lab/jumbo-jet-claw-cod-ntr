@@ -1168,3 +1168,27 @@ fn claude_code_oauth_scopes_become_server_scopes() {
         })
     );
 }
+
+#[test]
+fn claude_code_sse_server_is_tried_over_streamable_http() {
+    let outcome = parse_plugin_mcp_config(
+        &plugin_root(),
+        r#"{"mcpServers":{
+            "legacy":{"type":"sse","url":"https://example.com/sse","headers":{"X-Api-Key":"k"}}
+        }}"#,
+    )
+    .expect("parse plugin MCP config");
+
+    assert!(outcome.errors.is_empty(), "{:?}", outcome.errors);
+    let McpServerTransportConfig::StreamableHttp {
+        url, http_headers, ..
+    } = &outcome.servers["legacy"].transport
+    else {
+        panic!("expected HTTP transport");
+    };
+    assert_eq!(url, "https://example.com/sse");
+    assert_eq!(
+        http_headers,
+        &Some(HashMap::from([("X-Api-Key".to_string(), "k".to_string())]))
+    );
+}

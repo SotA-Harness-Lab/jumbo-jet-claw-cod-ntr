@@ -311,6 +311,13 @@ fn normalize_plugin_mcp_server_value(
     if let Some(JsonValue::String(transport_type)) = object.remove("type") {
         match transport_type.as_str() {
             "http" | "streamable_http" | "streamable-http" | "stdio" => {}
+            // Claude Code's deprecated `sse` transport. Codex has no client for it, so the
+            // url is tried over streamable HTTP, which a server that speaks both answers.
+            "sse" => warn!(
+                server = name,
+                "MCP server uses the deprecated `sse` transport, which this client does not \
+                 speak; trying streamable HTTP at its url"
+            ),
             other => {
                 let plugin_display = source.display();
                 warn!(
