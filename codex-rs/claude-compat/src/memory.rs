@@ -8,6 +8,7 @@ use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
+use crate::permissions::normalize_path;
 use crate::source::FileSource;
 
 const MAX_INDEX_LINES: usize = 200;
@@ -45,17 +46,45 @@ pub async fn auto_memory_project_root(source: &dyn FileSource, cwd: &Path) -> io
             return Ok(dir.to_path_buf());
         }
         if let Some(contents) = source.read(&dot_git).await? {
-            // A worktree's `.git` file points into the main checkout's `.git/worktrees`.
-            let main = contents
-                .lines()
-                .find_map(|line| line.strip_prefix("gitdir:"))
-                .map(str::trim)
-                .and_then(|gitdir| gitdir.split_once("/.git/worktrees/"))
-                .map(|(main, _)| PathBuf::from(main));
+            let main = main_checkout(source, dir, &contents).await?;
             return Ok(main.unwrap_or_else(|| dir.to_path_buf()));
         }
     }
     Ok(cwd.to_path_buf())
+}
+
+/// The main checkout of the linked worktree `dir`, whose `.git` file holds `dot_git`, or of
+/// a bare repository its common directory. As for the project's entry in `~/.claude.json`,
+/// the file is followed only when it has the shape `git worktree add` gives it: its `gitdir`
+/// a direct child of the common directory's `worktrees`, whose own `gitdir` file points back
+/// to this `.git`. Otherwise a cloned repository could name another project's checkout and
+/// so read and write that project's memory.
+async fn main_checkout(
+    source: &dyn FileSource,
+    dir: &Path,
+    dot_git: &str,
+) -> io::Result<Option<PathBuf>> {
+    let Some(gitdir) = dot_git.trim().strip_prefix("gitdir:").map(str::trim) else {
+        return Ok(None);
+    };
+    let worktree_git_dir = normalize_path(&dir.join(gitdir));
+    let Some(commondir) = source.read(&worktree_git_dir.join("commondir")).await? else {
+        return Ok(None);
+    };
+    let common_dir = normalize_path(&worktree_git_dir.join(commondir.trim()));
+    if worktree_git_dir.parent() != Some(common_dir.join("worktrees").as_path()) {
+        return Ok(None);
+    }
+    let Some(backlink) = source.read(&worktree_git_dir.join("gitdir")).await? else {
+        return Ok(None);
+    };
+    if normalize_path(&dir.join(backlink.trim())) != normalize_path(&dir.join(".git")) {
+        return Ok(None);
+    }
+    if common_dir.file_name().is_some_and(|name| name != ".git") {
+        return Ok(Some(common_dir));
+    }
+    Ok(common_dir.parent().map(Path::to_path_buf))
 }
 
 /// Cuts the index as Claude Code does, to 200 lines and 25,000 bytes, with a note when cut,

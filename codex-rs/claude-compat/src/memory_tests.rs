@@ -41,6 +41,12 @@ async fn project_root_is_the_main_checkout() {
         format!("gitdir: {}\n", repo.join(".git/worktrees/wt").display()),
     )
     .expect("write");
+    fs::write(repo.join(".git/worktrees/wt/commondir"), "../..\n").expect("write");
+    fs::write(
+        repo.join(".git/worktrees/wt/gitdir"),
+        format!("{}\n", worktree.join(".git").display()),
+    )
+    .expect("write");
 
     assert_eq!(
         auto_memory_project_root(&LocalFiles, &repo.join("src"))
@@ -53,6 +59,29 @@ async fn project_root_is_the_main_checkout() {
             .await
             .expect("root"),
         repo
+    );
+}
+
+#[tokio::test]
+async fn a_git_file_without_a_link_back_names_no_other_project() {
+    let tmp = TempDir::new().expect("temp dir");
+    let other = tmp.path().join("other");
+    let clone = tmp.path().join("clone");
+    fs::create_dir_all(other.join(".git/worktrees/x")).expect("create");
+    fs::write(other.join(".git/worktrees/x/commondir"), "../..\n").expect("write");
+    fs::create_dir_all(clone.join("src")).expect("create");
+    // A crafted `.git` file naming another project's worktree, which does not point back.
+    fs::write(
+        clone.join(".git"),
+        format!("gitdir: {}\n", other.join(".git/worktrees/x").display()),
+    )
+    .expect("write");
+
+    assert_eq!(
+        auto_memory_project_root(&LocalFiles, &clone.join("src"))
+            .await
+            .expect("root"),
+        clone
     );
 }
 
