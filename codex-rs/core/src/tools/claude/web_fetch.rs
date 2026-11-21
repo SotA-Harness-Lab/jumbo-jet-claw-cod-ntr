@@ -26,6 +26,8 @@ use codex_claude_compat::tools::web_fetch;
 use codex_claude_compat::tools::web_fetch::CommandShell;
 use codex_claude_compat::tools::web_fetch::FetchCache;
 use codex_claude_compat::tools::web_fetch::FetchedContent;
+use codex_exec_server::CreateDirectoryOptions;
+use codex_exec_server::ExecutorFileSystem;
 use codex_exec_server::ReadFileOptions;
 use codex_exec_server::RemoveOptions;
 use codex_protocol::error::CodexErr;
@@ -290,9 +292,14 @@ impl WebFetchHandler {
         // command output reaches the tool cut to its first and last 512 KiB. Where the file
         // cannot be written or read (a sandbox that allows no writes there), the body comes
         // through the output as before.
-        let mut body_file = new_body_file(environment, shell, &target);
+        let mut body_file_enabled = true;
         for _ in 0..=web_fetch::MAX_REDIRECTS {
             let mut response = None;
+            let body_file = if body_file_enabled {
+                new_body_file(environment, shell, &target).await
+            } else {
+                None
+            };
             if let Some(file) = &body_file {
                 response = self
                     .request(
@@ -305,7 +312,7 @@ impl WebFetchHandler {
                     )
                     .await?;
                 if response.is_none() {
-                    body_file = None;
+                    body_file_enabled = false;
                 }
             }
             let response = match response {
@@ -434,11 +441,19 @@ struct Response {
 /// beforehand.
 static BODY_FILE_NAMESPACE: LazyLock<uuid::Uuid> = LazyLock::new(uuid::Uuid::new_v4);
 
-/// The file in the executor's temporary directory (`/tmp` on a POSIX shell that reports
-/// none) for the body of a request to `target`. The name depends on the URL alone within a
-/// process, so the command for one URL stays the same and an approval given for it still
-/// applies to the next fetch of that URL.
-fn new_body_file(
+/// The name of the body file inside its directory.
+const BODY_FILE_NAME: &str = "body";
+
+/// The file for the body of a request to `target`, in a directory of the tool's own that
+/// it creates in the executor's temporary directory (`/tmp` on a POSIX shell that reports
+/// none). The temporary directory may be shared with other users, and the names, once
+/// seen in a command line, are known to them, so curl never writes to a path there that
+/// someone else could have put a file or a link at first: the directory is created anew
+/// for each request and the creation fails when anything is already at its path, which
+/// then sends the body through the output instead. The names depend on the URL alone
+/// within a process, so the command for one URL stays the same and an approval given for
+/// it still applies to the next fetch of that URL.
+async fn new_body_file(
     environment: &TurnEnvironment,
     shell: CommandShell,
     target: &Url,
@@ -452,16 +467,47 @@ fn new_body_file(
         None if shell == CommandShell::Posix => PathUri::from_host_native_path("/tmp").ok()?,
         None => return None,
     };
-    directory
+    let fs = environment.environment().get_filesystem();
+    prepare_body_file(fs.as_ref(), &directory, target).await
+}
+
+/// Creates the body directory for `target` in `temporary_directory` and returns the body
+/// file's path in it, or `None` when the directory cannot be created there.
+async fn prepare_body_file(
+    fs: &dyn ExecutorFileSystem,
+    temporary_directory: &PathUri,
+    target: &Url,
+) -> Option<PathUri> {
+    // The links in the temporary directory's own path (`/tmp` to `/private/tmp` on macOS)
+    // are the system's; the operations below follow none.
+    let directory = fs
+        .canonicalize(temporary_directory, /*sandbox*/ None)
+        .await
+        .ok()?;
+    let own = directory
         .join(&format!(
             "ccn-webfetch-{}",
             uuid::Uuid::new_v5(&BODY_FILE_NAMESPACE, target.as_str().as_bytes())
         ))
-        .ok()
+        .ok()?;
+    // What an earlier fetch left behind (a crash between curl and the cleanup) is removed;
+    // what someone else put there stays and makes the creation fail.
+    remove_body_directory(fs, &own).await;
+    fs.create_directory(
+        &own,
+        CreateDirectoryOptions {
+            recursive: false,
+            follow_symlinks: false,
+        },
+        /*sandbox*/ None,
+    )
+    .await
+    .ok()?;
+    own.join(BODY_FILE_NAME).ok()
 }
 
-/// Reads the body curl wrote and removes the file. The file is the tool's own, so this
-/// is not sandboxed; links are not followed.
+/// Reads the body curl wrote and removes it with its directory. They are the tool's own,
+/// so this is not sandboxed; links are not followed.
 async fn take_body_file(environment: &TurnEnvironment, file: &PathUri) -> std::io::Result<Vec<u8>> {
     let fs = environment.environment().get_filesystem();
     let body = fs
@@ -473,18 +519,24 @@ async fn take_body_file(environment: &TurnEnvironment, file: &PathUri) -> std::i
             /*sandbox*/ None,
         )
         .await;
-    let _ = fs
-        .remove(
-            file,
-            RemoveOptions {
-                recursive: false,
-                force: true,
-                follow_symlinks: false,
-            },
-            /*sandbox*/ None,
-        )
-        .await;
+    if let Some(directory) = file.parent() {
+        remove_body_directory(fs.as_ref(), &directory).await;
+    }
     body
+}
+
+/// Removes a body directory and the body file in it, following no link; anything else in
+/// it keeps it in place.
+async fn remove_body_directory(fs: &dyn ExecutorFileSystem, directory: &PathUri) {
+    let options = RemoveOptions {
+        recursive: false,
+        force: true,
+        follow_symlinks: false,
+    };
+    if let Ok(file) = directory.join(BODY_FILE_NAME) {
+        let _ = fs.remove(&file, options, /*sandbox*/ None).await;
+    }
+    let _ = fs.remove(directory, options, /*sandbox*/ None).await;
 }
 
 /// Converts a page to Markdown on a blocking thread, so that a large page does not hold up
@@ -567,3 +619,7 @@ async fn answer_prompt(
     };
     web_fetch::secondary_model_answer(text).map_err(failed)
 }
+
+#[cfg(test)]
+#[path = "web_fetch_tests.rs"]
+mod tests;
