@@ -4180,7 +4180,8 @@ impl Config {
 
         let mut agent_roles =
             load_agent_roles(fs, &cfg, &config_layer_stack, &mut startup_warnings).await?;
-        // Claude Code subagents, the project's over the user's; Codex's own roles win.
+        // Claude Code subagents, the project's over the user's and the nearest project
+        // directory's over those above it; Codex's own roles win.
         if !cfg!(test) && codex_claude_compat::enabled() {
             let agents_dirs = claude_code_agents_dirs(
                 dirs::home_dir(),
@@ -5589,23 +5590,62 @@ mod config_loader_tests;
 #[path = "runtime_auth_tests.rs"]
 mod runtime_auth_tests;
 
-/// The directories of Claude Code subagents, the user's first: `~/.claude/agents`, and the
-/// project's `.claude/agents` unless the project is marked untrusted, as its instruction
-/// files are left out then.
+/// The directories of Claude Code subagents, the user's first, so that the later ones win:
+/// `~/.claude/agents`, then, unless the project is marked untrusted (its instruction files
+/// are left out then), each `.claude/agents` from the repository's root down to the working
+/// directory, the nearest last. As in Claude Code, the walk up from the working directory
+/// stops at the nearest directory holding `.git`, or, outside a repository, below the home
+/// directory, whose `.claude` is the user's; only directories that exist are listed. A linked
+/// worktree without `.claude/agents` of its own takes its main checkout's.
 fn claude_code_agents_dirs(
     home: Option<PathBuf>,
     cwd: &AbsolutePathBuf,
     include_project: bool,
 ) -> Vec<AbsolutePathBuf> {
+    let home = home.and_then(|home| AbsolutePathBuf::from_absolute_path_checked(home).ok());
     let mut agents_dirs = Vec::new();
-    if let Some(home) = home
-        && let Ok(home) = AbsolutePathBuf::from_absolute_path_checked(home)
-    {
+    if let Some(home) = &home {
         agents_dirs.push(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"));
     }
-    let project_agents = cwd.join(codex_claude_compat::CLAUDE_DIR).join("agents");
-    if include_project && !agents_dirs.contains(&project_agents) {
-        agents_dirs.push(project_agents);
+    if !include_project {
+        return agents_dirs;
+    }
+    let agents_of =
+        |dir: &std::path::Path| dir.join(codex_claude_compat::CLAUDE_DIR).join("agents");
+    let git_root = cwd
+        .as_path()
+        .ancestors()
+        .find(|dir| dir.join(".git").exists());
+    let mut project_dirs = Vec::new();
+    for dir in cwd.as_path().ancestors() {
+        if home.as_ref().is_some_and(|home| home.as_path() == dir) {
+            break;
+        }
+        let agents = agents_of(dir);
+        if agents.is_dir() {
+            project_dirs.push(agents);
+        }
+        if git_root == Some(dir) {
+            break;
+        }
+    }
+    if let Some(git_root) = git_root {
+        let main_checkout = codex_claude_compat::claude_json_project_root(cwd.as_path());
+        let main_agents = agents_of(main_checkout.as_path());
+        if main_checkout.as_path() != git_root
+            && !agents_of(git_root).is_dir()
+            && main_agents.is_dir()
+            && !project_dirs.contains(&main_agents)
+        {
+            project_dirs.push(main_agents);
+        }
+    }
+    for dir in project_dirs.into_iter().rev() {
+        if let Ok(dir) = AbsolutePathBuf::from_absolute_path_checked(dir)
+            && !agents_dirs.contains(&dir)
+        {
+            agents_dirs.push(dir);
+        }
     }
     agents_dirs
 }
