@@ -419,14 +419,37 @@ impl PermissionRules {
         else {
             return RuleVerdict::NoMatch;
         };
+        let host = normalize_host(&host);
         let content = format!("domain:{host}");
-        if let Some(rule) = self.exact_content(WEB_FETCH_TOOL, PermissionDecision::Deny, &content) {
+        // The rule's host and the URL's are compared without regard to case or to one
+        // trailing dot (`evil.com.` is `evil.com`); later rules win, as in `exact_content`.
+        let rule_for = |decision| {
+            self.with_content(WEB_FETCH_TOOL, decision)
+                .filter(|rule| {
+                    rule.content
+                        .as_deref()
+                        .and_then(|rule_content| rule_content.strip_prefix("domain:"))
+                        .is_some_and(|rule_host| normalize_host(rule_host) == host)
+                })
+                .last()
+        };
+        if let Some(rule) = rule_for(PermissionDecision::Deny) {
             return RuleVerdict::Deny {
                 rule: rule.text.clone(),
                 message: format!("{tool} denied access to {content}."),
             };
         }
-        self.content(tool, WEB_FETCH_TOOL, &content)
+        if let Some(rule) = rule_for(PermissionDecision::Ask) {
+            return RuleVerdict::Ask {
+                rule: rule.text.clone(),
+            };
+        }
+        match rule_for(PermissionDecision::Allow) {
+            Some(rule) => RuleVerdict::Allow {
+                rule: rule.text.clone(),
+            },
+            None => RuleVerdict::NoMatch,
+        }
     }
 
     fn content(&self, tool: &str, tool_name: &str, content: &str) -> RuleVerdict {
@@ -627,6 +650,12 @@ fn tool_matches(rule: &PermissionRule, tool: &str) -> bool {
         }
         _ => false,
     }
+}
+
+/// A host name as `WebFetch(domain:...)` rules compare it: in lower case, without one
+/// trailing dot.
+fn normalize_host(host: &str) -> String {
+    host.strip_suffix('.').unwrap_or(host).to_ascii_lowercase()
 }
 
 /// The path with `.` and `..` resolved, without touching the filesystem.

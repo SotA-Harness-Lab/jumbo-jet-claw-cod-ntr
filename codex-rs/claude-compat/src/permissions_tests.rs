@@ -702,6 +702,28 @@ fn web_fetch_rules_name_the_host() {
 }
 
 #[test]
+fn web_fetch_hosts_match_without_case_or_a_trailing_dot() {
+    let rules = local_rules(
+        &["WebFetch(domain:Docs.RS.)"],
+        &[],
+        &["WebFetch(domain:Evil.com)"],
+    );
+    let fetch = |url: &str| rules.evaluate("WebFetch", ToolInput::Url(url));
+    let denied = RuleVerdict::Deny {
+        rule: "WebFetch(domain:Evil.com)".to_string(),
+        message: "WebFetch denied access to domain:evil.com.".to_string(),
+    };
+    assert_eq!(fetch("https://evil.com/x"), denied);
+    assert_eq!(fetch("https://evil.com./x"), denied);
+    assert_eq!(fetch("https://EVIL.COM./x"), denied);
+    assert_eq!(
+        fetch("https://docs.rs/serde"),
+        allow("WebFetch(domain:Docs.RS.)")
+    );
+    assert_eq!(fetch("https://sub.evil.com/x"), RuleVerdict::NoMatch);
+}
+
+#[test]
 fn mcp_rules_name_a_server_or_a_tool() {
     let rules = local_rules(
         &["mcp__github"],
