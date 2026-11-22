@@ -109,6 +109,7 @@ pub use settings::read_settings;
 pub use settings::settings_effort_level;
 pub use settings::settings_env;
 pub use settings::settings_paths;
+pub use settings::settings_reply_language;
 pub use settings::settings_stamp;
 pub use skill_frontmatter::SkillFrontmatter;
 pub use skill_frontmatter::skill_frontmatter;

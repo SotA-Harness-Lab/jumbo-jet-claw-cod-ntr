@@ -191,6 +191,15 @@ pub fn settings_effort_level(settings: &Value) -> Option<&'static str> {
     }
 }
 
+/// The user's default language for model replies.
+pub fn settings_reply_language(settings: &Value) -> Option<&str> {
+    settings
+        .get("language")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|language| !language.is_empty())
+}
+
 /// The Bash rules of `permissions.allow`, `ask` and `deny` that name a command prefix,
 /// and, separately, the rules that cannot be expressed as one (other tools, wildcards in
 /// the middle of a command).
@@ -210,8 +219,13 @@ pub fn bash_prefix_rules(settings: &Value) -> (Vec<BashPrefixRule>, Vec<String>)
         };
         for rule in entries.iter().filter_map(Value::as_str) {
             match bash_prefix(rule) {
-                Some(prefix) => rules.push(BashPrefixRule { prefix, decision }),
-                None => unsupported.push(rule.to_string()),
+                Some(prefix)
+                    if decision != PermissionDecision::Allow
+                        || crate::permissions::bash::can_import_allow_prefix(&prefix) =>
+                {
+                    rules.push(BashPrefixRule { prefix, decision });
+                }
+                _ => unsupported.push(rule.to_string()),
             }
         }
     }

@@ -95,7 +95,7 @@ fn tools_denied_as_a_whole_are_not_offered() {
     let rules = PermissionRules::new(
         &[(
             RuleSource::Local,
-            json!({ "permissions": { "deny": ["Write", "Edit(src/**)"], "ask": ["Read"] } }),
+            json!({ "permissions": { "deny": ["Writ*", "Edit(src/**)"], "ask": ["Read"] } }),
         )],
         None,
         None,

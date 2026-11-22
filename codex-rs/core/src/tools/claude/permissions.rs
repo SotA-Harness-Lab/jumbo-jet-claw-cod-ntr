@@ -53,6 +53,7 @@ use crate::sandboxing::SandboxPermissions;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::tools::context::ToolInvocation;
+use crate::tools::context::ToolPayload;
 use crate::tools::handlers::McpHandler;
 use crate::tools::handlers::selected_executor;
 use crate::tools::registry::ToolRegistry;
@@ -371,7 +372,11 @@ pub(crate) async fn check_permission(
     // What a `PreToolUse` hook decided for this call: an ask or the user's yes outranks
     // an allow rule, and the user is not asked twice.
     let hook_decision = CallDecisions::of(&invocation.session).get(&invocation.call_id);
-    match rules.evaluate(tool, tool_input) {
+    let arguments = match &invocation.payload {
+        ToolPayload::Function { arguments } => Some(arguments.as_str()),
+        _ => None,
+    };
+    match rules.evaluate_with_arguments(tool, tool_input, arguments) {
         RuleVerdict::NoMatch => {}
         RuleVerdict::Deny { message, .. } => return Err(failed(message)),
         RuleVerdict::Allow { .. } => {

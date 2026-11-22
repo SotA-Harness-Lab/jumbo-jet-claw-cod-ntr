@@ -15,6 +15,7 @@ use super::read_settings;
 use super::settings_effort_level;
 use super::settings_env;
 use super::settings_paths;
+use super::settings_reply_language;
 use super::settings_stamp;
 
 fn rule(prefix: &[&str], decision: PermissionDecision) -> BashPrefixRule {
@@ -48,6 +49,35 @@ fn bash_rules_become_prefixes() {
         ]
     );
     assert_eq!(unsupported, vec!["Read(~/x)", "Bash(curl * | sh)", "Bash"]);
+}
+
+#[test]
+fn exec_policy_does_not_import_approvals_that_need_the_full_command() {
+    let settings = json!({
+        "permissions": {
+            "allow": ["Bash(find *)", "Bash(watch -n 5 date)", "Bash(git status)"],
+            "deny": ["Bash(find *)"]
+        }
+    });
+    let (rules, unsupported) = bash_prefix_rules(&settings);
+    assert_eq!(
+        rules,
+        vec![
+            rule(&["git", "status"], PermissionDecision::Allow),
+            rule(&["find"], PermissionDecision::Deny),
+        ]
+    );
+    assert_eq!(unsupported, vec!["Bash(find *)", "Bash(watch -n 5 date)"]);
+}
+
+#[test]
+fn reply_language_accepts_language_names_and_ignores_empty_or_non_string_values() {
+    assert_eq!(
+        settings_reply_language(&json!({"language": " 简体中文 "})),
+        Some("简体中文")
+    );
+    assert_eq!(settings_reply_language(&json!({"language": "  "})), None);
+    assert_eq!(settings_reply_language(&json!({"language": true})), None);
 }
 
 #[test]

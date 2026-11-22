@@ -404,13 +404,24 @@ impl PermissionRules {
 
     /// What the rules decide for a call of `tool` with `input`.
     pub fn evaluate(&self, tool: &str, input: ToolInput<'_>) -> RuleVerdict {
+        self.evaluate_with_arguments(tool, input, /*arguments*/ None)
+    }
+
+    /// Also matches explicit scalar parameters in a built-in tool's raw JSON arguments.
+    pub fn evaluate_with_arguments(
+        &self,
+        tool: &str,
+        input: ToolInput<'_>,
+        arguments: Option<&str>,
+    ) -> RuleVerdict {
         let tool_name = normalize_tool_name(tool);
         let whole_tool = |decision| {
             self.rules.iter().find(|rule| {
                 rule.decision == decision && rule.content.is_none() && tool_matches(rule, tool_name)
             })
         };
-        if let Some(rule) = whole_tool(PermissionDecision::Deny) {
+        let (arg_deny, arg_ask) = self.parameter_rules(tool_name, input, arguments);
+        if let Some(rule) = whole_tool(PermissionDecision::Deny).or(arg_deny) {
             return RuleVerdict::Deny {
                 rule: rule.text.clone(),
                 message: format!("Permission to use {tool} has been denied."),
@@ -429,6 +440,13 @@ impl PermissionRules {
             ToolInput::Url(url) => self.url(tool, url),
             ToolInput::Content(content) => self.content(tool, tool_name, content),
         };
+        if let Some(rule) = arg_ask
+            && !matches!(verdict, RuleVerdict::Deny { .. } | RuleVerdict::Ask { .. })
+        {
+            return RuleVerdict::Ask {
+                rule: rule.text.clone(),
+            };
+        }
         if verdict != RuleVerdict::NoMatch {
             return verdict;
         }
@@ -445,6 +463,63 @@ impl PermissionRules {
             },
             None => RuleVerdict::NoMatch,
         }
+    }
+
+    fn parameter_rules<'a>(
+        &'a self,
+        tool: &str,
+        input: ToolInput<'_>,
+        arguments: Option<&str>,
+    ) -> (Option<&'a PermissionRule>, Option<&'a PermissionRule>) {
+        let Some(arguments) = arguments.filter(|_| !tool.starts_with("mcp__")) else {
+            return (None, None);
+        };
+        // The tool strings are already parsed by their handlers. Only parse the raw
+        // arguments again when a parameter rule could apply to the call.
+        let decoded = std::cell::OnceCell::new();
+        let mut ask = None;
+        for rule in &self.rules {
+            if rule.decision == PermissionDecision::Allow || !tool_matches(rule, tool) {
+                continue;
+            }
+            let Some((field, pattern)) = rule
+                .content
+                .as_deref()
+                .and_then(|text| text.split_once(':'))
+            else {
+                continue;
+            };
+            let field = field.trim();
+            if field.is_empty() || is_primary_parameter(tool, field) {
+                continue;
+            }
+            let Some(fact) = decoded
+                .get_or_init(|| serde_json::from_str::<Value>(arguments).ok())
+                .as_ref()
+                .and_then(|value| value.get(field))
+            else {
+                continue;
+            };
+            let pattern = pattern.trim();
+            let matched = match fact {
+                Value::String(text) if tool == crate::tools::SKILL && field == "skill" => {
+                    parameter_value_matches(pattern, text)
+                        || matches!(input, ToolInput::Content(name) if parameter_value_matches(pattern, name))
+                }
+                Value::String(text) => parameter_value_matches(pattern, text),
+                Value::Bool(_) | Value::Number(_) => {
+                    parameter_value_matches(pattern, &fact.to_string())
+                }
+                _ => false,
+            };
+            if matched {
+                if rule.decision == PermissionDecision::Deny {
+                    return (Some(rule), ask);
+                }
+                ask.get_or_insert(rule);
+            }
+        }
+        (None, ask)
     }
 
     /// The rules of `tool` with content, for one decision, in order.
@@ -928,12 +1003,51 @@ fn tool_matches(rule: &PermissionRule, tool: &str) -> bool {
     if rule.tool == tool {
         return true;
     }
+    if rule.decision != PermissionDecision::Allow
+        && rule.tool.contains('*')
+        && bash::matches_wildcard(&rule.tool, tool)
+    {
+        return true;
+    }
     match (mcp_name(&rule.tool), mcp_name(tool)) {
         (Some((rule_server, rule_tool)), Some((server, _))) => {
             matches!(rule_tool, None | Some("*")) && rule_server == server
         }
         _ => false,
     }
+}
+
+fn is_primary_parameter(tool: &str, parameter: &str) -> bool {
+    matches!(
+        (tool, parameter),
+        ("Bash" | "PowerShell", "command")
+            | ("Read" | "Edit" | "Write", "file_path")
+            | ("Glob" | "Grep", "path")
+            | ("NotebookEdit", "notebook_path")
+            | ("WebFetch", "url")
+    )
+}
+
+fn parameter_value_matches(pattern: &str, value: &str) -> bool {
+    let Some((prefix, rest)) = pattern.split_once('*') else {
+        return pattern == value;
+    };
+    let Some(value) = value.strip_prefix(prefix) else {
+        return false;
+    };
+    let Some((middle, suffix)) = rest.rsplit_once('*') else {
+        return value.ends_with(rest);
+    };
+    let Some(mut value) = value.strip_suffix(suffix) else {
+        return false;
+    };
+    for part in middle.split('*') {
+        let Some((_, tail)) = value.split_once(part) else {
+            return false;
+        };
+        value = tail;
+    }
+    true
 }
 
 /// Whether `pattern`, the content of a `Read(...)`, `Edit(...)` or `Write(...)` rule as a

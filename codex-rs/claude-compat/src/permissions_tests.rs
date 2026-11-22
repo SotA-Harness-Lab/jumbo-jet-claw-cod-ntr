@@ -419,6 +419,120 @@ fn deny_and_ask_rules_meet_the_words_the_shell_runs() {
 }
 
 #[test]
+fn broad_bash_rules_do_not_preapprove_exec_wrappers_or_find_actions() {
+    let rules = local_rules(
+        &[
+            "Bash(watch:*)",
+            "Bash(setsid *)",
+            "Bash(flock *)",
+            "Bash(find *)",
+            "Bash(find build -type f -delete)",
+            "Bash(watch -n 5 date)",
+        ],
+        &[],
+        &[],
+    );
+    for command in [
+        "watch -n 1 date",
+        "setsid date",
+        "flock lock date",
+        "find build -delete",
+        "find build -fprint manifest",
+        "find -files0-from source -print",
+        "nice find build -delete",
+        "xargs find build -delete",
+        "find build -print && watch -n 1 date",
+    ] {
+        assert_eq!(bash(&rules, command), RuleVerdict::NoMatch, "{command}");
+    }
+    assert_eq!(bash(&rules, "find build -print"), allow("Bash(find *)"));
+    assert_eq!(
+        bash(&rules, "find build -name '-delete' -print"),
+        allow("Bash(find *)")
+    );
+    assert_eq!(
+        bash(&rules, "find build -type f -delete"),
+        allow("Bash(find build -type f -delete)")
+    );
+    assert_eq!(
+        bash(&rules, "watch -n 5 date"),
+        allow("Bash(watch -n 5 date)")
+    );
+}
+
+#[test]
+fn tool_name_wildcards_match_full_names_for_ask_and_deny() {
+    let rules = local_rules(&["*"], &["Web*"], &["WebF*tch", "mcp__*"]);
+    assert!(matches!(
+        rules.evaluate("WebFetch", ToolInput::Tool),
+        RuleVerdict::Deny { .. }
+    ));
+    assert_eq!(rules.evaluate("WebSearch", ToolInput::Tool), ask("Web*"));
+    assert!(matches!(
+        rules.evaluate("mcp__example__read", ToolInput::Tool),
+        RuleVerdict::Deny { .. }
+    ));
+    assert_eq!(
+        rules.evaluate("Read", ToolInput::Tool),
+        RuleVerdict::NoMatch
+    );
+    assert_eq!(
+        rules.evaluate("MyWebSearch", ToolInput::Tool),
+        RuleVerdict::NoMatch
+    );
+}
+
+#[test]
+fn parameter_rules_match_explicit_scalar_values_before_normalization() {
+    let rules = local_rules(
+        &["Agent", "Bash"],
+        &["Agent(model: opus*)", "Bash(description:build *)"],
+        &[
+            "Agent(model:opus-preview)",
+            "Agent(isolation:*)",
+            "Bash(run_in_background:true)",
+            "Bash(command:git status)",
+        ],
+    );
+    let agent = |arguments| {
+        rules.evaluate_with_arguments("Agent", ToolInput::Content("reviewer"), Some(arguments))
+    };
+    assert_eq!(agent(r#"{"model":"opus"}"#), ask("Agent(model: opus*)"));
+    assert!(matches!(
+        agent(r#"{"model":"opus-preview"}"#),
+        RuleVerdict::Deny { .. }
+    ));
+    assert_eq!(agent(r#"{"model":"claude-opus-4-7"}"#), allow("Agent"));
+    assert_eq!(
+        agent(r#"{"isolation":{"type":"worktree"}}"#),
+        allow("Agent")
+    );
+    assert_eq!(agent("{}"), allow("Agent"));
+    let bash = |arguments| {
+        rules.evaluate_with_arguments(
+            "Bash",
+            ToolInput::Command {
+                command: "git status",
+                cwd: Path::new(PROJECT),
+            },
+            Some(arguments),
+        )
+    };
+    assert!(matches!(
+        bash(r#"{"command":"git status","run_in_background":true}"#),
+        RuleVerdict::Deny { .. }
+    ));
+    assert_eq!(
+        bash(r#"{"command":"git status","description":"build project"}"#),
+        ask("Bash(description:build *)")
+    );
+    assert_eq!(
+        bash(r#"{"command":"git status","description":"build"}"#),
+        allow("Bash")
+    );
+}
+
+#[test]
 fn allow_rules_meet_blanks_and_builtin_wrappers_but_not_unquoted_words() {
     let rules = local_rules(&["Bash(git commit:*)", "Bash(npm test *)"], &[], &[]);
     assert_eq!(

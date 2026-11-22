@@ -4496,7 +4496,9 @@ impl Config {
         let base_instructions_provenance = base_instructions
             .as_ref()
             .map(|_| BaseInstructionsProvenance::Custom);
-        let developer_instructions = developer_instructions.or(cfg.developer_instructions);
+        let developer_instructions = developer_instructions
+            .or(cfg.developer_instructions)
+            .or_else(|| claude_code_reply_instructions(&resolved_cwd, active_project.is_trusted()));
         let include_permissions_instructions = cfg.include_permissions_instructions.unwrap_or(true);
         let include_apps_instructions = cfg.include_apps_instructions.unwrap_or(true);
         let include_collaboration_mode_instructions =
@@ -5762,6 +5764,27 @@ fn claude_code_effort_level(
     cwd: &AbsolutePathBuf,
     project_trusted: bool,
 ) -> Option<ReasoningEffort> {
+    claude_code_setting(cwd, project_trusted, |settings| {
+        codex_claude_compat::settings_effort_level(settings)?
+            .parse()
+            .ok()
+    })
+}
+
+fn claude_code_reply_instructions(cwd: &AbsolutePathBuf, project_trusted: bool) -> Option<String> {
+    claude_code_setting(cwd, project_trusted, |settings| {
+        let language = codex_claude_compat::settings_reply_language(settings)?;
+        Some(format!(
+            "Use {language} as the default language for user-facing replies."
+        ))
+    })
+}
+
+fn claude_code_setting<T>(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+    parse: impl Fn(&serde_json::Value) -> Option<T>,
+) -> Option<T> {
     // Unit tests never read the real home directory's Claude Code settings.
     if cfg!(test) || !codex_claude_compat::enabled() {
         return None;
@@ -5769,14 +5792,14 @@ fn claude_code_effort_level(
     let home = dirs::home_dir();
     let claude_home = codex_claude_compat::user_config_dir();
     let project_dir = project_trusted.then_some(cwd.as_path());
-    let mut effort = None;
+    let mut value = None;
     for path in
         codex_claude_compat::settings_paths(claude_home.as_deref(), home.as_deref(), project_dir)
     {
         match codex_claude_compat::read_settings(&path) {
             Ok(Some(settings)) => {
-                if let Some(level) = codex_claude_compat::settings_effort_level(&settings) {
-                    effort = Some(level);
+                if let Some(parsed) = parse(&settings) {
+                    value = Some(parsed);
                 }
             }
             Ok(None) => {}
@@ -5788,7 +5811,7 @@ fn claude_code_effort_level(
             }
         }
     }
-    effort.and_then(|level| level.parse().ok())
+    value
 }
 
 /// The MCP servers Claude Code would start in `cwd`, from `~/.claude.json` and the
