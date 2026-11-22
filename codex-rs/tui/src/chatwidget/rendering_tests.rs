@@ -406,7 +406,7 @@ async fn initial_session_header_starts_at_the_top_of_the_viewport() {
     let cwd = widget.config.cwd.as_path().display().to_string();
 
     insta::assert_snapshot!(header.replace(&cwd, "/tmp/project"), @r"
-      >_ CodClaw NTR (v<VERSION>)
+      >_ ClawCod NTR (v<VERSION>)
          /tmp/project
     ");
 }

@@ -41,7 +41,7 @@ fn gov_cloud_startup_persists_only_acknowledgment() -> Result<()> {
                     ensure!(status.success(), "quit exited with {status}");
                     break;
                 }
-            } else if terminal.screen_contains("CodClaw NTR") {
+            } else if terminal.screen_contains("ClawCod NTR") {
                 break;
             }
             ensure!(Instant::now() < deadline, "{action} did not complete");

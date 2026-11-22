@@ -79,7 +79,7 @@ SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [
-    ".github/cod-claw-ntr-logo.svg",
+    ".github/claw-cod-ntr-logo.svg",
     "README/README_CN.md",
     "docs/claude-compat.md",
 ]

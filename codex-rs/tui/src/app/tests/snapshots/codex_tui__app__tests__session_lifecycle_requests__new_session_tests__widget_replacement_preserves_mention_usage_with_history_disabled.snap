@@ -2,7 +2,7 @@
 source: tui/src/app/tests/new_session_tests.rs
 expression: "normalize_snapshot_paths(render_bottom_popup(&app.chat_widget, 80))"
 ---
-  >_ CodClaw NTR (v0.0.0)
+  >_ ClawCod NTR (v0.0.0)
      /tmp/project
 
 

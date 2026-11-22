@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./.github/cod-claw-ntr-logo.svg" alt="CodClaw NTR logo" width="96">
+  <img src="./.github/claw-cod-ntr-logo.svg" alt="ClawCod NTR logo" width="96">
 </p>
 
-# CodClaw NTR
+# ClawCod NTR
 <p align="right">
     <strong>English</strong> | <a href="./README/README_CN.md">中文</a>
 </p>
@@ -13,7 +13,7 @@
 >
 > — an old English proverb, turned around
 
-CodClaw NTR is a fork of OpenAI's Codex CLI that runs on the configuration you already keep for Claude
+ClawCod NTR is a fork of OpenAI's Codex CLI that runs on the configuration you already keep for Claude
 Code: your `CLAUDE.md` files, rules, skills, hooks, settings, subagents and MCP servers are read in
 place, so one setup serves both tools and an edit in `~/.claude` reaches Codex at its next request.
 
@@ -35,7 +35,7 @@ convert or migrate.
 
 ## Overview
 
-CodClaw NTR keeps Codex itself (its models, sandbox, approvals, TUI and IDE extension) and adds a
+ClawCod NTR keeps Codex itself (its models, sandbox, approvals, TUI and IDE extension) and adds a
 compatibility layer that reads Claude Code's files where Claude Code keeps them. Nothing is copied or
 converted: there is no sync step, and `CCN_CLAUDE_COMPAT=0` turns the whole layer off. Where Codex
 already has a mechanism, the layer hands the work to it; it only adds what Codex lacks. The details,
@@ -52,7 +52,7 @@ The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `co
 
 ## Scope
 
-CodClaw NTR is Codex made to read Claude Code's configuration files as completely as it can. What that
+ClawCod NTR is Codex made to read Claude Code's configuration files as completely as it can. What that
 means for the code:
 
 - **Claude Code compatibility comes first.** Where Codex conflicts with Claude Code's configuration,
@@ -67,7 +67,7 @@ means for the code:
   fork's `ccn-config.toml`, and of Claude Code's settings only what the compatibility needs is read.
 
 For a harness that goes all the way to Claude Code's ecosystem, see
-[jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr), which is built on this one.
+[jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-claw-cod-ntr), which is built on this one.
 
 ## Features
 
@@ -106,12 +106,12 @@ For a harness that goes all the way to Claude Code's ecosystem, see
   styles and the status line: Codex has no counterpart.
 - Skill bodies' shell injection (`` !`command` ``), and substitutions in a skill the model opens by
   itself rather than through `/<name>`.
-- Claude Code's own models and account: CodClaw NTR talks to the models Codex supports.
+- Claude Code's own models and account: ClawCod NTR talks to the models Codex supports.
 - Windows: this fork builds for macOS and Linux only.
 
 ## Installation
 
-CodClaw NTR has no release yet; build it from source.
+ClawCod NTR has no release yet; build it from source.
 
 ### Building from Source
 

@@ -215,7 +215,7 @@ fn default_owned_screen_entry_paints_before_sync_ends_and_exit_clears_inline_dra
     first_frame.process(&terminal.output[..end]);
     let first_contents = first_frame.screen().contents();
     ensure!(
-        first_contents.contains("CodClaw NTR")
+        first_contents.contains("ClawCod NTR")
             && first_contents.contains("Ask Codex to do anything"),
         "owned-screen synchronization ended before its first complete loading frame:\n{first_contents}"
     );
@@ -422,7 +422,7 @@ impl PtyCodex {
             self.read_output(Duration::from_millis(/*millis*/ 50))?;
             self.answer_startup_queries()?;
 
-            if self.palette_answered && self.screen_contains("CodClaw NTR") {
+            if self.palette_answered && self.screen_contains("ClawCod NTR") {
                 return Ok(());
             }
 

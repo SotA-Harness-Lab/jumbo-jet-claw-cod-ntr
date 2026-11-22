@@ -910,7 +910,7 @@ fn run_update_command() -> anyhow::Result<()> {
     {
         let Some(action) = codex_tui::get_update_action() else {
             anyhow::bail!(
-                "ccn has no updater of its own. Get the latest release from https://github.com/lutianyu2001/cod-claw-ntr/releases/latest, or update it with the package manager it was installed with."
+                "ccn has no updater of its own. Get the latest release from https://github.com/lutianyu2001/claw-cod-ntr/releases/latest, or update it with the package manager it was installed with."
             );
         };
         run_update_action(action, /*cli_executable*/ None)

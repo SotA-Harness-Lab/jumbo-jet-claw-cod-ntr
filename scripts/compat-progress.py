@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 # SPDX-License-Identifier: Apache-2.0
-"""Draws how far CodClaw NTR is compatible with Claude Code, from docs/claude-compat.md.
+"""Draws how far ClawCod NTR is compatible with Claude Code, from docs/claude-compat.md.
 
 Counts the rows of the four chapters of that file and writes:
 
