@@ -148,7 +148,23 @@ cargo build --release -p codex-code-mode-host
 Run `ccn` in a project. It signs in like Codex: choose **Sign in with ChatGPT**, or set up an API key as
 described in [Codex's authentication docs](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
 
-A build from source has no background server package: start the TUI with `ccn --no-daemon`.
+Like Codex, `ccn` runs its sessions in a background server of its own, so that work goes on after the TUI
+is closed; it is kept apart from Codex's (`~/.codex/ccn-app-server-daemon`). The server installs from a
+complete package, not from a lone binary, so build one and put its entrypoint on your `PATH`:
+
+```shell
+CODEX_REPO_ROOT=$PWD python3 scripts/build_codex_package.py --target <TARGET> --cargo-profile release \
+  --entrypoint-bin codex-rs/target/release/ccn --code-mode-host-bin codex-rs/target/release/codex-code-mode-host \
+  --rg-bin "$(command -v rg)" --package-dir <PACKAGE_DIR> --force
+ln -s <PACKAGE_DIR>/bin/codex ~/.local/bin/ccn
+```
+
+`<TARGET>` is your platform's triple (`x86_64-unknown-linux-gnu`, `aarch64-apple-darwin`), and
+`<PACKAGE_DIR>` any directory of yours. The entrypoint is named `codex` inside the package; it is ccn. On
+Linux the package also builds `bwrap`, which needs libcap's headers; with a system bubblewrap, pass
+`--bwrap-bin "$(command -v bwrap)"` instead. The first `ccn` then installs and starts the server; after a
+rebuild, `ccn app-server daemon update --from-cli` puts the new build in it. Without a package, start the
+TUI with `ccn --no-daemon`: the server then runs inside it and ends with it.
 
 To use Claude Code's tool set, create `~/.codex/ccn-config.toml`:
 

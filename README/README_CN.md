@@ -107,7 +107,16 @@ cargo build --release -p codex-code-mode-host
 
 在项目里运行 `ccn`。登录方式和 Codex 一样：选 **Sign in with ChatGPT**，或者按 [Codex 的登录文档](https://developers.openai.com/codex/auth#sign-in-with-an-api-key) 配置 API key。
 
-从源码构建的版本没有后台服务的安装包：启动 TUI 时用 `ccn --no-daemon`。
+和 Codex 一样，`ccn` 把会话放在自己的后台服务里运行，关掉 TUI 后工作还能继续；这个服务和 Codex 的分开（`~/.codex/ccn-app-server-daemon`）。后台服务要从完整的程序包安装，单个可执行文件不行，所以先打包，再把包里的入口放到 `PATH` 上：
+
+```shell
+CODEX_REPO_ROOT=$PWD python3 scripts/build_codex_package.py --target <TARGET> --cargo-profile release \
+  --entrypoint-bin codex-rs/target/release/ccn --code-mode-host-bin codex-rs/target/release/codex-code-mode-host \
+  --rg-bin "$(command -v rg)" --package-dir <PACKAGE_DIR> --force
+ln -s <PACKAGE_DIR>/bin/codex ~/.local/bin/ccn
+```
+
+`<TARGET>` 是你平台的目标三元组（`x86_64-unknown-linux-gnu`、`aarch64-apple-darwin`），`<PACKAGE_DIR>` 是你自己选的目录。包里的入口名叫 `codex`，它就是 ccn。在 Linux 上打包还会编译 `bwrap`，需要 libcap 的头文件；系统装了 bubblewrap 的话，改为传 `--bwrap-bin "$(command -v bwrap)"`。之后第一次运行 `ccn` 就会装好并启动后台服务；重新编译后，用 `ccn app-server daemon update --from-cli` 把新版放进去。不打包的话，启动 TUI 时用 `ccn --no-daemon`：服务就在 TUI 里运行，随它一起结束。
 
 要用 Claude Code 的工具集，新建 `~/.codex/ccn-config.toml`：
 
