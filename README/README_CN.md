@@ -21,6 +21,7 @@ NTR 是 Native Tooling Ready 的缩写：Claude Code 原生的配置可以直接
 
 - [概述](#概述)
 - [定位](#定位)
+- [设置从哪里来](#设置从哪里来)
 - [功能特性](#功能特性)
 - [不兼容的部分](#不兼容的部分)
 - [安装](#安装)
@@ -41,7 +42,7 @@ ClawCod NTR 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件�
 在计划兼容的 419 项 Claude Code 功能中：完全兼容 **30.1%**（126 项），部分兼容 **36.8%**（154 项，差异逐条写明），尚未开始 **33.1%**（139 项）。条末的灰色是不计划兼容的 19 项（和 Codex 的核心冲突），按全部 438 项的比例画出，不计入百分比。
 <!-- /compat-progress -->
 
-改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`。
+改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`；见[设置从哪里来](#设置从哪里来)。
 
 ## 定位
 
@@ -52,6 +53,18 @@ ClawCod NTR 是让 Codex 尽量完整地读懂 Claude Code 配置文件的版本
 - **插件系统和程序设置沿用 Codex。** 它们是 Codex 的核心组件，不好大改，从头复刻一套兼容 Claude Code 的插件系统也没有必要。Claude Code 的插件在好做的范围内兼容；设置是 Codex 的 `config.toml` 和本改版的 `ccn-config.toml`，Claude Code 的设置只读兼容用得到的部分。
 
 想要完全转向 Claude Code 生态的 harness，见在本项目之上构建的 [jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-claw-cod-ntr)。
+
+## 设置从哪里来
+
+ClawCod NTR 的设置来自三处。Codex 和 Claude Code 的文件都在原处读取，两边之间不复制任何东西。
+
+| 来源 | 文件 | 管什么 |
+| --- | --- | --- |
+| **Codex** | `~/.codex/config.toml`（profile、`-c`）、`~/.codex/auth.json` | 程序本身：模型和服务商、推理强度、沙箱和审批、TUI、登录、会话和历史、Codex 自己的插件和插件市场、在这里声明的 MCP 服务器。和 Codex 共用。 |
+| **Claude Code** | `~/.claude/` 和项目的 `.claude/`、`CLAUDE.md`、`~/.claude.json`、`.mcp.json` | 你为 Claude Code 准备的东西：说明和规则、skill 和命令、hook、权限规则、`env`、子代理、MCP 服务器、在 Claude Code 里启用的插件、自动记忆。`config.toml` 没设推理强度时，用 `effortLevel` 作默认值。 |
+| **ClawCod NTR** | `~/.codex/ccn-config.toml` | 只有这个 fork 才有的：Claude Code 的工具集（`[claude] tools`）、被判为不兼容但仍要用的插件（`[claude.plugins]`）、在 hook 和子代理里代替 Claude 模型的 Codex 模型（`[hooks.models]`）、界面语言（`[ui]`）。 |
+
+fork 自己的环境变量以 `CCN_` 开头。它的后台服务是自己的一份，和 Codex 的分开（`~/.codex/ccn-app-server-daemon`），登录和会话则共用。`ccn-config.toml` 的每个键见 [Claude Code compatibility](../docs/claude-compat.md#the-forks-own-settings-ccn-configtoml)。
 
 ## 功能特性
 

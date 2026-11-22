@@ -24,6 +24,7 @@ convert or migrate.
 
 - [Overview](#overview)
 - [Scope](#scope)
+- [Where Settings Come From](#where-settings-come-from)
 - [Features](#features)
 - [What Is Not Compatible](#what-is-not-compatible)
 - [Installation](#installation)
@@ -48,7 +49,8 @@ item by item, are in [Claude Code compatibility](./docs/claude-compat.md).
 Of the 419 Claude Code features planned: **30.1%** fully compatible (126), **36.8%** partly compatible (154, each difference written down), **33.1%** not started yet (139). The grey end of the bar is the 19 features not planned (they contradict Codex's core), drawn in proportion to all 438 and left out of the percentages.
 <!-- /compat-progress -->
 
-The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `config.toml`.
+The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `config.toml`; see
+[Where Settings Come From](#where-settings-come-from).
 
 ## Scope
 
@@ -68,6 +70,21 @@ means for the code:
 
 For a harness that goes all the way to Claude Code's ecosystem, see
 [jjcn](https://github.com/SotA-Harness-Lab/jumbo-jet-claw-cod-ntr), which is built on this one.
+
+## Where Settings Come From
+
+ClawCod NTR takes its settings from three places. Codex's and Claude Code's files are read where they
+are; nothing is copied between them.
+
+| From | Files | What |
+| --- | --- | --- |
+| **Codex** | `~/.codex/config.toml` (profiles, `-c`), `~/.codex/auth.json` | The program itself: model and provider, reasoning effort, sandbox and approvals, the TUI, sign-in, sessions and history, Codex's own plugins and marketplaces, the MCP servers declared there. Shared with Codex. |
+| **Claude Code** | `~/.claude/` and a project's `.claude/`, `CLAUDE.md`, `~/.claude.json`, `.mcp.json` | What you set up for Claude Code: instructions and rules, skills and commands, hooks, permission rules, `env`, subagents, MCP servers, the plugins enabled in Claude Code, auto memory. `effortLevel` is the default reasoning effort when `config.toml` sets none. |
+| **ClawCod NTR** | `~/.codex/ccn-config.toml` | What only this fork has: Claude Code's tool set (`[claude] tools`), plugins to use although found incompatible (`[claude.plugins]`), the Codex models that stand in for Claude models in hooks and subagents (`[hooks.models]`), the interface language (`[ui]`). |
+
+Environment variables of the fork start with `CCN_`. Its background server is its own, apart from
+Codex's (`~/.codex/ccn-app-server-daemon`), while sign-in and sessions are shared. Every key of
+`ccn-config.toml` is in [Claude Code compatibility](./docs/claude-compat.md#the-forks-own-settings-ccn-configtoml).
 
 ## Features
 
