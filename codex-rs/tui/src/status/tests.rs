@@ -1768,7 +1768,7 @@ async fn status_snapshot_uses_default_reasoning_when_config_empty() {
         (Some(true), "status_snapshot_local_background_server"),
     ] {
         let remote_connection = is_local_daemon.map(|is_local_daemon| RemoteConnectionStatus {
-            address: "unix:///tmp/codex-home/app-server-control/app-server-control.sock"
+            address: "unix:///tmp/codex-home/jjcn-app-server-control/app-server-control.sock"
                 .to_string(),
             version: "v0.133.0".to_string(),
             is_local_daemon,

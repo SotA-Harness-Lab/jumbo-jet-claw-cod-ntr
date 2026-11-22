@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 use crate::outgoing_message::ConnectionId;
 use crate::outgoing_message::OutgoingError;
 use crate::outgoing_message::OutgoingMessage;
@@ -53,14 +59,14 @@ pub use websocket::start_websocket_acceptor;
 const INTERNAL_ERROR_CODE: i64 = -32603;
 const OVERLOADED_ERROR_CODE: i64 = -32001;
 
-const APP_SERVER_CONTROL_SOCKET_DIR_NAME: &str = "app-server-control";
+const APP_SERVER_CONTROL_SOCKET_DIR_NAME: &str = "jjcn-app-server-control";
 const APP_SERVER_CONTROL_SOCKET_FILE_NAME: &str = "app-server-control.sock";
 const APP_SERVER_STARTUP_LOCK_FILE_NAME: &str = "app-server-startup.lock";
 const DAEMON_RECOVERY_FILE_NAME: &str = "loaded-threads.json";
 
 pub fn daemon_recovery_file_path(codex_home: &Path) -> PathBuf {
     codex_home
-        .join("app-server-daemon")
+        .join("jjcn-app-server-daemon")
         .join(DAEMON_RECOVERY_FILE_NAME)
 }
 

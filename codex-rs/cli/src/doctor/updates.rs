@@ -28,7 +28,7 @@ use super::doctor_managed_by_npm;
 const MAX_VERSION_RESPONSE_BYTES: usize = 1024 * 1024;
 
 const VERSION_FILE_NAME: &str = "version.json";
-const GITHUB_LATEST_RELEASE_URL: &str = "https://api.github.com/repos/lutianyu2001/cod-claw-ntr/releases/latest";
+const GITHUB_LATEST_RELEASE_URL: &str = "https://api.github.com/repos/lutianyu2001/claw-cod-ntr/releases/latest";
 /// Builds the update-health row for the current installation.
 ///
 /// Network failures while fetching latest-version metadata degrade the row to a

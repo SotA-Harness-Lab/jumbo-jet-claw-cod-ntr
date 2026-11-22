@@ -77,7 +77,7 @@ const RESTART_RETRY_INTERVAL: Duration = Duration::from_millis(50);
 // envelope, and the worst-case six-byte JSON escape for every captured byte.
 const INSTALLER_STDERR_TAIL_BYTES: usize = 2 * 1024;
 const INSTALLER_STDERR_DRAIN_TIMEOUT: Duration = Duration::from_secs(1);
-const NO_INSTALLER_MESSAGE: &str = "CodClaw NTR has no installer to download for its background server; update it from the installed CLI with `jjcn app-server daemon update --from-cli`";
+const NO_INSTALLER_MESSAGE: &str = "jjcn has no installer to download for its background server; update it from the installed CLI with `jjcn app-server daemon update --from-cli`";
 // Upstream's installer. It is never fetched (see `InstallerHttp for RouteAwareClientPool`);
 // the address is what the update loop asks its HTTP boundary for.
 #[cfg(unix)]
@@ -400,7 +400,7 @@ async fn update_once(
             .any(|window| window == installer_guard.as_bytes()),
         "standalone installer does not support {installer_guard} guarded updates"
     );
-    if package_root.ends_with("app-server-daemon") {
+    if package_root.ends_with("jjcn-app-server-daemon") {
         anyhow::ensure!(
             script
                 .windows(b"CODEX_INSTALL_DAEMON_ONLY".len())
@@ -630,7 +630,7 @@ async fn run_installer_script(
         .env("CODEX_INSTALL_DEFER_SELECTION", defer_selection)
         .env(
             "CODEX_INSTALL_DAEMON_ONLY",
-            if package_root.ends_with("app-server-daemon") {
+            if package_root.ends_with("jjcn-app-server-daemon") {
                 "1"
             } else {
                 "0"

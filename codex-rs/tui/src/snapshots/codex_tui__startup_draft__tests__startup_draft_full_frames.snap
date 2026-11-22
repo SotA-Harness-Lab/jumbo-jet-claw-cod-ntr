@@ -4,7 +4,7 @@ expression: "snapshots.join(\"\\n---\\n\")"
 ---
 empty (48 columns):
 
-  >_ CodClaw NTR (v<VERSION>)
+  >_ ClawCod NTR (v<VERSION>)
      loading
 
 
@@ -14,7 +14,7 @@ empty (48 columns):
 ---
 configured (48 columns):
 
-  >_ CodClaw NTR (v<VERSION>)
+  >_ ClawCod NTR (v<VERSION>)
      workspace
 
 
@@ -24,7 +24,7 @@ configured (48 columns):
 ---
 resuming (48 columns):
 
-  >_ CodClaw NTR (v<VERSION>)
+  >_ ClawCod NTR (v<VERSION>)
      loading
   Resuming session…
 
@@ -34,7 +34,7 @@ resuming (48 columns):
 ---
 forking (48 columns):
 
-  >_ CodClaw NTR (v<VERSION>)
+  >_ ClawCod NTR (v<VERSION>)
      loading
   Forking session…
 
@@ -43,7 +43,7 @@ forking (48 columns):
 ---
 multiline (48 columns):
 
-  >_ CodClaw NTR (v<VERSION>)
+  >_ ClawCod NTR (v<VERSION>)
      loading
 
 
@@ -53,7 +53,7 @@ multiline (48 columns):
 ---
 narrow (18 columns):
 
-  >_ CodClaw NTR …
+  >_ ClawCod NTR …
      loading
 
 

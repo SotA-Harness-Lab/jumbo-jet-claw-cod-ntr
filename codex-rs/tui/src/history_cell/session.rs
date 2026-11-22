@@ -49,7 +49,7 @@ pub(crate) fn with_border_with_inner_width(
 pub(crate) fn codex_title(version: &str) -> Vec<Span<'static>> {
     vec![
         ">_ ".fg(accent_color()),
-        "CodClaw NTR".bold(),
+        "ClawCod NTR".bold(),
         format!(" (v{version})").dim(),
     ]
 }
@@ -416,7 +416,7 @@ impl HistoryCell for SessionHeaderHistoryCell {
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
         let mut lines = vec![
-            Line::from(format!("CodClaw NTR (v{})", self.version)),
+            Line::from(format!("ClawCod NTR (v{})", self.version)),
             Line::from(crate::i18n::tr!(
                 "session-raw-model",
                 model = self.model.as_str(),

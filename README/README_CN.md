@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../.github/cod-claw-ntr-logo.svg" alt="jjcn logo" width="96">
+  <img src="../.github/claw-cod-ntr-logo.svg" alt="jjcn logo" width="96">
 </p>
 
-# Jumbo Jet CodClaw NTR
+# Jumbo Jet ClawCod NTR
 <p align="right">
     <a href="../README.md">English</a> | <strong>中文</strong>
 </p>
@@ -13,11 +13,11 @@
 >
 > —— 网络流行语
 
-Jumbo Jet CodClaw NTR（jjcn）是在 [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) 之上重新打磨 harness 本身的版本。CodClaw NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取。本项目保留这一切，并加入对代理自身工作方式的改动，目标是下一代的代理 harness。
+Jumbo Jet ClawCod NTR（jjcn）是在 [ClawCod NTR](https://github.com/lutianyu2001/claw-cod-ntr) 之上重新打磨 harness 本身的版本。ClawCod NTR 是 OpenAI Codex CLI 的一个 fork，直接使用你为 Claude Code 准备的配置：`CLAUDE.md`、规则、skill、hook、设置、子代理和 MCP 服务器都在原处读取。本项目保留这一切，并加入对代理自身工作方式的改动，目标是下一代的代理 harness。
 
-NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 CodClaw NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
+NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 ClawCod NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
 
-程序名是 `jjcn`。目前设置文件和环境变量仍沿用 CodClaw NTR 的（`ccn-config.toml`、`CCN_`），所以两者在同一台机器上共用一套设置；等 jjcn 的设置改用 Claude Code 的设置文件后就不再如此（见[方向](#方向)）。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得。
+程序名是 `jjcn`。目前设置文件和环境变量仍沿用 ClawCod NTR 的（`ccn-config.toml`、`CCN_`），所以两者在同一台机器上共用一套设置；等 jjcn 的设置改用 Claude Code 的设置文件后就不再如此（见[方向](#方向)）。本仓库从 ClawCod NTR 的 `main` 复制而来，之后的更新也从那里取得。
 
 目前加入的改动，逐项说明见 [jjcn refinements](../docs/jjcn.md)：
 
@@ -53,18 +53,18 @@ jjcn 保留 Codex 本身（模型、沙箱、审批、TUI 和 IDE 插件），�
 在计划兼容的 419 项 Claude Code 功能中：完全兼容 **30.1%**（126 项），部分兼容 **36.8%**（154 项，差异逐条写明），尚未开始 **33.1%**（139 项）。条末的灰色是不计划兼容的 19 项（和 Codex 的核心冲突），按全部 438 项的比例画出，不计入百分比。
 <!-- /compat-progress -->
 
-改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`。
+改版自己的设置放在 `~/.codex/ccn-config.toml`，不写进 Codex 的 `config.toml`；见[设置从哪里来](#设置从哪里来)。
 
 ## 方向
 
-jjcn 是 CodClaw NTR 的大改版。CodClaw NTR 保留 Codex，让它读懂 Claude Code 的配置；jjcn 则完全靠向 Claude Code 的生态：
+jjcn 是 ClawCod NTR 的大改版。ClawCod NTR 保留 Codex，让它读懂 Claude Code 的配置；jjcn 则完全靠向 Claude Code 的生态：
 
 - **配置与 Codex 的生态彻底脱离。** 设置全面采用 Claude Code 的设置文件，加上 jjcn 自己的设置文件，用 [layeredcfg](https://github.com/lutianyu2001/layeredcfg) 分层，jjcn 自己的设置文件优先于 Claude Code 的。
 - **插件两边都兼容。** 插件系统同时加载 Claude Code 和 Codex 的插件。
 - **大量新特性**：作者认为有用的都会加进来，打造一个适合作者自用的 harness；已加入的见 [jjcn refinements](../docs/jjcn.md)。
-- **以 Codex 为底子，但不受它限制。** 需要多深的改动就改多深，同时继续跟进 CodClaw NTR 的更新。
+- **以 Codex 为底子，但不受它限制。** 需要多深的改动就改多深，同时继续跟进 ClawCod NTR 的更新。
 
-以上是 jjcn 的方向，还没有全部做到：目前设置仍沿用 CodClaw NTR 的 `ccn-config.toml`。
+以上是 jjcn 的方向，还没有全部做到：目前设置仍沿用 ClawCod NTR 的 `ccn-config.toml`。
 
 ## 功能特性
 

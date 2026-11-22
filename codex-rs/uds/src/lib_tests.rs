@@ -182,7 +182,7 @@ foreach ($acl in @($directory, (Get-Acl -LiteralPath (Join-Path $env:CODEX_TEST_
 #[tokio::test]
 async fn prepare_private_socket_directory_creates_directory() {
     let temp_dir = tempfile::TempDir::new().expect("temp dir");
-    let socket_dir = temp_dir.path().join("app-server-control");
+    let socket_dir = temp_dir.path().join("jjcn-app-server-control");
 
     prepare_private_socket_directory(&socket_dir)
         .await

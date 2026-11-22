@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
@@ -133,7 +139,7 @@ async fn update_interval_accepts_long_values_and_rejects_zero() {
 #[tokio::test]
 async fn telemetry_distinguishes_presence_from_default_values() -> anyhow::Result<()> {
     let home = TempDir::new()?;
-    let dir = home.path().join("app-server-daemon");
+    let dir = home.path().join("jjcn-app-server-daemon");
     tokio::fs::create_dir(&dir).await?;
     let path = dir.join("settings.json");
     for (contents, presence) in [

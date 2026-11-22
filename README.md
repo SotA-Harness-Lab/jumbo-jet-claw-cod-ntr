@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./.github/cod-claw-ntr-logo.svg" alt="jjcn logo" width="96">
+  <img src="./.github/claw-cod-ntr-logo.svg" alt="jjcn logo" width="96">
 </p>
 
-# Jumbo Jet CodClaw NTR
+# Jumbo Jet ClawCod NTR
 <p align="right">
     <strong>English</strong> | <a href="./README/README_CN.md">中文</a>
 </p>
@@ -13,20 +13,20 @@
 >
 > — an old English proverb, turned around
 
-Jumbo Jet CodClaw NTR (jjcn) is [CodClaw NTR](https://github.com/lutianyu2001/cod-claw-ntr) with the harness
-itself reworked. CodClaw NTR is a fork of OpenAI's Codex CLI that runs on the configuration you already
+Jumbo Jet ClawCod NTR (jjcn) is [ClawCod NTR](https://github.com/lutianyu2001/claw-cod-ntr) with the harness
+itself reworked. ClawCod NTR is a fork of OpenAI's Codex CLI that runs on the configuration you already
 keep for Claude Code: your `CLAUDE.md` files, rules, skills, hooks, settings, subagents and MCP servers
 are read in place. This project keeps all of that and adds changes to how the agent itself works, aimed
 at the next generation of agent harnesses.
 
-NTR stands here for Next-Tier Refined: refined, change by change, toward that next tier. In CodClaw NTR
+NTR stands here for Next-Tier Refined: refined, change by change, toward that next tier. In ClawCod NTR
 the same letters stand for Native Tooling Ready, which still holds here: Claude Code's native
 configuration works as it is, with nothing to convert or migrate.
 
-The program is `jjcn`. For now, its settings file and its environment variables are still CodClaw NTR's
+The program is `jjcn`. For now, its settings file and its environment variables are still ClawCod NTR's
 (`ccn-config.toml`, `CCN_`), so the two share one set of settings on a machine; that ends as jjcn moves
 its settings to Claude Code's files (see [Direction](#direction)). The repository
-starts as a copy of CodClaw NTR's `main` and takes its later changes from there.
+starts as a copy of ClawCod NTR's `main` and takes its later changes from there.
 
 What it adds so far, each described in [jjcn refinements](./docs/jjcn.md):
 
@@ -68,11 +68,12 @@ item by item, are in [Claude Code compatibility](./docs/claude-compat.md).
 Of the 419 Claude Code features planned: **30.1%** fully compatible (126), **36.8%** partly compatible (154, each difference written down), **33.1%** not started yet (139). The grey end of the bar is the 19 features not planned (they contradict Codex's core), drawn in proportion to all 438 and left out of the percentages.
 <!-- /compat-progress -->
 
-The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `config.toml`.
+The fork's own settings live in `~/.codex/ccn-config.toml`, never in Codex's `config.toml`; see
+[Where Settings Come From](#where-settings-come-from).
 
 ## Direction
 
-jjcn is the heavily reworked edition of CodClaw NTR. CodClaw NTR keeps Codex and makes it read Claude
+jjcn is the heavily reworked edition of ClawCod NTR. ClawCod NTR keeps Codex and makes it read Claude
 Code's configuration; jjcn leans all the way toward Claude Code's ecosystem:
 
 - **Configuration leaves Codex's ecosystem.** The settings are Claude Code's settings files plus jjcn's own
@@ -82,9 +83,9 @@ Code's configuration; jjcn leans all the way toward Claude Code's ecosystem:
 - **Many new features**, of the kind its author finds useful, toward a harness made for the author's own
   use; those added so far are in [jjcn refinements](./docs/jjcn.md).
 - **Codex as the base, not as a limit.** The code is changed as deeply as that calls for, and jjcn keeps
-  taking CodClaw NTR's changes.
+  taking ClawCod NTR's changes.
 
-This is where jjcn is going, not all of it done yet: for now its settings are still CodClaw NTR's
+This is where jjcn is going, not all of it done yet: for now its settings are still ClawCod NTR's
 `ccn-config.toml`.
 
 ## Features

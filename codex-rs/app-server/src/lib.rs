@@ -1032,7 +1032,7 @@ pub async fn run_main_with_transport_options(
         config
             .codex_home
             .as_path()
-            .join("app-server-daemon/settings.json")
+            .join("jjcn-app-server-daemon/settings.json")
     });
     let processor_handle = tokio::spawn({
         let auth_manager = Arc::clone(&auth_manager);

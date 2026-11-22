@@ -116,7 +116,7 @@ async fn elevated_local_tui_uses_embedded_without_starting_daemon() -> Result<()
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    ensure!(!home.path().join("app-server-daemon").exists());
+    ensure!(!home.path().join("jjcn-app-server-daemon").exists());
     Ok(())
 }
 
@@ -258,10 +258,10 @@ async fn daemon_startup(command: &str) -> Result<()> {
         // A selected package with a stopped daemon avoids installing a release.
         let managed = home
             .path()
-            .join("packages/app-server-daemon/current/bin")
+            .join("packages/jjcn-app-server-daemon/current/bin")
             // WINDOWS-REMNANT
             .join(if cfg!(windows) { "codex.exe" } else { "codex" });
-        fs::create_dir_all(home.path().join("packages/app-server-daemon/current/bin"))?;
+        fs::create_dir_all(home.path().join("packages/jjcn-app-server-daemon/current/bin"))?;
         // Hard links change the executable's ctime and invalidate Rosetta's translation cache.
         #[cfg(unix)]
         std::os::unix::fs::symlink(&codex, &managed)?;
@@ -269,10 +269,10 @@ async fn daemon_startup(command: &str) -> Result<()> {
         fs::hard_link(&codex, &managed)
             .or_else(|_| codex_utils_cargo_bin::copy_executable(&codex, &managed))?;
         if command != "restrictive-job" {
-            codex_uds::prepare_private_socket_directory(&home.path().join("app-server-daemon"))
+            codex_uds::prepare_private_socket_directory(&home.path().join("jjcn-app-server-daemon"))
                 .await?;
             fs::write(
-                home.path().join("app-server-daemon/settings.json"),
+                home.path().join("jjcn-app-server-daemon/settings.json"),
                 if persisted {
                     r#"{"shutdownGraceSeconds":0,"updater":{"autoUpdateEnabled":false},"featureOverrides":{"api_key_model_discovery":true}}"#
                 } else {
@@ -281,7 +281,7 @@ async fn daemon_startup(command: &str) -> Result<()> {
             )?;
         }
     }
-    let pid_file = home.path().join("app-server-daemon/daemon.pid");
+    let pid_file = home.path().join("jjcn-app-server-daemon/daemon.pid");
     let result = async {
         let mut existing_daemon = if matches!(command, "bedrock-running" | "discovered" | "agents-no-daemon")
             || (mismatch && !disabling)
@@ -531,7 +531,7 @@ async fn daemon_startup(command: &str) -> Result<()> {
                     }
                     if disabling && *ready == "Backgroundserverhasincompatiblefeaturesettings" {
                         existing_daemon = Some(fs::read(&pid_file)?);
-                        let settings: serde_json::Value = serde_json::from_slice(&fs::read(home.path().join("app-server-daemon/settings.json"))?)?;
+                        let settings: serde_json::Value = serde_json::from_slice(&fs::read(home.path().join("jjcn-app-server-daemon/settings.json"))?)?;
                         if persisted {
                             ensure!(settings["featureOverrides"]["api_key_model_discovery"] == true);
                         } else {
@@ -567,7 +567,7 @@ async fn daemon_startup(command: &str) -> Result<()> {
                             ensure!(text.contains("Server:Localbackgroundserver") == restart);
                             if restart {
                                 let settings: serde_json::Value = serde_json::from_slice(
-                                    &fs::read(home.path().join("app-server-daemon/settings.json"))?
+                                    &fs::read(home.path().join("jjcn-app-server-daemon/settings.json"))?
                                 )?;
                                 let flag = if disabling && !persisted {
                                     "auth_elicitation"
@@ -579,15 +579,15 @@ async fn daemon_startup(command: &str) -> Result<()> {
                         }
                     } else if command == "start" {
                         ensure!(text.contains("Server:Localbackgroundserver"));
-                        ensure!(home.path().join("app-server-daemon/daemon.pid").exists());
+                        ensure!(home.path().join("jjcn-app-server-daemon/daemon.pid").exists());
                     } else if command == "discovered" {
                         let previous_pid = existing_daemon.as_ref().context("missing original daemon PID")?;
                         ensure!(fs::read(&pid_file)? != *previous_pid, "daemon PID did not change");
                     } else if let Some(existing_daemon) = &existing_daemon {
                         ensure!(fs::read(&pid_file)? == *existing_daemon);
                     } else if elevated_launch {
-                        ensure!(!home.path().join("app-server-daemon").exists());
-                        ensure!(!home.path().join("packages/app-server-daemon").exists());
+                        ensure!(!home.path().join("jjcn-app-server-daemon").exists());
+                        ensure!(!home.path().join("packages/jjcn-app-server-daemon").exists());
                     } else if bedrock_onboarding {
                         ensure!(pid_file.exists() != elevated);
                     } else if command == "restrictive-job" {

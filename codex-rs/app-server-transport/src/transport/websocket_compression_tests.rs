@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 //! Exercise negotiated and legacy peers through the TCP and local socket listeners.
 
 use super::*;
@@ -81,7 +87,7 @@ async fn local_socket_compression_negotiates_and_retains_history() -> Result<(),
     for compression in [WebSocketCompression::Plain, WebSocketCompression::Zstd] {
         let temp_dir = tempfile::TempDir::new()?;
         let socket_path = AbsolutePathBuf::from_absolute_path(
-            temp_dir.path().join("app-server-control").join("rpc.sock"),
+            temp_dir.path().join("jjcn-app-server-control").join("rpc.sock"),
         )?;
         let (transport_event_tx, mut events) = mpsc::channel(CHANNEL_CAPACITY);
         let shutdown = CancellationToken::new();

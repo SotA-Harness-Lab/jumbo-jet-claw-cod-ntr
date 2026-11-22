@@ -1,6 +1,6 @@
 # jjcn refinements
 
-What this project changes in the harness itself, on top of CodClaw NTR. Everything in
+What this project changes in the harness itself, on top of ClawCod NTR. Everything in
 [Claude Code compatibility](./claude-compat.md) holds here too. That document is written for the
 program this one is built on; the rows of its "Not yet implemented" chapter that are done
 here say so in their Status column, with the commit that did it.

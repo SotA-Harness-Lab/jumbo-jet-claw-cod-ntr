@@ -910,7 +910,7 @@ fn run_update_command() -> anyhow::Result<()> {
     {
         let Some(action) = codex_tui::get_update_action() else {
             anyhow::bail!(
-                "jjcn has no updater of its own. Build it again from https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr, or update it with the package manager it was installed with."
+                "jjcn has no updater of its own. Build it again from https://github.com/SotA-Harness-Lab/jumbo-jet-claw-cod-ntr, or update it with the package manager it was installed with."
             );
         };
         run_update_action(action, /*cli_executable*/ None)

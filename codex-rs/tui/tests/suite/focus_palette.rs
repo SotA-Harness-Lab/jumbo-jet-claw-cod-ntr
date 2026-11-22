@@ -215,7 +215,7 @@ fn default_owned_screen_entry_paints_before_sync_ends_and_exit_clears_inline_dra
     first_frame.process(&terminal.output[..end]);
     let first_contents = first_frame.screen().contents();
     ensure!(
-        first_contents.contains("CodClaw NTR")
+        first_contents.contains("ClawCod NTR")
             && first_contents.contains("Ask Codex to do anything"),
         "owned-screen synchronization ended before its first complete loading frame:\n{first_contents}"
     );
@@ -422,7 +422,7 @@ impl PtyCodex {
             self.read_output(Duration::from_millis(/*millis*/ 50))?;
             self.answer_startup_queries()?;
 
-            if self.palette_answered && self.screen_contains("CodClaw NTR") {
+            if self.palette_answered && self.screen_contains("ClawCod NTR") {
                 return Ok(());
             }
 
@@ -623,7 +623,7 @@ fn no_daemon_skips_startup_and_discovery() -> Result<()> {
             !terminal
                 ._codex_home
                 .path()
-                .join("app-server-daemon")
+                .join("jjcn-app-server-daemon")
                 .exists()
         );
         if let Some(listener) = listener {
@@ -652,7 +652,7 @@ fn auto_daemon_start_failure_exits_with_manual_fallback_hint() -> Result<()> {
         contents.replace("features.daemon_auto_start = false\n", ""),
     )?;
     // An incomplete selected package must fail without installing a replacement.
-    std::fs::create_dir_all(home.path().join("packages/app-server-daemon/current"))?;
+    std::fs::create_dir_all(home.path().join("packages/jjcn-app-server-daemon/current"))?;
     let mut terminal = PtyCodex::start(
         workspace.path(),
         home,
