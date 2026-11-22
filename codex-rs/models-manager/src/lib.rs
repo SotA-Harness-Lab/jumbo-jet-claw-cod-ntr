@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: report the upstream release a source
+// build follows to the models endpoint
+
 pub mod cache;
 mod catalog;
 pub mod collaboration_mode_presets;
@@ -20,12 +26,22 @@ pub fn bundled_models_response()
     serde_json::from_str(include_str!("../models.json"))
 }
 
+/// The Codex release this fork's `upstream` follows. A build from source is version `0.0.0`, for
+/// which the models endpoint offers only a few models; this release's number is reported in its
+/// place, so that the model list is the one that release gets. Raise it when `upstream` is merged.
+const UPSTREAM_CODEX_VERSION: &str = "0.171.0";
+
 /// Convert the client version string to a whole version string (e.g. "1.2.3-alpha.4" -> "1.2.3").
 pub fn client_version_to_whole() -> String {
-    format!(
+    let whole = format!(
         "{}.{}.{}",
         env!("CARGO_PKG_VERSION_MAJOR"),
         env!("CARGO_PKG_VERSION_MINOR"),
         env!("CARGO_PKG_VERSION_PATCH")
-    )
+    );
+    if whole == "0.0.0" {
+        UPSTREAM_CODEX_VERSION.to_string()
+    } else {
+        whole
+    }
 }
