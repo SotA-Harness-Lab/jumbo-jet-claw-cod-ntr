@@ -23,6 +23,7 @@ anyhow = { workspace = true }
 async-channel = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 codex-claude-compat = { workspace = true }
+dirs = { workspace = true }
 codex-config = { workspace = true }
 codex-plugin = { workspace = true }
 codex-protocol = { workspace = true }

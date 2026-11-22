@@ -28,13 +28,23 @@ fn the_skill_directory_is_filled_into_the_rules() {
     if !codex_claude_compat::enabled() {
         return;
     }
-    let contents =
-        "---\nname: render\nallowed-tools: Read Bash(${CLAUDE_SKILL_DIR}/run.sh *)\n---\nRun it.\n";
+    let contents = "---\nname: render\nallowed-tools: Read Bash(${CLAUDE_SKILL_DIR}/run.sh *) Bash(${CLAUDE_PROJECT_DIR}/check.sh *)\n---\nRun it.\n";
     assert_eq!(
-        skill_tool_grants(contents, "/skills/render/SKILL.md"),
+        skill_tool_grants(contents, "/skills/render/SKILL.md", Some("/work/project")),
         vec![
             "Read".to_string(),
-            "Bash(/skills/render/run.sh *)".to_string()
+            "Bash(/skills/render/run.sh *)".to_string(),
+            "Bash(/work/project/check.sh *)".to_string(),
         ]
     );
+}
+
+#[test]
+fn a_wildcard_in_the_project_directory_cannot_expand_a_grant() {
+    let contents = "---
+name: render
+allowed-tools: Bash(${CLAUDE_PROJECT_DIR}/check.sh *)
+---
+";
+    assert!(skill_tool_grants(contents, "/skills/render/SKILL.md", Some("/work/a*b")).is_empty());
 }

@@ -135,10 +135,20 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
     }
 
     let home_dir = dirs::home_dir();
-    let user_rules_dir = home_dir
-        .as_ref()
-        .map(|home| home.join(codex_claude_compat::CLAUDE_DIR).join("rules"));
+    let claude_home = codex_claude_compat::user_config_dir();
+    let user_rules_dir = claude_home.as_ref().map(|dir| dir.join("rules"));
     let include_project = !invocation.turn.config.active_project.is_untrusted();
+    let source = codex_claude_compat::InstructionExcludes::load(
+        &LocalFiles,
+        claude_home.as_deref(),
+        home_dir.as_deref(),
+        invocation
+            .turn
+            .config
+            .active_project
+            .is_trusted()
+            .then_some(cwd.as_path()),
+    );
     crate::claude_skill_paths::files_worked_on(
         &invocation.session.services.session_extension_data,
         cwd.as_path(),
@@ -149,7 +159,7 @@ pub(crate) async fn record_for_tool(invocation: &ToolInvocation) {
     let mut found = Vec::new();
     for file in files {
         match file_instructions(
-            &LocalFiles,
+            &source,
             user_rules_dir.as_deref(),
             home_dir.as_deref(),
             cwd.as_path(),

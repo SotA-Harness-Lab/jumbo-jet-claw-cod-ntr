@@ -13,6 +13,7 @@
 
 use std::path::Path;
 
+use codex_claude_compat::SkillExecutionVariables;
 use codex_protocol::user_input::UserInput;
 
 /// Expands `contents`, the `SKILL.md` of the skill `name` at `skill_md_path` on the host,
@@ -23,6 +24,7 @@ pub(crate) fn expand_explicit_skill(
     skill_md_path: &str,
     session_id: &str,
     user_input: &[UserInput],
+    variables: &SkillExecutionVariables,
 ) -> String {
     if !codex_claude_compat::enabled() {
         return contents;
@@ -43,7 +45,10 @@ pub(crate) fn expand_explicit_skill(
     };
     // A plugin's skill or command may refer to the plugin's install path, data directory and
     // options, filled in after the arguments as in Claude Code.
-    codex_claude_compat::substitute_in_plugin_content(expanded, Path::new(skill_md_path))
+    codex_claude_compat::substitute_in_plugin_content(
+        variables.substitute(expanded),
+        Path::new(skill_md_path),
+    )
 }
 
 #[cfg(test)]
@@ -65,15 +70,19 @@ mod tests {
             return;
         }
         let expanded = expand_explicit_skill(
-            "---\nname: demo\n---\nReview $ARGUMENTS in ${CLAUDE_SESSION_ID}.\n".to_string(),
+            "---\nname: demo\n---\nReview $ARGUMENTS in ${CLAUDE_SESSION_ID} at ${CLAUDE_PROJECT_DIR} with ${CLAUDE_EFFORT}.\n".to_string(),
             "demo",
             "/skills/demo/SKILL.md",
             "thread-1",
             &[text("/demo src/lib.rs")],
+            &SkillExecutionVariables {
+                project_dir: Some("/work/project".to_string()),
+                effort: Some("high".to_string()),
+            },
         );
         assert_eq!(
             expanded,
-            "Base directory for this skill: /skills/demo\n\nReview src/lib.rs in thread-1.\n"
+            "Base directory for this skill: /skills/demo\n\nReview src/lib.rs in thread-1 at /work/project with high.\n"
         );
     }
 
@@ -97,6 +106,7 @@ mod tests {
             &skill_md.to_string_lossy(),
             "thread-1",
             &[text("/demo:review src")],
+            &SkillExecutionVariables::default(),
         );
         assert_eq!(
             expanded,
@@ -121,6 +131,7 @@ mod tests {
                 "/skills/demo/SKILL.md",
                 "thread-1",
                 &[text("use $demo here")],
+                &SkillExecutionVariables::default(),
             ),
             "---\nname: demo\n---\nRun /skills/demo/x.sh on $ARGUMENTS.\n"
         );

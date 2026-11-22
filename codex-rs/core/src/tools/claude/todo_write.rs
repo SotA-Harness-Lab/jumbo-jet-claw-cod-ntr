@@ -21,6 +21,7 @@ use codex_tools::ToolName;
 use codex_tools::ToolSpec;
 use serde::Deserialize;
 use serde_json::json;
+use tokio::sync::Mutex;
 
 use super::PermissionInput;
 use super::ToolSwap;
@@ -50,6 +51,10 @@ pub(super) fn install(swap: &mut ToolSwap<'_>) {
         swap.add(TodoWriteHandler { update_plan });
     }
 }
+
+// The native plan omits one of the two textual forms of each item.
+#[derive(Default)]
+struct SessionTodos(Mutex<Vec<Todo>>);
 
 struct TodoWriteHandler {
     update_plan: Arc<dyn CoreToolRuntime>,
@@ -164,13 +169,25 @@ impl TodoWriteHandler {
     ) -> Result<Box<dyn ToolOutput>, FunctionCallError> {
         let todos = parse_todos(&invocation)?;
         let _permission = check_permission(&invocation, TODO_WRITE, PermissionInput::Tool).await?;
-        let arguments = todo_write::update_plan_arguments(&todos).to_string();
+        let session_todos = invocation
+            .session
+            .services
+            .session_extension_data
+            .get_or_init::<SessionTodos>(SessionTodos::default);
+        let mut previous = session_todos.0.lock().await;
+        let next = todo_write::retained_todos(&todos);
+        let arguments = todo_write::update_plan_arguments(next).to_string();
         self.update_plan
             .handle(delegated(&invocation, ToolPayload::Function { arguments }))
             .await?;
+        let response = json!({
+            "oldTodos": todo_write::todos_json(&previous),
+            "newTodos": todo_write::todos_json(&todos),
+        });
+        *previous = if next.is_empty() { Vec::new() } else { todos };
         Ok(boxed_tool_output(ClaudeToolOutput::new(
             todo_write::RESULT_MESSAGE.to_string(),
-            json!({ "newTodos": todo_write::todos_json(&todos) }),
+            response,
         )))
     }
 }

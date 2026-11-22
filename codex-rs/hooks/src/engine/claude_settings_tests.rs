@@ -22,6 +22,7 @@ fn absolute(path: std::path::PathBuf) -> AbsolutePathBuf {
 fn settings(tmp: &TempDir) -> ClaudeHookSettings {
     ClaudeHookSettings {
         user_dir: Some(absolute(tmp.path().join("home/.claude"))),
+        home_dir: Some(absolute(tmp.path().join("home"))),
         project_dir: Some(absolute(tmp.path().join("project"))),
         entrypoint: Some("cli".to_string()),
         plugins: Vec::new(),

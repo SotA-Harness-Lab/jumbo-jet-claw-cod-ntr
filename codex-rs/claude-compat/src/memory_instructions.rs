@@ -174,7 +174,7 @@ pub fn auto_memory_dir_override(
         .iter()
         .rev()
         .find_map(|settings| settings.get(DIRECTORY_SETTING).and_then(Value::as_str))?;
-    validate_memory_path(raw, Some(home_dir?))
+    validate_memory_path(raw, home_dir)
 }
 
 /// Claude Code's instructions for keeping auto memory in `memory_dir`, followed by the text

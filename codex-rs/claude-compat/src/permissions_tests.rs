@@ -32,7 +32,12 @@ fn local_rules(allow: &[&str], ask: &[&str], deny: &[&str]) -> PermissionRules {
 }
 
 fn rules_from(settings: &[(RuleSource, Value)]) -> PermissionRules {
-    PermissionRules::new(settings, Some(Path::new(HOME)), Some(Path::new(PROJECT)))
+    PermissionRules::new(
+        settings,
+        Some(&Path::new(HOME).join(".claude")),
+        Some(Path::new(HOME)),
+        Some(Path::new(PROJECT)),
+    )
 }
 
 fn allow(rule: &str) -> RuleVerdict {
@@ -492,6 +497,7 @@ fn whole_tool_deny_and_ask_come_first() {
         )],
         None,
         None,
+        None,
     );
     assert_eq!(
         rules.evaluate("WebSearch", ToolInput::Tool),
@@ -832,6 +838,12 @@ fn allow_rules_never_cover_sensitive_files() {
         "/work/project/.VSCode/settings.json",
         "/home/user/.bashrc",
         "/work/project/.mcp.json",
+        "/home/user/.config/git/hooks/pre-commit",
+        "/work/project/.cargo/config.toml",
+        "/work/project/.devcontainer/devcontainer.json",
+        "/work/project/.husky/pre-commit",
+        "/work/project/.npmrc",
+        "/work/project/.envrc",
     ] {
         assert_eq!(edit(&rules, "Edit", path), RuleVerdict::NoMatch, "{path}");
     }
@@ -852,6 +864,25 @@ fn a_rule_for_the_whole_edit_tool_does_not_cover_sensitive_files_either() {
         );
         assert_eq!(edit(&rules, tool, "/work/project/src/a.rs"), allow(tool));
     }
+}
+
+#[test]
+fn only_the_user_can_set_deny_instead_of_prompting() {
+    let settings = |value| json!({ "permissions": { "denyInsteadOfPrompting": value } });
+    assert!(
+        rules_from(&[
+            (RuleSource::User, settings(true)),
+            (RuleSource::Local, settings(false)),
+        ])
+        .deny_instead_of_prompting()
+    );
+    assert!(
+        !rules_from(&[
+            (RuleSource::Project, settings(true)),
+            (RuleSource::Local, settings(true)),
+        ])
+        .deny_instead_of_prompting()
+    );
 }
 
 #[test]
@@ -939,6 +970,21 @@ fn path_rules_left_after_dropping_project_allow_rules_still_match() {
 }
 
 #[test]
+fn skill_prefix_rules_match_local_names_and_keep_deny_precedence() {
+    let rules = local_rules(
+        &["Skill(release *)", "Skill(acme:*)"],
+        &[],
+        &["Skill(acme:deploy)", "Skill(claude-ai:*)"],
+    );
+    let skill = |name| rules.evaluate("Skill", ToolInput::Content(name));
+    assert_eq!(skill("release"), allow("Skill(release *)"));
+    assert_eq!(skill("acme:docs"), allow("Skill(acme:*)"));
+    assert!(matches!(skill("acme:deploy"), RuleVerdict::Deny { .. }));
+    assert_eq!(skill("acme-two:docs"), RuleVerdict::NoMatch);
+    assert_eq!(skill("claude-ai:local"), RuleVerdict::NoMatch);
+}
+
+#[test]
 fn web_fetch_rules_name_the_host() {
     let rules = local_rules(
         &["WebFetch(domain:docs.rs)"],
@@ -967,6 +1013,24 @@ fn web_fetch_rules_name_the_host() {
         }
     );
     assert_eq!(fetch("not a url"), RuleVerdict::NoMatch);
+}
+
+#[test]
+fn web_fetch_domain_wildcards_respect_label_boundaries_and_precedence() {
+    let rules = local_rules(
+        &["WebFetch(domain:*)"],
+        &["WebFetch(domain:docs.*)"],
+        &["WebFetch(domain:*.Example.COM.)"],
+    );
+    let fetch = |url: &str| rules.evaluate("WebFetch", ToolInput::Url(url));
+    assert!(matches!(
+        fetch("https://a.b.example.com./"),
+        RuleVerdict::Deny { .. }
+    ));
+    assert_eq!(fetch("https://example.com"), allow("WebFetch(domain:*)"));
+    assert_eq!(fetch("https://notexample.com"), allow("WebFetch(domain:*)"));
+    assert_eq!(fetch("https://docs.rs"), ask("WebFetch(domain:docs.*)"));
+    assert_eq!(fetch("https://docs.evil.org"), allow("WebFetch(domain:*)"));
 }
 
 #[test]
@@ -1043,7 +1107,11 @@ fn the_local_rules_of_the_repository_root_apply_in_a_subdirectory() {
         )
         .expect("write settings");
     }
-    let (rules, errors) = PermissionRules::load(Some(home.path()), Some(&project));
+    let (rules, errors) = PermissionRules::load(
+        Some(&home.path().join(".claude")),
+        Some(home.path()),
+        Some(&project),
+    );
     assert!(errors.is_empty());
     let sources = rules
         .rules()
@@ -1083,7 +1151,11 @@ fn rules_are_loaded_from_the_user_project_and_local_files() {
         "settings.local.json",
         json!({ "permissions": { "deny": ["WebSearch"] } }),
     );
-    let (rules, errors) = PermissionRules::load(Some(home.path()), Some(project.path()));
+    let (rules, errors) = PermissionRules::load(
+        Some(&home.path().join(".claude")),
+        Some(home.path()),
+        Some(project.path()),
+    );
     assert!(errors.is_empty());
     let sources = rules
         .rules()

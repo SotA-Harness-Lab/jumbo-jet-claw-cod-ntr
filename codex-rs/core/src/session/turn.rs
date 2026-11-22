@@ -1443,6 +1443,7 @@ async fn build_skills_and_plugins(
             &accessors,
             user_input,
             &sess.thread_id.to_string(),
+            &claude_skill_variables(step_context),
         )
         .await;
     emit_explicit_skill_invocations(
@@ -1522,6 +1523,22 @@ async fn build_skills_and_plugins(
     Some((injection_items, explicitly_enabled_connectors))
 }
 
+/// The same primary directory is supplied to Claude Code hooks.
+pub(crate) fn claude_skill_variables(
+    step: &StepContext,
+) -> codex_claude_compat::SkillExecutionVariables {
+    codex_claude_compat::SkillExecutionVariables {
+        project_dir: step
+            .environments
+            .primary()
+            .map(|environment| environment.cwd().inferred_native_path_string()),
+        effort: step
+            .settings
+            .effective_reasoning_effort()
+            .map(|effort| effort.to_string()),
+    }
+}
+
 #[tracing::instrument(
     level = "trace",
     skip_all,
@@ -1551,6 +1568,9 @@ async fn build_extension_turn_input_items(
         })
         .collect::<Vec<_>>();
 
+    step_context
+        .extension_data
+        .insert(claude_skill_variables(step_context));
     let input = TurnInputContext {
         step_store: &step_context.extension_data,
         turn_id: turn_context.sub_id.to_string(),

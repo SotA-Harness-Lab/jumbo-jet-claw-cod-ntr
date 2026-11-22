@@ -67,6 +67,7 @@ fn engine(tmp: &TempDir, bypass_hook_trust: bool) -> ClaudeHooksEngine {
         Arc::new(NoMcp),
         Some(&ClaudeHookSettings {
             user_dir: Some(absolute(&tmp.path().join("home/.claude"))),
+            home_dir: Some(absolute(&tmp.path().join("home"))),
             project_dir: Some(absolute(&tmp.path().join("project"))),
             entrypoint: Some("cli".to_string()),
             plugins: Vec::new(),

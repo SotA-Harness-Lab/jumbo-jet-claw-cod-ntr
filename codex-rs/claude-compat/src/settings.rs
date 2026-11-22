@@ -31,20 +31,21 @@ pub struct BashPrefixRule {
 /// The settings files Claude Code reads, lowest precedence first: the user's
 /// `~/.claude/settings.json`, then the project's `.claude/settings.json` in `project_dir`
 /// and its `.claude/settings.local.json` files (see [`local_settings_paths`]).
-pub fn settings_paths(claude_home: Option<&Path>, project_dir: Option<&Path>) -> Vec<PathBuf> {
+pub fn settings_paths(
+    claude_home: Option<&Path>,
+    home_dir: Option<&Path>,
+    project_dir: Option<&Path>,
+) -> Vec<PathBuf> {
     let mut paths = Vec::new();
     if let Some(claude_home) = claude_home {
         paths.push(claude_home.join("settings.json"));
     }
-    if let Some(project_dir) = project_dir {
+    if let Some(project_dir) = project_dir.filter(|dir| Some(*dir) != home_dir) {
         let dot_claude = project_dir.join(CLAUDE_DIR);
         // In the home directory, `.claude` is the user's own configuration.
         if claude_home != Some(dot_claude.as_path()) {
             paths.push(dot_claude.join("settings.json"));
-            paths.extend(local_settings_paths(
-                project_dir,
-                claude_home.and_then(Path::parent),
-            ));
+            paths.extend(local_settings_paths(project_dir, home_dir));
         }
     }
     paths
@@ -150,10 +151,7 @@ pub fn read_settings(path: &Path) -> io::Result<Option<Value>> {
     match std::fs::File::open(path) {
         Ok(file) => {
             // The file may have grown since it was measured.
-            io::Read::read_to_string(
-                &mut io::Read::take(file, MAX_SETTINGS_BYTES),
-                &mut contents,
-            )?;
+            io::Read::read_to_string(&mut io::Read::take(file, MAX_SETTINGS_BYTES), &mut contents)?;
         }
         Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(err) => return Err(err),

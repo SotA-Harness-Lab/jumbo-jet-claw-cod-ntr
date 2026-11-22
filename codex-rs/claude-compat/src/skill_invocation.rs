@@ -15,6 +15,31 @@ const SKILL_DIR_PLACEHOLDER: &str = "${CLAUDE_SKILL_DIR}";
 const SESSION_ID_PLACEHOLDER: &str = "${CLAUDE_SESSION_ID}";
 const ARGUMENTS_WORD: &str = "ARGUMENTS";
 
+pub const PROJECT_DIR_PLACEHOLDER: &str = "${CLAUDE_PROJECT_DIR}";
+
+/// Values taken from the step invoking a skill.
+#[derive(Default)]
+pub struct SkillExecutionVariables {
+    pub project_dir: Option<String>,
+    pub effort: Option<String>,
+}
+
+impl SkillExecutionVariables {
+    pub fn substitute(&self, mut content: String) -> String {
+        if let Some(dir) = &self.project_dir
+            && content.contains(PROJECT_DIR_PLACEHOLDER)
+        {
+            content = content.replace(PROJECT_DIR_PLACEHOLDER, &dir.replace('\\', "/"));
+        }
+        if let Some(effort) = &self.effort
+            && content.contains("${CLAUDE_EFFORT}")
+        {
+            content = content.replace("${CLAUDE_EFFORT}", effort);
+        }
+        content
+    }
+}
+
 /// The arguments of a skill invoked as `/<name> <arguments>`: the rest of `text` when it
 /// starts with `/<name>` followed by whitespace or by nothing, trimmed. `None` when `text`
 /// does not invoke the skill that way.

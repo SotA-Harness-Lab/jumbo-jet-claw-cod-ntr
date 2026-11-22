@@ -99,6 +99,7 @@ fn tools_denied_as_a_whole_are_not_offered() {
         )],
         None,
         None,
+        None,
     );
     remove_tools_denied_by(&rules, &mut registry);
     let names = registry

@@ -6,6 +6,7 @@ use serde_json::json;
 
 use super::Todo;
 use super::TodoStatus;
+use super::retained_todos;
 use super::todos_json;
 use super::update_plan_arguments;
 use super::validate;
@@ -58,4 +59,12 @@ fn both_forms_must_be_given() {
         Some(TodoStatus::InProgress)
     );
     assert_eq!(TodoStatus::parse("done"), None);
+}
+
+#[test]
+fn completed_todos_are_cleared_from_the_stored_plan() {
+    let mut todos = vec![todo("Run tests", TodoStatus::Completed, "Running tests")];
+    assert_eq!(retained_todos(&todos), &[]);
+    todos.push(todo("Build", TodoStatus::Pending, "Building"));
+    assert_eq!(retained_todos(&todos), todos);
 }

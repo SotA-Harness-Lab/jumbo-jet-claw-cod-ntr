@@ -137,6 +137,7 @@ pub(super) async fn preloaded_skills(
         .map(|candidate| candidate.name.as_str())
         .collect::<Vec<_>>();
     let session_id = invocation.session.session_id().to_string();
+    let variables = crate::session::turn::claude_skill_variables(&invocation.step_context);
     let mut wanted = Vec::new();
     for name in names {
         let name = skill::normalize_name(name);
@@ -175,7 +176,10 @@ pub(super) async fn preloaded_skills(
             &session_id,
             /*arguments*/ "",
         );
-        texts.push(skill::result_text(&found.name, &expanded));
+        texts.push(skill::result_text(
+            &found.name,
+            &variables.substitute(expanded),
+        ));
     }
     texts
 }
@@ -227,7 +231,11 @@ async fn handle_call(invocation: ToolInvocation) -> Result<Box<dyn ToolOutput>, 
         &session_id,
         args.args.as_deref().unwrap_or_default(),
     );
-    let expanded = codex_claude_compat::substitute_in_plugin_content(expanded, path.as_path());
+    let variables = crate::session::turn::claude_skill_variables(&invocation.step_context);
+    let expanded = codex_claude_compat::substitute_in_plugin_content(
+        variables.substitute(expanded),
+        path.as_path(),
+    );
     let frontmatter = codex_claude_compat::skill_frontmatter(&contents);
     if frontmatter.context_fork
         && let Some(agent) = invocation
@@ -241,7 +249,11 @@ async fn handle_call(invocation: ToolInvocation) -> Result<Box<dyn ToolOutput>, 
     // The skill's `allowed-tools` run without asking for the rest of this turn.
     codex_skills_extension::grant_skill_tools(
         &invocation.turn.extension_data,
-        codex_skills_extension::skill_tool_grants(&contents, &path.as_path().to_string_lossy()),
+        codex_skills_extension::skill_tool_grants(
+            &contents,
+            &path.as_path().to_string_lossy(),
+            variables.project_dir.as_deref(),
+        ),
     );
     Ok(boxed_tool_output(ClaudeToolOutput::new(
         skill::result_text(&name, &expanded),

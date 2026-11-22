@@ -28,7 +28,7 @@ pub(crate) struct ClaudeAutoMemory {
 /// The auto memory of a session in `cwd`, decided from the Claude Code settings of
 /// `home_dir` and `cwd` and from the environment (`process_env`, under the `env` of the
 /// settings, which Claude Code applies over its own environment). `None` when Claude Code
-/// has auto memory turned off, or when there is no home directory.
+/// has auto memory turned off, or when no Claude Code configuration directory can be found.
 ///
 /// In a project that is not trusted, the project's own settings files can still turn the
 /// memory off, but neither their `env` nor their `autoMemoryDirectory` is taken: both can
@@ -40,18 +40,21 @@ pub(crate) async fn claude_auto_memory_for(
     process_env: &(dyn Fn(&str) -> Option<String> + Sync),
     project_trusted: bool,
 ) -> Option<ClaudeAutoMemory> {
-    let home_dir = home_dir?;
-    let claude_home = home_dir.join(CLAUDE_DIR);
+    let config_dir = process_env(codex_claude_compat::CLAUDE_CONFIG_DIR_ENV);
+    let claude_home = codex_claude_compat::user_config_dir_for(
+        home_dir,
+        config_dir.as_deref().map(std::ffi::OsStr::new),
+    )?;
     let user = read_settings(&claude_home.join("settings.json"));
     let dot_claude = cwd.join(CLAUDE_DIR);
     // In the home directory, `.claude` is the user's own configuration.
     // The local files are the one in `cwd` and the one at the repository's root.
-    let (project, local) = if dot_claude == claude_home {
+    let (project, local) = if dot_claude == claude_home || home_dir == Some(cwd) {
         (None, Vec::new())
     } else {
         (
             read_settings(&dot_claude.join("settings.json")),
-            codex_claude_compat::local_settings_paths(cwd, Some(home_dir))
+            codex_claude_compat::local_settings_paths(cwd, home_dir)
                 .into_iter()
                 .filter_map(|path| read_settings(&path))
                 .collect::<Vec<Value>>(),
@@ -91,18 +94,24 @@ pub(crate) async fn claude_auto_memory_for(
             no_settings
         })
         .collect::<Vec<&Value>>();
-    let dir = match codex_claude_compat::auto_memory_dir_override(
-        &trusted_settings,
-        Some(home_dir),
-        &env,
-    ) {
+    let dir = match codex_claude_compat::auto_memory_dir_override(&trusted_settings, home_dir, &env)
+    {
         Some(dir) => dir,
         None => {
-            let project_root = codex_claude_compat::auto_memory_project_root(source, cwd)
-                .await
-                .ok()?;
             let base_dir = codex_claude_compat::auto_memory_base_dir(&claude_home, &env);
-            codex_claude_compat::auto_memory_dir(&base_dir, &project_root)?
+            let name = config_dir
+                .filter(|dir| !dir.is_empty())
+                .and_then(|_| process_env("CLAUDE_CODE_PROJECT_DIR_NAME"));
+            match name.and_then(|name| codex_claude_compat::named_auto_memory_dir(&base_dir, &name))
+            {
+                Some(dir) => dir,
+                None => {
+                    let project_root = codex_claude_compat::auto_memory_project_root(source, cwd)
+                        .await
+                        .ok()?;
+                    codex_claude_compat::auto_memory_dir(&base_dir, &project_root)?
+                }
+            }
         }
     };
     let instructions = codex_claude_compat::auto_memory_instructions(&dir, &env);

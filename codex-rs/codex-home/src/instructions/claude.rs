@@ -9,6 +9,7 @@
 //! the rules under `rules/` that are not limited to some files.
 
 use codex_claude_compat::INSTRUCTIONS_HEADER;
+use codex_claude_compat::InstructionExcludes;
 use codex_claude_compat::LocalFiles;
 use codex_claude_compat::render_instruction_files;
 use codex_claude_compat::user_instructions;
@@ -21,13 +22,13 @@ the user asks. Where they name Claude Code features, `/<name>` and the Skill too
 skill of that name; the hooks and `settings.json` entries they describe may not all run in \
 Codex, so follow the rules those would have enforced yourself.";
 
-/// Returns the user's Claude Code configuration directory, `~/.claude`, or nothing when
-/// `CCN_CLAUDE_COMPAT=0` turns the compatibility mode off.
+/// Returns the user's Claude Code configuration directory from the launch environment,
+/// with `~/.claude` as the default. Returns nothing when compatibility is disabled.
 pub fn default_claude_home() -> Option<AbsolutePathBuf> {
     if !codex_claude_compat::enabled() {
         return None;
     }
-    let path = dirs::home_dir()?.join(codex_claude_compat::CLAUDE_DIR);
+    let path = codex_claude_compat::user_config_dir()?;
     AbsolutePathBuf::from_absolute_path_checked(path).ok()
 }
 
@@ -46,17 +47,22 @@ pub(super) async fn load(
     warnings: &mut Vec<String>,
 ) -> Option<ClaudeInstructions> {
     let home_dir = dirs::home_dir();
-    let files =
-        match user_instructions(&LocalFiles, claude_home.as_path(), home_dir.as_deref()).await {
-            Ok(files) => files,
-            Err(err) => {
-                warnings.push(format!(
-                    "Failed to read Claude Code instructions from `{}`: {err}",
-                    claude_home.display()
-                ));
-                return None;
-            }
-        };
+    let source = InstructionExcludes::load(
+        &LocalFiles,
+        Some(claude_home.as_path()),
+        home_dir.as_deref(),
+        /*project_dir*/ None,
+    );
+    let files = match user_instructions(&source, claude_home.as_path(), home_dir.as_deref()).await {
+        Ok(files) => files,
+        Err(err) => {
+            warnings.push(format!(
+                "Failed to read Claude Code instructions from `{}`: {err}",
+                claude_home.display()
+            ));
+            return None;
+        }
+    };
     let first = files.first()?;
     let source = AbsolutePathBuf::from_absolute_path_checked(&first.path).ok()?;
     Some(ClaudeInstructions {

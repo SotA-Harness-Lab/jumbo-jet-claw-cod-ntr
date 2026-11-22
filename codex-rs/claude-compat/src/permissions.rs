@@ -75,10 +75,49 @@ const DANGEROUS_FILES: &[&str] = &[
     ".ripgreprc",
     ".mcp.json",
     ".claude.json",
+    ".zshenv",
+    ".zlogin",
+    ".zlogout",
+    ".bash_login",
+    ".bash_aliases",
+    ".bash_logout",
+    ".envrc",
+    ".npmrc",
+    ".yarnrc",
+    ".yarnrc.yml",
+    ".pnp.cjs",
+    ".pnp.loader.mjs",
+    ".pnp.js",
+    ".pnp.data.json",
+    ".pnpmfile.cjs",
+    "bunfig.toml",
+    ".bunfig.toml",
+    ".bazelrc",
+    ".bazelversion",
+    ".bazeliskrc",
+    ".pre-commit-config.yaml",
+    "lefthook.yml",
+    ".lefthook.yml",
+    "lefthook.yaml",
+    ".lefthook.yaml",
+    "gradle-wrapper.properties",
+    "maven-wrapper.properties",
+    ".devcontainer.json",
+    "pyrightconfig.json",
 ];
 
 /// Directories whose files Claude Code never lets an allow rule edit without asking.
-const DANGEROUS_DIRECTORIES: &[&str] = &[".git", ".vscode", ".idea", ".claude"];
+const DANGEROUS_DIRECTORIES: &[&str] = &[
+    ".git",
+    ".vscode",
+    ".idea",
+    ".claude",
+    ".husky",
+    ".cargo",
+    ".devcontainer",
+    ".yarn",
+    ".mvn",
+];
 
 /// The settings file a rule comes from, which decides what `/path` is relative to.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -142,9 +181,11 @@ pub enum RuleVerdict {
 pub struct PermissionRules {
     rules: Vec<PermissionRule>,
     home_dir: Option<PathBuf>,
+    claude_home: Option<PathBuf>,
     project_dir: Option<PathBuf>,
     /// The matchers of the `Read` and `Edit` rules, built once from `rules`.
     file_matchers: Vec<FileMatcher>,
+    deny_instead_of_prompting: bool,
 }
 
 /// The `Read` or `Edit` rules of one decision anchored at one place, as one gitignore
@@ -167,18 +208,18 @@ impl PermissionRules {
     /// [`crate::local_settings_paths`]). Files that cannot be read are returned with their
     /// error and skipped.
     pub fn load(
+        claude_home: Option<&Path>,
         home_dir: Option<&Path>,
         project_dir: Option<&Path>,
     ) -> (Self, Vec<(PathBuf, io::Error)>) {
-        let claude_home = home_dir.map(|home| home.join(CLAUDE_DIR));
         let mut files = Vec::new();
-        if let Some(claude_home) = &claude_home {
+        if let Some(claude_home) = claude_home {
             files.push((RuleSource::User, claude_home.join("settings.json")));
         }
-        if let Some(project_dir) = project_dir {
+        if let Some(project_dir) = project_dir.filter(|dir| Some(*dir) != home_dir) {
             let dot_claude = project_dir.join(CLAUDE_DIR);
             // In the home directory, `.claude` is the user's own configuration.
-            if claude_home.as_deref() != Some(dot_claude.as_path()) {
+            if claude_home != Some(dot_claude.as_path()) {
                 files.push((RuleSource::Project, dot_claude.join("settings.json")));
                 files.extend(
                     crate::settings::local_settings_paths(project_dir, home_dir)
@@ -196,20 +237,32 @@ impl PermissionRules {
                 Err(err) => errors.push((path, err)),
             }
         }
-        (Self::new(&settings, home_dir, project_dir), errors)
+        (
+            Self::new(&settings, claude_home, home_dir, project_dir),
+            errors,
+        )
     }
 
     /// The rules of settings already read, lowest precedence first.
     pub fn new(
         settings: &[(RuleSource, Value)],
+        claude_home: Option<&Path>,
         home_dir: Option<&Path>,
         project_dir: Option<&Path>,
     ) -> Self {
         let mut rules = Vec::new();
+        let mut deny_instead_of_prompting = false;
         for (source, settings) in settings {
             let Some(permissions) = settings.get("permissions") else {
                 continue;
             };
+            if *source == RuleSource::User
+                && let Some(value) = permissions
+                    .get("denyInsteadOfPrompting")
+                    .and_then(Value::as_bool)
+            {
+                deny_instead_of_prompting = value;
+            }
             for (key, decision) in [
                 ("allow", PermissionDecision::Allow),
                 ("ask", PermissionDecision::Ask),
@@ -233,11 +286,17 @@ impl PermissionRules {
         let mut this = Self {
             rules,
             home_dir: home_dir.map(Path::to_path_buf),
+            claude_home: claude_home.map(Path::to_path_buf),
             project_dir: project_dir.map(Path::to_path_buf),
             file_matchers: Vec::new(),
+            deny_instead_of_prompting,
         };
         this.file_matchers = this.build_file_matchers(/*warn*/ true);
         this
+    }
+
+    pub fn deny_instead_of_prompting(&self) -> bool {
+        self.deny_instead_of_prompting
     }
 
     pub fn is_empty(&self) -> bool {
@@ -399,16 +458,20 @@ impl PermissionRules {
         })
     }
 
-    /// The rule whose content is `content`, exactly; later rules win, as Claude Code keeps
-    /// rules in a map by their content.
-    fn exact_content(
+    /// Later matching rules win. Skill permissions also allow a name prefix.
+    fn matching_content(
         &self,
         tool: &str,
         decision: PermissionDecision,
         content: &str,
     ) -> Option<&PermissionRule> {
         self.with_content(tool, decision)
-            .filter(|rule| rule.content.as_deref() == Some(content))
+            .filter(|rule| {
+                rule.content.as_deref().is_some_and(|pattern| {
+                    pattern == content
+                        || tool == crate::tools::SKILL && skill_prefix_matches(pattern, content)
+                })
+            })
             .last()
     }
 
@@ -580,14 +643,16 @@ impl PermissionRules {
         let host = normalize_host(&host);
         let content = format!("domain:{host}");
         // The rule's host and the URL's are compared without regard to case or to one
-        // trailing dot (`evil.com.` is `evil.com`); later rules win, as in `exact_content`.
+        // trailing dot (`evil.com.` is `evil.com`); later rules win within each decision.
         let rule_for = |decision| {
             self.with_content(WEB_FETCH_TOOL, decision)
                 .filter(|rule| {
                     rule.content
                         .as_deref()
                         .and_then(|rule_content| rule_content.strip_prefix("domain:"))
-                        .is_some_and(|rule_host| normalize_host(rule_host) == host)
+                        .is_some_and(|rule_host| {
+                            web_fetch_host_matches(&normalize_host(rule_host), &host)
+                        })
                 })
                 .last()
         };
@@ -611,18 +676,18 @@ impl PermissionRules {
     }
 
     fn content(&self, tool: &str, tool_name: &str, content: &str) -> RuleVerdict {
-        if let Some(rule) = self.exact_content(tool_name, PermissionDecision::Deny, content) {
+        if let Some(rule) = self.matching_content(tool_name, PermissionDecision::Deny, content) {
             return RuleVerdict::Deny {
                 rule: rule.text.clone(),
                 message: format!("Permission to use {tool} has been denied."),
             };
         }
-        if let Some(rule) = self.exact_content(tool_name, PermissionDecision::Ask, content) {
+        if let Some(rule) = self.matching_content(tool_name, PermissionDecision::Ask, content) {
             return RuleVerdict::Ask {
                 rule: rule.text.clone(),
             };
         }
-        match self.exact_content(tool_name, PermissionDecision::Allow, content) {
+        match self.matching_content(tool_name, PermissionDecision::Allow, content) {
             Some(rule) => RuleVerdict::Allow {
                 rule: rule.text.clone(),
             },
@@ -646,7 +711,7 @@ impl PermissionRules {
         }
         if pattern.starts_with('/') {
             let root = match source {
-                RuleSource::User => self.home_dir.as_ref()?.join(CLAUDE_DIR),
+                RuleSource::User => self.claude_home.clone()?,
                 RuleSource::Project | RuleSource::Local => self.project_dir.clone()?,
             };
             return Some((pattern.to_string(), Some(root)));
@@ -1038,6 +1103,57 @@ fn escape_glob(line: &str) -> String {
     escaped
 }
 
+/// The reserved claude.ai namespaces do not cover a local skill with that prefix.
+fn skill_prefix_matches(pattern: &str, name: &str) -> bool {
+    let Some(prefix) = pattern
+        .strip_suffix(":*")
+        .or_else(|| pattern.strip_suffix(" *"))
+    else {
+        return false;
+    };
+    !prefix.is_empty()
+        && !matches!(prefix, "anthropic-skills" | "claude-ai")
+        && (name == prefix
+            || name
+                .strip_prefix(prefix)
+                .is_some_and(|tail| tail.starts_with(':')))
+}
+
+/// A leading wildcard can span multiple subdomain labels. Every other wildcard
+/// is restricted to one label.
+fn web_fetch_host_matches(pattern: &str, host: &str) -> bool {
+    if pattern == "*" || pattern == host {
+        return true;
+    }
+    let suffix = if let Some(suffix) = pattern.strip_prefix("*.") {
+        suffix
+    } else {
+        return host_labels_match(pattern, host);
+    };
+    if !suffix.contains('*') {
+        return host
+            .strip_suffix(suffix)
+            .is_some_and(|prefix| prefix.ends_with('.') && prefix.len() > 1);
+    }
+    let Some((_, rest)) = host.split_once('.') else {
+        return false;
+    };
+    std::iter::once(rest)
+        .chain(rest.match_indices('.').map(|(index, _)| &rest[index + 1..]))
+        .any(|candidate| host_labels_match(suffix, candidate))
+}
+
+fn host_labels_match(pattern: &str, host: &str) -> bool {
+    let mut labels = host.split('.');
+    pattern.split('.').all(|label| {
+        labels.next().is_some_and(|host_label| {
+            !host_label.is_empty()
+                && (label == host_label
+                    || label.contains('*') && bash::matches_wildcard(label, host_label))
+        })
+    }) && labels.next().is_none()
+}
+
 /// A host name as `WebFetch(domain:...)` rules compare it: in lower case, without one
 /// trailing dot.
 fn normalize_host(host: &str) -> String {
@@ -1083,8 +1199,11 @@ fn is_dangerous_to_edit(path: &Path) -> bool {
         return true;
     }
     segments
-        .last()
-        .is_some_and(|name| DANGEROUS_FILES.contains(&name.as_str()))
+        .windows(2)
+        .any(|pair| pair[0] == ".config" && pair[1] == "git")
+        || segments
+            .last()
+            .is_some_and(|name| DANGEROUS_FILES.contains(&name.as_str()))
 }
 
 #[cfg(test)]

@@ -334,10 +334,16 @@ fn layer_roots_preserve_scope_precedence_and_disabled_projects() {
         project_layer(&nested_project_folder),
     ]);
 
-    let roots = roots_from_layer_stack(&config_stack, Some(&home_folder), Some(&access), &access)
-        .into_iter()
-        .map(|root| (root.scope, root.path))
-        .collect::<Vec<_>>();
+    let roots = roots_from_layer_stack(
+        &config_stack,
+        Some(&home_folder),
+        Some(&home_folder.join(".claude")),
+        Some(&access),
+        &access,
+    )
+    .into_iter()
+    .map(|root| (root.scope, root.path))
+    .collect::<Vec<_>>();
 
     assert_eq!(
         roots,
@@ -374,6 +380,7 @@ async fn plugin_roots_preserve_plugin_resolution_metadata() {
         &cwd,
         /*project_markers*/ None,
         /*home_dir*/ None,
+        /*claude_home*/ None,
         vec![PluginSkillRoot {
             path: skills_root.clone(),
             plugin_identity: plugin_identity.clone(),
@@ -424,6 +431,7 @@ async fn unique_extra_root_loads_as_recursive_user_root() {
         &cwd,
         /*project_markers*/ None,
         /*home_dir*/ None,
+        /*claude_home*/ None,
         Vec::new(),
         vec![extra_root.clone()],
         /*empty_remote_roots*/ None,
@@ -823,6 +831,7 @@ async fn resolved_project_layer_loads_skill_without_git_marker() {
         &workspace,
         /*project_markers*/ None,
         /*home_dir*/ None,
+        /*claude_home*/ None,
         Vec::new(),
         Vec::new(),
         /*empty_remote_roots*/ None,
@@ -864,6 +873,7 @@ async fn resolved_project_layer_loads_skill_when_cwd_is_file() {
         &cwd,
         /*project_markers*/ None,
         /*home_dir*/ None,
+        /*claude_home*/ None,
         Vec::new(),
         Vec::new(),
         /*empty_remote_roots*/ None,
@@ -1045,6 +1055,7 @@ async fn resolved_config_and_repo_roots_preserve_order_and_dedupe_paths_not_name
         &cwd,
         /*project_markers*/ None,
         Some(&home_folder),
+        Some(&home_folder.join(".claude")),
         Vec::new(),
         vec![user_skills],
         /*empty_remote_roots*/ None,

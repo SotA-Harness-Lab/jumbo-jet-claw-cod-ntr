@@ -109,9 +109,8 @@ pub(crate) fn apply_subagent_mcp_servers(config: &mut Config, role_name: Option<
     else {
         return;
     };
-    let users_agent = dirs::home_dir().is_some_and(|home| {
-        path.starts_with(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"))
-    });
+    let users_agent = codex_claude_compat::user_config_dir()
+        .is_some_and(|dir| path.starts_with(dir.join("agents")));
     if !users_agent && !config.active_project.is_trusted() {
         tracing::warn!(
             "agent {}: the MCP servers of {} wait for the project to be trusted",

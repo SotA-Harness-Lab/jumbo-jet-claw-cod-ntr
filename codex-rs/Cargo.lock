@@ -2566,7 +2566,9 @@ dependencies = [
 name = "codex-claude-compat"
 version = "0.0.0"
 dependencies = [
+ "dirs",
  "futures",
+ "globset",
  "htmd",
  "ignore",
  "libc",
@@ -3953,6 +3955,7 @@ dependencies = [
  "codex-utils-path-uri",
  "codex-utils-process",
  "codex-utils-pty",
+ "dirs",
  "futures",
  "libc",
  "pretty_assertions",

@@ -5604,8 +5604,15 @@ fn claude_code_agents_dirs(
 ) -> Vec<AbsolutePathBuf> {
     let home = home.and_then(|home| AbsolutePathBuf::from_absolute_path_checked(home).ok());
     let mut agents_dirs = Vec::new();
-    if let Some(home) = &home {
-        agents_dirs.push(home.join(codex_claude_compat::CLAUDE_DIR).join("agents"));
+    let claude_home = if cfg!(test) {
+        home.as_ref()
+            .map(|home| home.join(codex_claude_compat::CLAUDE_DIR))
+    } else {
+        codex_claude_compat::user_config_dir()
+            .and_then(|dir| AbsolutePathBuf::from_absolute_path_checked(dir).ok())
+    };
+    if let Some(claude_home) = claude_home {
+        agents_dirs.push(claude_home.join("agents"));
     }
     if !include_project {
         return agents_dirs;
@@ -5658,12 +5665,12 @@ fn claude_code_plugins(
     enable: &[String],
     startup_warnings: &mut Vec<String>,
 ) -> Vec<codex_claude_compat::ClaudePlugin> {
-    let Some(home) = dirs::home_dir() else {
+    let Some(claude_home) = codex_claude_compat::user_config_dir() else {
         return Vec::new();
     };
-    let claude_home = home.join(codex_claude_compat::CLAUDE_DIR);
     let (plugins, warnings) = codex_claude_compat::load_claude_plugins_for(
         &claude_home,
+        dirs::home_dir().as_deref(),
         Some(cwd.as_path()),
         project_trusted,
     );
@@ -5698,10 +5705,13 @@ fn claude_code_settings_env(
     cwd: &AbsolutePathBuf,
     project_trusted: bool,
 ) -> std::collections::HashMap<String, String> {
-    let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let home = dirs::home_dir();
+    let claude_home = codex_claude_compat::user_config_dir();
     let mut env = std::collections::HashMap::new();
     let project_dir = project_trusted.then_some(cwd.as_path());
-    for path in codex_claude_compat::settings_paths(claude_home.as_deref(), project_dir) {
+    for path in
+        codex_claude_compat::settings_paths(claude_home.as_deref(), home.as_deref(), project_dir)
+    {
         match codex_claude_compat::read_settings(&path) {
             Ok(Some(settings)) => env.extend(codex_claude_compat::settings_env(&settings)),
             Ok(None) => {}
@@ -5756,10 +5766,13 @@ fn claude_code_effort_level(
     if cfg!(test) || !codex_claude_compat::enabled() {
         return None;
     }
-    let claude_home = dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let home = dirs::home_dir();
+    let claude_home = codex_claude_compat::user_config_dir();
     let project_dir = project_trusted.then_some(cwd.as_path());
     let mut effort = None;
-    for path in codex_claude_compat::settings_paths(claude_home.as_deref(), project_dir) {
+    for path in
+        codex_claude_compat::settings_paths(claude_home.as_deref(), home.as_deref(), project_dir)
+    {
         match codex_claude_compat::read_settings(&path) {
             Ok(Some(settings)) => {
                 if let Some(level) = codex_claude_compat::settings_effort_level(&settings) {
@@ -5796,25 +5809,29 @@ fn claude_code_mcp_servers(
         }
     };
     let home = dirs::home_dir();
-    let claude_json = home
-        .as_ref()
-        .and_then(|home| read_json(&home.join(".claude.json")));
-    let claude_home = home.map(|home| home.join(codex_claude_compat::CLAUDE_DIR));
+    let claude_json = codex_claude_compat::user_state_file()
+        .as_deref()
+        .and_then(read_json);
+    let claude_home = codex_claude_compat::user_config_dir();
     let user_settings = claude_home.as_ref().map(|home| home.join("settings.json"));
-    let settings = codex_claude_compat::settings_paths(claude_home.as_deref(), Some(cwd.as_path()))
-        .iter()
-        .filter_map(|path| {
-            let mut settings = read_json(path)?;
-            if !project_trusted
-                && user_settings.as_deref() != Some(path.as_path())
-                && let Some(settings) = settings.as_object_mut()
-            {
-                settings.remove("enabledMcpjsonServers");
-                settings.remove("enableAllProjectMcpServers");
-            }
-            Some(settings)
-        })
-        .collect::<Vec<_>>();
+    let settings = codex_claude_compat::settings_paths(
+        claude_home.as_deref(),
+        home.as_deref(),
+        Some(cwd.as_path()),
+    )
+    .iter()
+    .filter_map(|path| {
+        let mut settings = read_json(path)?;
+        if !project_trusted
+            && user_settings.as_deref() != Some(path.as_path())
+            && let Some(settings) = settings.as_object_mut()
+        {
+            settings.remove("enabledMcpjsonServers");
+            settings.remove("enableAllProjectMcpServers");
+        }
+        Some(settings)
+    })
+    .collect::<Vec<_>>();
     let mcp_json_files = codex_claude_compat::mcp_json_paths(cwd.as_path())
         .iter()
         .filter_map(|path| read_json(path))

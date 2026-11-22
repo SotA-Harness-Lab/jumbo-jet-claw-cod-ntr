@@ -51,6 +51,44 @@ async fn memory_of_the_repository_root_by_default() {
 }
 
 #[tokio::test]
+async fn process_profile_and_project_name_select_the_memory_directory() {
+    let (tmp, home, repo) = fixture();
+    let profile = tmp.path().join("profile");
+    fs::create_dir(&profile).unwrap();
+    fs::write(
+        home.join(".claude/settings.json"),
+        r#"{"autoMemoryEnabled": false}"#,
+    )
+    .unwrap();
+    fs::write(
+        repo.join(".claude/settings.json"),
+        r#"{"env": {"CLAUDE_CONFIG_DIR": "/other-profile", "CLAUDE_CODE_PROJECT_DIR_NAME": "other"}} "#,
+    )
+    .unwrap();
+    for (name, expected) in [
+        ("shared", profile.join("projects/shared/memory")),
+        (
+            "../escape",
+            codex_claude_compat::auto_memory_dir(&profile, &repo).unwrap(),
+        ),
+        (
+            "COM1",
+            codex_claude_compat::auto_memory_dir(&profile, &repo).unwrap(),
+        ),
+    ] {
+        let env = |key: &str| match key {
+            "CLAUDE_CONFIG_DIR" => Some(profile.display().to_string()),
+            "CLAUDE_CODE_PROJECT_DIR_NAME" => Some(name.to_string()),
+            _ => None,
+        };
+        let memory = claude_auto_memory(&LocalFiles, &repo, Some(&home), &env)
+            .await
+            .expect("profile memory");
+        assert_eq!(memory.dir, expected);
+    }
+}
+
+#[tokio::test]
 async fn no_memory_without_a_home_directory() {
     let (_tmp, _home, repo) = fixture();
     assert_eq!(

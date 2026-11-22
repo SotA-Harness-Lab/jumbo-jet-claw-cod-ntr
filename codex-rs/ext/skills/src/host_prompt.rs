@@ -5,6 +5,7 @@
 
 use std::collections::HashSet;
 
+use codex_claude_compat::SkillExecutionVariables;
 use codex_exec_server::EnvironmentAccess;
 use codex_extension_api::ContextualUserFragment;
 use codex_protocol::user_input::UserInput;
@@ -86,6 +87,7 @@ impl HostSkillsSnapshot {
         accessors: &[&dyn EnvironmentAccess],
         user_input: &[UserInput],
         session_id: &str,
+        variables: &SkillExecutionVariables,
     ) -> HostSkillPrompts {
         let mut prompts = HostSkillPrompts {
             fragments: Vec::with_capacity(selected_skills.len()),
@@ -98,11 +100,19 @@ impl HostSkillsSnapshot {
             match self.read_skill_text(skill, accessors).await {
                 Ok(contents) => {
                     let path = skill.path_to_skills_md.inferred_native_path_string();
-                    prompts
-                        .claude_allowed_tools
-                        .extend(skill_tool_grants(&contents, &path));
-                    let contents =
-                        expand_explicit_skill(contents, &skill.name, &path, session_id, user_input);
+                    prompts.claude_allowed_tools.extend(skill_tool_grants(
+                        &contents,
+                        &path,
+                        variables.project_dir.as_deref(),
+                    ));
+                    let contents = expand_explicit_skill(
+                        contents,
+                        &skill.name,
+                        &path,
+                        session_id,
+                        user_input,
+                        variables,
+                    );
                     let (contents, truncated) = if self.outcome().is_agent_plugin_skill(skill) {
                         truncate_main_prompt_contents(&contents)
                     } else {

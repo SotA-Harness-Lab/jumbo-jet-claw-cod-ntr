@@ -67,11 +67,11 @@ fn env_values_are_strings() {
 fn settings_paths_skip_the_home_directory_as_a_project() {
     let home = Path::new("/home/u/.claude");
     assert_eq!(
-        settings_paths(Some(home), Some(Path::new("/home/u"))),
+        settings_paths(Some(home), home.parent(), Some(Path::new("/home/u"))),
         vec![PathBuf::from("/home/u/.claude/settings.json")]
     );
     assert_eq!(
-        settings_paths(Some(home), Some(Path::new("/work/p"))),
+        settings_paths(Some(home), home.parent(), Some(Path::new("/work/p"))),
         vec![
             PathBuf::from("/home/u/.claude/settings.json"),
             PathBuf::from("/work/p/.claude/settings.json"),
@@ -149,7 +149,7 @@ fn the_local_file_of_the_repository_root_is_read_from_a_subdirectory() {
     // Settings files come in Claude Code's order, the root's local file last.
     let claude_home = home.join(".claude");
     assert_eq!(
-        settings_paths(Some(&claude_home), Some(&sub)),
+        settings_paths(Some(&claude_home), Some(&home), Some(&sub)),
         vec![
             claude_home.join("settings.json"),
             sub.join(".claude").join("settings.json"),

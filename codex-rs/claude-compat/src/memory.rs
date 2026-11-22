@@ -16,6 +16,25 @@ const MAX_INDEX_BYTES: usize = 25_000;
 /// Longer project names get a hash suffix in Claude Code, which Codex cannot reproduce.
 const MAX_PROJECT_NAME_LEN: usize = 200;
 
+/// The optional process-level name for a project directory under an alternate profile.
+pub fn named_auto_memory_dir(base: &Path, name: &str) -> Option<PathBuf> {
+    if name.is_empty()
+        || name.len() > 64
+        || !name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return None;
+    }
+    let lower = name.to_ascii_lowercase();
+    let device = matches!(lower.as_str(), "con" | "prn" | "aux" | "nul")
+        || lower
+            .strip_prefix("com")
+            .or_else(|| lower.strip_prefix("lpt"))
+            .is_some_and(|suffix| suffix.len() == 1 && suffix.as_bytes()[0].is_ascii_digit());
+    (!device).then(|| base.join("projects").join(name).join("memory"))
+}
+
 /// The directory of a project's auto memory, `<claude_home>/projects/<name>/memory`, the
 /// name being the project's path with every character but ASCII letters and digits
 /// replaced by `-`. `None` for a path too long to be named that way.
