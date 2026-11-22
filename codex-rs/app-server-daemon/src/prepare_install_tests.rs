@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 //! Covers complete-package staging, conservative selection, and legacy preservation.
 #![cfg(unix)]
 use std::collections::BTreeMap;
@@ -12,7 +18,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 fn daemon(home: &std::path::Path) -> crate::Daemon {
-    let state = home.join("app-server-daemon");
+    let state = home.join("ccn-app-server-daemon");
     crate::Daemon {
         log_diagnostics: false,
         socket_path: state.join("app-server.sock"),
@@ -71,7 +77,7 @@ async fn seeds_full_package() {
     .await
     .expect("seed");
 
-    let standalone = home.join("packages/app-server-daemon");
+    let standalone = home.join("packages/ccn-app-server-daemon");
     let selected = std::fs::canonicalize(standalone.join("current")).expect("selected");
     assert_eq!(
         std::fs::read(selected.join("codex-resources/nested/runtime")).expect("runtime"),
@@ -172,7 +178,7 @@ async fn incomplete_source_fails_without_selecting_it() {
     .await
     .expect_err("incomplete package");
     assert!(error.to_string().contains("bin/codex-code-mode-host"));
-    assert!(!home.join("packages/app-server-daemon/current").exists());
+    assert!(!home.join("packages/ccn-app-server-daemon/current").exists());
 }
 
 #[cfg(target_os = "macos")]
@@ -197,7 +203,7 @@ async fn provisioned_macos_bundle_seeds_from_its_running_executable() {
     )
     .await
     .expect("seed provisioned bundle");
-    let selected = std::fs::canonicalize(home.join("packages/app-server-daemon/current"))
+    let selected = std::fs::canonicalize(home.join("packages/ccn-app-server-daemon/current"))
         .expect("selected release");
     assert_eq!(
         std::fs::read(selected.join("CodexCLI.app/Contents/MacOS/codex"))
@@ -206,7 +212,7 @@ async fn provisioned_macos_bundle_seeds_from_its_running_executable() {
     );
     assert!(
         !home
-            .join("packages/app-server-daemon/auto-update-version")
+            .join("packages/ccn-app-server-daemon/auto-update-version")
             .exists()
     );
 }
@@ -218,7 +224,7 @@ async fn legacy_selection_is_not_migrated_or_refreshed() {
     let legacy = home.join("packages/standalone");
     let bin = package(&legacy.join("releases/old"), "0.150.0");
     std::os::unix::fs::symlink("releases/old", legacy.join("current")).unwrap();
-    let state = home.join("app-server-daemon");
+    let state = home.join("ccn-app-server-daemon");
     std::fs::create_dir(&state).unwrap();
     std::fs::write(state.join("app-server.stderr.log"), b"").unwrap();
     let source = temp.path().join("new");
@@ -239,7 +245,7 @@ async fn legacy_selection_is_not_migrated_or_refreshed() {
             .unwrap(),
         bin.canonicalize().unwrap()
     );
-    assert!(!home.join("packages/app-server-daemon").exists());
+    assert!(!home.join("packages/ccn-app-server-daemon").exists());
 }
 
 #[tokio::test]
@@ -268,7 +274,7 @@ async fn standalone_seed_preserves_explicit_pin_or_latest_channel() {
         )
         .await
         .unwrap();
-        let root = home.join("packages/app-server-daemon");
+        let root = home.join("packages/ccn-app-server-daemon");
         let selected = root.join("current").canonicalize().unwrap();
         assert_eq!(
             std::fs::read_to_string(root.join("auto-update-version")).ok(),
@@ -298,7 +304,7 @@ async fn explicit_selection_requires_unchanged_cli_and_pins_all_versions() {
         .unwrap();
         if legacy {
             std::fs::rename(
-                home.join("packages/app-server-daemon"),
+                home.join("packages/ccn-app-server-daemon"),
                 home.join("packages/standalone"),
             )
             .unwrap();
@@ -307,7 +313,7 @@ async fn explicit_selection_requires_unchanged_cli_and_pins_all_versions() {
             std::fs::remove_file(root.join("current")).unwrap();
             std::os::unix::fs::symlink(root.join("releases").join(name), root.join("current"))
                 .unwrap();
-            let state = home.join("app-server-daemon");
+            let state = home.join("ccn-app-server-daemon");
             std::fs::create_dir_all(&state).unwrap();
             std::fs::write(state.join("app-server.stderr.log"), b"").unwrap();
         }
@@ -342,7 +348,7 @@ async fn explicit_selection_requires_unchanged_cli_and_pins_all_versions() {
             std::fs::read(initial_root.join("auto-update-version")).unwrap(),
             legacy_marker
         );
-        let root = home.join("packages/app-server-daemon");
+        let root = home.join("packages/ccn-app-server-daemon");
         let mut previous = legacy_release.clone();
         for version in [
             "0.153.0",
@@ -450,7 +456,7 @@ async fn broken_selection_is_not_a_missing_installation() {
     let source = temp.path().join("source");
     let bin = package(&source, "0.152.0");
     let daemon = daemon(&home);
-    let current = home.join("packages/app-server-daemon/current");
+    let current = home.join("packages/ccn-app-server-daemon/current");
     std::fs::create_dir_all(current.parent().unwrap()).unwrap();
     std::os::unix::fs::symlink("missing-release", &current).unwrap();
     let error = prepare_from_package(

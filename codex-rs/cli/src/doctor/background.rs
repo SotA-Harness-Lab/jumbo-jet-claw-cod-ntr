@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 //! Reports app-server daemon state without starting or stopping the daemon.
 //!
 //! The background-server check is deliberately passive. It reads the daemon
@@ -17,7 +23,7 @@ use super::CheckStatus;
 use super::DoctorCheck;
 
 const MAX_PROBE_ERROR_CHARS: usize = 120;
-const STATE_DIR_NAME: &str = "app-server-daemon";
+const STATE_DIR_NAME: &str = "ccn-app-server-daemon";
 const SETTINGS_FILE_NAME: &str = "settings.json";
 const PID_FILE_NAME: &str = "app-server.pid";
 const UPDATE_PID_FILE_NAME: &str = "app-server-updater.pid";

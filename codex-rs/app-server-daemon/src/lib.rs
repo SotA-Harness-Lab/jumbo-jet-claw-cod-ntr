@@ -77,7 +77,7 @@ const DAEMON_PID_FILE_NAME: &str = "daemon.pid";
 const DAEMON_UPDATE_PID_FILE_NAME: &str = "daemon-updater.pid";
 const OPERATION_LOCK_FILE_NAME: &str = "daemon.lock";
 const SETTINGS_FILE_NAME: &str = "settings.json";
-const STATE_DIR_NAME: &str = "app-server-daemon";
+const STATE_DIR_NAME: &str = "ccn-app-server-daemon";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LifecycleCommand {
@@ -680,7 +680,7 @@ impl Daemon {
         }
         // All exits for busy, not-ready or superseded selections precede cleanup.
         // Keep the operation lock, and recheck readiness's selection under both locks.
-        if package_root.ends_with("app-server-daemon")
+        if package_root.ends_with("ccn-app-server-daemon")
             && let Ok(_install_lock) = install_lock::acquire_install_lock(package_root).await
             && let Ok(current_bin) = self.current_managed_codex_bin()
             && managed_install::resolved_managed_codex_bin(&current_bin)
@@ -1440,7 +1440,7 @@ mod tests {
     #[tokio::test]
     async fn waiting_lifecycle_command_uses_migrated_installation() {
         let home = TempDir::new().expect("home");
-        let state = home.path().join("app-server-daemon");
+        let state = home.path().join("ccn-app-server-daemon");
         let legacy = home.path().join("packages/standalone/current");
         std::fs::create_dir_all(&legacy).expect("legacy selection");
         let daemon = Daemon {
@@ -1460,7 +1460,7 @@ mod tests {
                 .await
                 .is_err()
         );
-        std::fs::create_dir_all(home.path().join("packages/app-server-daemon/current"))
+        std::fs::create_dir_all(home.path().join("packages/ccn-app-server-daemon/current"))
             .expect("migrate selection");
         drop(lock);
         let output = stop.await.expect("stop");
@@ -1499,7 +1499,7 @@ mod tests {
     #[tokio::test]
     async fn stop_and_fresh_start_discard_pending_thread_restore() {
         let home = TempDir::new().expect("home");
-        let state = home.path().join("app-server-daemon");
+        let state = home.path().join("ccn-app-server-daemon");
         codex_uds::prepare_private_socket_directory(&state)
             .await
             .expect("private state directory");
@@ -1554,12 +1554,12 @@ mod tests {
             .expect("local bin");
         std::os::unix::fs::symlink("local-main", standalone.join("current"))
             .expect("current local build");
-        let state = home.path().join("app-server-daemon");
+        let state = home.path().join("ccn-app-server-daemon");
         let daemon = Daemon {
             log_diagnostics: false,
             socket_path: home
                 .path()
-                .join("app-server-control/app-server-control.sock"),
+                .join("ccn-app-server-control/app-server-control.sock"),
             pid_file: state.join("app-server.pid"),
             update_pid_file: state.join("app-server-updater.pid"),
             operation_lock_file: state.join("daemon.lock"),

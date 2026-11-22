@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 use codex_utils_absolute_path::AbsolutePathBuf;
 use tempfile::TempDir;
 
@@ -111,7 +117,7 @@ fn startup_delays_composer_for_homes_without_authentication_state() -> std::io::
         std::fs::remove_file(state_path)?;
     }
 
-    let daemon_directory = codex_home.join("app-server-control");
+    let daemon_directory = codex_home.join("ccn-app-server-control");
     std::fs::create_dir(&daemon_directory)?;
     assert!(should_delay_startup_composer_for_first_login(
         &codex_home,
@@ -168,7 +174,7 @@ fn startup_keeps_composer_when_home_state_cannot_be_confirmed() -> std::io::Resu
     {
         let system_config_path =
             AbsolutePathBuf::from_absolute_path(temporary_directory.path().join("system.toml"))?;
-        let daemon_directory = codex_home.join("app-server-control");
+        let daemon_directory = codex_home.join("ccn-app-server-control");
         std::fs::write(&daemon_directory, "not a directory")?;
         assert!(!should_delay_startup_composer_for_first_login(
             &codex_home,

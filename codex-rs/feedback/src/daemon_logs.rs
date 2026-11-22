@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 //! Collects bounded current and previous updater log tails after feedback log consent.
 //! Read failures omit individual files; only fixed regular-file names are considered.
 
@@ -15,7 +21,7 @@ const LOG_NAMES: [&str; 2] = ["daemon-updater.stderr.log", "app-server-updater.s
 /// Collect at most two 256 KiB updater tails (512 KiB total) from the app-server host.
 /// Call only after feedback consent includes logs, on a blocking worker.
 pub fn daemon_log_attachments(codex_home: &Path) -> Vec<FeedbackAttachment> {
-    let directory = codex_home.join("app-server-daemon");
+    let directory = codex_home.join("ccn-app-server-daemon");
     let mut attachments = Vec::new();
     for suffix in ["", ".previous"] {
         for name in LOG_NAMES {

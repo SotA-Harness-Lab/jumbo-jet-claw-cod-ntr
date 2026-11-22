@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 use super::*;
 use codex_protocol::ThreadId;
 use pretty_assertions::assert_eq;
@@ -5,7 +11,7 @@ use pretty_assertions::assert_eq;
 #[test]
 fn collects_bounded_tails_and_skips_missing_empty_and_nonregular_files() -> io::Result<()> {
     let home = std::env::temp_dir().join(format!("codex-feedback-daemon-{}", ThreadId::new()));
-    let directory = home.join("app-server-daemon");
+    let directory = home.join("ccn-app-server-daemon");
     assert!(daemon_log_attachments(&home).is_empty());
     fs::create_dir_all(&directory)?;
     let bytes = vec![b'x'; MAX_LOG_BYTES as usize + 100];

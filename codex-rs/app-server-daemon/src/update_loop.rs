@@ -400,7 +400,7 @@ async fn update_once(
             .any(|window| window == installer_guard.as_bytes()),
         "standalone installer does not support {installer_guard} guarded updates"
     );
-    if package_root.ends_with("app-server-daemon") {
+    if package_root.ends_with("ccn-app-server-daemon") {
         anyhow::ensure!(
             script
                 .windows(b"CODEX_INSTALL_DAEMON_ONLY".len())
@@ -630,7 +630,7 @@ async fn run_installer_script(
         .env("CODEX_INSTALL_DEFER_SELECTION", defer_selection)
         .env(
             "CODEX_INSTALL_DAEMON_ONLY",
-            if package_root.ends_with("app-server-daemon") {
+            if package_root.ends_with("ccn-app-server-daemon") {
                 "1"
             } else {
                 "0"

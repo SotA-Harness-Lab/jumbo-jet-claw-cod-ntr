@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 use pretty_assertions::assert_eq;
 
 #[test]
@@ -8,12 +14,12 @@ fn discovers_package_and_legacy_installs() {
     assert_eq!(
         super::managed_codex_bin(home.path()),
         home.path()
-            .join("packages/app-server-daemon/current/bin")
+            .join("packages/ccn-app-server-daemon/current/bin")
             .join(super::managed_codex_file_name())
     );
     std::fs::create_dir_all(&current).expect("current directory");
     std::fs::write(&legacy, b"legacy").expect("legacy executable");
-    let state = home.path().join("app-server-daemon");
+    let state = home.path().join("ccn-app-server-daemon");
     std::fs::create_dir(&state).unwrap();
     for name in ["settings.json", "daemon.lock", "app-server.pid.lock"] {
         std::fs::write(state.join(name), b"").unwrap();
@@ -21,7 +27,7 @@ fn discovers_package_and_legacy_installs() {
     // A CLI install and a previous stop/status operation do not establish ownership.
     assert_eq!(
         super::package_root(home.path()),
-        home.path().join("packages/app-server-daemon")
+        home.path().join("packages/ccn-app-server-daemon")
     );
     std::fs::write(state.join("app-server.stderr.log"), b"").unwrap();
     assert_eq!(super::managed_codex_bin(home.path()), legacy);
@@ -45,18 +51,18 @@ fn discovers_package_and_legacy_installs() {
     std::fs::write(state.join("daemon.pid"), b"running dedicated daemon").unwrap();
     assert_eq!(
         super::package_root(home.path()),
-        home.path().join("packages/app-server-daemon")
+        home.path().join("packages/ccn-app-server-daemon")
     );
     std::fs::remove_file(state.join("daemon.pid")).unwrap();
     std::fs::write(state.join("daemon.stderr.log"), b"").unwrap();
     assert_eq!(
         super::package_root(home.path()),
-        home.path().join("packages/app-server-daemon")
+        home.path().join("packages/ccn-app-server-daemon")
     );
 
     #[cfg(unix)]
     {
-        let dedicated = home.path().join("packages/app-server-daemon");
+        let dedicated = home.path().join("packages/ccn-app-server-daemon");
         std::fs::write(&dedicated, b"not a directory").expect("unreadable selection");
         assert_eq!(super::package_root(home.path()), dedicated);
     }
@@ -66,7 +72,7 @@ fn discovers_package_and_legacy_installs() {
 #[test]
 fn updater_only_runs_for_stable_installer_owned_releases() {
     let home = tempfile::TempDir::new().expect("home");
-    let state = home.path().join("app-server-daemon");
+    let state = home.path().join("ccn-app-server-daemon");
     std::fs::create_dir(&state).unwrap();
     std::fs::write(state.join("app-server.stderr.log"), b"").unwrap();
     let standalone = home.path().join("packages/standalone");

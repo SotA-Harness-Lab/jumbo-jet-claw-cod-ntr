@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the background server's files
+// apart from Codex's
+
 //! Real package installation and replacement through the daemon CLI.
 //! Keep these I/O-heavy cases separate from ordinary lifecycle coverage.
 #![cfg(unix)]
@@ -66,7 +72,7 @@ fn packaged_daemon_launch(action: &str, initial: InitialDaemon) -> Result<()> {
         std::os::unix::fs::symlink(&package, standalone.join("current"))?;
     }
     let cli_selection = standalone.join("current").canonicalize()?;
-    let state = daemon.home.path().join("app-server-daemon");
+    let state = daemon.home.path().join("ccn-app-server-daemon");
     if initial == InitialDaemon::Missing {
         std::fs::remove_file(state.join("app-server.stderr.log"))?;
     }
@@ -94,7 +100,7 @@ fn packaged_daemon_launch(action: &str, initial: InitialDaemon) -> Result<()> {
         .home
         .path()
         .canonicalize()?
-        .join("packages/app-server-daemon");
+        .join("packages/ccn-app-server-daemon");
     let (initial_root, initial_pid_file) = match initial {
         InitialDaemon::Missing => (&dedicated, "daemon.pid"),
         InitialDaemon::Legacy => (&standalone, "app-server.pid"),

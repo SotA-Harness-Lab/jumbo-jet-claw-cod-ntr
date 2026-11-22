@@ -261,7 +261,7 @@ async fn explicit_update_migrates_running_and_stopped_installations() {
             None
         };
         let legacy_bin = std::fs::read(&legacy.managed_codex_bin).unwrap();
-        let dedicated = home.path().join("packages/app-server-daemon");
+        let dedicated = home.path().join("packages/ccn-app-server-daemon");
         let old_installer = FakeInstallerHttp::new(InstallerResponse::Success(b"exit 99".to_vec()));
         assert!(
             super::migration::run(&old_installer, &legacy)
@@ -278,7 +278,7 @@ test "$CODEX_INSTALL_DEFER_SELECTION" = 1
 test "$CODEX_INSTALL_IF_CURRENT" = 0
 test "$CODEX_INSTALL_DAEMON_ONLY" = 1
 test "$CODEX_INSTALL_IF_LATEST" = 0
-root="$CODEX_HOME/packages/app-server-daemon"
+root="$CODEX_HOME/packages/ccn-app-server-daemon"
 mkdir -p "$root/releases/{release}/bin"
 printf '#!/bin/sh\nif [ "$1" = --version ]; then echo codex 1.0.0; else exit 2; fi\n' > "$root/releases/{release}/bin/codex"
 chmod +x "$root/releases/{release}/bin/codex"
@@ -441,13 +441,13 @@ fn manual_update_daemon(home: &TempDir) -> (Daemon, String) {
     std::os::unix::fs::symlink(format!("releases/{release}"), standalone.join("current"))
         .expect("current release");
     std::fs::write(standalone.join("auto-update-version"), &release).expect("latest marker");
-    let state = home.path().join("app-server-daemon");
+    let state = home.path().join("ccn-app-server-daemon");
     std::fs::create_dir(&state).unwrap();
     std::fs::write(state.join("app-server.stderr.log"), b"").unwrap();
     (
         Daemon {
             log_diagnostics: false,
-            socket_path: home.path().join("app-server-control/server.sock"),
+            socket_path: home.path().join("ccn-app-server-control/server.sock"),
             pid_file: state.join("app-server.pid"),
             update_pid_file: state.join("app-server-updater.pid"),
             operation_lock_file: state.join("daemon.lock"),
@@ -726,7 +726,7 @@ async fn test_control_server(
 async fn scheduled_no_op_preserves_daemon_and_hands_off_stale_updater() {
     let home = TempDir::new().expect("home");
     let (mut daemon, release) = manual_update_daemon(&home);
-    let root = home.path().join("packages/app-server-daemon");
+    let root = home.path().join("packages/ccn-app-server-daemon");
     std::fs::rename(home.path().join("packages/standalone"), &root).unwrap();
     daemon = daemon.current_installation().unwrap();
     let stale = root
@@ -1010,7 +1010,7 @@ async fn confirmed_feature_restart_preserves_ownership_and_skips_matching_settin
 #[cfg(unix)]
 #[tokio::test]
 async fn manual_update_restarts_local_daemon_with_automatic_updates_disabled() {
-    check_manual_update_restart("app-server-daemon").await;
+    check_manual_update_restart("ccn-app-server-daemon").await;
 }
 
 #[cfg(unix)]
@@ -1018,7 +1018,7 @@ async fn check_manual_update_restart(package_directory: &str) {
     use tokio::io::AsyncReadExt;
     use tokio::io::AsyncWriteExt;
 
-    let local_package = package_directory == "app-server-daemon";
+    let local_package = package_directory == "ccn-app-server-daemon";
     let home = TempDir::new().expect("home");
     let (mut daemon, mut release) = manual_update_daemon(&home);
     let standalone = home.path().join("packages").join(package_directory);
@@ -1202,7 +1202,7 @@ Test-Installer
     super::run_installer_script(
         &script,
         super::InstallerMode::RestoreProduction("0.150.0-x86_64-pc-windows-msvc"),
-        std::path::Path::new("packages/app-server-daemon"),
+        std::path::Path::new("packages/ccn-app-server-daemon"),
     )
     .await
     .expect("installer succeeds");
@@ -1215,7 +1215,7 @@ Test-Installer
     let error = super::run_installer_script(
         &script,
         super::InstallerMode::RestoreProduction("0.150.0-x86_64-pc-windows-msvc"),
-        std::path::Path::new("packages/app-server-daemon"),
+        std::path::Path::new("packages/ccn-app-server-daemon"),
     )
     .await
     .err()
@@ -1233,7 +1233,7 @@ async fn installer_failure_includes_stderr() {
     let error = super::run_installer_script(
         script.as_bytes(),
         super::InstallerMode::Update("0.150.0-x86_64-unknown-linux-gnu"),
-        std::path::Path::new("packages/app-server-daemon"),
+        std::path::Path::new("packages/ccn-app-server-daemon"),
         futures::future::pending(),
     )
     .await
@@ -1252,7 +1252,7 @@ async fn installer_failure_preserves_stderr_before_drain_timeout() {
         super::run_installer_script(
             b"printf 'installer failed' >&2\nsleep 5 &\nexit 1\n",
             super::InstallerMode::Update("0.150.0-x86_64-unknown-linux-gnu"),
-            std::path::Path::new("packages/app-server-daemon"),
+            std::path::Path::new("packages/ccn-app-server-daemon"),
             futures::future::pending(),
         ),
     )
@@ -1271,7 +1271,7 @@ async fn update_rejects_a_package_root_change_during_download() {
         async fn get(&self, _url: &str) -> anyhow::Result<InstallerResponse> {
             std::os::unix::fs::symlink(
                 self.0.join("packages/standalone"),
-                self.0.join("packages/app-server-daemon"),
+                self.0.join("packages/ccn-app-server-daemon"),
             )?;
             Ok(InstallerResponse::Success(
                 b"# CODEX_INSTALL_IF_LATEST\nexit 99\n".to_vec(),
@@ -1300,7 +1300,7 @@ async fn update_rejects_a_package_root_change_during_download() {
 async fn daemon_owned_updates_require_and_request_an_isolated_installer() {
     let home = TempDir::new().unwrap();
     let (mut daemon, release) = manual_update_daemon(&home);
-    let root = home.path().join("packages/app-server-daemon");
+    let root = home.path().join("packages/ccn-app-server-daemon");
     std::fs::rename(home.path().join("packages/standalone"), &root).unwrap();
     daemon.managed_codex_bin = root.join("current/codex");
     let identity = executable_identity(&daemon.managed_codex_bin)
