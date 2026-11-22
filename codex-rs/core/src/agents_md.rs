@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; write Claude Code auto memory
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; write Claude Code auto memory;
+// measure only AGENTS.md against the budget
 
 //! AGENTS.md discovery and user instruction assembly.
 //!
@@ -600,6 +601,25 @@ impl LoadedAgentsMd {
     }
 
     /// Returns the concatenated model-visible instruction text.
+    /// Bytes of the project `AGENTS.md` files, the files `project_doc_max_bytes` limits. Claude
+    /// Code's instruction files (`CLAUDE.md`, `CLAUDE.local.md`, rules) are left out: they are not
+    /// cut to that limit, and Claude Code sets no limit on their total.
+    pub(crate) fn agents_md_bytes(&self) -> usize {
+        self.entries
+            .iter()
+            .filter(|entry| match &entry.provenance {
+                InstructionProvenance::Project { source_path, .. } => {
+                    let path = source_path.to_string();
+                    !(path.ends_with("CLAUDE.md")
+                        || path.ends_with("CLAUDE.local.md")
+                        || path.contains("/.claude/"))
+                }
+                InstructionProvenance::Internal => false,
+            })
+            .map(|entry| entry.contents.len())
+            .sum()
+    }
+
     pub fn text(&self) -> String {
         if self.has_multiple_project_environments() {
             self.environment_labeled_text()
