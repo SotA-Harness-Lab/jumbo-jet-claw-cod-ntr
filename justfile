@@ -20,11 +20,11 @@ help:
 # `codex`
 alias c := codex
 codex *args:
-    cargo run --bin ccn -- {args}
+    cargo run --bin jjcn -- {args}
 
 # `codex exec`
 exec *args:
-    cargo run --bin ccn -- exec {args}
+    cargo run --bin jjcn -- exec {args}
 
 # Start `codex exec-server` and run codex-tui.
 [no-cd]
@@ -49,7 +49,7 @@ assemble-codex-package *args:
 # Build the CLI and run the app-server test client
 app-server-test-client *args:
     cargo build -p codex-cli
-    cargo run -p codex-app-server-test-client -- --codex-bin ./target/debug/ccn {args}
+    cargo run -p codex-app-server-test-client -- --codex-bin ./target/debug/jjcn {args}
 
 # Format the justfile, Rust, Python SDK code, and Python scripts.
 fmt:

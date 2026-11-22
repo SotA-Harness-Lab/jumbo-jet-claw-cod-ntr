@@ -15,14 +15,14 @@ First install the frozen workspace dependencies and build Codex:
 
 ```bash
 pnpm install --frozen-lockfile
-cargo build --locked --manifest-path codex-rs/Cargo.toml -p codex-cli --bin ccn
+cargo build --locked --manifest-path codex-rs/Cargo.toml -p codex-cli --bin jjcn
 ```
 
 From a published Codex checkout, run:
 
 ```bash
 python3 scripts/mcp_conformance/run_codex_compliance.py \
-  codex-rs/target/debug/ccn \
+  codex-rs/target/debug/jjcn \
   --conformance-cli node_modules/@modelcontextprotocol/conformance/dist/index.js \
   --baseline-report scripts/mcp_conformance/regression-baseline-v1.json \
   --report /tmp/codex-mcp-conformance.json

@@ -318,7 +318,7 @@ impl PtyCodex {
         extra_args: &[&str],
     ) -> Result<Self> {
         let codex = codex_utils_cargo_bin::cargo_bin("codex-tui")
-            .or_else(|_| codex_utils_cargo_bin::cargo_bin("ccn"))?;
+            .or_else(|_| codex_utils_cargo_bin::cargo_bin("jjcn"))?;
         Self::start_binary(
             &codex, repo_root, codex_home, extra_args, /*editor*/ None,
         )
@@ -330,7 +330,7 @@ impl PtyCodex {
         codex_home: TempDir,
         extra_args: &[&str],
     ) -> Result<Self> {
-        let codex = codex_utils_cargo_bin::cargo_bin("ccn")
+        let codex = codex_utils_cargo_bin::cargo_bin("jjcn")
             .context("build codex-cli and set CARGO_BIN_EXE_codex to its executable")?;
         Self::start_binary(
             &codex, repo_root, codex_home, extra_args, /*editor*/ None,

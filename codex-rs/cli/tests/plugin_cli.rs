@@ -49,7 +49,7 @@ fn marketplace_list_row(marketplace_name: &str, root: &Path) -> String {
 }
 
 fn codex_command(codex_home: &Path) -> Result<assert_cmd::Command> {
-    let mut cmd = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
+    let mut cmd = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?);
     cmd.env("CODEX_HOME", codex_home);
     cmd.env("HOME", codex_home);
     Ok(cmd)
@@ -679,7 +679,7 @@ async fn assert_plugin_list_succeeds_when_stdout_closes_early(args: &[&str]) -> 
         .success();
     assert!(complete.get_output().stdout.len() > 1024 * 1024);
 
-    let mut child = Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?)
+    let mut child = Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?)
         .env("CODEX_HOME", codex_home.path())
         .env("HOME", codex_home.path())
         .current_dir(codex_home.path())
@@ -1298,7 +1298,7 @@ impl RemoteMarketplaceFixture {
     }
 
     async fn run(&self, args: &[&str]) -> Result<Output> {
-        Ok(Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?)
+        Ok(Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?)
             .current_dir(self.home.path())
             .env("CODEX_HOME", self.home.path())
             .env("HOME", self.home.path())

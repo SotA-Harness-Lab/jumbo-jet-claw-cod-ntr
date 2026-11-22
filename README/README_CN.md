@@ -17,7 +17,7 @@ Jumbo Jet CodClaw NTR（jjcn）是在 [CodClaw NTR](https://github.com/lutianyu2
 
 NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一处一处打磨。在 CodClaw NTR 里这三个字母是 Native Tooling Ready，这一点在这里同样成立：Claude Code 原生的配置可以直接使用，不需要转换或迁移。
 
-目前程序名、设置文件和环境变量都沿用 CodClaw NTR 的（`ccn`、`ccn-config.toml`、`CCN_`），所以两个版本在同一台机器上可以互相替换；等 jjcn 的设置改用 Claude Code 的设置文件后就不再如此（见[方向](#方向)）。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得。
+程序名是 `jjcn`。目前设置文件和环境变量仍沿用 CodClaw NTR 的（`ccn-config.toml`、`CCN_`），所以两者在同一台机器上共用一套设置；等 jjcn 的设置改用 Claude Code 的设置文件后就不再如此（见[方向](#方向)）。本仓库从 CodClaw NTR 的 `main` 复制而来，之后的更新也从那里取得。
 
 目前加入的改动，逐项说明见 [jjcn refinements](../docs/jjcn.md)：
 
@@ -97,7 +97,7 @@ jjcn 还没有发布版，需要从源码构建。
 ```shell
 cd codex-rs
 eval "$(bash ../scripts/fetch-rusty-v8.sh)"
-cargo build --release -p codex-cli --bin ccn
+cargo build --release -p codex-cli --bin jjcn
 cargo build --release -p codex-code-mode-host
 ```
 
@@ -105,9 +105,9 @@ cargo build --release -p codex-code-mode-host
 
 ## 用法
 
-在项目里运行 `ccn`。登录方式和 Codex 一样：选 **Sign in with ChatGPT**，或者按 [Codex 的登录文档](https://developers.openai.com/codex/auth#sign-in-with-an-api-key) 配置 API key。
+在项目里运行 `jjcn`。登录方式和 Codex 一样：选 **Sign in with ChatGPT**，或者按 [Codex 的登录文档](https://developers.openai.com/codex/auth#sign-in-with-an-api-key) 配置 API key。
 
-从源码构建的版本没有后台服务的安装包：启动 TUI 时用 `ccn --no-daemon`。
+从源码构建的版本没有后台服务的安装包：启动 TUI 时用 `jjcn --no-daemon`。
 
 要用 Claude Code 的工具集，新建 `~/.codex/ccn-config.toml`：
 

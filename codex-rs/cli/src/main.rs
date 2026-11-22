@@ -122,9 +122,9 @@ use codex_terminal_detection::TerminalName;
     subcommand_negates_reqs = true,
     // The executable is sometimes invoked via a platform‑specific name like
     // `codex-x86_64-unknown-linux-musl`, but the help output should always use
-    // the generic `ccn` command name that users run.
-    bin_name = "ccn",
-    override_usage = "ccn [OPTIONS] [PROMPT]\n       ccn [OPTIONS] <COMMAND> [ARGS]"
+    // the generic `jjcn` command name that users run.
+    bin_name = "jjcn",
+    override_usage = "jjcn [OPTIONS] [PROMPT]\n       jjcn [OPTIONS] <COMMAND> [ARGS]"
 )]
 struct MultitoolCli {
     #[clap(flatten)]
@@ -910,7 +910,7 @@ fn run_update_command() -> anyhow::Result<()> {
     {
         let Some(action) = codex_tui::get_update_action() else {
             anyhow::bail!(
-                "ccn has no updater of its own. Get the latest release from https://github.com/lutianyu2001/cod-claw-ntr/releases/latest, or update it with the package manager it was installed with."
+                "jjcn has no updater of its own. Build it again from https://github.com/SotA-Harness-Lab/jumbo-jet-cod-claw-ntr, or update it with the package manager it was installed with."
             );
         };
         run_update_action(action, /*cli_executable*/ None)
@@ -2806,7 +2806,7 @@ fn merge_interactive_cli_flags(interactive: &mut TuiCli, subcommand_cli: TuiCli)
 
 fn print_completion(cmd: CompletionCommand) {
     let mut app = MultitoolCli::command();
-    let name = "ccn";
+    let name = "jjcn";
     generate(cmd.shell, &mut app, name, &mut std::io::stdout());
 }
 
@@ -3531,15 +3531,15 @@ enabled = true
     fn plugin_marketplace_help_uses_plugin_namespace() {
         let help = help_from_args(&["codex", "plugin", "marketplace", "--help"]);
         assert!(
-            help.contains("Usage: ccn plugin marketplace [OPTIONS] <COMMAND>"),
+            help.contains("Usage: jjcn plugin marketplace [OPTIONS] <COMMAND>"),
             "{help}"
         );
 
         for (subcommand, usage) in [
-            ("add", "Usage: ccn plugin marketplace add"),
-            ("list", "Usage: ccn plugin marketplace list"),
-            ("upgrade", "Usage: ccn plugin marketplace upgrade"),
-            ("remove", "Usage: ccn plugin marketplace remove"),
+            ("add", "Usage: jjcn plugin marketplace add"),
+            ("list", "Usage: jjcn plugin marketplace list"),
+            ("upgrade", "Usage: jjcn plugin marketplace upgrade"),
+            ("remove", "Usage: jjcn plugin marketplace remove"),
         ] {
             let help = help_from_args(&["codex", "plugin", "marketplace", subcommand, "--help"]);
             assert!(help.contains(usage), "{help}");

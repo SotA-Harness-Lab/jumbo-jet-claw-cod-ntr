@@ -18,7 +18,7 @@ use std::os::unix::fs::PermissionsExt;
 async fn migration_requires_consent_and_preserves_shared_database_mode() -> Result<()> {
     let home = tempfile::tempdir()?;
     let sqlite = SqliteConfig::new_for_testing(home.path().to_path_buf().try_into()?);
-    let mut empty = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
+    let mut empty = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?);
     let empty = empty
         .env("CODEX_HOME", home.path())
         .env(codex_state::SQLITE_HOME_ENV, home.path())
@@ -41,7 +41,7 @@ async fn migration_requires_consent_and_preserves_shared_database_mode() -> Resu
         .await?;
     pool.close().await;
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(/*mode*/ 0o600))?;
-    let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
+    let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?);
     let declined = command
         .env("CODEX_HOME", home.path())
         .env(codex_state::SQLITE_HOME_ENV, home.path())
@@ -63,7 +63,7 @@ async fn migration_requires_consent_and_preserves_shared_database_mode() -> Resu
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(/*mode*/ 0o644))?;
     let before = std::fs::read(&path)?;
 
-    let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
+    let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?);
     command
         .env("CODEX_HOME", home.path())
         .env(codex_state::SQLITE_HOME_ENV, home.path())
@@ -77,7 +77,7 @@ async fn migration_requires_consent_and_preserves_shared_database_mode() -> Resu
 
     // A later corrupt database must be reported without undoing a completed conversion.
     std::fs::write(sqlite.logs_db_path(), b"corrupt SQLite database")?;
-    let mut partial = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
+    let mut partial = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?);
     let partial = partial
         .env("CODEX_HOME", home.path())
         .env(codex_state::SQLITE_HOME_ENV, home.path())
@@ -104,7 +104,7 @@ async fn migration_requires_consent_and_preserves_shared_database_mode() -> Resu
     );
     std::fs::remove_file(sqlite.logs_db_path())?;
 
-    let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
+    let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?);
     command
         .env("CODEX_HOME", home.path())
         .env(codex_state::SQLITE_HOME_ENV, home.path())

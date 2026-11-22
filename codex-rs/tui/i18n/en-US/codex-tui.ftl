@@ -3545,7 +3545,7 @@ app-experimental-features-save-failed = Failed to save { $label } setting: { $de
 app-experimental-features-save-in-progress = An experimental feature save is still in progress. Retry after it finishes.
 
 ## app/managed_worktree_creation.rs
-managed-worktree-daemon-cannot-check = The local Codex service cannot check background terminals. Run `ccn app-server daemon update --from-cli`, then restart Codex.
+managed-worktree-daemon-cannot-check = The local Codex service cannot check background terminals. Run `jjcn app-server daemon update --from-cli`, then restart Codex.
 managed-worktree-background-blocks-cd = Active background terminals block /cd.
 managed-worktree-untrusted-source = Cannot create a worktree from an explicitly untrusted source.
 managed-worktree-local-only = Managed worktrees are only supported for local sessions.

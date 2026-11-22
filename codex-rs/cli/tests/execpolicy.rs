@@ -29,7 +29,7 @@ prefix_rule(
 "#,
     )?;
 
-    let output = Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?)
+    let output = Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?)
         .env("CODEX_HOME", codex_home.path())
         .args([
             "execpolicy",
@@ -86,7 +86,7 @@ prefix_rule(
 "#,
     )?;
 
-    let output = Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?)
+    let output = Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?)
         .env("CODEX_HOME", codex_home.path())
         .args([
             "execpolicy",

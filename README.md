@@ -23,9 +23,9 @@ NTR stands here for Next-Tier Refined: refined, change by change, toward that ne
 the same letters stand for Native Tooling Ready, which still holds here: Claude Code's native
 configuration works as it is, with nothing to convert or migrate.
 
-For now, the program, its settings file and its environment variables are CodClaw NTR's (`ccn`,
-`ccn-config.toml`, `CCN_`), so either build can take the other's place on a machine; that ends as jjcn
-moves its settings to Claude Code's files (see [Direction](#direction)). The repository
+The program is `jjcn`. For now, its settings file and its environment variables are still CodClaw NTR's
+(`ccn-config.toml`, `CCN_`), so the two share one set of settings on a machine; that ends as jjcn moves
+its settings to Claude Code's files (see [Direction](#direction)). The repository
 starts as a copy of CodClaw NTR's `main` and takes its later changes from there.
 
 What it adds so far, each described in [jjcn refinements](./docs/jjcn.md):
@@ -138,7 +138,7 @@ See [Installing & building](./docs/install.md). In short, with Rust installed:
 ```shell
 cd codex-rs
 eval "$(bash ../scripts/fetch-rusty-v8.sh)"
-cargo build --release -p codex-cli --bin ccn
+cargo build --release -p codex-cli --bin jjcn
 cargo build --release -p codex-code-mode-host
 ```
 
@@ -146,10 +146,10 @@ cargo build --release -p codex-code-mode-host
 
 ## Usage
 
-Run `ccn` in a project. It signs in like Codex: choose **Sign in with ChatGPT**, or set up an API key as
+Run `jjcn` in a project. It signs in like Codex: choose **Sign in with ChatGPT**, or set up an API key as
 described in [Codex's authentication docs](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
 
-A build from source has no background server package: start the TUI with `ccn --no-daemon`.
+A build from source has no background server package: start the TUI with `jjcn --no-daemon`.
 
 To use Claude Code's tool set, create `~/.codex/ccn-config.toml`:
 

@@ -38,7 +38,7 @@ async fn cloud_list_respects_the_credential_store_and_trusted_destinations() -> 
     )?;
 
     let command = || -> Result<assert_cmd::Command> {
-        let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?);
+        let mut command = assert_cmd::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?);
         command
             .current_dir(codex_home.path())
             .env("CODEX_HOME", codex_home.path())

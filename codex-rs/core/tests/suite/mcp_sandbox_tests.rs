@@ -64,7 +64,7 @@ async fn mcp_server_enforces_sandbox_state_with_codex_sandbox() -> Result<()> {
     Mock::given(method("POST"))
         .and(path("/mcp"))
         .respond_with(SandboxMcpServer {
-            codex: cargo_bin("ccn")?,
+            codex: cargo_bin("jjcn")?,
             codex_home: sandbox_home.path().to_path_buf(),
             cwd: server_cwd.path().to_path_buf(),
         })

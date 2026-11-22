@@ -49,7 +49,7 @@ setup_remote_env() {
 
   (
     cd "${REPO_ROOT}/codex-rs"
-    cargo build -p codex-cli --bin ccn
+    cargo build -p codex-cli --bin jjcn
   )
 
   if [[ ! -f "${codex_binary_path}" ]]; then

@@ -584,7 +584,7 @@ impl Drop for TmuxSession {
 }
 
 fn codex_binary(repo_root: &Path) -> Result<PathBuf> {
-    if let Ok(path) = codex_utils_cargo_bin::cargo_bin("ccn") {
+    if let Ok(path) = codex_utils_cargo_bin::cargo_bin("jjcn") {
         return Ok(path);
     }
 

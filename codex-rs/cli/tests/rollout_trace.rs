@@ -36,7 +36,7 @@ use tokio::sync::oneshot;
 
 #[tokio::test]
 async fn enabled_recording_cannot_silently_fail_to_start() -> Result<()> {
-    let codex = codex_utils_cargo_bin::cargo_bin("ccn")?;
+    let codex = codex_utils_cargo_bin::cargo_bin("jjcn")?;
     let home = TempDir::new()?;
     let server = create_mock_responses_server_sequence(Vec::new()).await;
     MockResponsesConfig::new(&server.uri())
@@ -106,7 +106,7 @@ async fn enabled_recording_cannot_silently_fail_to_start() -> Result<()> {
 
 #[tokio::test]
 async fn accepted_output_survives_success_and_stream_failure() -> Result<()> {
-    let codex = codex_utils_cargo_bin::cargo_bin("ccn")?;
+    let codex = codex_utils_cargo_bin::cargo_bin("jjcn")?;
     for (source_id, terminal, status) in [
         (
             Some("msg-original"),
@@ -236,7 +236,7 @@ async fn accepted_output_survives_success_and_stream_failure() -> Result<()> {
 
 #[tokio::test]
 async fn accepted_output_survives_interruption_and_shutdown() -> Result<()> {
-    let codex = codex_utils_cargo_bin::cargo_bin("ccn")?;
+    let codex = codex_utils_cargo_bin::cargo_bin("jjcn")?;
     let home = TempDir::new()?;
     let traces = TempDir::new()?;
     let (release_response, response_gate) = oneshot::channel();

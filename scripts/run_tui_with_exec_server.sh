@@ -29,7 +29,7 @@ trap cleanup EXIT INT TERM HUP
 
 (
   cd "$cargo_root"
-  cargo run -p codex-cli --bin ccn -- exec-server --listen "$listen_url"
+  cargo run -p codex-cli --bin jjcn -- exec-server --listen "$listen_url"
 ) >"$stdout_log" 2>"$stderr_log" &
 server_pid="$!"
 

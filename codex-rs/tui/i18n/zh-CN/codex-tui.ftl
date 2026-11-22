@@ -3424,7 +3424,7 @@ app-experimental-features-save-failed = 保存 { $label } 设置失败：{ $deta
 app-experimental-features-save-in-progress = 实验性功能的保存仍在进行中。请等它完成后重试。
 
 ## app/managed_worktree_creation.rs
-managed-worktree-daemon-cannot-check = 本地 Codex 服务无法检查后台终端。请运行 `ccn app-server daemon update --from-cli`，然后重启 Codex。
+managed-worktree-daemon-cannot-check = 本地 Codex 服务无法检查后台终端。请运行 `jjcn app-server daemon update --from-cli`，然后重启 Codex。
 managed-worktree-background-blocks-cd = 活动的后台终端会阻止 /cd。
 managed-worktree-untrusted-source = 无法从明确不受信任的源创建 worktree。
 managed-worktree-local-only = 托管 worktree 仅支持本地会话。

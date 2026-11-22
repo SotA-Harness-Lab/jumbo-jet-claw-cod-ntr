@@ -1753,7 +1753,7 @@ async fn mcp_server_status_keeps_same_named_environment_inventory_separate() -> 
         ("env-b", TempDir::new()?, &second_url),
     ];
     let program = toml::Value::String(
-        codex_utils_cargo_bin::cargo_bin("ccn")?
+        codex_utils_cargo_bin::cargo_bin("jjcn")?
             .to_string_lossy()
             .into_owned(),
     );

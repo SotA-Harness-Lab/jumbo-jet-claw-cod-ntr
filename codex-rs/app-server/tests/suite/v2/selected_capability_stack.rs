@@ -833,7 +833,7 @@ async fn add_environment(app_server: &mut TestAppServer, exec_server_url: &str) 
 }
 
 async fn spawn_exec_server(codex_home: &std::path::Path, url: &str) -> Result<Child> {
-    let mut child = Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?)
+    let mut child = Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?)
         .args(["exec-server", "--listen", url])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

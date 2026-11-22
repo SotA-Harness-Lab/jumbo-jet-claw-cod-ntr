@@ -272,7 +272,7 @@ async fn stdin_token_startup(
         .expect(u64::from(matches!(expected, SkipPolicy | LoadPolicy)))
         .mount_as_scoped(&registry)
         .await;
-    let mut child = tokio::process::Command::new(codex_utils_cargo_bin::cargo_bin("ccn")?)
+    let mut child = tokio::process::Command::new(codex_utils_cargo_bin::cargo_bin("jjcn")?)
         .current_dir(home.path())
         .env("CODEX_HOME", home.path())
         .env("CODEX_CA_CERTIFICATE", ca)
