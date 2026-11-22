@@ -53,9 +53,10 @@ impl UnifiedExecFooter {
         }
 
         let count = self.processes.len();
-        Some(crate::i18n::tr!(
-            "unified-exec-footer-summary",
-            count = count
+        Some(tr!(
+            "1 background terminal running · /ps to view · /stop to close"
+                | "{count} background terminals running · /ps to view · /stop to close",
+            count
         ))
     }
 

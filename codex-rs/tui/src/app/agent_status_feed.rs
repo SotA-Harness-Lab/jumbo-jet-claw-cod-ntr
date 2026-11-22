@@ -39,12 +39,12 @@ impl HistoryCell for AgentStatusHistoryCell {
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
         let mut lines: Vec<Line<'static>> = vec![
             "/subagents".magenta().into(),
-            crate::i18n::tr!("agent-status-feed-heading").bold().into(),
+            tr!("Sub-agents running").bold().into(),
             "".into(),
         ];
 
         if self.entries.is_empty() {
-            lines.push(crate::i18n::tr!("agent-status-feed-none").italic().into());
+            lines.push(tr!("  • No sub-agents running.").italic().into());
             return lines;
         }
 
@@ -54,13 +54,7 @@ impl HistoryCell for AgentStatusHistoryCell {
             let preview_lines = entry.preview_lines(preview_width);
             if preview_lines.is_empty() {
                 lines.push(
-                    vec![
-                        "    ".into(),
-                        crate::i18n::tr!("agent-status-feed-no-activity")
-                            .dim()
-                            .italic(),
-                    ]
-                    .into(),
+                    vec!["    ".into(), tr!("No recent activity yet.").dim().italic()].into(),
                 );
             } else {
                 lines.extend(preview_lines.into_iter().map(indent_preview_line));
@@ -160,10 +154,7 @@ fn activity_summary(item: &ThreadItemPayload) -> Option<String> {
             return bounded_summary(&format!("$ {command}"));
         }
         ThreadItemPayload::FileChange { changes, .. } => {
-            return bounded_summary(&crate::i18n::tr!(
-                "agent-status-feed-updated-files",
-                count = changes.len()
-            ));
+            return bounded_summary(&tr!("Updated {count} file(s)", count = changes.len()));
         }
         ThreadItemPayload::McpToolCall { server, tool, .. } => {
             return bounded_summary(&format!("MCP {server}/{tool}"));
@@ -175,7 +166,7 @@ fn activity_summary(item: &ThreadItemPayload) -> Option<String> {
                 .as_ref()
                 .map(|namespace| format!("{namespace}/{tool}"))
                 .unwrap_or_else(|| tool.clone());
-            return bounded_summary(&crate::i18n::tr!("agent-status-feed-tool", tool = tool));
+            return bounded_summary(&tr!("Tool {tool}", tool));
         }
         ThreadItemPayload::CollabAgentToolCall { tool, .. } => {
             let action = match tool {
@@ -183,11 +174,11 @@ fn activity_summary(item: &ThreadItemPayload) -> Option<String> {
                 | CollabAgentTool::FollowupTask
                 | CollabAgentTool::InterruptAgent
                 | CollabAgentTool::ListAgents => return None,
-                CollabAgentTool::SpawnAgent => crate::i18n::tr!("agent-status-feed-spawned"),
-                CollabAgentTool::SendInput => crate::i18n::tr!("agent-status-feed-sent-input"),
-                CollabAgentTool::ResumeAgent => crate::i18n::tr!("agent-status-feed-resumed"),
-                CollabAgentTool::Wait => crate::i18n::tr!("agent-status-feed-waited"),
-                CollabAgentTool::CloseAgent => crate::i18n::tr!("agent-status-feed-closed"),
+                CollabAgentTool::SpawnAgent => tr!("Spawned an agent"),
+                CollabAgentTool::SendInput => tr!("Sent input to an agent"),
+                CollabAgentTool::ResumeAgent => tr!("Resumed an agent"),
+                CollabAgentTool::Wait => tr!("Waited for an agent"),
+                CollabAgentTool::CloseAgent => tr!("Closed an agent"),
             };
             return Some(action.to_string());
         }
@@ -195,40 +186,37 @@ fn activity_summary(item: &ThreadItemPayload) -> Option<String> {
             kind, agent_path, ..
         } => {
             let action = match kind {
-                SubAgentActivityKind::Started => crate::i18n::tr!("agent-status-feed-started"),
-                SubAgentActivityKind::Interacted => crate::i18n::tr!("agent-status-feed-contacted"),
+                SubAgentActivityKind::Started => tr!("Started"),
+                SubAgentActivityKind::Interacted => tr!("Contacted"),
                 SubAgentActivityKind::Interrupted => {
-                    crate::i18n::tr!("agent-status-feed-interrupted")
+                    tr!("Interrupted")
                 }
-                SubAgentActivityKind::Completed => crate::i18n::tr!("agent-status-feed-completed"),
+                SubAgentActivityKind::Completed => tr!("Completed"),
             };
-            return bounded_summary(&crate::i18n::tr!(
-                "agent-status-feed-action-agent",
-                action = action,
+            return bounded_summary(&tr!(
+                "{action} {agent_path}",
+                action,
                 agent_path = agent_path.to_string()
             ));
         }
         ThreadItemPayload::WebSearch(item) => {
-            return bounded_summary(&crate::i18n::tr!(
-                "agent-status-feed-web-search",
-                query = item.query.to_string()
-            ));
+            return bounded_summary(&tr!("Web search: {query}", query = item.query.to_string()));
         }
         ThreadItemPayload::ImageView { path, .. } => {
             let path = path.render_for_ui();
-            return bounded_summary(&crate::i18n::tr!("agent-status-feed-viewed", path = path));
+            return bounded_summary(&tr!("Viewed {path}", path));
         }
         ThreadItemPayload::ImageGeneration(_) => {
-            return Some(crate::i18n::tr!("agent-status-feed-generated-image").to_string());
+            return Some(tr!("Generated an image").to_string());
         }
         ThreadItemPayload::EnteredReviewMode { .. } => {
-            return Some(crate::i18n::tr!("agent-status-feed-entered-review").to_string());
+            return Some(tr!("Entered review mode").to_string());
         }
         ThreadItemPayload::ExitedReviewMode { .. } => {
-            return Some(crate::i18n::tr!("agent-status-feed-exited-review").to_string());
+            return Some(tr!("Exited review mode").to_string());
         }
         ThreadItemPayload::ContextCompaction { .. } => {
-            return Some(crate::i18n::tr!("agent-status-feed-compacted").to_string());
+            return Some(tr!("Compacted context").to_string());
         }
         ThreadItemPayload::UserMessage { .. }
         | ThreadItemPayload::HookPrompt { .. }

@@ -329,8 +329,8 @@ pub(crate) fn proper_join<T: AsRef<str>>(items: &[T]) -> String {
     match items.len() {
         0 => String::new(),
         1 => items[0].as_ref().to_string(),
-        2 => crate::i18n::tr!(
-            "text-formatting-and-two",
+        2 => tr!(
+            "{first} and {second}",
             first = items[0].as_ref().to_string(),
             second = items[1].as_ref().to_string()
         ),
@@ -345,11 +345,7 @@ pub(crate) fn proper_join<T: AsRef<str>>(items: &[T]) -> String {
                 result.push_str(item.as_ref());
             }
 
-            crate::i18n::tr!(
-                "text-formatting-and-last",
-                list = result,
-                last = last.to_string()
-            )
+            tr!("{list} and {last}", list = result, last = last.to_string())
         }
     }
 }

@@ -164,16 +164,16 @@ impl App {
         session: NewBackendSession,
         fresh_draft: &mut Option<StartupDraftPump>,
     ) -> Result<(), String> {
-        let slot = backends
-            .listening_slot(owner)
-            .ok_or(crate::i18n::tr!("backend-selection-connection-unavailable"))?;
+        let slot = backends.listening_slot(owner).ok_or(tr!(
+            "That connection is unavailable. Choose another and try again."
+        ))?;
         if self.windows_sandbox_blocks_thread_switch()
             || self.reject_pending_permission_root_switch()
         {
             return Ok(());
         }
         if self.voice_owner_thread_id().is_some() {
-            return Err(crate::i18n::tr!("backend-selection-end-voice-call").into());
+            return Err(tr!("End the voice call before switching.").into());
         }
         let displayed_thread = self.current_displayed_thread_id();
         let outgoing_slot = backends.displayed;
@@ -181,7 +181,7 @@ impl App {
         if let Some(thread_id) = displayed_thread
             && self.active_turn_id_for_thread(thread_id).await.is_some()
         {
-            return Err(crate::i18n::tr!("backend-selection-wait-for-turn").into());
+            return Err(tr!("Wait for the current turn to finish before switching.").into());
         }
         let mut settings = if !switching_backend {
             self.backend_settings()
@@ -190,7 +190,7 @@ impl App {
                 .settings
                 .get(&owner)
                 .cloned()
-                .ok_or(crate::i18n::tr!("backend-selection-settings-unavailable"))?
+                .ok_or(tr!("Connection settings are unavailable."))?
         };
         if settings.target == AppServerTarget::Cloud && self.chat_widget.thread_id().is_some() {
             self.remember_attached_host_project(backends.session_at(outgoing_slot));
@@ -241,8 +241,8 @@ impl App {
         let bootstrap = destination
             .bootstrap_for_new_thread(&settings.config)
             .map_err(|error| {
-                crate::i18n::tr!(
-                    "backend-selection-prepare-new-failed",
+                tr!(
+                    "Failed to prepare the new conversation: {error}",
                     error = error.to_string()
                 )
             });
@@ -311,8 +311,8 @@ impl App {
             .await
         };
         let Some((config, local_settings)) = loaded.map_err(|error| {
-            crate::i18n::tr!(
-                "backend-selection-read-defaults-failed",
+            tr!(
+                "Failed to read new session defaults: {error}",
                 error = error.to_string()
             )
         })?
@@ -339,8 +339,8 @@ impl App {
                 cloud_start,
             )
             .map_err(|error| {
-                crate::i18n::tr!(
-                    "backend-selection-start-new-failed",
+                tr!(
+                    "Failed to start the new conversation: {error}",
                     error = error.to_string()
                 )
             });
@@ -376,8 +376,8 @@ impl App {
                     return Ok(());
                 }
             }
-            return Err(crate::i18n::tr!(
-                "backend-selection-open-new-failed",
+            return Err(tr!(
+                "Failed to open the new conversation: {error}",
                 error = error.to_string()
             ));
         }
@@ -506,8 +506,8 @@ impl App {
                             .insert(user.clone(), key.clone());
                     }
                 }
-                Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "backend-selection-save-default-failed",
+                Err(error) => self.chat_widget.add_error_message(tr!(
+                    "Switched, but could not save the default for this project: {error}",
                     error = error.to_string()
                 )),
             }
@@ -617,19 +617,20 @@ impl App {
                 && self.active_turn_id_for_thread(thread_id).await.is_some()
             {
                 self.add_session_picker_error(
-                    crate::i18n::tr!("backend-selection-wait-for-turn").into(),
+                    tr!("Wait for the current turn to finish before switching.").into(),
                 );
                 return Ok(AppRunControl::Continue);
             }
             let Some(settings) = backends.settings.get(&owner).cloned() else {
                 self.add_session_picker_error(
-                    crate::i18n::tr!("backend-selection-settings-unavailable-reopen").into(),
+                    tr!("Connection settings are unavailable. Open the session picker again.")
+                        .into(),
                 );
                 return Ok(AppRunControl::Continue);
             };
             let Some(destination_slot) = backends.listening_slot(owner) else {
                 self.add_session_picker_error(
-                    crate::i18n::tr!("backend-selection-conversation-connection-unavailable")
+                    tr!("The connection for this conversation is unavailable. Open the session picker again.")
                         .into(),
                 );
                 return Ok(AppRunControl::Continue);
@@ -638,8 +639,8 @@ impl App {
             let bootstrap = match destination.bootstrap(&settings.config).await {
                 Ok(bootstrap) => bootstrap,
                 Err(error) => {
-                    let message = crate::i18n::tr!(
-                        "backend-selection-prepare-failed",
+                    let message = tr!(
+                        "Failed to prepare the conversation: {error}",
                         error = error.to_string()
                     );
                     self.add_session_picker_error(message);

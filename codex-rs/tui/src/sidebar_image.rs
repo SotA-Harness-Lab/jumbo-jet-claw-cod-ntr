@@ -63,7 +63,7 @@ impl SidebarImage {
         let format = reader
             .format()
             .filter(|format| supported_format(*format))
-            .ok_or_eyre(crate::i18n::tr!("sidebar-image-unsupported-format"))?;
+            .ok_or_eyre(tr!("Unsupported image format"))?;
         let mut limits = image::Limits::default();
         limits.max_alloc = Some(32 * 1024 * 1024);
         let image = crate::image_decode::decode_oriented(reader, limits)?;
@@ -99,11 +99,8 @@ impl SidebarImage {
             } else {
                 crate::footer_hint::HintLine::new(
                     [
-                        crate::footer_hint::shortcut("←/→", crate::i18n::tr!("sidebar-image-tabs")),
-                        crate::footer_hint::shortcut(
-                            "Esc",
-                            crate::i18n::tr!("sidebar-image-close"),
-                        ),
+                        crate::footer_hint::shortcut("←/→", tr!("tabs")),
+                        crate::footer_hint::shortcut("Esc", tr!("close")),
                     ],
                     footer.width,
                 )
@@ -127,7 +124,7 @@ impl SidebarImage {
                 .or_else(|| (protocol != ImageProtocol::Sixel).then_some((8, 16)))?;
             Some((protocol, size))
         }) else {
-            Line::from(crate::i18n::tr!("sidebar-image-preview-unavailable")).render(body, buf);
+            Line::from(tr!("Image preview unavailable in this terminal")).render(body, buf);
             return None;
         };
         let (width, height) = self.source_size;

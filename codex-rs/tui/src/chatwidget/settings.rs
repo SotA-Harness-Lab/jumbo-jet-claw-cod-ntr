@@ -50,14 +50,14 @@ impl ChatWidget {
 
     pub(super) fn daybreak_command_description(&self) -> Option<&'static str> {
         if self.daybreak_enabled {
-            Some(crate::i18n::tr!("settings-daybreak-disable"))
+            Some(tr!("Disable broader access for cybersecurity work"))
         } else if !self.daybreak_account_eligible() {
             None
         } else {
             match crate::daybreak::availability(&self.model_catalog.models) {
-                Some(true) => Some(crate::i18n::tr!("settings-daybreak-enable")),
-                Some(false) => Some(crate::i18n::tr!("settings-daybreak-learn")),
-                None => Some(crate::i18n::tr!("settings-daybreak-manage")),
+                Some(true) => Some(tr!("Enable broader access for cybersecurity work")),
+                Some(false) => Some(tr!("Learn about broader access for cybersecurity work")),
+                None => Some(tr!("Manage broader access for cybersecurity work")),
             }
         }
     }
@@ -427,8 +427,8 @@ impl ChatWidget {
     }
 
     pub(super) fn image_inputs_not_supported_message(&self) -> String {
-        crate::i18n::tr!(
-            "settings-image-inputs-unsupported",
+        tr!(
+            "Model {model} does not support image inputs. Remove images or switch models.",
             model = self.current_model().to_string()
         )
     }
@@ -679,8 +679,8 @@ impl ChatWidget {
         }
         let active_mode = self.active_mode_kind();
         active_mode.is_tui_visible().then(|| match active_mode {
-            ModeKind::Plan => crate::i18n::tr!("collaboration-mode-plan"),
-            ModeKind::Default => crate::i18n::tr!("collaboration-mode-default"),
+            ModeKind::Plan => tr!("Plan"),
+            ModeKind::Default => tr!("Default"),
         })
     }
 
@@ -795,20 +795,20 @@ impl ChatWidget {
             && (previous_model != next_model || previous_effort != next_effort)
         {
             let message = if next_model.starts_with("codex-auto-") {
-                crate::i18n::tr!(
-                    "settings-model-changed",
+                tr!(
+                    "Model changed to {model} for {mode} mode.",
                     model = next_model.to_string(),
                     mode = next_mode.display_name().to_string()
                 )
             } else {
                 let reasoning_label = match next_effort.as_ref() {
                     None | Some(ReasoningEffortConfig::None) => {
-                        crate::i18n::tr!("settings-reasoning-default")
+                        tr!("default")
                     }
                     Some(effort) => effort.as_str(),
                 };
-                crate::i18n::tr!(
-                    "settings-model-changed-effort",
+                tr!(
+                    "Model changed to {model} {effort} for {mode} mode.",
                     model = next_model.to_string(),
                     effort = reasoning_label.to_string(),
                     mode = next_mode.display_name().to_string()

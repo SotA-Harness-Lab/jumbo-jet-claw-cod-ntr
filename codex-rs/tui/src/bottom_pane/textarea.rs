@@ -467,9 +467,9 @@ impl TextArea {
             return None;
         }
         Some(match self.vim_mode {
-            VimMode::Normal => crate::i18n::tr!("textarea-vim-normal").magenta(),
-            VimMode::Insert => crate::i18n::tr!("textarea-vim-insert").green(),
-            VimMode::Replace => crate::i18n::tr!("textarea-vim-replace").cyan(),
+            VimMode::Normal => tr!("Vim: Normal").magenta(),
+            VimMode::Insert => tr!("Vim: Insert").green(),
+            VimMode::Replace => tr!("Vim: Replace").cyan(),
         })
     }
 

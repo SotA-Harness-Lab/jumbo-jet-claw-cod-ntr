@@ -24,11 +24,10 @@ impl App {
                 .apply()
                 .await;
         if let Err(error) = result {
-            self.chat_widget
-                .refresh_config_panel(/*notice*/ Some(crate::i18n::tr!(
-                    "config-panel-could-not-save",
-                    error = format_config_error(&error)
-                )));
+            self.chat_widget.refresh_config_panel(/*notice*/ Some(tr!(
+                "Could not save: {error}",
+                error = format_config_error(&error)
+            )));
             return;
         }
 
@@ -59,18 +58,17 @@ impl App {
         }
         .await
         .wrap_err_with(|| {
-            crate::i18n::tr!(
-                "config-panel-rebuild-config-failed",
+            tr!(
+                "Failed to rebuild config for cwd {cwd}",
                 cwd = config_cwd.display().to_string()
             )
         }) {
             Ok(settings) => settings,
             Err(error) => {
-                self.chat_widget
-                    .refresh_config_panel(/*notice*/ Some(crate::i18n::tr!(
-                        "config-panel-saved-reload-failed",
-                        error = error.to_string()
-                    )));
+                self.chat_widget.refresh_config_panel(/*notice*/ Some(tr!(
+                    "Saved, but could not reload: {error}",
+                    error = error.to_string()
+                )));
                 return;
             }
         };
@@ -123,7 +121,7 @@ impl App {
             ConfigPreference::ResumeDirectory(mode) => resolved.tui.resume_cwd == mode,
         };
         let notice = if !effective {
-            Some(crate::i18n::tr!("config-panel-saved-overridden"))
+            Some(tr!("Saved · overridden by config or system setting"))
         } else if matches!(
             preference,
             ConfigPreference::Toggle {
@@ -131,7 +129,7 @@ impl App {
                 ..
             }
         ) {
-            Some(crate::i18n::tr!("config-panel-saved-new-composers"))
+            Some(tr!("Saved · applies to new composers"))
         } else {
             None
         };
@@ -150,7 +148,7 @@ impl App {
     pub(super) fn schedule_config_notification_test(&mut self) {
         if self.config_notification_test_pending.is_some() {
             self.chat_widget.refresh_config_panel(/*notice*/ Some(
-                crate::i18n::tr!("config-panel-test-already-scheduled").into(),
+                tr!("Test already scheduled · switch apps").into(),
             ));
             return;
         }
@@ -160,7 +158,7 @@ impl App {
         let generation = self.config_notification_test_generation;
         self.config_notification_test_pending = Some(generation);
         self.chat_widget.refresh_config_panel(/*notice*/ Some(
-            crate::i18n::tr!("config-panel-test-scheduled").into(),
+            tr!("Test scheduled in 5s · switch apps").into(),
         ));
         let tx = self.app_event_tx.clone();
         tokio::spawn(async move {
@@ -174,15 +172,15 @@ impl App {
             return;
         }
         self.config_notification_test_pending = None;
-        let notice = if !tui.notify_test(crate::i18n::tr!("config-panel-notification-test")) {
-            crate::i18n::tr!("config-panel-test-send-failed")
+        let notice = if !tui.notify_test(tr!("Codex notification test")) {
+            tr!("Could not send test · check terminal connection")
         } else if codex_terminal_detection::terminal_info().name
             == codex_terminal_detection::TerminalName::Ghostty
             && tui.is_terminal_focused()
         {
-            crate::i18n::tr!("config-panel-test-sent-ghostty")
+            tr!("Test sent · Ghostty hides banners while focused")
         } else {
-            crate::i18n::tr!("config-panel-test-sent")
+            tr!("Test sent · check terminal/system settings")
         };
         if !self
             .chat_widget

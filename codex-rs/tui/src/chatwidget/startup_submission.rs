@@ -42,14 +42,8 @@ impl ChatWidget {
         {
             self.input_queue.startup_submission = Some(self.bottom_pane.composer_draft_snapshot());
             self.bottom_pane.set_footer_hint_override(Some(vec![
-                (
-                    crate::i18n::tr!("startup-submission-waiting").into(),
-                    String::new(),
-                ),
-                (
-                    "esc".into(),
-                    crate::i18n::tr!("startup-submission-cancel").into(),
-                ),
+                (tr!("Waiting for startup").into(), String::new()),
+                ("esc".into(), tr!("cancel").into()),
             ]));
         }
         if pending_draft.is_some()

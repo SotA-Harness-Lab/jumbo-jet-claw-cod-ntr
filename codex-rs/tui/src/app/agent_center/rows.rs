@@ -54,17 +54,17 @@ impl AgentsOverviewView {
         if indices.is_empty() {
             line(
                 if state.connection_notice.is_some() {
-                    crate::i18n::tr!("rows-reconnecting")
+                    tr!("Reconnecting…")
                 } else if state.history.is_some() {
-                    crate::i18n::tr!("rows-no-matching-tasks")
+                    tr!("No matching tasks")
                 } else if state.loading && self.rows.is_empty() {
-                    crate::i18n::tr!("rows-loading-tasks")
+                    tr!("Loading tasks…")
                 } else if state.refresh_failed {
-                    crate::i18n::tr!("rows-could-not-load-tasks")
+                    tr!("Could not load tasks")
                 } else if self.rows.is_empty() {
-                    crate::i18n::tr!("rows-no-tasks-yet")
+                    tr!("No tasks yet")
                 } else {
-                    crate::i18n::tr!("rows-no-matching-tasks")
+                    tr!("No matching tasks")
                 }
                 .dim(),
                 area,
@@ -85,9 +85,9 @@ impl AgentsOverviewView {
         let viewport = row(area, padding, area.height - padding * 2);
         if padding > 0 {
             let (title, status, updated) = columns(row(area, /*offset*/ 0, /*height*/ 1));
-            line(crate::i18n::tr!("rows-column-tasks").dim(), title, buf);
-            line(crate::i18n::tr!("rows-column-status").dim(), status, buf);
-            Line::from(crate::i18n::tr!("rows-column-updated").dim())
+            line(tr!("Tasks").dim(), title, buf);
+            line(tr!("Status").dim(), status, buf);
+            Line::from(tr!("Updated").dim())
                 .right_aligned()
                 .render(updated, buf);
         }
@@ -130,18 +130,18 @@ impl AgentsOverviewView {
                     );
                     let label = if let Some(search) = &state.history {
                         if search.loading {
-                            crate::i18n::tr!("rows-searching-history")
+                            tr!("Searching history…")
                         } else if search.failed {
-                            crate::i18n::tr!("rows-show-more-retry")
+                            tr!("Show more (retry)")
                         } else {
-                            crate::i18n::tr!("rows-show-more-matches")
+                            tr!("Show more matches")
                         }
                     } else if state.loading {
-                        crate::i18n::tr!("rows-loading-more")
+                        tr!("Loading more…")
                     } else if state.refresh_failed {
-                        crate::i18n::tr!("rows-show-more-retry")
+                        tr!("Show more (retry)")
                     } else {
-                        crate::i18n::tr!("rows-show-more")
+                        tr!("Show more")
                     };
                     let marker = if selected { "›" } else { " " };
                     line(
@@ -157,7 +157,7 @@ impl AgentsOverviewView {
             if matches!(entry, CenterRow::Group(_)) {
                 let group = match state.grouping {
                     AgentsOverviewGrouping::Status => task.group.label().to_owned(),
-                    _ if self.is_pinned(index) => crate::i18n::tr!("rows-pinned").to_owned(),
+                    _ if self.is_pinned(index) => tr!("Pinned").to_owned(),
                     AgentsOverviewGrouping::Project => format_directory_display(
                         &self.project_groups[index].heading,
                         /*max_width*/ None,
@@ -181,7 +181,7 @@ impl AgentsOverviewView {
                 let count = if count == total {
                     count.to_string()
                 } else {
-                    crate::i18n::tr!("rows-count-of-total", count = count, total = total)
+                    tr!("{count} of {total}", count, total)
                 };
                 let group = if matches!(
                     state.grouping,
@@ -246,11 +246,7 @@ impl AgentsOverviewView {
                     /*height*/ 1,
                 );
                 title.width -= 8;
-                line(
-                    Line::from(crate::i18n::tr!("rows-voice-badge")).style(style),
-                    badge,
-                    buf,
-                );
+                line(Line::from(tr!("  voice")).style(style), badge, buf);
             }
             let title_style = if index == self.selected {
                 style

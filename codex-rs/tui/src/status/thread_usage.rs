@@ -33,25 +33,15 @@ const REASONING_ORDER: [&str; 8] = [
 ];
 const SPEED_ORDER: [&str; 3] = ["Fast mode", "Ultrafast", "Standard"];
 
-fn models_label() -> &'static str {
-    crate::i18n::tr!("thread-usage-models-label")
-}
+const MODELS_LABEL: &str = "  Models";
 
-fn reasoning_label() -> &'static str {
-    crate::i18n::tr!("thread-usage-reasoning-label")
-}
+const REASONING_LABEL: &str = "  Reasoning";
 
-fn speed_label() -> &'static str {
-    crate::i18n::tr!("thread-usage-speed-label")
-}
+const SPEED_LABEL: &str = "  Speed";
 
-fn billed_tokens_label() -> &'static str {
-    crate::i18n::tr!("thread-usage-billed-tokens-label")
-}
+const BILLED_TOKENS_LABEL: &str = "  Billed tokens";
 
-fn thread_usage_label() -> &'static str {
-    crate::i18n::tr!("thread-usage-label")
-}
+const THREAD_USAGE_LABEL: &str = "Thread usage";
 
 /// The display form of a breakdown value. Values are grouped and ordered by their English
 /// names; only the text shown is translated.
@@ -59,31 +49,31 @@ fn localized_group_name(dimension: BreakdownDimension, name: &str) -> String {
     let text = match (dimension, name) {
         (BreakdownDimension::Model, "Other")
         | (BreakdownDimension::Reasoning, "Other")
-        | (BreakdownDimension::Speed, "Other") => crate::i18n::tr!("thread-usage-other"),
-        (BreakdownDimension::Reasoning, "None") => crate::i18n::tr!("thread-usage-reasoning-none"),
+        | (BreakdownDimension::Speed, "Other") => tr!("Other"),
+        (BreakdownDimension::Reasoning, "None") => tr!("None"),
         (BreakdownDimension::Reasoning, "Minimal") => {
-            crate::i18n::tr!("thread-usage-reasoning-minimal")
+            tr!("Minimal")
         }
         (BreakdownDimension::Reasoning, "Light") => {
-            crate::i18n::tr!("thread-usage-reasoning-light")
+            tr!("Light")
         }
         (BreakdownDimension::Reasoning, "Medium") => {
-            crate::i18n::tr!("thread-usage-reasoning-medium")
+            tr!("Medium")
         }
-        (BreakdownDimension::Reasoning, "High") => crate::i18n::tr!("thread-usage-reasoning-high"),
+        (BreakdownDimension::Reasoning, "High") => tr!("High"),
         (BreakdownDimension::Reasoning, "Extra High") => {
-            crate::i18n::tr!("thread-usage-reasoning-extra-high")
+            tr!("Extra High")
         }
-        (BreakdownDimension::Reasoning, "Max") => crate::i18n::tr!("thread-usage-reasoning-max"),
+        (BreakdownDimension::Reasoning, "Max") => tr!("Max"),
         (BreakdownDimension::Reasoning, "Ultra") => {
-            crate::i18n::tr!("thread-usage-reasoning-ultra")
+            tr!("Ultra")
         }
-        (BreakdownDimension::Speed, "Fast mode") => crate::i18n::tr!("thread-usage-speed-fast"),
+        (BreakdownDimension::Speed, "Fast mode") => tr!("Fast mode"),
         (BreakdownDimension::Speed, "Ultrafast") => {
-            crate::i18n::tr!("thread-usage-speed-ultrafast")
+            tr!("Ultrafast")
         }
         (BreakdownDimension::Speed, "Standard") => {
-            crate::i18n::tr!("thread-usage-speed-standard")
+            tr!("Standard")
         }
         _ => return name.to_string(),
     };
@@ -131,7 +121,7 @@ impl StatusThreadUsage {
         // Keep existing card rows stable when asynchronous billing details arrive. Reserving a
         // formatter label does not emit a loading placeholder or an empty billing row.
         if self.reserve_label_width.load(Ordering::Relaxed) {
-            push_label(labels, seen, billed_tokens_label());
+            push_label(labels, seen, BILLED_TOKENS_LABEL);
         }
         #[expect(clippy::expect_used)]
         let billing = self
@@ -141,17 +131,17 @@ impl StatusThreadUsage {
         let Some(estimate) = billing.estimate.as_ref() else {
             return;
         };
-        push_label(labels, seen, thread_usage_label());
+        push_label(labels, seen, THREAD_USAGE_LABEL);
         if !estimate.groups.is_empty() {
-            push_label(labels, seen, models_label());
-            push_label(labels, seen, reasoning_label());
-            push_label(labels, seen, speed_label());
+            push_label(labels, seen, MODELS_LABEL);
+            push_label(labels, seen, REASONING_LABEL);
+            push_label(labels, seen, SPEED_LABEL);
             if estimate
                 .groups
                 .iter()
                 .any(|group| group.input_tokens.is_some() || group.output_tokens.is_some())
             {
-                push_label(labels, seen, billed_tokens_label());
+                push_label(labels, seen, BILLED_TOKENS_LABEL);
             }
         }
     }
@@ -174,14 +164,14 @@ impl StatusThreadUsage {
             // Credit-weighted breakdowns do not describe native dollar usage.
             return thread_cost_micros(estimate, billing.plan)
                 .and_then(format_estimated_usd_micros)
-                .map(|cost| vec![formatter.line(thread_usage_label(), vec![cost.into()])])
+                .map(|cost| vec![formatter.line(THREAD_USAGE_LABEL, vec![cost.into()])])
                 .unwrap_or_default();
         }
 
         let credits_micros = estimate.estimated_usage_credits_micros;
         let mut usage = vec![
-            crate::i18n::tr!(
-                "thread-usage-credits",
+            tr!(
+                "{credits} credits",
                 credits = format_credit_micros(credits_micros)
             )
             .into(),
@@ -190,15 +180,15 @@ impl StatusThreadUsage {
             .estimated_usage_usd_micros
             .and_then(format_estimated_usd_micros)
         {
-            usage.push(crate::i18n::tr!("thread-usage-separator").dim());
+            usage.push(tr!(" · ").dim());
             usage.push(cost.into());
         }
-        let mut lines = vec![formatter.line(thread_usage_label(), usage)];
+        let mut lines = vec![formatter.line(THREAD_USAGE_LABEL, usage)];
 
         for (label, dimension) in [
-            (models_label(), BreakdownDimension::Model),
-            (reasoning_label(), BreakdownDimension::Reasoning),
-            (speed_label(), BreakdownDimension::Speed),
+            (MODELS_LABEL, BreakdownDimension::Model),
+            (REASONING_LABEL, BreakdownDimension::Reasoning),
+            (SPEED_LABEL, BreakdownDimension::Speed),
         ] {
             let Some(value) = grouped_usage(&estimate.groups, dimension) else {
                 continue;
@@ -228,13 +218,13 @@ impl StatusThreadUsage {
         if !estimate.groups.is_empty() && (input_tokens.is_some() || output_tokens.is_some()) {
             let mut tokens = Vec::new();
             if let Some(input_tokens) = input_tokens {
-                tokens.push(crate::i18n::tr!(
-                    "thread-usage-tokens-input",
+                tokens.push(tr!(
+                    "{tokens} input",
                     tokens = format_tokens_compact(input_tokens)
                 ));
                 if let Some(cached_tokens) = cached_tokens {
-                    tokens.push(crate::i18n::tr!(
-                        "thread-usage-tokens-cached",
+                    tokens.push(tr!(
+                        "({tokens} cached)",
                         tokens = format_tokens_compact(cached_tokens)
                     ));
                 }
@@ -243,12 +233,12 @@ impl StatusThreadUsage {
                 if !tokens.is_empty() {
                     tokens.push("+".to_string());
                 }
-                tokens.push(crate::i18n::tr!(
-                    "thread-usage-tokens-output",
+                tokens.push(tr!(
+                    "{tokens} output",
                     tokens = format_tokens_compact(output_tokens)
                 ));
             }
-            lines.push(formatter.line(billed_tokens_label(), vec![tokens.join(" ").into()]));
+            lines.push(formatter.line(BILLED_TOKENS_LABEL, vec![tokens.join(" ").into()]));
         }
 
         lines
@@ -351,10 +341,10 @@ fn grouped_usage(
                     (i128::from(credits) * 100 + i128::from(total_credits_micros) / 2)
                         / i128::from(total_credits_micros)
                 };
-                crate::i18n::tr!(
-                    "thread-usage-group-share",
+                tr!(
+                    "{name} {percentage}%",
                     name = localized_group_name(dimension, &name),
-                    percentage = percentage
+                    percentage
                 )
             })
             .collect::<Vec<_>>()

@@ -9,10 +9,10 @@
 use super::*;
 
 pub(super) fn compaction_header() -> &'static str {
-    crate::i18n::tr!("const-compaction-header")
+    tr!("Compacting context")
 }
 pub(super) fn compaction_details() -> &'static str {
-    crate::i18n::tr!("const-compaction-details")
+    tr!("Making room to continue.")
 }
 
 #[derive(Debug)]
@@ -44,12 +44,12 @@ impl ChatWidget {
         if self.status_state.compaction.take().is_some() {
             self.bottom_pane
                 .set_status_timer_origin(/*started_at*/ None);
-            self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
+            self.set_status_header(tr!("Working").to_string());
         }
     }
 
     pub(super) fn on_context_compaction_completed(&mut self, id: &str, from_replay: bool) {
-        let mut message = crate::i18n::tr!("compaction-context-compacted").to_string();
+        let mut message = tr!("Context compacted").to_string();
         if let Some(active) = self.status_state.compaction.as_ref()
             && active.id == id
         {
@@ -57,8 +57,7 @@ impl ChatWidget {
                 let elapsed = crate::status_indicator_widget::fmt_elapsed_compact(
                     active.started_at.elapsed().as_secs(),
                 );
-                message =
-                    crate::i18n::tr!("compaction-context-compacted-elapsed", elapsed = elapsed);
+                message = tr!("Context compacted · {elapsed}", elapsed);
             }
             self.clear_context_compaction();
         }

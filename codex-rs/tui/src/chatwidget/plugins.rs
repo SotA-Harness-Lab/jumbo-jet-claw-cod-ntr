@@ -69,8 +69,8 @@ impl ChatWidget {
     pub(crate) fn add_plugins_output(&mut self) {
         if !self.config.features.enabled(Feature::Plugins) {
             self.add_info_message(
-                crate::i18n::tr!("plugins-disabled").to_string(),
-                Some(crate::i18n::tr!("plugins-disabled-hint").to_string()),
+                tr!("Plugins are disabled.").to_string(),
+                Some(tr!("Enable the plugins feature to use /plugins.").to_string()),
             );
             return;
         }
@@ -290,10 +290,10 @@ impl ChatWidget {
         let tx = self.app_event_tx.clone();
         let cwd = self.config.cwd.to_path_buf();
         let view = CustomPromptView::new(
-            crate::i18n::tr!("plugins-add-marketplace").to_string(),
-            crate::i18n::tr!("plugins-add-marketplace-placeholder").to_string(),
+            tr!("Add marketplace").to_string(),
+            tr!("owner/repo, git URL, or local marketplace path").to_string(),
             String::new(),
-            Some(crate::i18n::tr!("plugins-add-marketplace-examples").to_string()),
+            Some(tr!("Examples: owner/repo, git URL, ./marketplace").to_string()),
             Box::new(move |source: String| {
                 let source = source.trim().to_string();
                 if source.is_empty() {
@@ -466,8 +466,11 @@ impl ChatWidget {
                 self.plugin_install_auth_flow = None;
                 if self.plugin_install_apps_needing_auth.is_empty() {
                     self.add_info_message(
-                        crate::i18n::tr!("plugins-installed", name = plugin_display_name.as_str()),
-                        Some(crate::i18n::tr!("plugins-no-auth-required").to_string()),
+                        tr!(
+                            "Installed {name} plugin.",
+                            name = plugin_display_name.as_str()
+                        ),
+                        Some(tr!("No additional app authentication is required.").to_string()),
                     );
                     true
                 } else {
@@ -478,11 +481,14 @@ impl ChatWidget {
                         .collect::<Vec<_>>()
                         .join(", ");
                     self.add_info_message(
-                        crate::i18n::tr!("plugins-installed", name = plugin_display_name.as_str()),
-                        Some(crate::i18n::tr!(
-                            "plugins-apps-need-auth",
+                        tr!(
+                            "Installed {name} plugin.",
+                            name = plugin_display_name.as_str()
+                        ),
+                        Some(tr!(
+                            "{count} app(s) still need authentication: {app_names}",
                             count = self.plugin_install_apps_needing_auth.len(),
-                            app_names = app_names
+                            app_names
                         )),
                     );
                     self.plugin_install_auth_flow = Some(PluginInstallAuthFlowState {
@@ -526,20 +532,20 @@ impl ChatWidget {
                 self.newly_installed_marketplace_tab_id =
                     (!response.already_added).then_some(marketplace_tab_id);
                 let message = if response.already_added {
-                    crate::i18n::tr!(
-                        "plugins-marketplace-already-added",
+                    tr!(
+                        "Marketplace {name} is already added.",
                         name = response.marketplace_name.as_str()
                     )
                 } else {
-                    crate::i18n::tr!(
-                        "plugins-marketplace-added",
+                    tr!(
+                        "Added marketplace {name}.",
                         name = response.marketplace_name.as_str()
                     )
                 };
                 self.add_info_message(
                     message,
-                    Some(crate::i18n::tr!(
-                        "plugins-marketplace-root",
+                    Some(tr!(
+                        "Marketplace root: {root}",
                         root = response.installed_root.as_path().display().to_string()
                     )),
                 );
@@ -573,17 +579,17 @@ impl ChatWidget {
             Ok(response) => {
                 self.plugins_active_tab_id = Some(ALL_PLUGINS_TAB_ID.to_string());
                 self.add_info_message(
-                    crate::i18n::tr!(
-                        "plugins-marketplace-removed",
+                    tr!(
+                        "Removed marketplace {name}.",
                         name = marketplace_display_name.as_str()
                     ),
                     Some(match response.installed_root {
-                        Some(installed_root) => crate::i18n::tr!(
-                            "plugins-marketplace-root",
+                        Some(installed_root) => tr!(
+                            "Marketplace root: {root}",
                             root = installed_root.as_path().display().to_string()
                         ),
-                        None => crate::i18n::tr!(
-                            "plugins-marketplace-config-removed",
+                        None => tr!(
+                            "Removed marketplace config for {name}.",
                             name = response.marketplace_name.as_str()
                         ),
                     }),
@@ -630,28 +636,28 @@ impl ChatWidget {
                 let error_count = response.errors.len();
                 if selected_count == 0 {
                     self.add_info_message(
-                        crate::i18n::tr!("plugins-no-git-marketplaces").to_string(),
-                        Some(crate::i18n::tr!("plugins-only-git-upgradable").to_string()),
+                        tr!("No configured Git marketplaces to upgrade.").to_string(),
+                        Some(tr!("Only configured Git marketplaces can be upgraded.").to_string()),
                     );
                     return;
                 }
 
                 if upgraded_count == 0 && error_count == 0 {
                     let message = if selected_count == 1 {
-                        crate::i18n::tr!(
-                            "plugins-marketplace-up-to-date",
+                        tr!(
+                            "Marketplace {name} is already up to date.",
                             name = response.selected_marketplaces[0].as_str()
                         )
                     } else {
-                        crate::i18n::tr!(
-                            "plugins-marketplaces-all-up-to-date",
+                        tr!(
+                            "Checked {count} marketplaces; all are already up to date.",
                             count = selected_count
                         )
                     };
                     self.add_info_message(
                         message,
-                        Some(crate::i18n::tr!(
-                            "plugins-checked",
+                        Some(tr!(
+                            "Checked: {names}",
                             names = response.selected_marketplaces.join(", ")
                         )),
                     );
@@ -660,9 +666,12 @@ impl ChatWidget {
 
                 if upgraded_count > 0 {
                     self.add_info_message(
-                        crate::i18n::tr!("plugins-upgraded", count = upgraded_count),
-                        Some(crate::i18n::tr!(
-                            "plugins-updated-roots",
+                        tr!(
+                            "Upgraded {count} marketplace." | "Upgraded {count} marketplaces.",
+                            count = upgraded_count
+                        ),
+                        Some(tr!(
+                            "Updated roots: {roots}",
                             roots = response
                                 .upgraded_roots
                                 .iter()
@@ -674,8 +683,9 @@ impl ChatWidget {
                 }
 
                 if error_count > 0 {
-                    self.add_error_message(crate::i18n::tr!(
-                        "plugins-upgrade-failed",
+                    self.add_error_message(tr!(
+                        "Failed to upgrade {count} marketplace: {errors}"
+                            | "Failed to upgrade {count} marketplaces: {errors}",
                         count = error_count,
                         errors = response
                             .errors
@@ -758,10 +768,10 @@ impl ChatWidget {
         }
 
         if let Err(err) = result {
-            self.add_error_message(crate::i18n::tr!(
-                "plugins-config-update-failed",
-                plugin_id = plugin_id,
-                err = err
+            self.add_error_message(tr!(
+                "Failed to update plugin config for {plugin_id}: {err}",
+                plugin_id,
+                err
             ));
             if let PluginsCacheState::Ready(response) = self.plugins_cache_for_current_cwd() {
                 self.refresh_plugins_popup_if_open(&response);
@@ -806,8 +816,11 @@ impl ChatWidget {
                 self.plugin_install_apps_needing_auth.clear();
                 self.plugin_install_auth_flow = None;
                 self.add_info_message(
-                    crate::i18n::tr!("plugins-uninstalled", name = plugin_display_name.as_str()),
-                    Some(crate::i18n::tr!("plugins-bundled-apps-remain").to_string()),
+                    tr!(
+                        "Uninstalled {name} plugin.",
+                        name = plugin_display_name.as_str()
+                    ),
+                    Some(tr!("Bundled apps remain installed.").to_string()),
                 );
             }
             Err(err) => {
@@ -867,21 +880,19 @@ impl ChatWidget {
         let current = flow.next_app_index + 1;
         let is_installed = self.plugin_install_auth_app_is_installed(app.id.as_str());
         let status_label = if is_installed {
-            crate::i18n::tr!("plugins-app-already-installed")
+            tr!("Already installed in this session.")
         } else {
-            crate::i18n::tr!("plugins-install-required-apps")
+            tr!("Install the required Apps in ChatGPT to continue:")
         };
         let mut header = ColumnRenderable::new();
         header.push(
-            ratatui::widgets::Paragraph::new(Line::from(
-                crate::i18n::tr!("plugins-heading").bold(),
-            ))
-            .wrap(ratatui::widgets::Wrap { trim: false }),
+            ratatui::widgets::Paragraph::new(Line::from(tr!("Plugins").bold()))
+                .wrap(ratatui::widgets::Wrap { trim: false }),
         );
         header.push(
             ratatui::widgets::Paragraph::new(Line::from(
-                crate::i18n::tr!(
-                    "plugins-plugin-installed",
+                tr!(
+                    "{name} plugin installed.",
                     name = flow.plugin_display_name.as_str()
                 )
                 .bold(),
@@ -890,10 +901,10 @@ impl ChatWidget {
         );
         header.push(
             ratatui::widgets::Paragraph::new(Line::from(
-                crate::i18n::tr!(
-                    "plugins-app-setup-progress",
-                    current = current,
-                    total = total,
+                tr!(
+                    "App setup {current}/{total}: {name}",
+                    current,
+                    total,
                     name = app.name.as_str()
                 )
                 .dim(),
@@ -909,14 +920,14 @@ impl ChatWidget {
 
         if let Some(install_url) = app.install_url.clone() {
             let install_label = if is_installed {
-                crate::i18n::tr!("plugins-manage-on-chatgpt")
+                tr!("Manage on ChatGPT")
             } else {
-                crate::i18n::tr!("plugins-install-on-chatgpt")
+                tr!("Install on ChatGPT")
             };
             items.push(SelectionItem {
                 name: install_label.to_string(),
-                description: Some(crate::i18n::tr!("plugins-open-app-management").to_string()),
-                selected_description: Some(crate::i18n::tr!("plugins-open-app-page").to_string()),
+                description: Some(tr!("Open the ChatGPT app management page").to_string()),
+                selected_description: Some(tr!("Open the app page in your browser").to_string()),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::OpenUrlInBrowser {
                         url: install_url.clone(),
@@ -926,8 +937,10 @@ impl ChatWidget {
             });
         } else {
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugins-apps-link-unavailable").to_string(),
-                description: Some(crate::i18n::tr!("plugins-no-install-url").to_string()),
+                name: tr!("ChatGPT apps link unavailable").to_string(),
+                description: Some(
+                    tr!("This app did not provide an install/manage URL").to_string(),
+                ),
                 is_disabled: true,
                 ..Default::default()
             });
@@ -935,13 +948,9 @@ impl ChatWidget {
 
         if is_installed {
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugins-continue").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugins-app-already-installed-desc").to_string(),
-                ),
-                selected_description: Some(
-                    crate::i18n::tr!("plugins-advance-next-app").to_string(),
-                ),
+                name: tr!("Continue").to_string(),
+                description: Some(tr!("This app is already installed").to_string()),
+                selected_description: Some(tr!("Advance to the next app").to_string()),
                 actions: vec![Box::new(|tx| {
                     tx.send(AppEvent::PluginInstallAuthAdvance {
                         refresh_connectors: false,
@@ -951,10 +960,12 @@ impl ChatWidget {
             });
         } else {
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugins-ive-installed-it").to_string(),
-                description: Some(crate::i18n::tr!("plugins-trust-confirmation").to_string()),
+                name: tr!("I've installed it").to_string(),
+                description: Some(
+                    tr!("Trust your confirmation and continue to the next app").to_string(),
+                ),
                 selected_description: Some(
-                    crate::i18n::tr!("plugins-continue-without-refresh").to_string(),
+                    tr!("Continue without waiting for refresh to complete").to_string(),
                 ),
                 actions: vec![Box::new(|tx| {
                     tx.send(AppEvent::PluginInstallAuthAdvance {
@@ -966,9 +977,9 @@ impl ChatWidget {
         }
 
         items.push(SelectionItem {
-            name: crate::i18n::tr!("plugins-skip-app-setup").to_string(),
-            description: Some(crate::i18n::tr!("plugins-stop-follow-up").to_string()),
-            selected_description: Some(crate::i18n::tr!("plugins-abandon-app-setup").to_string()),
+            name: tr!("Skip remaining app setup").to_string(),
+            description: Some(tr!("Stop this follow-up flow for this plugin").to_string()),
+            selected_description: Some(tr!("Abandon remaining required app setup").to_string()),
             actions: vec![Box::new(|tx| {
                 tx.send(AppEvent::PluginInstallAuthAbandon);
             })],
@@ -1010,19 +1021,22 @@ impl ChatWidget {
         self.plugin_install_apps_needing_auth.clear();
         if abandoned {
             self.add_info_message(
-                crate::i18n::tr!(
-                    "plugins-skipped-app-setup",
+                tr!(
+                    "Skipped remaining app setup for {name} plugin.",
                     name = flow.plugin_display_name.as_str()
                 ),
-                Some(crate::i18n::tr!("plugins-may-not-be-usable").to_string()),
+                Some(
+                    tr!("The plugin may not be usable until required apps are installed.")
+                        .to_string(),
+                ),
             );
         } else {
             self.add_info_message(
-                crate::i18n::tr!(
-                    "plugins-completed-app-setup",
+                tr!(
+                    "Completed app setup flow for {name} plugin.",
                     name = flow.plugin_display_name.as_str()
                 ),
-                Some(crate::i18n::tr!("plugins-continue-managing").to_string()),
+                Some(tr!("You can now continue managing plugins from /plugins.").to_string()),
             );
         }
 

@@ -174,8 +174,8 @@ async fn run_startup_hooks_review_app(
                         .await
                         .map(|_| ())
                         .map_err(|err| {
-                            crate::i18n::tr!(
-                                "startup-hooks-review-trust-failed",
+                            tr!(
+                                in "startup-hooks-review", "Failed to trust hooks: {error}",
                                 error = format_config_error(&err)
                             )
                         });
@@ -239,39 +239,29 @@ fn selection_view_params(
 ) -> SelectionViewParams {
     let count = review_needed_count(entry);
     let count_line = match count {
-        1 => crate::i18n::tr!("startup-hooks-review-one-changed").to_string(),
-        count => crate::i18n::tr!("startup-hooks-review-many-changed", count = count as i64),
+        1 => tr!("1 hook is new or changed.").to_string(),
+        count => tr!("{count} hooks are new or changed.", count = count as i64),
     };
     let mut header = ColumnRenderable::new();
-    header.push(Line::from(
-        crate::i18n::tr!("startup-hooks-review-title").bold(),
-    ));
+    header.push(Line::from(tr!("Hooks need review").bold()));
     header.push(Paragraph::new(Line::from(count_line).yellow()).wrap(Wrap { trim: false }));
     header.push(
         Paragraph::new(Line::from(
-            crate::i18n::tr!("startup-hooks-review-warning").dim(),
+            tr!("Hooks can run outside the sandbox after you trust them.").dim(),
         ))
         .wrap(Wrap { trim: false }),
     );
     if let Some(error) = trust_all_error {
         header.push(Paragraph::new(Line::from(error.to_string()).red()).wrap(Wrap { trim: false }));
     } else if trusting_all {
-        header.push(Line::from(
-            crate::i18n::tr!("startup-hooks-review-trusting").dim(),
-        ));
+        header.push(Line::from(tr!("Trusting hooks...").dim()));
     }
 
     let mut hints = Vec::new();
     if !trusting_all {
         for (action, label) in [
-            (
-                ListAction::Accept,
-                crate::i18n::tr!("startup-hooks-review-confirm"),
-            ),
-            (
-                ListAction::Cancel,
-                crate::i18n::tr!("startup-hooks-review-skip"),
-            ),
+            (ListAction::Accept, tr!("confirm")),
+            (ListAction::Cancel, tr!("skip")),
         ] {
             if let Some(hint) = keymap.list.primary_hint(action) {
                 if !hints.is_empty() {
@@ -286,19 +276,13 @@ fn selection_view_params(
     SelectionViewParams {
         footer_hint: Some(hints.into()),
         items: vec![
-            selection_item(
-                crate::i18n::tr!("startup-hooks-review-review"),
-                trusting_all,
-            ),
+            selection_item(tr!("Review hooks"), trusting_all),
             SelectionItem {
                 require_explicit_confirmation: true,
-                ..selection_item(
-                    crate::i18n::tr!("startup-hooks-review-trust-all"),
-                    trusting_all,
-                )
+                ..selection_item(tr!("Trust all and continue"), trusting_all)
             },
             selection_item(
-                crate::i18n::tr!("startup-hooks-review-continue-without"),
+                tr!("Continue without trusting (hooks won't run)"),
                 trusting_all,
             ),
         ],

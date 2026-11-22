@@ -175,9 +175,9 @@ impl App {
                 self.app_event_tx.clone(),
                 request.turn_revision,
             ),
-            RecapTrigger::Manual => self
-                .chat_widget
-                .add_error_message(crate::i18n::tr!("recap-failure").to_string()),
+            RecapTrigger::Manual => self.chat_widget.add_error_message(
+                tr!("Could not generate a recap. Please try again.").to_string(),
+            ),
         }
     }
 
@@ -189,8 +189,10 @@ impl App {
     ) {
         if app_server.thread_params_mode().settings_owner() == ThreadSettingsOwner::Server {
             if matches!(trigger, RecapTrigger::Manual) {
-                self.chat_widget
-                    .add_error_message(crate::i18n::tr!("recap-cloud-unavailable").to_string());
+                self.chat_widget.add_error_message(
+                    tr!("Conversation recaps are not available for cloud conversations.")
+                        .to_string(),
+                );
             }
             return;
         }
@@ -200,7 +202,7 @@ impl App {
         if self.recap.in_flight_request.is_some() {
             if matches!(trigger, RecapTrigger::Manual) {
                 self.chat_widget
-                    .add_error_message(crate::i18n::tr!("recap-in-progress").to_string());
+                    .add_error_message(tr!("A recap is already being generated.").to_string());
             }
             return;
         }
@@ -208,8 +210,9 @@ impl App {
         let history = recap_history(&self.transcript_cells);
         if history.is_empty() {
             if matches!(trigger, RecapTrigger::Manual) {
-                self.chat_widget
-                    .add_error_message(crate::i18n::tr!("recap-empty-history").to_string());
+                self.chat_widget.add_error_message(
+                    tr!("There is no conversation history to recap.").to_string(),
+                );
             }
             return;
         }

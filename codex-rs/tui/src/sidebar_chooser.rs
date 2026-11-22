@@ -48,7 +48,7 @@ pub(crate) fn resize_hint(full: &str, width: u16) -> Line<'_> {
     if full.width() <= usize::from(width) {
         full.dim()
     } else {
-        Line::from(crate::i18n::tr!("sidebar-chooser-resize-hint-short")).dim()
+        Line::from(tr!("←/→ resize · Enter/Esc done")).dim()
     }
 }
 
@@ -75,14 +75,8 @@ fn list_hint(keymap: &RuntimeKeymap, action: ListAction) -> Option<String> {
 
 pub(crate) fn creation_failure_text(message: &str, keymap: &RuntimeKeymap) -> String {
     let hints = [
-        (
-            ListAction::Accept,
-            crate::i18n::tr!("sidebar-chooser-hint-retry"),
-        ),
-        (
-            ListAction::Cancel,
-            crate::i18n::tr!("sidebar-chooser-hint-back"),
-        ),
+        (ListAction::Accept, tr!("retry")),
+        (ListAction::Cancel, tr!("back")),
     ]
     .into_iter()
     .filter_map(|(action, label)| Some(format!("{} {label}", list_hint(keymap, action)?)))
@@ -107,14 +101,10 @@ pub(crate) fn footer(
         let (hints, actions): (Vec<_>, Vec<_>) = [
             (
                 hint(ListAction::Cancel),
-                crate::i18n::tr!("sidebar-chooser-hint-back"),
+                tr!("back"),
                 Some(ChooserAction::Back),
             ),
-            (
-                hint(ListAction::MoveDown),
-                crate::i18n::tr!("sidebar-chooser-hint-scroll"),
-                None,
-            ),
+            (hint(ListAction::MoveDown), tr!("scroll"), None),
         ]
         .into_iter()
         .filter_map(|(key, label, action)| Some((footer_hint::shortcut(&key?, label), action)))
@@ -148,9 +138,9 @@ pub(crate) fn footer(
                         && matches!(o.state, OpenState::Failed(_))
                 })
             {
-                crate::i18n::tr!("sidebar-chooser-hint-retry")
+                tr!("retry")
             } else {
-                crate::i18n::tr!("sidebar-chooser-hint-open")
+                tr!("open")
             },
             Some(ChooserAction::Open(choice)),
         ),
@@ -160,9 +150,9 @@ pub(crate) fn footer(
                 .opening
                 .is_some_and(|o| !matches!(o.state, OpenState::Failed(_)))
             {
-                crate::i18n::tr!("sidebar-chooser-hint-cancel-opening")
+                tr!("cancel opening")
             } else {
-                crate::i18n::tr!("sidebar-chooser-hint-back")
+                tr!("back")
             },
             Some(ChooserAction::Back),
         ),
@@ -170,19 +160,15 @@ pub(crate) fn footer(
             selected_file
                 .filter(|_| visible && file_path_key_available(keymap))
                 .map(|_| "p".to_owned()),
-            crate::i18n::tr!("sidebar-chooser-hint-path"),
+            tr!("path"),
             Some(ChooserAction::FilePath),
         ),
         (
             (!movement.is_empty()).then_some(movement),
-            crate::i18n::tr!("sidebar-chooser-hint-move"),
+            tr!("move"),
             None,
         ),
-        (
-            hide,
-            crate::i18n::tr!("sidebar-chooser-hint-hide-pane"),
-            Some(ChooserAction::Hide),
-        ),
+        (hide, tr!("hide pane"), Some(ChooserAction::Hide)),
     ]
     .into_iter()
     .filter_map(|(keys, label, action)| Some((footer_hint::shortcut(&keys?, label), action)))
@@ -316,11 +302,11 @@ pub(crate) fn tab_strip(
                     Some(number) => match side_chat_label(&tabs.choices[number - 1]) {
                         Some(name) => name.to_owned(),
                         None if tabs.choices.len() > 1 => {
-                            crate::i18n::tr!("sidebar-chooser-side-n", number = number as i64)
+                            tr!("Side {number}", number = number as i64)
                         }
-                        None => crate::i18n::tr!("sidebar-chooser-side-chat").to_owned(),
+                        None => tr!("Side chat").to_owned(),
                     },
-                    None => crate::i18n::tr!("sidebar-chooser-side-chat").to_owned(),
+                    None => tr!("Side chat").to_owned(),
                 };
                 tabs.label_style.render(Line::from(name), width)
             }

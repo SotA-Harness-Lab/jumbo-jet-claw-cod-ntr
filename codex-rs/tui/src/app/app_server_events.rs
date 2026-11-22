@@ -633,11 +633,11 @@ impl App {
                     self.chat_widget
                         .retain_input_after_failed_permission_selection();
                 }
-                self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "app-server-events-windows-sandbox-setup-failed",
-                    error = result.error.unwrap_or_else(|| {
-                        crate::i18n::tr!("app-server-events-unknown-error").to_string()
-                    })
+                self.chat_widget.add_error_message(tr!(
+                    "Windows sandbox setup failed: {error}",
+                    error = result
+                        .error
+                        .unwrap_or_else(|| { tr!("unknown error").to_string() })
                 ));
             }
             return;

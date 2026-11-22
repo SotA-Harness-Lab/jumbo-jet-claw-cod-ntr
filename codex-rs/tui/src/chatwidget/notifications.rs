@@ -42,38 +42,37 @@ impl Notification {
     pub(super) fn display(&self) -> String {
         match self {
             Notification::AgentTurnComplete { response } => {
-                Notification::agent_turn_preview(response).unwrap_or_else(|| {
-                    crate::i18n::tr!("notifications-agent-turn-complete").to_string()
-                })
+                Notification::agent_turn_preview(response)
+                    .unwrap_or_else(|| tr!("Agent turn complete").to_string())
             }
             Notification::ExecApprovalRequested { subject } => {
-                crate::i18n::tr!(
-                    "notifications-approval-requested",
+                tr!(
+                    "Approval requested: {subject}",
                     subject = subject.to_string()
                 )
             }
             Notification::EditApprovalRequested { cwd, changes } => {
-                crate::i18n::tr!(
-                    "notifications-wants-to-edit",
+                tr!(
+                    "Codex wants to edit {target}",
                     target = if changes.len() == 1 {
                         #[allow(clippy::unwrap_used)]
                         display_path_for(changes.first().unwrap(), cwd)
                     } else {
-                        crate::i18n::tr!("notifications-n-files", count = changes.len())
+                        tr!("{count} files", count = changes.len())
                     }
                 )
             }
             Notification::ElicitationRequested { server_name } => {
-                crate::i18n::tr!(
-                    "notifications-approval-requested-by",
+                tr!(
+                    "Approval requested by {server_name}",
                     server_name = server_name.to_string()
                 )
             }
             Notification::PlanModePrompt { title } => {
-                crate::i18n::tr!("notifications-plan-mode-prompt", title = title.to_string())
+                tr!("Plan mode prompt: {title}", title = title.to_string())
             }
             Notification::AsyncQuestion { title } => {
-                crate::i18n::tr!("notifications-question", title = title.to_string())
+                tr!("Question: {title}", title = title.to_string())
             }
         }
     }

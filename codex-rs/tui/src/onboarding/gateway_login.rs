@@ -128,7 +128,7 @@ impl AuthModeWidget {
                 color_eyre::eyre::ensure!(
                     status.provider_id == provider_id,
                     "{}",
-                    crate::i18n::tr!("gateway-login-selected-gateway-changed")
+                    tr!("The selected gateway changed during sign-in.")
                 );
                 // Startup shows the device code for the selected chat before it requests models.
                 if status.required

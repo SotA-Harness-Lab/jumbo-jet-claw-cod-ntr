@@ -20,8 +20,8 @@ impl ChatWidget {
         let status = edited_goal_status(goal.status);
         let token_budget = goal.token_budget;
         let view = CustomPromptView::new(
-            crate::i18n::tr!("goal-menu-edit-goal").to_string(),
-            crate::i18n::tr!("goal-menu-type-objective").to_string(),
+            tr!("Edit goal").to_string(),
+            tr!("Type a goal objective and press Enter").to_string(),
             goal.objective,
             /*context_label*/ None,
             Box::new(move |objective: String| {
@@ -53,24 +53,21 @@ impl ChatWidget {
             });
         })];
         self.show_selection_view(SelectionViewParams {
-            title: Some(crate::i18n::tr!("goal-menu-resume-paused-title").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "goal-menu-goal-objective",
-                objective = objective
-            )),
+            title: Some("Resume paused goal?".to_string()),
+            subtitle: Some(tr!("Goal: {objective}", objective)),
             footer_hint: Some(standard_popup_hint_line()),
             initial_selected_idx: Some(0),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("goal-menu-resume-goal").to_string(),
-                    description: Some(crate::i18n::tr!("goal-menu-resume-goal-desc").to_string()),
+                    name: "Resume goal".to_string(),
+                    description: Some("Mark it active and continue when idle".to_string()),
                     actions: resume_actions,
                     dismiss_on_select: true,
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("goal-menu-leave-paused").to_string(),
-                    description: Some(crate::i18n::tr!("goal-menu-leave-paused-desc").to_string()),
+                    name: "Leave paused".to_string(),
+                    description: Some("Keep it paused; use /goal resume later".to_string()),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
@@ -92,37 +89,41 @@ impl ChatWidget {
 
 fn goal_summary_lines(goal: &AppThreadGoal) -> Vec<Line<'static>> {
     let mut lines = vec![
-        Line::from(crate::i18n::tr!("goal-menu-goal").bold()),
+        Line::from(tr!("Goal").bold()),
         Line::from(vec![
-            crate::i18n::tr!("goal-menu-status").dim(),
+            tr!("Status: ").dim(),
             goal_status_label(goal.status).to_string().into(),
         ]),
         Line::from(vec![
-            crate::i18n::tr!("goal-menu-objective").dim(),
+            tr!("Objective: ").dim(),
             goal.objective.clone().into(),
         ]),
         Line::from(vec![
-            crate::i18n::tr!("goal-menu-time-used").dim(),
+            tr!("Time used: ").dim(),
             format_goal_elapsed_seconds(goal.time_used_seconds).into(),
         ]),
         Line::from(vec![
-            crate::i18n::tr!("goal-menu-tokens-used").dim(),
+            tr!("Tokens used: ").dim(),
             format_tokens_compact(goal.tokens_used).into(),
         ]),
     ];
     if let Some(token_budget) = goal.token_budget {
         lines.push(Line::from(vec![
-            crate::i18n::tr!("goal-menu-token-budget").dim(),
+            tr!("Token budget: ").dim(),
             format_tokens_compact(token_budget).into(),
         ]));
     }
     let command_hint = match goal.status {
-        AppThreadGoalStatus::Active => crate::i18n::tr!("goal-menu-commands-active"),
+        AppThreadGoalStatus::Active => {
+            tr!("Commands: /goal edit, /goal pause, /goal clear")
+        }
         AppThreadGoalStatus::Paused
         | AppThreadGoalStatus::Blocked
-        | AppThreadGoalStatus::UsageLimited => crate::i18n::tr!("goal-menu-commands-paused"),
+        | AppThreadGoalStatus::UsageLimited => {
+            tr!("Commands: /goal edit, /goal resume, /goal clear")
+        }
         AppThreadGoalStatus::BudgetLimited | AppThreadGoalStatus::Complete => {
-            crate::i18n::tr!("goal-menu-commands-done")
+            tr!("Commands: /goal edit, /goal clear")
         }
     };
     lines.push(Line::default());
@@ -131,14 +132,15 @@ fn goal_summary_lines(goal: &AppThreadGoal) -> Vec<Line<'static>> {
 }
 
 fn goal_status_label(status: AppThreadGoalStatus) -> &'static str {
-    match status {
-        AppThreadGoalStatus::Active => crate::i18n::tr!("goal-menu-status-active"),
-        AppThreadGoalStatus::Paused => crate::i18n::tr!("goal-menu-status-paused"),
-        AppThreadGoalStatus::Blocked => crate::i18n::tr!("goal-menu-status-stalled"),
-        AppThreadGoalStatus::UsageLimited => crate::i18n::tr!("goal-menu-status-usage-limited"),
-        AppThreadGoalStatus::BudgetLimited => crate::i18n::tr!("goal-menu-status-budget-limited"),
-        AppThreadGoalStatus::Complete => crate::i18n::tr!("goal-menu-status-complete"),
-    }
+    let label = match status {
+        AppThreadGoalStatus::Active => "active",
+        AppThreadGoalStatus::Paused => "paused",
+        AppThreadGoalStatus::Blocked => "stalled",
+        AppThreadGoalStatus::UsageLimited => "usage limited",
+        AppThreadGoalStatus::BudgetLimited => "limited by budget",
+        AppThreadGoalStatus::Complete => "complete",
+    };
+    crate::i18n::translate(label, /*context*/ None)
 }
 
 fn edited_goal_status(status: AppThreadGoalStatus) -> AppThreadGoalStatus {

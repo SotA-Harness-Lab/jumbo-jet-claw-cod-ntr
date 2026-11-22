@@ -92,7 +92,7 @@ impl AsyncQuestions {
             has_input_focus,
             app_event_tx.clone(),
             enhanced_keys_supported,
-            crate::i18n::tr!("async-questions-type-answer").into(),
+            tr!("Type your answer").into(),
             disable_paste_burst,
             ChatComposerConfig {
                 reset_vim_on_submission: false,
@@ -130,7 +130,7 @@ impl AsyncQuestions {
     pub(super) fn progress_prefix_text(&self) -> String {
         let current = self.state.current_idx + 1;
         let total = self.unanswered_count();
-        crate::i18n::tr!("async-questions-progress", current = current, total = total)
+        tr!("{current} of {total}", current, total)
     }
 
     fn options(&self) -> &[String] {
@@ -248,9 +248,9 @@ impl AsyncQuestions {
             .iter()
             .any(|label| label.eq_ignore_ascii_case("Other"))
         {
-            crate::i18n::tr!("async-questions-other-write-answer")
+            tr!("Other (write an answer)")
         } else {
-            crate::i18n::tr!("async-questions-other")
+            tr!("Other")
         }
     }
 
@@ -258,7 +258,7 @@ impl AsyncQuestions {
         let text = if self.other_selected() {
             self.other_placeholder()
         } else {
-            crate::i18n::tr!("async-questions-type-answer")
+            tr!("Type your answer")
         };
         self.composer.set_placeholder_text(text.to_string());
     }

@@ -399,12 +399,7 @@ impl App {
             let source_for_event = source.clone();
             let result = fetch_marketplace_add(request_handle, cwd, source)
                 .await
-                .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-add-marketplace-failed",
-                        err = err.to_string()
-                    )
-                });
+                .map_err(|err| tr!("Failed to add marketplace: {err}", err = err.to_string()));
             app_event_tx.send(AppEvent::MarketplaceAddLoaded {
                 cwd: cwd_for_event,
                 source: source_for_event,
@@ -427,12 +422,7 @@ impl App {
             let marketplace_name_for_event = marketplace_name.clone();
             let result = fetch_marketplace_remove(request_handle, marketplace_name)
                 .await
-                .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-remove-marketplace-failed",
-                        err = err.to_string()
-                    )
-                });
+                .map_err(|err| tr!("Failed to remove marketplace: {err}", err = err.to_string()));
             app_event_tx.send(AppEvent::MarketplaceRemoveLoaded {
                 cwd: cwd_for_event,
                 marketplace_name: marketplace_name_for_event,
@@ -455,8 +445,8 @@ impl App {
             let result = fetch_marketplace_upgrade(request_handle, marketplace_name)
                 .await
                 .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-upgrade-marketplace-failed",
+                    tr!(
+                        "Failed to upgrade marketplace: {err}",
                         err = err.to_string()
                     )
                 });
@@ -483,12 +473,7 @@ impl App {
             let plugin_name_for_event = plugin_name.clone();
             let result = fetch_plugin_install(request_handle, location, plugin_name)
                 .await
-                .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-install-plugin-failed",
-                        err = err.to_string()
-                    )
-                });
+                .map_err(|err| tr!("Failed to install plugin: {err}", err = err.to_string()));
             app_event_tx.send(AppEvent::PluginInstallLoaded {
                 cwd: cwd_for_event,
                 location: location_for_event,
@@ -513,12 +498,7 @@ impl App {
             let plugin_id_for_event = plugin_id.clone();
             let result = fetch_plugin_uninstall(request_handle, plugin_id)
                 .await
-                .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-uninstall-plugin-failed",
-                        err = err.to_string()
-                    )
-                });
+                .map_err(|err| tr!("Failed to uninstall plugin: {err}", err = err.to_string()));
             app_event_tx.send(AppEvent::PluginUninstallLoaded {
                 cwd: cwd_for_event,
                 plugin_id: plugin_id_for_event,
@@ -561,8 +541,8 @@ impl App {
                 .await
                 .map(|_| ())
                 .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-update-plugin-config-failed",
+                    tr!(
+                        "Failed to update plugin config: {err}",
                         err = err.to_string()
                     )
                 });
@@ -604,8 +584,8 @@ impl App {
                 .await
                 .map(|_| ())
                 .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-update-hook-config-failed",
+                    tr!(
+                        "Failed to update hook config: {error}",
                         error = format_config_error(&err)
                     )
                 });
@@ -630,8 +610,8 @@ impl App {
                 .await
                 .map(|_| ())
                 .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-trust-hook-failed",
+                    tr!(
+                        "Failed to trust hook: {error}",
                         error = format_config_error(&err)
                     )
                 });
@@ -651,8 +631,8 @@ impl App {
                 .await
                 .map(|_| ())
                 .map_err(|err| {
-                    crate::i18n::tr!(
-                        "background-requests-trust-hooks-failed",
+                    tr!(
+                        "Failed to trust hooks: {error}",
                         error = format_config_error(&err)
                     )
                 });
@@ -695,7 +675,7 @@ impl App {
     ) {
         if destination == FeedbackDestination::LocalZip && app_server.uses_remote_workspace() {
             self.chat_widget.add_info_message(
-                crate::i18n::tr!("background-requests-feedback-zip-needs-local").to_string(),
+                tr!("Saving a feedback ZIP requires a local app server.").to_string(),
                 /*hint*/ None,
             );
             return;
@@ -742,7 +722,7 @@ impl App {
             Ok(FeedbackReceipt::Saved { path }) => {
                 self.chat_widget
                     .add_to_history(history_cell::new_info_event(
-                        crate::i18n::tr!("background-requests-feedback-zip-saved", path = path),
+                        tr!("Feedback ZIP saved to {path}", path),
                         /*hint*/ None,
                     ))
             }
@@ -827,10 +807,8 @@ impl App {
         let statuses = match result {
             Ok(statuses) => statuses,
             Err(err) => {
-                self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "background-requests-load-mcp-inventory-failed",
-                    err = err
-                ));
+                self.chat_widget
+                    .add_error_message(tr!("Failed to load MCP inventory: {err}", err));
                 return;
             }
         };
@@ -1056,19 +1034,19 @@ pub(super) async fn fetch_additional_plugin_remote_sections(
     if !remote_plugin_enabled {
         sections.push((
             "vertical",
-            crate::i18n::tr!("background-requests-section-openai-curated"),
+            tr!("OpenAI Curated"),
             vec![PluginListMarketplaceKind::Vertical],
         ));
     }
     sections.push((
         "workspace",
-        crate::i18n::tr!("background-requests-section-workspace"),
+        tr!("Workspace"),
         vec![PluginListMarketplaceKind::WorkspaceDirectory],
     ));
     if plugin_sharing_enabled {
         sections.push((
             "shared-with-me",
-            crate::i18n::tr!("background-requests-section-shared-with-me"),
+            tr!("Shared with me"),
             vec![PluginListMarketplaceKind::SharedWithMe],
         ));
     } else {
@@ -1109,24 +1087,24 @@ fn plugin_remote_section_error_message(label: &str, err: &str) -> String {
 fn plugin_remote_section_error_next_step(label: &str, err: &str) -> &'static str {
     let err = err.to_ascii_lowercase();
     if err.contains("api key auth is not supported") {
-        crate::i18n::tr!("background-requests-next-step-sign-in-chatgpt-auth")
+        tr!("Sign in with ChatGPT auth; API key auth cannot load remote plugin catalogs")
     } else if err.contains("authentication required")
         || err.contains("not signed in")
         || err.contains("not logged in")
     {
-        crate::i18n::tr!("background-requests-next-step-sign-in-retry-section")
+        tr!("Sign in to ChatGPT, then try loading this section again")
     } else if err.contains("codex plugins are disabled")
         || err.contains("plugin sharing is disabled")
         || err.contains("plugin sharing is not enabled")
         || err.contains("feature disabled")
     {
-        crate::i18n::tr!("background-requests-next-step-admin-enable-plugins")
+        tr!("Ask a workspace admin to enable Codex plugins or plugin sharing")
     } else if err.contains("workspace") && (err.contains("access") || err.contains("mismatch")) {
-        crate::i18n::tr!("background-requests-next-step-switch-workspace")
+        tr!("Switch to the matching workspace or ask the sharer for access")
     } else if err.contains("not found") || err.contains("status 404") {
-        crate::i18n::tr!("background-requests-next-step-check-workspace-access")
+        tr!("Check that you are signed in to the correct workspace and still have access")
     } else if err.contains("old build") || err.contains("update codex") || err.contains("stale") {
-        crate::i18n::tr!("background-requests-next-step-update-codex")
+        tr!("Update Codex, then try opening the shared plugin again")
     } else if err.contains("service unavailable")
         || err.contains("temporarily unavailable")
         || err.contains("status 503")
@@ -1134,14 +1112,11 @@ fn plugin_remote_section_error_next_step(label: &str, err: &str) -> &'static str
         || err.contains("request")
         || err.contains("status")
     {
-        crate::i18n::tr!("background-requests-next-step-try-again-later")
+        tr!("Try again later; local plugin functionality is still available")
     } else if err.contains("disabled by admin") || err.contains("admin disabled") {
-        crate::i18n::tr!("background-requests-next-step-admin-confirm-access")
-    } else if label == crate::i18n::tr!("background-requests-section-shared-with-me")
-        && err.contains("plugin")
-        && err.contains("disabled")
-    {
-        crate::i18n::tr!("background-requests-next-step-sharer-confirm-access")
+        tr!("Ask a workspace admin to confirm plugin access")
+    } else if label == tr!("Shared with me") && err.contains("plugin") && err.contains("disabled") {
+        tr!("Ask the sharer or a workspace admin to confirm plugin access")
     } else {
         ""
     }
@@ -1150,8 +1125,9 @@ fn plugin_remote_section_error_next_step(label: &str, err: &str) -> &'static str
 fn plugin_sharing_disabled_remote_section_error() -> PluginRemoteSectionError {
     PluginRemoteSectionError {
         section_id: "shared-with-me".to_string(),
-        label: crate::i18n::tr!("background-requests-section-shared-with-me").to_string(),
-        message: crate::i18n::tr!("background-requests-enable-plugin-sharing").to_string(),
+        label: tr!("Shared with me").to_string(),
+        message: tr!("Enable plugin sharing for this Codex session to load shared plugins")
+            .to_string(),
     }
 }
 

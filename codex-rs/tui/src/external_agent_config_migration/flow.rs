@@ -65,8 +65,8 @@ impl ExternalAgentConfigDetection {
         source: ExternalAgentConfigMigrationSource,
         error: impl std::fmt::Display,
     ) {
-        self.errors.push(crate::i18n::tr!(
-            "import-flow-source-error",
+        self.errors.push(tr!(
+            "{source}: {error}",
             source = source.label(),
             error = error.to_string()
         ));
@@ -78,8 +78,8 @@ impl ExternalAgentConfigDetection {
         } else if self.errors.is_empty() {
             ExternalAgentConfigDetectionOutcome::NoItems
         } else {
-            ExternalAgentConfigDetectionOutcome::Failed(crate::i18n::tr!(
-                "import-flow-check-failed",
+            ExternalAgentConfigDetectionOutcome::Failed(tr!(
+                "Could not check for importable setup: {errors}",
                 errors = self.errors.join("; ")
             ))
         }
@@ -154,20 +154,16 @@ fn external_agent_config_migration_started_lines(
     let mut lines = vec![
         vec![
             "• ".dim(),
-            crate::i18n::tr!("import-flow-started").cyan(),
-            crate::i18n::tr!("import-flow-keep-working").into(),
+            tr!("Import started.").cyan(),
+            tr!(" You can keep working while it finishes.").into(),
         ]
         .into(),
         vec![
             "  ".into(),
-            crate::i18n::tr!("import-flow-applies-new-chats").dim(),
+            tr!("Imported setup will apply to new chats.").dim(),
         ]
         .into(),
-        vec![
-            "  ".into(),
-            crate::i18n::tr!("import-flow-importing").cyan().bold(),
-        ]
-        .into(),
+        vec!["  ".into(), tr!("Importing:").cyan().bold()].into(),
     ];
     lines.extend(
         import_summaries
@@ -183,8 +179,8 @@ fn external_agent_config_migration_started_lines(
                     let shown_names = names.iter().take(3).copied().collect::<Vec<_>>();
                     let mut name_summary = shown_names.join(", ");
                     if names.len() > shown_names.len() {
-                        name_summary.push_str(&crate::i18n::tr!(
-                            "import-flow-more",
+                        name_summary.push_str(&tr!(
+                            ", +{count} more",
                             count = (names.len() - shown_names.len()) as i64
                         ));
                     }
@@ -213,15 +209,15 @@ pub(crate) fn external_agent_config_migration_finished_lines(
         .map(|type_result| type_result.failures.len())
         .sum::<usize>();
     let failed_count = if failed_count == 0 {
-        crate::i18n::tr!("import-flow-failed-count", count = failed_count as i64).green()
+        tr!("{count} failed", count = failed_count as i64).green()
     } else {
-        crate::i18n::tr!("import-flow-failed-count", count = failed_count as i64).red()
+        tr!("{count} failed", count = failed_count as i64).red()
     };
     let mut lines = vec![
         vec![
             "• ".dim(),
-            crate::i18n::tr!("import-flow-finished").into(),
-            crate::i18n::tr!("import-flow-imported-count", count = imported_count as i64).green(),
+            tr!("Import finished: ").into(),
+            tr!("{count} imported", count = imported_count as i64).green(),
             ", ".into(),
             failed_count,
             ".".into(),
@@ -229,20 +225,9 @@ pub(crate) fn external_agent_config_migration_finished_lines(
         .into(),
     ];
     if !notification.item_type_results.is_empty() {
-        lines.push(
-            vec![
-                "  ".into(),
-                crate::i18n::tr!("import-flow-results-by-type")
-                    .cyan()
-                    .bold(),
-            ]
-            .into(),
-        );
+        lines.push(vec!["  ".into(), tr!("Results by type:").cyan().bold()].into());
         lines.extend(notification.item_type_results.iter().map(|type_result| {
-            let failed_count = crate::i18n::tr!(
-                "import-flow-failed-count",
-                count = type_result.failures.len() as i64
-            );
+            let failed_count = tr!("{count} failed", count = type_result.failures.len() as i64);
             let failed_count = if type_result.failures.is_empty() {
                 failed_count.green()
             } else {
@@ -252,8 +237,8 @@ pub(crate) fn external_agent_config_migration_finished_lines(
                 "    ".into(),
                 external_agent_config_migration_type_label(type_result.item_type).cyan(),
                 ": ".into(),
-                crate::i18n::tr!(
-                    "import-flow-imported-count",
+                tr!(
+                    "{count} imported",
                     count = type_result.successes.len() as i64
                 )
                 .green(),
@@ -263,15 +248,22 @@ pub(crate) fn external_agent_config_migration_finished_lines(
             .into()
         }));
     }
-    lines.push(vec!["  ".into(), crate::i18n::tr!("import-flow-run-again").dim()].into());
+    lines.push(
+        vec![
+            "  ".into(),
+            tr!("Run /import again to check for additional items.").dim(),
+        ]
+        .into(),
+    );
     lines
 }
 
 fn remaining_items_handoff(remaining_item_count: usize) -> Option<String> {
     match remaining_item_count {
         0 => None,
-        _ => Some(crate::i18n::tr!(
-            "import-flow-remaining",
+        _ => Some(tr!(
+            "1 additional item remains. After it finishes, run /import again to review it."
+                | "{count} additional items remain. After it finishes, run /import again to review them.",
             count = remaining_item_count as i64
         )),
     }
@@ -339,7 +331,7 @@ pub(crate) async fn handle_external_agent_config_migration_prompt(
         .into_iter()
         .find(|detected| detected.source == selected_source)
     else {
-        return Err(crate::i18n::tr!("import-flow-source-gone").to_string());
+        return Err(tr!("Selected import source is no longer available.").to_string());
     };
     let detected_items = detected_source.items;
 
@@ -381,10 +373,7 @@ pub(crate) async fn handle_external_agent_config_migration_prompt(
                             cwd = ?cwd,
                             "failed to import external agent config migration items"
                         );
-                        error = Some(crate::i18n::tr!(
-                            "import-flow-failed",
-                            err = err.to_string()
-                        ));
+                        error = Some(tr!("Import failed: {err}", err = err.to_string()));
                     }
                 }
             }

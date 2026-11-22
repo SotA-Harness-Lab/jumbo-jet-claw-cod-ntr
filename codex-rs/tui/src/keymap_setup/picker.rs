@@ -94,26 +94,26 @@ fn keymap_context_tabs() -> Vec<KeymapContextTab> {
     vec![
         KeymapContextTab {
             id: "app-shortcuts",
-            label: crate::i18n::tr!("picker-tab-app"),
-            description: crate::i18n::tr!("picker-tab-app-desc"),
+            label: tr!("App"),
+            description: tr!("Global and chat-level shortcuts."),
             contexts: &["global", "chat"],
         },
         KeymapContextTab {
             id: "composer-shortcuts",
-            label: crate::i18n::tr!("picker-tab-composer"),
-            description: crate::i18n::tr!("picker-tab-composer-desc"),
+            label: tr!("Composer"),
+            description: tr!("Composer submission and queue shortcuts."),
             contexts: &["composer"],
         },
         KeymapContextTab {
             id: "editor-shortcuts",
-            label: crate::i18n::tr!("picker-tab-editor"),
-            description: crate::i18n::tr!("picker-tab-editor-desc"),
+            label: tr!("Editor"),
+            description: tr!("Inline editor movement and editing shortcuts."),
             contexts: &["editor"],
         },
         KeymapContextTab {
             id: "vim-shortcuts",
-            label: crate::i18n::tr!("picker-tab-vim"),
-            description: crate::i18n::tr!("picker-tab-vim-desc"),
+            label: tr!("Vim"),
+            description: tr!("Vim normal-mode and operator shortcuts."),
             contexts: &[
                 "vim_normal",
                 "vim_operator",
@@ -123,20 +123,20 @@ fn keymap_context_tabs() -> Vec<KeymapContextTab> {
         },
         KeymapContextTab {
             id: "navigation-shortcuts",
-            label: crate::i18n::tr!("picker-tab-navigation"),
-            description: crate::i18n::tr!("picker-tab-navigation-desc"),
+            label: tr!("Navigation"),
+            description: tr!("Pager and selection-list navigation shortcuts."),
             contexts: &["pager", "list"],
         },
         KeymapContextTab {
             id: "agents-shortcuts",
-            label: crate::i18n::tr!("picker-tab-agents"),
-            description: crate::i18n::tr!("picker-tab-agents-desc"),
+            label: tr!("Agents"),
+            description: tr!("Shared agents dashboard shortcuts."),
             contexts: &["agents"],
         },
         KeymapContextTab {
             id: "approval-shortcuts",
-            label: crate::i18n::tr!("picker-tab-approval"),
-            description: crate::i18n::tr!("picker-tab-approval-desc"),
+            label: tr!("Approval"),
+            description: tr!("Approval prompt shortcuts."),
             contexts: &["approval"],
         },
     ]
@@ -220,20 +220,20 @@ fn build_keymap_picker_params_for_action(
     let mut tabs = Vec::new();
     tabs.push(SelectionTab {
         id: KEYMAP_ALL_TAB_ID.to_string(),
-        label: crate::i18n::tr!("picker-tab-all").to_string(),
+        label: tr!("All").to_string(),
         header: keymap_header(
-            crate::i18n::tr!("picker-all-desc").to_string(),
-            crate::i18n::tr!(
-                "picker-all-summary",
-                total = total,
-                custom_count = custom_count,
-                unbound_count = unbound_count
+            tr!("All configurable shortcuts.").to_string(),
+            tr!(
+                "{total} actions, {custom_count} customized, {unbound_count} unbound.",
+                total,
+                custom_count,
+                unbound_count
             ),
         ),
         items: keymap_selection_items(
             rows.iter(),
-            crate::i18n::tr!("picker-no-shortcuts"),
-            crate::i18n::tr!("picker-no-configurable-shortcuts"),
+            tr!("No shortcuts available"),
+            tr!("No configurable shortcuts are available"),
         ),
     });
 
@@ -241,15 +241,15 @@ fn build_keymap_picker_params_for_action(
     let common_count = common_rows.len();
     tabs.push(SelectionTab {
         id: KEYMAP_COMMON_TAB_ID.to_string(),
-        label: crate::i18n::tr!("picker-tab-common").to_string(),
+        label: tr!("Common").to_string(),
         header: keymap_header(
-            crate::i18n::tr!("picker-common-desc").to_string(),
+            tr!("Frequently customized shortcuts.").to_string(),
             action_count_line(common_count),
         ),
         items: keymap_selection_items(
             common_rows,
-            crate::i18n::tr!("picker-no-common"),
-            crate::i18n::tr!("picker-no-common-actions"),
+            tr!("No common shortcuts"),
+            tr!("No common shortcut actions are available"),
         ),
     });
 
@@ -259,15 +259,15 @@ fn build_keymap_picker_params_for_action(
         .collect::<Vec<_>>();
     tabs.push(SelectionTab {
         id: KEYMAP_CUSTOM_TAB_ID.to_string(),
-        label: crate::i18n::tr!("picker-tab-customized", custom_count = custom_count),
+        label: tr!("Customized ({custom_count})", custom_count),
         header: keymap_header(
-            crate::i18n::tr!("picker-customized-desc").to_string(),
+            tr!("Root-level shortcut overrides.").to_string(),
             action_count_line(custom_count),
         ),
         items: keymap_selection_items(
             custom_rows,
-            crate::i18n::tr!("picker-no-customized"),
-            crate::i18n::tr!("picker-no-overrides"),
+            tr!("No customized shortcuts"),
+            tr!("No root-level keymap overrides have been configured"),
         ),
     });
 
@@ -277,15 +277,15 @@ fn build_keymap_picker_params_for_action(
         .collect::<Vec<_>>();
     tabs.push(SelectionTab {
         id: KEYMAP_UNBOUND_TAB_ID.to_string(),
-        label: crate::i18n::tr!("picker-tab-unbound", unbound_count = unbound_count),
+        label: tr!("Unbound ({unbound_count})", unbound_count),
         header: keymap_header(
-            crate::i18n::tr!("picker-unbound-desc").to_string(),
+            tr!("Actions without an active shortcut.").to_string(),
             action_count_line(unbound_count),
         ),
         items: keymap_selection_items(
             unbound_rows,
-            crate::i18n::tr!("picker-no-unbound"),
-            crate::i18n::tr!("picker-all-bound"),
+            tr!("No unbound shortcuts"),
+            tr!("Every configurable action currently has a shortcut"),
         ),
     });
 
@@ -301,8 +301,8 @@ fn build_keymap_picker_params_for_action(
             header: keymap_header(tab.description.to_string(), action_count_line(count)),
             items: keymap_selection_items(
                 tab_rows,
-                crate::i18n::tr!("picker-no-group-shortcuts"),
-                crate::i18n::tr!("picker-no-group-actions"),
+                tr!("No shortcuts in this group"),
+                tr!("No configurable actions are available in this group"),
             ),
         });
     }
@@ -320,7 +320,7 @@ fn build_keymap_picker_params_for_action(
         tabs,
         initial_tab_id: Some(KEYMAP_ALL_TAB_ID.to_string()),
         is_searchable: true,
-        search_placeholder: Some(crate::i18n::tr!("picker-search-shortcuts").to_string()),
+        search_placeholder: Some("Type to search shortcuts".to_string()),
         col_width_mode: ColumnWidthMode::AutoAllRows,
         row_display: SelectionRowDisplay::SingleLine,
         name_column_width,
@@ -332,16 +332,16 @@ fn build_keymap_picker_params_for_action(
 fn keymap_debug_tab() -> SelectionTab {
     SelectionTab {
         id: KEYMAP_DEBUG_TAB_ID.to_string(),
-        label: crate::i18n::tr!("picker-tab-debug").to_string(),
+        label: tr!("Debug").to_string(),
         header: keymap_header(
-            crate::i18n::tr!("picker-debug-desc").to_string(),
-            crate::i18n::tr!("picker-debug-summary").to_string(),
+            tr!("Inspect keypresses from your terminal.").to_string(),
+            tr!("See the key Codex detects and any shortcuts assigned to it.").to_string(),
         ),
         items: vec![SelectionItem {
-            name: crate::i18n::tr!("picker-inspect-keypresses").to_string(),
-            description: Some(crate::i18n::tr!("picker-inspect-hint").to_string()),
+            name: tr!("Inspect keypresses").to_string(),
+            description: Some(tr!("Press Enter, then any key to inspect it (Ctrl+C exits)").to_string()),
             selected_description: Some(
-                crate::i18n::tr!("picker-inspect-selected-hint").to_string(),
+                tr!("Open a live inspector that shows the detected key, config key, and matching actions").to_string(),
             ),
             actions: vec![Box::new(|tx| {
                 tx.send(AppEvent::OpenKeymapDebug);
@@ -464,7 +464,7 @@ fn keymap_row_prefix(row: &KeymapActionRow) -> Vec<Span<'static>> {
 
 fn keymap_header(description: String, summary: String) -> Box<dyn Renderable> {
     let mut header = ColumnRenderable::new();
-    header.push(Line::from(crate::i18n::tr!("picker-keymap-title").bold()));
+    header.push(Line::from(tr!("Keymap").bold()));
     header.push(Line::from(description.dim()));
     header.push(Line::from(summary.dim()));
     Box::new(header)
@@ -472,18 +472,18 @@ fn keymap_header(description: String, summary: String) -> Box<dyn Renderable> {
 
 fn action_count_line(count: usize) -> String {
     match count {
-        1 => crate::i18n::tr!("picker-one-action").to_string(),
-        _ => crate::i18n::tr!("picker-n-actions", count = count),
+        1 => tr!("1 action.").to_string(),
+        _ => tr!("{count} actions.", count),
     }
 }
 
 fn keymap_picker_hint_line() -> Line<'static> {
     [
-        ("left/right", crate::i18n::tr!("picker-hint-group")),
-        ("enter", crate::i18n::tr!("picker-hint-edit")),
-        ("*", crate::i18n::tr!("picker-hint-custom")),
-        ("-", crate::i18n::tr!("picker-hint-unbound")),
-        ("esc", crate::i18n::tr!("picker-hint-close")),
+        ("left/right", tr!(" group · ")),
+        ("enter", tr!(" edit shortcut · ")),
+        ("*", tr!(" custom · ")),
+        ("-", tr!(" unbound · ")),
+        ("esc", tr!(" close")),
     ]
     .into_iter()
     .flat_map(|(key, label)| {
@@ -496,14 +496,9 @@ fn keymap_picker_hint_line() -> Line<'static> {
 
 fn keymap_debug_hint_line() -> Line<'static> {
     let mut spans = crate::key_hint::key_label_spans("enter");
-    spans.push(
-        crate::i18n::tr!("picker-hint-start-inspector")
-            .set_style(crate::style::footer_hint_label_style()),
-    );
+    spans.push(tr!(" start inspector · ").set_style(crate::style::footer_hint_label_style()));
     spans.extend(crate::key_hint::key_label_spans("esc"));
-    spans.push(
-        crate::i18n::tr!("picker-hint-close").set_style(crate::style::footer_hint_label_style()),
-    );
+    spans.push(tr!(" close").set_style(crate::style::footer_hint_label_style()));
     spans.into()
 }
 

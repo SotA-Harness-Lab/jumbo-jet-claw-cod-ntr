@@ -50,13 +50,14 @@ impl MentionType {
     }
 
     fn label(self) -> &'static str {
-        match self {
-            Self::Plugin => crate::i18n::tr!("mention-candidate-plugin"),
-            Self::Skill => crate::i18n::tr!("mention-candidate-skill"),
-            Self::Task => crate::i18n::tr!("mention-candidate-task"),
-            Self::File => crate::i18n::tr!("mention-candidate-file"),
-            Self::Directory => crate::i18n::tr!("mention-candidate-dir"),
-        }
+        let label = match self {
+            Self::Plugin => "Plugin",
+            Self::Skill => "Skill",
+            Self::Task => "Task",
+            Self::File => "File",
+            Self::Directory => "Dir",
+        };
+        crate::i18n::translate_in("mention-kind-label", label)
     }
 }
 

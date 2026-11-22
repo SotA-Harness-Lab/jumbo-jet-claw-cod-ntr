@@ -64,7 +64,7 @@ impl CopySetup {
                 .as_ref()
                 .is_some_and(|owner| owner.strong_count() == 0)
         {
-            return Err(crate::i18n::tr!("clipboard-worker-selection-ended").into());
+            return Err(tr!("selection ended before clipboard delivery").into());
         }
         *setup = Setup::Delivering;
         Ok(())
@@ -201,7 +201,7 @@ impl ClipboardWorker {
             return Ok(CopyStatus::Busy);
         }
         if text.is_empty() {
-            return Err(crate::i18n::tr!("clipboard-worker-nothing-to-copy").into());
+            return Err(tr!("nothing to copy: the selected content is empty").into());
         }
         self.ensure_started(frames.clone())?;
         self.next_id += 1;
@@ -213,14 +213,14 @@ impl ClipboardWorker {
         });
         self.requests
             .as_ref()
-            .ok_or(crate::i18n::tr!("clipboard-worker-stopped"))?
+            .ok_or(tr!("clipboard worker stopped"))?
             .send(Request::Copy {
                 text,
                 format,
                 destination,
                 setup: Arc::clone(&setup),
             })
-            .map_err(|_| crate::i18n::tr!("clipboard-worker-stopped").to_string())?;
+            .map_err(|_| tr!("clipboard worker stopped").to_string())?;
         self.pending = Some((id, setup));
         // Retain the last completion while a newer request runs so a temporarily hidden
         // view can still finish its feedback. Consumers already match request IDs.
@@ -232,9 +232,9 @@ impl ClipboardWorker {
         self.ensure_started(frames)?;
         self.requests
             .as_ref()
-            .ok_or(crate::i18n::tr!("clipboard-worker-stopped"))?
+            .ok_or(tr!("clipboard worker stopped"))?
             .send(Request::WarmTextReader)
-            .map_err(|_| crate::i18n::tr!("clipboard-worker-stopped").to_string())
+            .map_err(|_| tr!("clipboard worker stopped").to_string())
     }
 
     fn ensure_started(&mut self, frames: FrameRequester) -> Result<(), String> {
@@ -301,17 +301,17 @@ impl ClipboardWorker {
         let read = self
             .pending_read
             .as_mut()
-            .ok_or(crate::i18n::tr!("clipboard-worker-no-read-pending"))?;
+            .ok_or(tr!("no clipboard read pending"))?;
         let (response, receiver) = mpsc::channel();
         self.requests
             .as_ref()
-            .ok_or(crate::i18n::tr!("clipboard-worker-stopped"))?
+            .ok_or(tr!("clipboard worker stopped"))?
             .send(Request::Read {
                 source: read.source,
                 deadline: read.deadline,
                 response,
             })
-            .map_err(|_| crate::i18n::tr!("clipboard-worker-stopped").to_string())?;
+            .map_err(|_| tr!("clipboard worker stopped").to_string())?;
         read.response = Some(receiver);
         Ok(())
     }
@@ -335,7 +335,7 @@ impl ClipboardWorker {
         let (deadline, owner, result) = self.read_result.take()?;
         (owner.strong_count() > 0).then(|| {
             if Instant::now() >= deadline {
-                Err(crate::i18n::tr!("clipboard-worker-read-timed-out").into())
+                Err(tr!("clipboard read timed out").into())
             } else {
                 result
             }
@@ -464,7 +464,10 @@ impl ClipboardWorker {
                 drop(outgoing);
             })
             .map_err(|error| {
-                crate::i18n::tr!("clipboard-worker-start-failed", error = error.to_string())
+                tr!(
+                    "could not start clipboard worker: {error}",
+                    error = error.to_string()
+                )
             })?;
         self.requests = Some(requests);
         self.responses = Some(responses);
@@ -482,7 +485,7 @@ impl ClipboardWorker {
                 self.read_result = Some((
                     read.deadline,
                     read.owner.clone(),
-                    Err(crate::i18n::tr!("clipboard-worker-read-timed-out").into()),
+                    Err(tr!("clipboard read timed out").into()),
                 ));
             }
             match read.response.as_ref().map(mpsc::Receiver::try_recv) {
@@ -497,7 +500,7 @@ impl ClipboardWorker {
                         self.read_result = Some((
                             read.deadline,
                             read.owner.clone(),
-                            Err(crate::i18n::tr!("clipboard-worker-stopped").into()),
+                            Err(tr!("clipboard worker stopped").into()),
                         ));
                     }
                     self.pending_read = None;
@@ -539,8 +542,7 @@ impl ClipboardWorker {
                 }
                 Err(mpsc::TryRecvError::Disconnected) => {
                     if !matches!(self.completed, Some((completed_id, _)) if completed_id == id) {
-                        self.completed =
-                            Some((id, Err(crate::i18n::tr!("clipboard-worker-stopped").into())));
+                        self.completed = Some((id, Err(tr!("clipboard worker stopped").into())));
                     }
                     self.pending = None;
                 }

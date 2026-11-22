@@ -63,7 +63,7 @@ pub(super) fn parse(
     boolean_settings: &[&str],
 ) -> Result<ParsedCommandArgs, String> {
     let mut words = shlex::split(args)
-        .ok_or_else(|| crate::i18n::tr!("slash-command-args-invalid-quoting").to_string())?
+        .ok_or_else(|| tr!("Invalid command arguments. Check the quoting.").to_string())?
         .into_iter()
         .peekable();
     let mut parsed = ParsedCommandArgs::default();
@@ -93,10 +93,10 @@ pub(super) fn parse(
                     && existing_value != value
                 {
                     let name = argument.name.trim_start_matches("--");
-                    return Err(crate::i18n::tr!("slash-command-args-one-of", name = name));
+                    return Err(tr!("Specify only one of --{name} or --no-{name}.", name));
                 }
-                return Err(crate::i18n::tr!(
-                    "slash-command-args-duplicate",
+                return Err(tr!(
+                    "Command setting `{name}` was provided more than once.",
                     name = argument.name.clone()
                 ));
             }
@@ -123,7 +123,7 @@ fn parse_named_argument(
             .filter(|value| !value.is_empty())
             .map(str::to_owned)
             .or_else(|| words.next_if(|value| !value.starts_with("--")))
-            .ok_or_else(|| crate::i18n::tr!("slash-command-args-requires-value", name = name))?;
+            .ok_or_else(|| tr!("Command setting `{name}` requires a value.", name))?;
         return Ok(NamedArgument {
             name: name.to_string(),
             value: NamedArgumentValue::Value(value),
@@ -131,7 +131,7 @@ fn parse_named_argument(
     }
     if switches.contains(&name) {
         if inline_value.is_some() {
-            return Err(crate::i18n::tr!("slash-command-args-no-value", name = name));
+            return Err(tr!("Command setting `{name}` does not take a value.", name));
         }
         return Ok(NamedArgument {
             name: name.to_string(),
@@ -143,7 +143,7 @@ fn parse_named_argument(
         let negative = format!("--no-{setting}");
         if name == positive || name == negative {
             if inline_value.is_some() {
-                return Err(crate::i18n::tr!("slash-command-args-no-value", name = name));
+                return Err(tr!("Command setting `{name}` does not take a value.", name));
             }
             return Ok(NamedArgument {
                 name: positive,
@@ -153,7 +153,7 @@ fn parse_named_argument(
             });
         }
     }
-    Err(crate::i18n::tr!("slash-command-args-unknown", name = name))
+    Err(tr!("Unknown command setting `{name}`.", name))
 }
 
 #[cfg(test)]

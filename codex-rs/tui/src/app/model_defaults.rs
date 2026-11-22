@@ -65,7 +65,7 @@ impl App {
             .persist_model_defaults(
                 request_handle,
                 crate::config_update::build_model_selection_edits(model.as_str(), effort.as_ref()),
-                crate::i18n::tr!("model-defaults-setting-default-model"),
+                tr!("default model and reasoning effort"),
             )
             .await
         {
@@ -75,8 +75,7 @@ impl App {
                     .map(std::string::ToString::to_string)
                     .unwrap_or_else(|| "default".to_string());
                 tracing::info!("Selected model: {model}, Selected effort: {effort_label}");
-                let mut message =
-                    crate::i18n::tr!("model-defaults-model-changed", model = model.as_str());
+                let mut message = tr!("Model changed to {model}", model = model.as_str());
                 if let Some(label) = Self::reasoning_label_for(&model, effort.as_ref()) {
                     message.push(' ');
                     message.push_str(&label);
@@ -86,10 +85,8 @@ impl App {
             Err(err) => {
                 let error = crate::config_update::format_config_error(&err);
                 tracing::error!(error = %error, "failed to persist model selection");
-                self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "model-defaults-failed-to-save",
-                    error = error
-                ));
+                self.chat_widget
+                    .add_error_message(tr!("Failed to save default model: {error}", error));
             }
         }
     }
@@ -106,8 +103,9 @@ impl App {
                 .active_thread_id
                 .filter(|id| Some(*id) == self.chat_widget.thread_id())
             else {
-                self.chat_widget
-                    .add_error_message(crate::i18n::tr!("model-defaults-open-cloud-first").into());
+                self.chat_widget.add_error_message(
+                    tr!("Open the Cloud conversation before choosing a model.").into(),
+                );
                 return;
             };
             let preset = self.model_catalog.models.iter().find(|preset| {
@@ -125,7 +123,7 @@ impl App {
                 service_tier.is_none() && model != crate::model_catalog::LUNA_RESERVE_MODEL
             }) else {
                 self.chat_widget.add_error_message(
-                    crate::i18n::tr!("model-defaults-choose-supported-cloud").into(),
+                    tr!("Choose a supported Cloud model and effort at the current speed.").into(),
                 );
                 return;
             };
@@ -137,19 +135,19 @@ impl App {
                     self.chat_widget.add_info_message(message, /*hint*/ None);
                     if let Some(tier) = dropped_tier {
                         let tier = if tier == "priority" {
-                            crate::i18n::tr!("model-defaults-speed-fast")
+                            tr!("fast")
                         } else {
                             &tier
                         };
-                        self.chat_widget.add_warning_message(crate::i18n::tr!(
-                            "model-defaults-speed-unsupported",
+                        self.chat_widget.add_warning_message(tr!(
+                            "{model} does not support {tier} speed. Cleared the pending speed change.",
                             model = model.as_str(),
-                            tier = tier
+                            tier
                         ));
                     }
                 }
                 Err(()) => self.chat_widget.add_error_message(
-                    crate::i18n::tr!("model-defaults-cloud-account-changed").into(),
+                    tr!("The Cloud account changed. Reopen the conversation before choosing a model.").into(),
                 ),
             }
             return;
@@ -190,7 +188,7 @@ impl App {
                 }
                 if app_server.thread_params_mode().settings_owner() == ThreadSettingsOwner::Server {
                     self.chat_widget.add_error_message(
-                        crate::i18n::tr!("model-defaults-cloud-no-model-change").into(),
+                        tr!("This cloud conversation does not support changing its model from the TUI.").into(),
                     );
                     return;
                 }
@@ -199,7 +197,7 @@ impl App {
                     .is_some_and(|tier| tier != SERVICE_TIER_DEFAULT_REQUEST_VALUE)
                 {
                     self.chat_widget.add_error_message(
-                        crate::i18n::tr!("model-defaults-needs-settings-update").into(),
+                        tr!("Model selection requires an app server with thread/settings/update support.").into(),
                     );
                     return;
                 }
@@ -247,9 +245,9 @@ impl App {
     ) -> Result<()> {
         let response = crate::config_update::write_config_batch(request_handle, edits).await?;
         if response.status == WriteStatus::OkOverridden {
-            self.chat_widget.add_warning_message(crate::i18n::tr!(
-                "model-defaults-saved-but-overridden",
-                setting = setting
+            self.chat_widget.add_warning_message(tr!(
+                "Saved {setting}, but a higher-priority configuration layer overrides the saved value.",
+                setting
             ));
         }
         Ok(())
@@ -261,7 +259,7 @@ fn session_model_confirmation(
     effort: Option<&ReasoningEffort>,
     service_tier: Option<&str>,
 ) -> String {
-    let mut message = crate::i18n::tr!("model-defaults-model-changed", model = model);
+    let mut message = tr!("Model changed to {model}", model);
     if let Some(label) = App::reasoning_label_for(model, effort) {
         message.push(' ');
         message.push_str(&label);
@@ -269,13 +267,13 @@ fn session_model_confirmation(
     if let Some(service_tier) = service_tier {
         message.push(' ');
         message.push_str(if service_tier == SERVICE_TIER_DEFAULT_REQUEST_VALUE {
-            crate::i18n::tr!("model-defaults-speed-standard")
+            tr!("standard")
         } else if service_tier == ServiceTier::Fast.request_value() {
-            crate::i18n::tr!("model-defaults-speed-fast")
+            tr!("fast")
         } else {
             service_tier
         });
     }
-    message.push_str(crate::i18n::tr!("model-defaults-for-this-session-only"));
+    message.push_str(tr!(" for this session only"));
     message
 }

@@ -114,8 +114,8 @@ pub(super) async fn check(
     };
     tui.terminal.clear()?;
     match (selection, issue.restart_features.as_ref()) {
-        (Some(0), _) => Ok(Some(crate::i18n::tr!(
-            "daemon-recovery-running-without",
+        (Some(0), _) => Ok(Some(tr!(
+            "Running without the shared background server: {reason}.",
             reason = issue.reason.to_string()
         ))),
         (Some(1), Some(features)) if managed_daemon => {
@@ -150,20 +150,20 @@ fn recovery_view(
     let mut header = ColumnRenderable::new();
     header.push(Line::from(
         if issue.restart_features.is_some() {
-            crate::i18n::tr!("daemon-recovery-incompatible-settings")
+            tr!("Background server has incompatible feature settings")
         } else {
-            crate::i18n::tr!("daemon-recovery-cannot-use")
+            tr!("Cannot use the background server")
         }
         .bold(),
     ));
     header.push(Paragraph::new(issue.reason.clone()).wrap(Wrap { trim: false }));
     if let Some(features) = &issue.restart_features {
         header.push(
-            Paragraph::new(crate::i18n::tr!("daemon-recovery-settings-persist"))
+            Paragraph::new(tr!("These settings persist and can disable functionality for other clients. Restart may interrupt active or queued work."))
                 .wrap(Wrap { trim: false }),
         );
-        header.push(Line::from(crate::i18n::tr!(
-            "daemon-recovery-restart-will-use"
+        header.push(Line::from(tr!(
+            "Restart will use these shared feature settings:"
         )));
         let mut remaining = features.iter();
         for (name, enabled) in remaining.by_ref().take(3) {
@@ -172,7 +172,7 @@ fn recovery_view(
         let count = remaining.len();
         if count > 0 {
             header.push(Line::from(
-                crate::i18n::tr!("daemon-recovery-and-more", count = count as i64).dim(),
+                tr!("  and {count} more", count = count as i64).dim(),
             ));
         }
     }
@@ -183,36 +183,36 @@ fn recovery_view(
             initial_selected_idx: Some(2),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("daemon-recovery-run-without").to_string(),
+                    name: "Run without daemon this time".to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
                 SelectionItem {
                     name: if can_restart {
-                        crate::i18n::tr!("daemon-recovery-restart-recommended")
+                        tr!("Restart with these settings (recommended)")
                     } else {
-                        crate::i18n::tr!("daemon-recovery-restart")
+                        tr!("Restart with these settings")
                     }
                     .to_string(),
                     dismiss_on_select: true,
                     require_explicit_confirmation: true,
                     is_disabled: !can_restart,
                     disabled_reason: if !managed_daemon {
-                        Some(crate::i18n::tr!("daemon-recovery-not-managed").to_string())
+                        Some(tr!("This server is not managed by Codex.").to_string())
                     } else if issue.restart_features.is_none() {
-                        Some(crate::i18n::tr!("daemon-recovery-cannot-resolve").to_string())
+                        Some(tr!("Restart cannot resolve this compatibility check.").to_string())
                     } else {
                         None
                     },
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("daemon-recovery-cancel").to_string(),
+                    name: "Cancel".to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
             ],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         },
         AppEventSender::new(tx),
         keymap.list.clone(),

@@ -38,7 +38,7 @@ use std::time::Duration;
 
 pub(super) const GAP: u16 = 1;
 pub(super) fn resize_hint_text() -> &'static str {
-    crate::i18n::tr!("const-resize-hint")
+    tr!("Resize · ←/h →/l · Shift+←/→ 10 cols · Enter/Esc done")
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -357,8 +357,8 @@ impl App {
                     .apply()
                     .await
         {
-            self.chat_widget.add_error_message(crate::i18n::tr!(
-                "side-pane-save-width-failed",
+            self.chat_widget.add_error_message(tr!(
+                "Could not save sidebar width: {err}",
                 err = err.to_string()
             ));
             return false;

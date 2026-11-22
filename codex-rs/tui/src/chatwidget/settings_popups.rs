@@ -24,7 +24,7 @@ impl ChatWidget {
     pub(crate) fn open_experimental_popup(&mut self) {
         let Some(thread_id) = self.thread_id() else {
             self.add_info_message(
-                crate::i18n::tr!("settings-popups-experimental-unavailable").to_string(),
+                tr!("Experimental features are unavailable until startup completes.").to_string(),
                 /*hint*/ None,
             );
             return;

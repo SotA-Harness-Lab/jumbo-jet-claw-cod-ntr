@@ -47,7 +47,7 @@ impl ComposerInput {
             /*has_input_focus*/ true,
             sender,
             /*enhanced_keys_supported*/ true,
-            crate::i18n::tr!("composer-input-placeholder").to_string(),
+            tr!("Compose new task").to_string(),
             /*disable_paste_burst*/ false,
         );
         Self { inner, _tx: tx, rx }

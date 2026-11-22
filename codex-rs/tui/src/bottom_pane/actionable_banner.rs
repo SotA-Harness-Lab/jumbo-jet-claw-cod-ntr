@@ -206,14 +206,14 @@ impl BottomPane {
             }
             let hint = match (dismissal, has_actions) {
                 (BannerDismissal::Persistent, true) => {
-                    crate::i18n::tr!("actionable-banner-press-number")
+                    tr!("Press a number to choose")
                 }
                 (BannerDismissal::Persistent, false) => "",
                 (BannerDismissal::Dismissible, true) => {
-                    crate::i18n::tr!("actionable-banner-number-esc-type")
+                    tr!("Press a number to choose · esc to dismiss · type to continue")
                 }
                 (BannerDismissal::Dismissible, false) => {
-                    crate::i18n::tr!("actionable-banner-esc-type")
+                    tr!("esc to dismiss · type to continue")
                 }
             };
             let hint: Line<'static> = hint.dim().into();

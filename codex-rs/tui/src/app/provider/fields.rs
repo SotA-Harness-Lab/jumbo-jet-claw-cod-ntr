@@ -25,17 +25,18 @@ pub(super) enum Field {
 
 impl Field {
     pub(super) fn label(self) -> &'static str {
-        match self {
-            Self::Name => crate::i18n::tr!("provider-field-name"),
-            Self::Url | Self::ManagedUrl => crate::i18n::tr!("provider-field-base-url"),
-            Self::Variable => crate::i18n::tr!("provider-field-api-key-variable"),
-            Self::ExternalAuth => crate::i18n::tr!("provider-field-external-auth"),
-            Self::Profile => crate::i18n::tr!("provider-field-aws-profile"),
-            Self::Region => crate::i18n::tr!("provider-field-aws-region"),
-            Self::Project => crate::i18n::tr!("provider-field-project-id"),
-            Self::Location => crate::i18n::tr!("provider-field-location"),
-            Self::Credentials => crate::i18n::tr!("provider-field-credential-file"),
-        }
+        let label = match self {
+            Self::Name => "Name",
+            Self::Url | Self::ManagedUrl => "Base URL",
+            Self::Variable => "API key variable",
+            Self::ExternalAuth => "External authentication",
+            Self::Profile => "AWS profile",
+            Self::Region => "AWS region",
+            Self::Project => "Project ID",
+            Self::Location => "Location",
+            Self::Credentials => "Credential file (server)",
+        };
+        crate::i18n::translate_in("provider-form-label", label)
     }
 }
 

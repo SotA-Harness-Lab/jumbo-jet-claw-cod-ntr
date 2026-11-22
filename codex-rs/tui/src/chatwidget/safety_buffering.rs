@@ -14,15 +14,19 @@ const SAFETY_BUFFERING_PROMPT_VIEW_ID: &str = "safety-buffering-prompt";
 const SAFETY_BUFFERING_LEARN_MORE_URL: &str = "https://help.openai.com/en/articles/20001326";
 
 fn safety_buffering_header() -> &'static str {
-    crate::i18n::tr!("safety-buffering-header")
+    tr!("Giving this request a little extra thought")
 }
 
 fn safety_buffering_message_with_retry() -> &'static str {
-    crate::i18n::tr!("safety-buffering-message-with-retry")
+    tr!(
+        "If you'd rather not wait, retry with a faster model. It may be less capable of handling complex requests."
+    )
 }
 
 fn safety_buffering_footer() -> &'static str {
-    crate::i18n::tr!("safety-buffering-footer")
+    tr!(
+        "No action is required. Codex will keep waiting, and this menu will close when the response is ready."
+    )
 }
 
 struct SafetyBufferingHeader(Vec<Line<'static>>);
@@ -193,7 +197,7 @@ impl ChatWidget {
         };
         self.bottom_pane.ensure_status_indicator();
         self.set_status(
-            crate::i18n::tr!("status-state-working").to_string(),
+            tr!("Working").to_string(),
             Some(status_details),
             StatusDetailsCapitalization::Preserve,
             /*details_max_lines*/ 6,
@@ -214,7 +218,7 @@ impl ChatWidget {
             (faster_model, retry_turn, retry_prompt, thread_id)
         {
             items.push(SelectionItem {
-                name: crate::i18n::tr!("safety-buffering-retry-faster").to_string(),
+                name: "Retry with a faster model".to_string(),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::ConfirmSafetyBufferedRetry {
                         thread_id,
@@ -230,12 +234,12 @@ impl ChatWidget {
         }
         items.extend([
             SelectionItem {
-                name: crate::i18n::tr!("safety-buffering-dismiss-keep-waiting").to_string(),
+                name: "Dismiss and keep waiting".to_string(),
                 dismiss_on_select: true,
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("safety-buffering-learn-more").to_string(),
+                name: "Learn more".to_string(),
                 actions: vec![Box::new(|tx| {
                     tx.send(AppEvent::OpenUrlInBrowser {
                         url: SAFETY_BUFFERING_LEARN_MORE_URL.to_string(),
@@ -278,27 +282,27 @@ impl ChatWidget {
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(SAFETY_BUFFERING_PROMPT_VIEW_ID),
             header: Box::new(SafetyBufferingHeader(vec![
-                crate::i18n::tr!("safety-buffering-stop-retry-title")
+                tr!("Stop this attempt and retry?")
                     .bold()
                     .into(),
                 Line::default(),
-                crate::i18n::tr!("safety-buffering-stop-retry-body")
+                tr!("This will stop the current attempt and retry in a new thread. Any file changes or other actions already taken will remain.")
                     .dim()
                     .into(),
                 Line::default(),
-                crate::i18n::tr!("safety-buffering-resend-with-model", model = model_name)
+                tr!("Your message will be sent again using {model}, which may be less capable on complex tasks.", model = model_name)
                     .dim()
                     .into(),
             ])),
             footer_hint: Some(Line::default()),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("safety-buffering-keep-waiting").to_string(),
+                    name: "Keep waiting".to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("safety-buffering-stop-and-retry").to_string(),
+                    name: "Stop and retry".to_string(),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::RetrySafetyBufferedTurn {
                             thread_id,

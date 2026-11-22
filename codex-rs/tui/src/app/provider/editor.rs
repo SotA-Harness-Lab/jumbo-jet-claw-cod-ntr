@@ -171,7 +171,7 @@ impl ProviderForm {
     fn layout(&self, width: u16) -> FormLayout {
         let title = self.draft.provider.as_ref().map_or_else(
             || create_custom_provider().to_owned(),
-            |p| crate::i18n::tr!("editor-edit-provider", name = p.name.as_str()),
+            |p| tr!("Edit {name}", name = p.name.as_str()),
         );
         let wrap_width = usize::from(width.max(1));
         let mut lines = word_wrap_lines([Line::from(title.bold())], wrap_width);
@@ -193,7 +193,7 @@ impl ProviderForm {
             };
             let label = format!("{marker}{}{required}  ", field.label()).bold();
             let example = match field {
-                Field::Name => crate::i18n::tr!("editor-example-team-gateway"),
+                Field::Name => tr!("Team gateway"),
                 Field::Url => "https://gateway.example/v1",
                 Field::Variable => "TEAM_API_KEY",
                 _ => "",
@@ -224,9 +224,9 @@ impl ProviderForm {
         }
         lines.push(if self.draft.selected == self.inputs.len() {
             focus_row = lines.len() as u16;
-            crate::i18n::tr!("editor-save-focused").bold().into()
+            tr!("› Save").bold().into()
         } else {
-            crate::i18n::tr!("editor-save").into()
+            tr!("  Save").into()
         });
         if let Some(error) = &self.error {
             lines.push(error.clone().red().into());
@@ -235,30 +235,28 @@ impl ProviderForm {
         let has = |field| self.inputs.iter().any(|(key, _)| *key == field);
         if has(Field::Name) {
             let hint = if has(Field::Variable) {
-                crate::i18n::tr!("editor-hint-env-var-name")
+                tr!("Enter the environment variable name on the app server.")
             } else {
-                crate::i18n::tr!("editor-hint-auth-managed")
+                tr!("Authentication is managed on the app server.")
             };
-            lines.extend(
-                [crate::i18n::tr!("editor-required-note"), hint].map(|text| Line::from(text.dim())),
-            );
+            lines.extend([tr!("* Required"), hint].map(|text| Line::from(text.dim())));
         }
         if let Some(suggestion) = self.suggestion() {
             lines.push(Line::from(vec![
                 key_hint::ctrl(KeyCode::Char(' ')).into(),
-                crate::i18n::tr!("editor-complete-suggestion", suggestion = suggestion).dim(),
+                tr!(" complete {suggestion}", suggestion).dim(),
             ]));
         }
         lines.push(Line::from(vec![
             key_hint::plain(KeyCode::Tab).into(),
-            crate::i18n::tr!("editor-key-move").dim(),
+            tr!(" move · ").dim(),
             key_hint::plain(KeyCode::Enter).into(),
-            crate::i18n::tr!("editor-key-next-save").dim(),
+            tr!(" next/save · ").dim(),
             key_hint::plain(KeyCode::Esc).into(),
             if self.prefer_esc_to_handle_key_event() {
-                crate::i18n::tr!("editor-key-normal-mode")
+                tr!(" normal mode")
             } else {
-                crate::i18n::tr!("editor-key-back")
+                tr!(" back")
             }
             .dim(),
         ]));

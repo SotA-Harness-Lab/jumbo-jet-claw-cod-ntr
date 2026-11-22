@@ -16,8 +16,8 @@ pub(super) const LOADING_VIEW_ID: &str = "cloud_environment_loading";
 pub(super) fn loading_view() -> SelectionViewParams {
     SelectionViewParams {
         view_id: Some(LOADING_VIEW_ID),
-        title: Some(crate::i18n::tr!("cloud-environments-title").into()),
-        subtitle: Some(crate::i18n::tr!("cloud-environments-loading").into()),
+        title: Some("Cloud environment".into()),
+        subtitle: Some("Loading saved environments…".into()),
         ..SelectionViewParams::picker()
     }
 }
@@ -30,24 +30,21 @@ pub(super) fn cloud_environment_picker(
         Ok(environments) => (environments, None),
         Err(error) => (
             Vec::new(),
-            Some(crate::i18n::tr!(
-                "cloud-environments-use-default",
-                error = error
-            )),
+            Some(tr!("{error}. You can still use Default.", error)),
         ),
     };
     let choices = std::iter::once((
-        crate::i18n::tr!("cloud-environments-default").to_string(),
-        crate::i18n::tr!("cloud-environments-default-description"),
+        tr!("Default").to_string(),
+        tr!("Use the default environment with the current GitHub project, if available"),
         None,
     ))
     .chain(environments.into_iter().map(|environment| {
         (
             environment.name.clone(),
             if environment.workspace_shared {
-                crate::i18n::tr!("cloud-environments-workspace")
+                tr!("Workspace environment")
             } else {
-                crate::i18n::tr!("cloud-environments-personal")
+                tr!("Personal environment")
             },
             Some(environment),
         )
@@ -68,11 +65,11 @@ pub(super) fn cloud_environment_picker(
         })
         .collect();
     SelectionViewParams {
-        title: Some(crate::i18n::tr!("cloud-environments-title").into()),
+        title: Some("Cloud environment".into()),
         subtitle,
         items,
         is_searchable: true,
-        search_placeholder: Some(crate::i18n::tr!("cloud-environments-search").to_string()),
+        search_placeholder: Some("Search environments".to_string()),
         ..SelectionViewParams::picker()
     }
 }

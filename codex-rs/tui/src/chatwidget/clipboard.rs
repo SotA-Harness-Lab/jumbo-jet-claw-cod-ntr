@@ -91,9 +91,7 @@ impl ChatWidget {
     pub(super) fn show_clipboard_flash(&mut self, result: &CopyResult) {
         let line = match result {
             Ok(status) => Line::from(status.message("selection").dim()),
-            Err(error) => {
-                Line::from(crate::i18n::tr!("clipboard-copy-failed", error = error).red())
-            }
+            Err(error) => Line::from(tr!("Copy failed: {error}", error).red()),
         };
         self.bottom_pane
             .show_footer_flash(line, Duration::from_secs(/*secs*/ 3));
@@ -112,10 +110,7 @@ impl ChatWidget {
             match self.pending_clipboard.take() {
                 Some(PendingCopy::Message(_, label)) => match &completion.1 {
                     Ok(status) => self.add_info_message(status.message(&label), /*hint*/ None),
-                    Err(error) => self.add_error_message(crate::i18n::tr!(
-                        "clipboard-copy-failed",
-                        error = error
-                    )),
+                    Err(error) => self.add_error_message(tr!("Copy failed: {error}", error)),
                 },
                 Some(PendingCopy::Selection(_)) => self.show_clipboard_flash(&completion.1),
                 None => {}

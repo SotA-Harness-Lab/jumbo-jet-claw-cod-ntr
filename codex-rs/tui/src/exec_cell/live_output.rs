@@ -152,10 +152,7 @@ impl LiveCommandOutput {
                     .iter()
                     .map(|line| Cow::Borrowed(line.as_str()))
                     .chain((omitted > 0).then(|| {
-                        Cow::Owned(crate::i18n::tr!(
-                            "live-output-lines-omitted",
-                            omitted = omitted
-                        ))
+                        Cow::Owned(tr!("… +{omitted} line" | "… +{omitted} lines", omitted))
                     }))
                     .chain(self.tail.iter().map(|line| Cow::Borrowed(line.as_str())))
                     .chain(
@@ -232,7 +229,7 @@ impl LiveCommandOutputLine {
     /// Renders the retained line, closing truncated ANSI sequences before the omission marker.
     fn render(&self) -> String {
         let omission_marker = (self.omitted_bytes > 0)
-            .then(|| crate::i18n::tr!("live-output-bytes-omitted", bytes = self.omitted_bytes));
+            .then(|| tr!("... {bytes} bytes omitted ...", bytes = self.omitted_bytes));
         let mut line = String::with_capacity(
             self.head
                 .len()

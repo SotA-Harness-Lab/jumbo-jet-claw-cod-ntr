@@ -429,9 +429,10 @@ impl ChatWidget {
             if banner.banner_type == LUNA_RESERVE_BANNER
                 && self.current_model() != LUNA_RESERVE_MODEL
             {
-                content.title = crate::i18n::tr!("backend-banners-usage-limit-reached").to_string();
+                content.title = tr!("Usage limit reached").to_string();
                 content.description =
-                    crate::i18n::tr!("backend-banners-usage-exhausted").to_string();
+                    tr!("Your included usage is exhausted. Choose an option below to continue.")
+                        .to_string();
             }
             content
         });
@@ -464,15 +465,15 @@ impl ChatWidget {
                         self.backend_banner_state.account_id.clone();
                     // Continuing is a local dismissal, separate from the backend's purchase CTAs.
                     params.items.push(SelectionItem {
-                        name: crate::i18n::tr!("backend-banners-continue-luna-reserve").to_string(),
+                        name: tr!("Continue with Luna Reserve").to_string(),
                         ..Default::default()
                     });
                     let list_keymap = self.bottom_pane.list_keymap();
                     params.footer_hint = Some(accept_cancel_hint_line(
                         list_keymap.primary_hint(ListAction::Accept),
-                        crate::i18n::tr!("backend-banners-to-confirm"),
+                        "to confirm",
                         list_keymap.primary_hint(ListAction::Cancel),
-                        crate::i18n::tr!("backend-banners-to-continue-working"),
+                        "to continue working",
                     ));
                 }
                 // Use the standard focused picker: arrows/Enter and numeric shortcuts select,

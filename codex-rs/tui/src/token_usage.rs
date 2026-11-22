@@ -85,13 +85,13 @@ impl fmt::Display for TokenUsage {
         write!(
             f,
             "{}",
-            crate::i18n::tr!(
-                "token-usage-summary",
+            tr!(
+                "Token usage: total={total} input={input}{cached} output={output}{reasoning}",
                 total = format_with_separators(self.blended_total()),
                 input = format_with_separators(self.non_cached_input()),
                 cached = if self.cached_input() > 0 {
-                    crate::i18n::tr!(
-                        "token-usage-cached",
+                    tr!(
+                        " (+ {count} cached)",
                         count = format_with_separators(self.cached_input())
                     )
                 } else {
@@ -99,8 +99,8 @@ impl fmt::Display for TokenUsage {
                 },
                 output = format_with_separators(self.output_tokens),
                 reasoning = if self.reasoning_output_tokens > 0 {
-                    crate::i18n::tr!(
-                        "token-usage-reasoning",
+                    tr!(
+                        " (reasoning {count})",
                         count = format_with_separators(self.reasoning_output_tokens)
                     )
                 } else {

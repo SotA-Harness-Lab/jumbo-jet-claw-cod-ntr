@@ -106,12 +106,12 @@ impl App {
                 .await;
             let (prefix, suffix) = match switch.reason {
                 AutomaticModelSwitchReason::UsageLimit => (
-                    crate::i18n::tr!("backend-banner-fallback-switched-to"),
-                    crate::i18n::tr!("backend-banner-fallback-usage-limits"),
+                    tr!("Automatically switched to"),
+                    tr!(" due to usage limits."),
                 ),
                 AutomaticModelSwitchReason::UsageRecovered => (
-                    crate::i18n::tr!("backend-banner-fallback-switched-back-to"),
-                    crate::i18n::tr!("backend-banner-fallback-usage-recovered"),
+                    tr!("Automatically switched back to"),
+                    tr!(" because ordinary usage is available again."),
                 ),
             };
             let mut message = format!("{prefix} {}", model_display_name(&target.model));

@@ -14,16 +14,16 @@ impl ChatWidget {
         self.show_selection_view(SelectionViewParams {
             header: Box::new(
                 Paragraph::new(vec![
-                    Line::from(crate::i18n::tr!("transcript-export-title").bold()),
-                    Line::from(crate::i18n::tr!("transcript-export-subtitle").dim()),
+                    Line::from(tr!("Export conversation").bold()),
+                    Line::from(tr!("Save the complete conversation as Markdown").dim()),
                 ])
                 .wrap(Wrap { trim: false }),
             ),
             footer_hint: Some(picker_hint_line_for_keymap(&self.bottom_pane.list_keymap())),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("transcript-export-copy").to_string(),
-                    description: Some(crate::i18n::tr!("transcript-export-copy-desc").to_string()),
+                    name: "Copy to clipboard".to_string(),
+                    description: Some("Copy the complete Markdown transcript".to_string()),
                     is_disabled: cfg!(target_os = "android"),
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::ExportTranscript {
@@ -34,8 +34,8 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("transcript-export-save").to_string(),
-                    description: Some(crate::i18n::tr!("transcript-export-save-desc").to_string()),
+                    name: "Save to file".to_string(),
+                    description: Some("Choose a Markdown filename".to_string()),
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::OpenTranscriptExportFilePrompt);
                     })],
@@ -43,7 +43,7 @@ impl ChatWidget {
                     ..Default::default()
                 },
             ],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         });
         self.defer_input_until_settings_applied();
         self.request_redraw();
@@ -56,8 +56,8 @@ impl ChatWidget {
             |thread_id| format!("codex-session-{thread_id}.md"),
         );
         let view = CustomPromptView::new(
-            crate::i18n::tr!("transcript-export-prompt-title").to_string(),
-            crate::i18n::tr!("transcript-export-prompt-hint").to_string(),
+            tr!("Save conversation").to_string(),
+            tr!("Type a filename and press Enter").to_string(),
             filename,
             /*context_label*/ None,
             Box::new(move |filename| {

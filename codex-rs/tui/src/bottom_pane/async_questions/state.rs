@@ -128,7 +128,7 @@ impl AsyncQuestions {
         let index = self.selected_option_index().unwrap_or(0);
         if !self.focus_is_notes() && !(first..first + count).contains(&index) {
             self.composer.show_footer_flash(
-                crate::i18n::tr!("async-questions-expand-terminal").into(),
+                tr!("Expand terminal to read the entire option").into(),
                 Duration::from_secs(5),
             );
             return;
@@ -148,7 +148,7 @@ impl AsyncQuestions {
             .unwrap_or_default();
         if reply.chars().count() > codex_protocol::user_input::MAX_USER_INPUT_TEXT_CHARS {
             self.composer.show_footer_flash(
-                crate::i18n::tr!("async-questions-answer-too-long").into(),
+                tr!("Answer too long; shorten it before sending").into(),
                 Duration::from_secs(5),
             );
         } else {

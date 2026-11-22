@@ -456,16 +456,16 @@ impl TranscriptView {
     pub(super) fn disclosure_footer(&self, width: u16) -> Option<TranscriptFooter> {
         let (key, ids) = self.disclosure.focused.as_ref()?;
         let toggle = if self.disclosure.is_expanded(ids) || self.is_search_expanded(*key) {
-            crate::i18n::tr!("disclosure-collapse")
+            tr!("collapse")
         } else {
-            crate::i18n::tr!("disclosure-expand")
+            tr!("expand")
         };
         let keymap = &self.disclosure.keymap;
         let hints: Vec<_> = [
-            (ListAction::MoveUp, crate::i18n::tr!("disclosure-previous")),
-            (ListAction::MoveDown, crate::i18n::tr!("disclosure-next")),
+            (ListAction::MoveUp, tr!("previous")),
+            (ListAction::MoveDown, tr!("next")),
             (ListAction::Accept, toggle),
-            (ListAction::Cancel, crate::i18n::tr!("disclosure-back")),
+            (ListAction::Cancel, tr!("back")),
         ]
         .into_iter()
         .filter_map(|(action, label)| {

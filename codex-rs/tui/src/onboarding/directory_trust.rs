@@ -95,7 +95,7 @@ pub(crate) async fn check_directory_trust(
         {
             color_eyre::eyre::bail!(
                 "{}",
-                crate::i18n::tr!("directory-trust-folder-trust-changed")
+                tr!("Folder trust changed. Reopen the destination with its restricted settings.")
             );
         }
         let remote_trust_key =

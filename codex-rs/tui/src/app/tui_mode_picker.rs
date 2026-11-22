@@ -25,17 +25,17 @@ impl App {
                 self.local_settings.tui.fullscreen_transcript = enabled;
                 self.chat_widget.local_settings.tui.fullscreen_transcript = enabled;
                 let mode = if enabled {
-                    crate::i18n::tr!("tui-mode-picker-fullscreen")
+                    tr!("Fullscreen")
                 } else {
-                    crate::i18n::tr!("tui-mode-picker-scrollback")
+                    tr!("Scrollback")
                 };
                 self.chat_widget.add_info_message(
-                    crate::i18n::tr!("tui-mode-picker-saved", mode = mode),
+                    tr!("Saved TUI mode: {mode}. Restart Codex to apply; launch overrides still apply.", mode),
                     /*hint*/ None,
                 );
             }
-            Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
-                "tui-mode-picker-save-failed",
+            Err(error) => self.chat_widget.add_error_message(tr!(
+                "Failed to save TUI mode: {error}",
                 error = format_config_error(&error)
             )),
         }

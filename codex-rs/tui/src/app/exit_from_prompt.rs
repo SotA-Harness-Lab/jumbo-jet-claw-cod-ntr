@@ -37,27 +37,27 @@ impl RunningWork {
     pub(super) fn describe(&self) -> String {
         let mut parts = Vec::new();
         if self.turn {
-            parts.push(crate::i18n::tr!("exit-running-work-turn").to_string());
+            parts.push(tr!("the turn in progress").to_string());
         }
         if self.sessions > 0 {
-            parts.push(crate::i18n::tr!(
-                "exit-running-work-sessions",
+            parts.push(tr!(
+                "1 other session or subagent" | "{count} other sessions or subagents",
                 count = self.sessions as i64
             ));
         }
         if self.side_conversations > 0 {
-            parts.push(crate::i18n::tr!(
-                "exit-running-work-side",
+            parts.push(tr!(
+                "1 side conversation" | "{count} side conversations",
                 count = self.side_conversations as i64
             ));
         }
         if self.background_terminals > 0 {
-            parts.push(crate::i18n::tr!(
-                "exit-running-work-terminals",
+            parts.push(tr!(
+                "1 background terminal" | "{count} background terminals",
                 count = self.background_terminals as i64
             ));
         }
-        parts.join(crate::i18n::tr!("exit-running-work-separator"))
+        parts.join(tr!(", "))
     }
 }
 
@@ -67,18 +67,21 @@ impl App {
             AppServerTarget::Embedded => {
                 let work = self.running_work().await;
                 if work.is_empty() {
-                    self.app_event_tx.send(AppEvent::Exit(ExitMode::ShutdownFirst));
+                    self.app_event_tx
+                        .send(AppEvent::Exit(ExitMode::ShutdownFirst));
                 } else {
                     self.show_running_work_exit_dialog(work);
                 }
             }
             AppServerTarget::LocalDaemon { .. } => {
                 if !self.show_running_task_exit_picker().await {
-                    self.app_event_tx.send(AppEvent::Exit(ExitMode::ShutdownFirst));
+                    self.app_event_tx
+                        .send(AppEvent::Exit(ExitMode::ShutdownFirst));
                 }
             }
             AppServerTarget::Cloud | AppServerTarget::Remote { .. } => {
-                self.app_event_tx.send(AppEvent::Exit(ExitMode::ShutdownFirst));
+                self.app_event_tx
+                    .send(AppEvent::Exit(ExitMode::ShutdownFirst));
             }
         }
     }
@@ -114,19 +117,16 @@ impl App {
 
     fn show_running_work_exit_dialog(&mut self, work: RunningWork) {
         self.chat_widget.show_selection_view(SelectionViewParams {
-            title: Some(crate::i18n::tr!("exit-running-work-title").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "exit-running-work-subtitle",
-                work = work.describe()
-            )),
+            title: Some("Background work is running".to_string()),
+            subtitle: Some(tr!("Quitting stops {work}.", work = work.describe())),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("exit-running-work-stay").to_string(),
+                    name: "Stay".to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("exit-running-work-exit").to_string(),
+                    name: "Exit and stop tasks".to_string(),
                     // Confirmed: skip the embedded server's own question about other sessions.
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::ConfirmedEmbeddedExit(ExitMode::ShutdownFirst));

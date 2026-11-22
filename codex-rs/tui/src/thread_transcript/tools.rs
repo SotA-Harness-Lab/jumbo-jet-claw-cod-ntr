@@ -51,14 +51,14 @@ pub(crate) fn historical_tool_fallback(
         {
             let status_label = match status {
                 CommandExecutionStatus::InProgress => {
-                    crate::i18n::tr!("tools-in-progress-at-last-update")
+                    tr!("In progress at last update")
                 }
-                CommandExecutionStatus::Completed => crate::i18n::tr!("tools-completed"),
-                CommandExecutionStatus::Failed => crate::i18n::tr!("tools-failed"),
-                CommandExecutionStatus::Declined => crate::i18n::tr!("tools-declined"),
+                CommandExecutionStatus::Completed => tr!("Completed"),
+                CommandExecutionStatus::Failed => tr!("Failed"),
+                CommandExecutionStatus::Declined => tr!("Declined"),
             };
             let mut status_line = if *source == CommandExecutionSource::UnifiedExecInteraction {
-                crate::i18n::tr!("tools-terminal-interaction", status = status_label)
+                tr!("Terminal interaction · {status}", status = status_label)
             } else {
                 status_label.to_string()
             };
@@ -67,7 +67,7 @@ pub(crate) fn historical_tool_fallback(
                 CommandExecutionStatus::Completed | CommandExecutionStatus::Failed
             ) && let Some(code) = exit_code
             {
-                status_line.push_str(&crate::i18n::tr!("tools-exit-code", code = *code));
+                status_line.push_str(&tr!(" · exit {code}", code = *code));
             }
             let mut lines: Vec<Line<'static>> = vec![
                 vec!["$ ".dim(), command.clone().into()].into(),
@@ -93,23 +93,23 @@ pub(crate) fn historical_tool_fallback(
         } if *status == McpToolCallStatus::InProgress || (result.is_none() && error.is_none()) => {
             let status = match status {
                 McpToolCallStatus::InProgress => {
-                    crate::i18n::tr!("tools-in-progress-at-last-update")
+                    tr!("In progress at last update")
                 }
                 McpToolCallStatus::Completed => {
-                    crate::i18n::tr!("tools-completed-result-unavailable")
+                    tr!("Completed · result unavailable")
                 }
-                McpToolCallStatus::Failed => crate::i18n::tr!("tools-failed-result-unavailable"),
+                McpToolCallStatus::Failed => tr!("Failed · result unavailable"),
             };
             let server = crate::app_server_approval_conversions::mcp_server_label(
                 server,
                 environment_id.as_deref(),
             );
             vec![
-                crate::i18n::tr!(
-                    "tools-mcp-tool",
+                tr!(
+                    "mcp tool: {server}/{tool} · {status}",
                     server = server.as_str(),
                     tool = tool.as_str(),
-                    status = status
+                    status
                 )
                 .dim()
                 .into(),
@@ -127,17 +127,17 @@ pub(crate) fn historical_tool_fallback(
         } if *status != CollabAgentToolCallStatus::Completed => {
             let status = match status {
                 CollabAgentToolCallStatus::InProgress => {
-                    crate::i18n::tr!("tools-in-progress-at-last-update")
+                    tr!("In progress at last update")
                 }
-                CollabAgentToolCallStatus::Failed => crate::i18n::tr!("tools-failed"),
-                CollabAgentToolCallStatus::Interrupted => crate::i18n::tr!("tools-interrupted"),
-                CollabAgentToolCallStatus::Completed => crate::i18n::tr!("tools-completed"),
+                CollabAgentToolCallStatus::Failed => tr!("Failed"),
+                CollabAgentToolCallStatus::Interrupted => tr!("Interrupted"),
+                CollabAgentToolCallStatus::Completed => tr!("Completed"),
             };
             vec![
-                crate::i18n::tr!(
-                    "tools-agent-tool",
+                tr!(
+                    "agent tool: {tool} · {status}",
                     tool = format!("{tool:?}"),
-                    status = status
+                    status
                 )
                 .dim()
                 .into(),
@@ -151,10 +151,7 @@ pub(crate) fn historical_tool_fallback(
             status: CommandExecutionStatus::Declined,
             command,
             ..
-        } => cell.with_tool_label(crate::i18n::tr!(
-            "tools-declined-command",
-            command = command.as_str()
-        )),
+        } => cell.with_tool_label(tr!("Declined · {command}", command = command.as_str())),
         ThreadItemPayload::CommandExecution { .. } => cell.with_tool_header(/*count*/ 2),
         _ => cell.with_tool_header(/*count*/ 1),
     })

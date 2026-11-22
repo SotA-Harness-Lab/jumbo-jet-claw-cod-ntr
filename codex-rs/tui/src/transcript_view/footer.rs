@@ -172,19 +172,15 @@ impl TranscriptView {
             if status.width() > usize::from(width) {
                 status = if self.is_loading_history() {
                     let loading = if navigation.is_empty() {
-                        if "↑ ".width() + crate::i18n::tr!("transcript-footer-loading").width()
-                            <= usize::from(width)
-                        {
-                            crate::i18n::tr!("transcript-footer-loading")
+                        if "↑ ".width() + tr!("Loading…").width() <= usize::from(width) {
+                            tr!("Loading…")
                         } else {
                             "…"
                         }
-                    } else if "↑ ".width()
-                        + crate::i18n::tr!("transcript-footer-loading-sep").width()
-                        + navigation.width()
+                    } else if "↑ ".width() + tr!("Loading… · ").width() + navigation.width()
                         <= usize::from(width)
                     {
-                        crate::i18n::tr!("transcript-footer-loading-sep")
+                        tr!("Loading… · ")
                     } else {
                         "… "
                     };
@@ -193,13 +189,13 @@ impl TranscriptView {
                     spans.extend(navigation_line(navigation).spans);
                     Line::from(spans)
                 } else if self.history == TranscriptHistoryState::Failed {
-                    let mut spans = vec![crate::i18n::tr!("transcript-footer-retry").dim()];
+                    let mut spans = vec![tr!("Retry: ").dim()];
                     spans.extend(key_label_spans(&JumpTarget::Beginning.hint_label()));
                     Line::from(spans)
                 } else if navigation.is_empty() {
-                    Line::from(crate::i18n::tr!("transcript-footer-new-activity")).dim()
+                    Line::from(tr!("New activity")).dim()
                 } else if self.unseen_activity {
-                    let mut spans = vec![crate::i18n::tr!("transcript-footer-new-dot").dim()];
+                    let mut spans = vec![tr!("New · ").dim()];
                     spans.extend(navigation_line(navigation).spans);
                     Line::from(spans)
                 } else {
@@ -233,12 +229,9 @@ impl TranscriptView {
     ) -> Line<'static> {
         if self.is_loading_history() {
             let mut spans = vec!["↑ ".fg(accent_color())];
-            spans.extend(shimmer_text(
-                crate::i18n::tr!("transcript-footer-loading-earlier"),
-                motion,
-            ));
+            spans.extend(shimmer_text(tr!("Loading earlier messages…"), motion));
             if self.unseen_activity {
-                spans.push(crate::i18n::tr!("transcript-footer-new-activity-after").dim());
+                spans.push(tr!(" · New activity").dim());
             }
             if !navigation.is_empty() {
                 spans.push(" · ".dim());
@@ -248,19 +241,19 @@ impl TranscriptView {
         }
         if self.selection.is_some() && self.history == TranscriptHistoryState::Failed {
             let mut spans = navigation_line(navigation).spans;
-            spans.push(crate::i18n::tr!("transcript-footer-retry-after").dim());
+            spans.push(tr!(" · Retry: ").dim());
             spans.extend(key_label_spans(&JumpTarget::Beginning.hint_label()));
             return Line::from(spans);
         }
         let history = match self.history {
             TranscriptHistoryState::Failed => {
-                let mut spans = vec![crate::i18n::tr!("transcript-footer-retry-history").dim()];
+                let mut spans = vec![tr!("Retry history: ").dim()];
                 spans.extend(key_label_spans(&JumpTarget::Beginning.hint_label()));
                 spans.push(".  ".dim());
                 spans
             }
             TranscriptHistoryState::Partial => {
-                vec![crate::i18n::tr!("transcript-footer-earlier-available").dim()]
+                vec![tr!("Earlier messages available.  ").dim()]
             }
             TranscriptHistoryState::LoadingOlder
             | TranscriptHistoryState::LoadingBeginning
@@ -269,9 +262,9 @@ impl TranscriptView {
         };
         let activity = if self.unseen_activity {
             if history.is_empty() && navigation.is_empty() {
-                crate::i18n::tr!("transcript-footer-new-activity")
+                tr!("New activity")
             } else {
-                crate::i18n::tr!("transcript-footer-new-activity-sep")
+                tr!("New activity · ")
             }
         } else {
             ""

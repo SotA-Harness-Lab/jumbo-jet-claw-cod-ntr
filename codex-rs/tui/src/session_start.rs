@@ -117,8 +117,8 @@ pub(crate) async fn complete_session_start(
         .thread_unarchive(target.thread_id)
         .await
         .wrap_err_with(|| {
-            crate::i18n::tr!(
-                "session-start-failed-unarchive",
+            tr!(
+                "Failed to unarchive session {thread_id}",
                 thread_id = target.thread_id.to_string()
             )
         })?;
@@ -159,19 +159,19 @@ fn session_start_error(
     if action == "fork" {
         color_eyre::eyre::eyre!(
             "{}",
-            crate::i18n::tr!(
-                "session-start-failed-fork",
-                target_label = target_label,
-                err = err
+            tr!(
+                "Failed to fork session from {target_label}: {err}",
+                target_label,
+                err
             )
         )
     } else {
         color_eyre::eyre::eyre!(
             "{}",
-            crate::i18n::tr!(
-                "session-start-failed-resume",
-                target_label = target_label,
-                err = err
+            tr!(
+                "Failed to resume session from {target_label}: {err}",
+                target_label,
+                err
             )
         )
     }

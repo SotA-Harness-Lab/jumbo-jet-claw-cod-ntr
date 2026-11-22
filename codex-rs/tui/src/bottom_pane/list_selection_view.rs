@@ -208,6 +208,33 @@ pub(crate) struct SelectionItem {
     pub disabled_gutter_marker: Option<&'static str>,
 }
 
+impl SelectionItem {
+    pub(crate) fn translate_options<'a>(
+        context: &str,
+        items: impl IntoIterator<Item = &'a mut Self>,
+    ) {
+        let Some(translate) = crate::i18n::scoped_translator(context) else {
+            return;
+        };
+        for item in items {
+            if let Some(name) = translate(&item.name) {
+                item.name = name.into();
+            }
+            for description in [
+                &mut item.description,
+                &mut item.selected_description,
+                &mut item.disabled_reason,
+            ] {
+                if let Some(description) = description
+                    && let Some(text) = translate(description)
+                {
+                    *description = text.into();
+                }
+            }
+        }
+    }
+}
+
 /// Construction-time configuration for [`ListSelectionView`].
 ///
 /// This config is consumed once by [`ListSelectionView::new`]. After
@@ -229,6 +256,7 @@ pub(crate) struct SelectionViewParams {
     /// Whether this picker can continue handling input without the app server.
     pub allow_input_when_disconnected: bool,
     pub view_id: Option<&'static str>,
+    pub option_translation_scope: Option<&'static str>,
     pub title: Option<String>,
     pub subtitle: Option<String>,
     pub footer_note: Option<Line<'static>>,
@@ -299,6 +327,7 @@ impl Default for SelectionViewParams {
             allow_input_when_disconnected: false,
             presentation: super::ViewPresentation::Inline,
             view_id: None,
+            option_translation_scope: None,
             title: None,
             subtitle: None,
             footer_note: None,
@@ -473,14 +502,18 @@ impl ListSelectionView {
     /// soon as the query is non-empty, which can look like dropped data unless
     /// callers intentionally populate that field.
     pub fn new(
-        params: SelectionViewParams,
+        mut params: SelectionViewParams,
         app_event_tx: AppEventSender,
         keymap: ListKeymap,
     ) -> Self {
         let mut header = params.header;
         if params.title.is_some() || params.subtitle.is_some() {
-            let title = params.title.map(|title| Line::from(title.bold()));
-            let subtitle = params.subtitle.map(|subtitle| Line::from(subtitle.dim()));
+            let title = params.title.map(|title| {
+                Line::from(crate::i18n::translate_owned_in("selection-title", title).bold())
+            });
+            let subtitle = params.subtitle.map(|subtitle| {
+                Line::from(crate::i18n::translate_owned_in("selection-subtitle", subtitle).dim())
+            });
             header = Box::new(ColumnRenderable::with([
                 header,
                 Box::new(
@@ -504,6 +537,17 @@ impl ListSelectionView {
         let search_active = matches!(params.search_mode, SearchMode::Immediate)
             || params.initial_search_query.is_some();
         let search_query = params.initial_search_query.unwrap_or_default();
+        // Confirmations and a few fixed-choice pickers have catalog entries for their
+        // options. Picker rows can also carry text supplied by the user or backend.
+        let option_context = params.option_translation_scope.or(params.view_id);
+        if let Some(context) = option_context {
+            let items = params
+                .items
+                .iter_mut()
+                .chain(params.search_items.iter_mut())
+                .chain(params.tabs.iter_mut().flat_map(|tab| tab.items.iter_mut()));
+            SelectionItem::translate_options(context, items);
+        }
         let mut s = Self {
             picker_surface: params.picker_surface,
             max_visible_rows: params.max_visible_rows.max(/*other*/ 1),
@@ -529,7 +573,9 @@ impl ListSelectionView {
             search_query,
             auto_number_shortcuts: params.auto_number_shortcuts,
             search_placeholder: if params.is_searchable {
-                params.search_placeholder
+                params.search_placeholder.map(|label| {
+                    crate::i18n::translate_owned_in("selection-search-placeholder", label)
+                })
             } else {
                 None
             },
@@ -771,7 +817,7 @@ impl ListSelectionView {
                     let prefix = if is_selected { '›' } else { ' ' };
                     let name = item.name.as_str();
                     let marker = if item.is_current {
-                        crate::i18n::tr!("list-selection-current")
+                        tr!(" (current)")
                     } else {
                         ""
                     };
@@ -1758,13 +1804,11 @@ impl Renderable for ListSelectionView {
             let [header_area, elision_area] =
                 Layout::vertical([Constraint::Fill(1), Constraint::Length(1)]).areas(header_area);
             header.render(header_area, buf);
-            let mut spans = vec![
-                crate::i18n::tr!("list-selection-header-elided", count = header_height).into(),
-            ];
+            let mut spans = vec![tr!("[… {count} lines]", count = header_height).into()];
             if let Some(hint) = &self.header_view_all_hint {
                 spans.push(" ".into());
                 spans.extend(hint.spans());
-                spans.push(crate::i18n::tr!("list-selection-view-all").into());
+                spans.push(tr!(" view all").into());
             }
             Line::from(spans).dim().render(elision_area, buf);
         } else {
@@ -1792,7 +1836,7 @@ impl Renderable for ListSelectionView {
                 self.search_query.clone().into()
             };
             if self.on_demand_search_active() {
-                let label = crate::i18n::tr!("list-selection-search-label");
+                let label = tr!("Search › ");
                 buf.set_style(search_area, crate::bottom_pane::active_tab_style());
                 Line::from(vec![label.cyan().bold(), query_span]).render(search_area, buf);
                 let cursor_offset = (label.width() + self.search_query.width())
@@ -1821,7 +1865,7 @@ impl Renderable for ListSelectionView {
                     &rows,
                     &self.state,
                     render_area.height as usize,
-                    crate::i18n::tr!("list-selection-no-matches"),
+                    tr!("no matches"),
                     column_width,
                 ),
                 SelectionRowDisplay::SingleLine => render_rows_single_line_with_col_width_mode(
@@ -1830,7 +1874,7 @@ impl Renderable for ListSelectionView {
                     &rows,
                     &self.state,
                     render_area.height as usize,
-                    crate::i18n::tr!("list-selection-no-matches"),
+                    tr!("no matches"),
                     column_width,
                 ),
             };

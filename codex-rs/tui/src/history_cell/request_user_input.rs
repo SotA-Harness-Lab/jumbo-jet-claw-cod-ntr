@@ -35,22 +35,10 @@ impl HistoryCell for RequestUserInputResultCell {
             .count();
         let unanswered = total.saturating_sub(answered);
 
-        let mut header = vec![
-            "•".dim(),
-            " ".into(),
-            crate::i18n::tr!("request-user-input-questions").bold(),
-        ];
-        header.push(
-            crate::i18n::tr!(
-                "request-user-input-answered-count",
-                answered = answered,
-                total = total
-            )
-            .dim(),
-        );
+        let mut header = vec!["•".dim(), " ".into(), tr!("Questions").bold()];
+        header.push(tr!(" {answered}/{total} answered", answered, total).dim());
         if self.interrupted {
-            header
-                .push(crate::i18n::tr!("request-user-input-interrupted-suffix").fg(accent_color()));
+            header.push(tr!(" (interrupted)").fg(accent_color()));
         }
 
         let mut lines = vec![HyperlinkLine::new(header.into())];
@@ -69,7 +57,7 @@ impl HistoryCell for RequestUserInputResultCell {
                 Style::default(),
             );
             if answer_missing && let Some(last) = question_lines.last_mut() {
-                let suffix = crate::i18n::tr!("request-user-input-unanswered-suffix");
+                let suffix = tr!(" (unanswered)");
                 last.line.spans.push(suffix.dim());
                 if let Some(source) = &mut last.source {
                     // The suffix is deliberately appended after wrapping, matching the existing UI.
@@ -97,8 +85,8 @@ impl HistoryCell for RequestUserInputResultCell {
                 lines.extend(wrap_with_prefix(
                     "••••••",
                     width,
-                    label_prefix(crate::i18n::tr!("request-user-input-answer-label")).0,
-                    label_prefix(crate::i18n::tr!("request-user-input-answer-label")).1,
+                    label_prefix(tr!("answer: ")).0,
+                    label_prefix(tr!("answer: ")).1,
                     Style::default().fg(accent_color()),
                 ));
                 continue;
@@ -110,22 +98,22 @@ impl HistoryCell for RequestUserInputResultCell {
                 lines.extend(wrap_with_prefix(
                     &option,
                     width,
-                    label_prefix(crate::i18n::tr!("request-user-input-answer-label")).0,
-                    label_prefix(crate::i18n::tr!("request-user-input-answer-label")).1,
+                    label_prefix(tr!("answer: ")).0,
+                    label_prefix(tr!("answer: ")).1,
                     Style::default().fg(accent_color()),
                 ));
             }
             if let Some(note) = note {
                 let (label, continuation, style) = if question.options.is_some() {
                     (
-                        label_prefix(crate::i18n::tr!("request-user-input-note-label")).0,
-                        label_prefix(crate::i18n::tr!("request-user-input-note-label")).1,
+                        label_prefix(tr!("note: ")).0,
+                        label_prefix(tr!("note: ")).1,
                         Style::default().fg(accent_color()),
                     )
                 } else {
                     (
-                        label_prefix(crate::i18n::tr!("request-user-input-answer-label")).0,
-                        label_prefix(crate::i18n::tr!("request-user-input-answer-label")).1,
+                        label_prefix(tr!("answer: ")).0,
+                        label_prefix(tr!("answer: ")).1,
                         Style::default().fg(accent_color()),
                     )
                 };
@@ -134,10 +122,7 @@ impl HistoryCell for RequestUserInputResultCell {
         }
 
         if self.interrupted && unanswered > 0 {
-            let summary = crate::i18n::tr!(
-                "request-user-input-interrupted-with-unanswered",
-                unanswered = unanswered
-            );
+            let summary = tr!("interrupted with {unanswered} unanswered", unanswered);
             lines.extend(wrap_with_prefix(
                 &summary,
                 width,
@@ -165,15 +150,13 @@ impl HistoryCell for RequestUserInputResultCell {
                     .is_some_and(|answer| !answer.answers.is_empty())
             })
             .count();
-        let mut lines = vec![Line::from(crate::i18n::tr!(
-            "request-user-input-questions-answered",
-            answered = answered,
-            total = total
+        let mut lines = vec![Line::from(tr!(
+            "Questions {answered}/{total} answered",
+            answered,
+            total
         ))];
         if self.interrupted {
-            lines.push(Line::from(crate::i18n::tr!(
-                "request-user-input-interrupted-raw"
-            )));
+            lines.push(Line::from(tr!("(interrupted)")));
         }
         for question in &self.questions {
             lines.push(Line::from(question.question.clone()));
@@ -183,29 +166,20 @@ impl HistoryCell for RequestUserInputResultCell {
                 .filter(|answer| !answer.answers.is_empty())
             {
                 if question.is_secret {
-                    lines.push(Line::from(format!(
-                        "{}******",
-                        crate::i18n::tr!("request-user-input-answer-label")
-                    )));
+                    lines.push(Line::from(format!("{}******", tr!("answer: "))));
                 } else {
                     let (options, note) = split_request_user_input_answer(answer);
-                    lines.extend(options.into_iter().map(|option| {
-                        Line::from(format!(
-                            "{}{option}",
-                            crate::i18n::tr!("request-user-input-answer-label")
-                        ))
-                    }));
+                    lines.extend(
+                        options
+                            .into_iter()
+                            .map(|option| Line::from(format!("{}{option}", tr!("answer: ")))),
+                    );
                     if let Some(note) = note {
-                        lines.push(Line::from(format!(
-                            "{}{note}",
-                            crate::i18n::tr!("request-user-input-note-label")
-                        )));
+                        lines.push(Line::from(format!("{}{note}", tr!("note: "))));
                     }
                 }
             } else {
-                lines.push(Line::from(crate::i18n::tr!(
-                    "request-user-input-unanswered-raw"
-                )));
+                lines.push(Line::from(tr!("(unanswered)")));
             }
         }
         lines

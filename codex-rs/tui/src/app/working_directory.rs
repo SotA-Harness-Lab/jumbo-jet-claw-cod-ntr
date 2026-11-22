@@ -49,15 +49,16 @@ impl App {
                 .chat_widget
                 .can_change_working_directory(pending.source_thread_id)
         {
-            return self
-                .working_directory_error(crate::i18n::tr!("working-directory-idle-required"));
+            return self.working_directory_error(tr!(
+                "Changing directories requires an idle primary session without queued input."
+            ));
         }
         if crate::uses_remote_workspace_or_environment(
             &self.app_server_target,
             self.environment_manager.as_ref(),
         ) {
             return self
-                .working_directory_error(crate::i18n::tr!("working-directory-remote-unsupported"));
+                .working_directory_error(tr!("Changing directories is not supported for remote workspaces or remote execution environments."));
         }
         self.change_working_directory(tui, app_server, pending.destination)
             .await;
@@ -81,8 +82,8 @@ impl App {
             || (mode == crate::app_event::ManagedWorktreeMode::Fork
                 && self.chat_widget.has_misalignment_policy_violation())
         {
-            self.chat_widget.add_error_message(crate::i18n::tr!(
-                "working-directory-offline-checkout",
+            self.chat_widget.add_error_message(tr!(
+                "Cannot continue into the new worktree while the session is offline or blocked by a policy warning. An unused checkout was created at {path}; remove it with `git worktree remove <checkout-path>` from the source repository.",
                 path = checkout.root.display().to_string()
             ));
             return Ok(());
@@ -93,8 +94,8 @@ impl App {
                 .chat_widget
                 .can_change_working_directory(source_thread_id)
         {
-            self.chat_widget.add_error_message(crate::i18n::tr!(
-                "working-directory-source-changed-checkout",
+            self.chat_widget.add_error_message(tr!(
+                "The source conversation changed while creating the worktree. An unused checkout was created at {path}; remove it with `git worktree remove <checkout-path>` from the source repository.",
                 path = checkout.root.display().to_string()
             ));
             return Ok(());
@@ -119,8 +120,8 @@ impl App {
         )
         .await;
         if self.pending_managed_worktree_attach.is_none() {
-            return Err(color_eyre::eyre::eyre!(crate::i18n::tr!(
-                "working-directory-retained-checkout",
+            return Err(color_eyre::eyre::eyre!(tr!(
+                "Could not start a session in the managed worktree. A checkout was retained at {path}; remove it with `git worktree remove <checkout-path>` from the source repository if it is no longer needed.",
                 path = checkout_root.display().to_string()
             )));
         }
@@ -157,16 +158,15 @@ impl App {
         destination_config: DestinationConfig,
     ) {
         if self.config.ephemeral || !cwd.as_path().is_dir() {
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-task-not-replaceable"
-            ));
+            return self.working_directory_error(tr!("This task cannot be safely replaced."));
         }
         let Some(thread_id) = self.chat_widget.thread_id() else {
             return;
         };
         if self.pending_server_profiles.contains_key(&thread_id) {
-            return self
-                .working_directory_error(crate::i18n::tr!("working-directory-wait-permissions"));
+            return self.working_directory_error(tr!(
+                "Wait for permissions to update before changing directories."
+            ));
         }
         if self.app_server_target.thread_params_mode()
             == crate::app_server_session::ThreadParamsMode::Remote
@@ -177,8 +177,8 @@ impl App {
                 .active_permission_profile()
                 .is_some_and(|profile| !profile.id.starts_with(':'))
         {
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-named-profile-unsupported"
+            return self.working_directory_error(tr!(
+                "Changing directories with a named profile is not supported."
             ));
         }
         let selected_profile = self
@@ -190,13 +190,13 @@ impl App {
             .as_ref()
             .is_some_and(|profile| !profile.profile_id.starts_with(':'))
         {
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-unconfirmed-profile-unsupported"
+            return self.working_directory_error(tr!(
+                "Changing directories with an unconfirmed named profile is not supported."
             ));
         }
         let cells = &self.transcript_cells;
         if cells.iter().any(|cell| cell.as_any().is::<LoadingCell>()) {
-            return self.working_directory_error(crate::i18n::tr!("working-directory-mcp-loading"));
+            return self.working_directory_error(tr!("MCP inventory is still loading."));
         }
         let agents = self.agent_navigation.ordered_threads();
         let closed_agents: HashSet<_> = agents
@@ -212,8 +212,7 @@ impl App {
                     .is_ok_and(|store| store.active_turn_id().is_none())
         });
         if active || agents.iter().any(|(t, a)| *t != thread_id && a.is_running) {
-            return self
-                .working_directory_error(crate::i18n::tr!("working-directory-agent-running"));
+            return self.working_directory_error(tr!("Cannot change: another agent is running."));
         }
         let open_agents: Vec<_> = agents
             .iter()
@@ -244,8 +243,7 @@ impl App {
                     })
                 }))
         {
-            return self
-                .working_directory_error(crate::i18n::tr!("working-directory-history-not-saved"));
+            return self.working_directory_error(tr!("Conversation history is not saved."));
         }
         let mut ids: HashSet<_> = channels
             .keys()
@@ -261,8 +259,8 @@ impl App {
             DestinationConfig::Load => match self.rebuild_config_for_cwd(cwd.to_path_buf()).await {
                 Ok(config) => config,
                 Err(err) => {
-                    return self.working_directory_error(crate::i18n::tr!(
-                        "working-directory-load-failed",
+                    return self.working_directory_error(tr!(
+                        "Cannot load {cwd}: {error}",
                         cwd = format!("{cwd:?}"),
                         error = err.to_string()
                     ));
@@ -307,8 +305,8 @@ impl App {
                 config.developer_instructions.clone(),
             )
         {
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-fork-instructions-differ",
+            return self.working_directory_error(tr!(
+                "Cannot fork into this worktree because developer instructions differ. Start a new conversation instead. An unused checkout was created at {path}; remove it with `git worktree remove <checkout-path>` from the source repository.",
                 path = checkout.root.display().to_string()
             ));
         }
@@ -340,8 +338,8 @@ impl App {
                 }
                 Ok(None) => {}
                 Err(error) => {
-                    return self.working_directory_error(crate::i18n::tr!(
-                        "working-directory-read-defaults-failed",
+                    return self.working_directory_error(tr!(
+                        "Cannot read defaults: {error}",
                         error = format!("{error:#}")
                     ));
                 }
@@ -370,8 +368,7 @@ impl App {
                 || config.permissions.profile_workspace_roots()
                     != self.config.permissions.profile_workspace_roots())
         {
-            return self
-                .working_directory_error(crate::i18n::tr!("working-directory-profile-differs"));
+            return self.working_directory_error(tr!("Permission profile has different settings."));
         }
         if let Some(profile) = profile.as_ref()
             && profile.turn_override == RuntimePermissionProfileTurnOverride::Preserve
@@ -381,9 +378,8 @@ impl App {
                 cwd.as_path(),
             )
         {
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-profile-not-preserved"
-            ));
+            return self
+                .working_directory_error(tr!("Permission profile cannot be preserved by /cd."));
         }
         if selected_profile.is_none()
             && let Err(error) = self.apply_runtime_policy_overrides(&mut config, scope)
@@ -429,9 +425,7 @@ impl App {
             .await
             .completed
         {
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-agent-status-failed"
-            ));
+            return self.working_directory_error(tr!("Cannot check agent status."));
         }
         ids.extend(
             self.agent_navigation
@@ -450,14 +444,12 @@ impl App {
                         codex_app_server_protocol::ThreadStatus::Active { .. }
                     ) =>
                 {
-                    return self.working_directory_error(crate::i18n::tr!(
-                        "working-directory-task-running"
-                    ));
+                    return self.working_directory_error(tr!("Cannot change: a task is running."));
                 }
                 Ok(_) => {}
                 Err(error) => {
-                    return self.working_directory_error(crate::i18n::tr!(
-                        "working-directory-task-status-failed",
+                    return self.working_directory_error(tr!(
+                        "Cannot check task status: {error}",
                         error = error.to_string()
                     ));
                 }
@@ -494,8 +486,8 @@ impl App {
         let mut transitioned = match transitioned {
             Ok(value) => value,
             Err(e) => {
-                return self.working_directory_error(crate::i18n::tr!(
-                    "working-directory-change-failed",
+                return self.working_directory_error(tr!(
+                    "Failed to change: {error}",
                     error = e.to_string()
                 ));
             }
@@ -529,7 +521,8 @@ impl App {
                     let _ = app_server.thread_archive(session.thread_id).await;
                 }
             }
-            return self.working_directory_error(crate::i18n::tr!("working-directory-not-applied"));
+            return self
+                .working_directory_error(tr!("Requested directory or permissions not applied."));
         }
         if let Some((manager, checkout, _, _)) = managed_worktree.as_ref()
             && let Err(error) =
@@ -540,8 +533,8 @@ impl App {
             if preserve_history {
                 let _ = app_server.thread_archive(replacement_id).await;
             }
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-register-ownership-failed",
+            return self.working_directory_error(tr!(
+                "Cannot register managed worktree ownership: {error}",
                 error = error.to_string()
             ));
         }
@@ -557,8 +550,8 @@ impl App {
                     transitioned.session.thread_name = Some(name.clone());
                     None
                 }
-                Err(error) => Some(crate::i18n::tr!(
-                    "working-directory-name-session-failed",
+                Err(error) => Some(tr!(
+                    "Failed to name the worktree session: {error}",
                     error = error.to_string()
                 )),
             }
@@ -571,8 +564,8 @@ impl App {
             if preserve_history {
                 let _ = app_server.thread_archive(replacement_id).await;
             }
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-change-dirs-failed",
+            return self.working_directory_error(tr!(
+                "Cannot change directories: {error}",
                 error = error.to_string()
             ));
         }
@@ -628,8 +621,8 @@ impl App {
         let attach_widget = App::replace_chat_widget_with_app_server_thread;
         let (lineage, message) = (ThreadAttachPresentation::SessionLineage, None);
         if let Err(error) = attach_widget(self, tui, started, lineage, message).await {
-            return self.working_directory_error(crate::i18n::tr!(
-                "working-directory-restore-failed",
+            return self.working_directory_error(tr!(
+                "Could not restore session: {error}",
                 error = error.to_string()
             ));
         }
@@ -674,8 +667,8 @@ impl App {
         if let Some(message) = project_config_warning(&self.config) {
             self.chat_widget.add_warning_message(message);
         }
-        let message = crate::i18n::tr!(
-            "working-directory-changed",
+        let message = tr!(
+            "Working directory changed to: {path}",
             path = cwd.display().to_string()
         );
         self.chat_widget.add_info_message(message, /*hint*/ None);

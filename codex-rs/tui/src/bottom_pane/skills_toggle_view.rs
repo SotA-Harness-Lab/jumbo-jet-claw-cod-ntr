@@ -40,7 +40,7 @@ use super::scroll_state::ScrollState;
 use super::selection_popup_common::GenericDisplayRow;
 
 fn search_placeholder() -> &'static str {
-    crate::i18n::tr!("skills-toggle-view-search-placeholder")
+    tr!("Type to search skills")
 }
 
 pub(crate) struct SkillsToggleItem {
@@ -71,14 +71,12 @@ impl SkillsToggleView {
     ) -> Self {
         let mut header = ColumnRenderable::new();
         header.push(
-            Paragraph::new(Line::from(
-                crate::i18n::tr!("skills-toggle-view-title").bold(),
-            ))
-            .wrap(Wrap { trim: false }),
+            Paragraph::new(Line::from(tr!("Enable/Disable Skills").bold()))
+                .wrap(Wrap { trim: false }),
         );
         header.push(
             Paragraph::new(Line::from(
-                crate::i18n::tr!("skills-toggle-view-subtitle").dim(),
+                tr!("Turn skills on or off. Your changes are saved automatically.").dim(),
             ))
             .wrap(Wrap { trim: false }),
         );
@@ -335,7 +333,7 @@ impl Renderable for SkillsToggleView {
                 &rows,
                 &self.state,
                 render_area.height as usize,
-                crate::i18n::tr!("skills-toggle-view-no-matches"),
+                tr!("no matches"),
             );
         }
 
@@ -362,11 +360,11 @@ fn skills_toggle_hint_line(keymap: &ListKeymap) -> Line<'static> {
         toggle.push_str(&accept.display_label());
     }
     let mut spans = key_hint::key_label_spans(&toggle);
-    spans.push(crate::i18n::tr!("skills-toggle-view-toggle").dim());
+    spans.push(tr!(" toggle").dim());
     if let Some(cancel) = cancel {
-        spans.push(crate::i18n::tr!("skills-toggle-view-sep").dim());
+        spans.push(tr!(" · ").dim());
         spans.extend(cancel.spans());
-        spans.push(crate::i18n::tr!("skills-toggle-view-close").dim());
+        spans.push(tr!(" close").dim());
     }
     spans.into()
 }

@@ -49,12 +49,10 @@ pub(crate) fn fetch(
                         },
                     )
                     .await
-                    .map_err(|_| {
-                        crate::i18n::tr!("experimental-features-err-request-failed").to_string()
-                    })?;
+                    .map_err(|_| tr!("Experimental feature request failed").to_string())?;
                 if response.data.len() > 100 {
                     return Err(
-                        crate::i18n::tr!("experimental-features-err-page-exceeds").to_string()
+                        tr!("Experimental feature page exceeds requested limit").to_string()
                     );
                 }
                 features.extend(
@@ -69,16 +67,16 @@ pub(crate) fn fetch(
                 };
                 if !cursors.insert(next.clone()) {
                     return Err(
-                        crate::i18n::tr!("experimental-features-err-cursor-repeated").to_string(),
+                        tr!("Experimental feature pagination repeated a cursor").to_string()
                     );
                 }
             }
-            Err(crate::i18n::tr!("experimental-features-err-exceeded-pages").to_string())
+            Err(tr!("Experimental feature discovery exceeded 10 pages").to_string())
         };
         tokio::select! {
             _ = response_tx.closed() => {},
             result = tokio::time::timeout(Duration::from_secs(/*secs*/ 5), discovery) => {
-                let result = result.unwrap_or_else(|_| Err(crate::i18n::tr!("experimental-features-err-discovery-timed-out").to_string()));
+                let result = result.unwrap_or_else(|_| Err(tr!("Experimental feature discovery timed out").to_string()));
                 let _ = response_tx.send(result);
             }
         }
@@ -106,7 +104,7 @@ pub(crate) async fn write(
     );
     let features = rx
         .await
-        .map_err(|_| crate::i18n::tr!("experimental-features-err-discovery-interrupted-short"))??;
+        .map_err(|_| tr!("Feature discovery was interrupted"))??;
     let edits = updates
         .iter()
         .map(|(name, enabled)| {
@@ -114,8 +112,8 @@ pub(crate) async fn write(
                 .iter()
                 .find(|feature| feature.name == *name)
                 .ok_or_else(|| {
-                    crate::i18n::tr!(
-                        "experimental-features-err-not-advertised",
+                    tr!(
+                        "The server did not advertise experimental feature `{name}`",
                         name = name.as_str()
                     )
                 })?;
@@ -146,8 +144,8 @@ pub(crate) async fn write(
         }),
     )
     .await
-    .map_err(|_| crate::i18n::tr!("experimental-features-err-save-timed-out"))?
-    .map_err(|_| crate::i18n::tr!("experimental-features-err-save-failed"))?;
+    .map_err(|_| tr!("Saving experimental features timed out; the write may still finish. Reopen /experimental to check."))?
+    .map_err(|_| tr!("Failed to save experimental features. Reopen /experimental to check configured values before retrying."))?;
     let (tx, rx) = oneshot::channel();
     fetch(
         request_handle,
@@ -157,9 +155,12 @@ pub(crate) async fn write(
     );
     let features = rx
         .await
-        .map_err(|_| crate::i18n::tr!("experimental-features-err-readback-interrupted"))?
+        .map_err(|_| tr!("Features were saved, but readback was interrupted"))?
         .map_err(|error| {
-            crate::i18n::tr!("experimental-features-err-refresh-failed", error = error)
+            tr!(
+                "Features were saved, but configured values could not be refreshed: {error}",
+                error
+            )
         })?;
     let overridden = response.status == WriteStatus::OkOverridden
         || updates.iter().any(|(name, enabled)| {
@@ -170,7 +171,7 @@ pub(crate) async fn write(
     Ok(FeatureWriteResult {
         features,
         warning: overridden
-            .then(|| crate::i18n::tr!("experimental-features-err-values-differ").to_string()),
+            .then(|| tr!("Changes were saved, but the configured values differ from your selections. A higher-priority setting may override them.").to_string()),
     })
 }
 

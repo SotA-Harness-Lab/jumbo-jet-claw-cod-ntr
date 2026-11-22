@@ -91,16 +91,16 @@ impl ReadOnlyThreadNotice {
         let (prefix, title, indent) = match self.reason {
             ReadOnlyThread::ExternalWriter => (
                 "🔒  ",
-                crate::i18n::tr!("rendering-open-in-another-app"),
+                tr!("This conversation is open in another app"),
                 "    ",
             ),
-            ReadOnlyThread::Archived => ("", crate::i18n::tr!("rendering-thread-archived"), ""),
+            ReadOnlyThread::Archived => ("", tr!("This thread was archived"), ""),
         };
         let title: Line<'static> = vec![prefix.into(), title.bold()].into();
         let (key, action) = self.reason.action();
         let retry: Line<'static> = vec![
             Span::styled(key, crate::style::accent_style()),
-            crate::i18n::tr!("rendering-key-to-action", action = action).into(),
+            tr!(" to {action}", action).into(),
         ]
         .into();
         let mut lines = word_wrap_lines(&[title], usize::from(width));
@@ -124,10 +124,7 @@ impl ReadOnlyThreadNotice {
         let (key, action) = self.reason.action();
         let mut items = vec![(key.to_string(), action.to_string())];
         if self.reason == ReadOnlyThread::ExternalWriter {
-            items.push((
-                "f".to_string(),
-                crate::i18n::tr!("rendering-fork").to_string(),
-            ));
+            items.push(("f".to_string(), tr!("fork").to_string()));
         }
         let escape = crate::key_hint::plain(KeyCode::Esc).display_label();
         let quit_keys = [
@@ -140,19 +137,10 @@ impl ReadOnlyThreadNotice {
         } else {
             escape
         };
-        items.push((
-            key,
-            crate::i18n::tr!("rendering-command-center").to_string(),
-        ));
-        items.push((
-            quit_keys.join("/"),
-            crate::i18n::tr!("rendering-exit").to_string(),
-        ));
+        items.push((key, tr!("command center").to_string()));
+        items.push((quit_keys.join("/"), tr!("exit").to_string()));
         if let Some(hint) = self.transcript_hint {
-            items.push((
-                hint.display_label(),
-                crate::i18n::tr!("rendering-transcript").to_string(),
-            ));
+            items.push((hint.display_label(), tr!("transcript").to_string()));
         }
         let mut spans = vec![" ".set_style(crate::style::footer_hint_label_style())];
         for (idx, (key, label)) in items.into_iter().enumerate() {
@@ -287,7 +275,7 @@ impl ChatWidget {
     ) -> RenderableItem<'a> {
         if self.fork_in_progress {
             RenderableItem::Owned(Box::new(
-                Paragraph::new(crate::i18n::tr!("rendering-forking").dim()).inset(Insets::tlbr(
+                Paragraph::new(tr!("Forking conversation…").dim()).inset(Insets::tlbr(
                     /*top*/ 1, /*left*/ 2, /*bottom*/ 1, /*right*/ 2,
                 )),
             ))
@@ -301,7 +289,7 @@ impl ChatWidget {
                         error,
                         codex_app_server_protocol::ModelProviderError::ModelProviderMismatch { .. }
                     ) {
-                    crate::i18n::tr!("rendering-continue-new-chat")
+                    tr!("Continue in a new chat")
                 } else {
                     error.title()
                 },
@@ -312,8 +300,8 @@ impl ChatWidget {
                     .as_ref()
                     .filter(|remote| !remote.is_local_daemon)
                     .map(|remote| {
-                        crate::i18n::tr!(
-                            "rendering-configuration-on",
+                        tr!(
+                            "Configuration on {address}",
                             address = remote.address.clone()
                         )
                     }),
@@ -346,19 +334,12 @@ impl ChatWidget {
             let above_composer = if self.quick_dial_menu && !options.floating_shortcuts {
                 RenderableItem::Owned(Box::new(self.quick_dial_hud()))
             } else if let Some((cycle, environment)) = self.visible_new_backend_control() {
-                let mut spans = vec![
-                    "  ".into(),
-                    cycle.unwrap_or(crate::i18n::tr!("rendering-cloud")).into(),
-                ];
+                let mut spans = vec!["  ".into(), cycle.unwrap_or(tr!("Cloud")).into()];
                 let keymap = self.bottom_pane.keymap();
                 if cycle.is_some()
                     && let Some(key) = keymap.primary_hint(KeymapContext::Global, "change_host")
                 {
-                    spans.extend([
-                        "  ".into(),
-                        key.into(),
-                        crate::i18n::tr!("rendering-cycle").dim(),
-                    ]);
+                    spans.extend(["  ".into(), key.into(), tr!(" cycle").dim()]);
                 }
                 let environment = environment.map(|name| {
                     spans.push(" - ".dim());
@@ -366,11 +347,7 @@ impl ChatWidget {
                     if let Some(key) =
                         keymap.primary_hint(KeymapContext::Global, "choose_cloud_environment")
                     {
-                        spans.extend([
-                            "  ".into(),
-                            key.into(),
-                            crate::i18n::tr!("rendering-change").dim(),
-                        ]);
+                        spans.extend(["  ".into(), key.into(), tr!(" change").dim()]);
                     }
                     (index, name.to_owned())
                 });

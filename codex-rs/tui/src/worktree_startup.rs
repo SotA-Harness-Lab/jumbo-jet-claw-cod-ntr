@@ -50,8 +50,8 @@ impl ManagedTuiWorktree {
             .await
             .map_err(std::io::Error::other)?;
         if source.active_project.is_untrusted() {
-            return Err(std::io::Error::other(crate::i18n::tr!(
-                "worktree-startup-untrusted-source"
+            return Err(std::io::Error::other(tr!(
+                "`--worktree` cannot create a checkout from an explicitly untrusted source"
             )));
         }
         Ok(())
@@ -66,8 +66,8 @@ struct StartupRecovery {
 
 impl StartupRecovery {
     fn message(&self) -> String {
-        crate::i18n::tr!(
-            "worktree-startup-recovery",
+        tr!(
+            "Startup did not finish binding a thread to this worktree: {root}\nThe checkout was kept. Inspect it and confirm no session is using it.\nTo remove it, run `git worktree remove <checkout-path>` from the source repository,\nreplacing <checkout-path> with the path above. Do not use --force.",
             root = format!("{:?}", self.root)
         )
     }
@@ -142,7 +142,10 @@ pub(super) async fn prepare(
         }
         .map_err(std::io::Error::other)?;
         if prepared.default_environment_is_remote() {
-            color_eyre::eyre::bail!("{}", crate::i18n::tr!("worktree-startup-local-only"));
+            color_eyre::eyre::bail!(
+                "{}",
+                tr!("`--worktree` is only supported for local sessions")
+            );
         }
         let environment = prepared.build(
             Some(ExecServerRuntimeOptions::from_optional_paths(
@@ -185,8 +188,8 @@ pub(super) async fn prepare(
             .ok_or_else(|| {
                 color_eyre::eyre::eyre!(
                     "{}",
-                    crate::i18n::tr!(
-                        "worktree-startup-session-not-found",
+                    tr!(
+                        "Session not found: {id_or_name}",
                         id_or_name = id_or_name.to_string()
                     )
                 )
@@ -231,7 +234,10 @@ pub(super) async fn prepare(
         }
     }
     if source.active_project.is_untrusted() {
-        color_eyre::eyre::bail!("{}", crate::i18n::tr!("worktree-startup-untrusted-source"));
+        color_eyre::eyre::bail!(
+            "{}",
+            tr!("`--worktree` cannot create a checkout from an explicitly untrusted source")
+        );
     }
     let invocation_cwd = std::env::current_dir()?;
     for path in &mut overrides.additional_writable_roots {

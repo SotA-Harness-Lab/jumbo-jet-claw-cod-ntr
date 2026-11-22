@@ -277,7 +277,7 @@ impl ChatWidget {
         // Emit notices after replacing or removing the placeholder header.
         if self.daybreak_enabled && previous_thread_id != self.thread_id {
             self.add_info_message(
-                crate::i18n::tr!("session-flow-daybreak-on").into(),
+                tr!("Daybreak is on for new turns.").into(),
                 /*hint*/ None,
             );
         }
@@ -341,7 +341,7 @@ impl ChatWidget {
         {
             vec![
                 "• ".dim(),
-                crate::i18n::tr!("session-flow-thread-forked-from").into(),
+                tr!("Thread forked from ").into(),
                 name.fg(accent_color()),
                 " (".into(),
                 forked_from_id_text.fg(accent_color()),
@@ -351,7 +351,7 @@ impl ChatWidget {
         } else {
             vec![
                 "• ".dim(),
-                crate::i18n::tr!("session-flow-thread-forked-from").into(),
+                tr!("Thread forked from ").into(),
                 forked_from_id_text.fg(accent_color()),
             ]
             .into()
@@ -416,8 +416,11 @@ impl ChatWidget {
     }
 
     pub(crate) fn emit_prompt_edit_thread_event(&mut self) {
-        let line: Line<'static> =
-            vec!["• ".dim(), crate::i18n::tr!("session-flow-reverted").into()].into();
+        let line: Line<'static> = vec![
+            "• ".dim(),
+            tr!("Conversation reverted to this point. File changes are unchanged.").into(),
+        ]
+        .into();
         self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
             PlainHistoryCell::new(vec![line]),
         )));

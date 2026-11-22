@@ -37,11 +37,7 @@ pub(crate) fn new_debug_config_output(
 
     if let Some(proxy) = session_network_proxy {
         lines.push("".into());
-        lines.push(
-            crate::i18n::tr!("debug-config-session-runtime")
-                .bold()
-                .into(),
-        );
+        lines.push(tr!("Session runtime:").bold().into());
         lines.push("  - network_proxy".into());
         let SessionNetworkProxyRuntime {
             http_addr,
@@ -99,7 +95,7 @@ fn render_agents_config_lines(config: &Config) -> Vec<Line<'static>> {
 fn format_optional(value: Option<impl std::fmt::Display>) -> String {
     value
         .map(|value| value.to_string())
-        .unwrap_or_else(|| crate::i18n::tr!("debug-config-unset").to_string())
+        .unwrap_or_else(|| tr!("<unset>").to_string())
 }
 
 fn sandbox_mode_is_allowed_by_permissions(
@@ -134,23 +130,27 @@ fn render_debug_config_lines(
 ) -> Vec<Line<'static>> {
     let mut lines = vec!["/debug-config".magenta().into(), "".into()];
 
-    lines.push(crate::i18n::tr!("debug-config-layer-stack").bold().into());
+    lines.push(
+        tr!("Config layer stack (lowest precedence first):")
+            .bold()
+            .into(),
+    );
     let mut layers = stack.all_layers_low_to_high().peekable();
     if layers.peek().is_none() {
-        lines.push(crate::i18n::tr!("debug-config-none-indented").dim().into());
+        lines.push(tr!("  <none>").dim().into());
     } else {
         for (index, layer) in layers.enumerate() {
             let source = format_config_layer_source(&layer.name, CONFIG_TOML_FILE);
             let status = if layer.is_disabled() {
-                crate::i18n::tr!("debug-config-disabled")
+                tr!("disabled")
             } else {
-                crate::i18n::tr!("debug-config-enabled")
+                tr!("enabled")
             };
             lines.push(format!("  {}. {source} ({status})", index + 1).into());
             lines.extend(render_non_file_layer_details(layer));
             if let Some(reason) = &layer.disabled_reason {
                 lines.push(
-                    crate::i18n::tr!("debug-config-reason", reason = reason.to_string())
+                    tr!("     reason: {reason}", reason = reason.to_string())
                         .dim()
                         .into(),
                 );
@@ -162,7 +162,7 @@ fn render_debug_config_lines(
     let requirements_toml = stack.requirements_toml();
 
     lines.push("".into());
-    lines.push(crate::i18n::tr!("debug-config-requirements").bold().into());
+    lines.push(tr!("Requirements:").bold().into());
     let mut requirement_lines = Vec::new();
 
     if let Some(sqlite_home) = requirements.sqlite_home.as_ref() {
@@ -389,7 +389,7 @@ fn render_debug_config_lines(
     }
 
     if requirement_lines.is_empty() {
-        lines.push(crate::i18n::tr!("debug-config-none-indented").dim().into());
+        lines.push(tr!("  <none>").dim().into());
     } else {
         lines.extend(requirement_lines);
     }
@@ -416,7 +416,7 @@ fn render_session_flag_details(config: &TomlValue) -> Vec<Line<'static>> {
     flatten_toml_key_values(config, /*prefix*/ None, &mut pairs);
 
     if pairs.is_empty() {
-        return vec![crate::i18n::tr!("debug-config-none-bullet").dim().into()];
+        return vec![tr!("     - <none>").dim().into()];
     }
 
     pairs
@@ -449,11 +449,7 @@ fn render_non_file_layer_value(layer: &ConfigLayerEntry) -> Vec<Line<'static>> {
         .map(ToString::to_string)
         .unwrap_or_else(|| format_toml_value(&layer.config));
     if value.is_empty() {
-        return vec![
-            format!("     {label}: {}", crate::i18n::tr!("debug-config-empty"))
-                .dim()
-                .into(),
-        ];
+        return vec![format!("     {label}: {}", tr!("<empty>")).dim().into()];
     }
 
     if value.contains('\n') {
@@ -466,22 +462,19 @@ fn render_non_file_layer_value(layer: &ConfigLayerEntry) -> Vec<Line<'static>> {
 }
 
 fn non_file_layer_value_label(source: &ConfigLayerSource) -> &'static str {
-    match source {
+    let label = match source {
         ConfigLayerSource::Mdm { .. } | ConfigLayerSource::LegacyManagedConfigTomlFromMdm => {
-            crate::i18n::tr!("debug-config-mdm-value")
+            "MDM value"
         }
-        ConfigLayerSource::EnterpriseManaged { .. } => {
-            crate::i18n::tr!("debug-config-enterprise-value")
-        }
+        ConfigLayerSource::EnterpriseManaged { .. } => "Enterprise-managed config value",
         ConfigLayerSource::PackagedDefaults { .. }
         | ConfigLayerSource::SessionFlags
         | ConfigLayerSource::System { .. }
         | ConfigLayerSource::User { .. }
         | ConfigLayerSource::Project { .. }
-        | ConfigLayerSource::LegacyManagedConfigTomlFromFile { .. } => {
-            crate::i18n::tr!("debug-config-layer-value")
-        }
-    }
+        | ConfigLayerSource::LegacyManagedConfigTomlFromFile { .. } => "Layer value",
+    };
+    crate::i18n::translate(label, /*context*/ None)
 }
 
 fn flatten_toml_key_values(
@@ -520,19 +513,19 @@ fn requirement_line(
 ) -> Line<'static> {
     let source = source
         .map(ToString::to_string)
-        .unwrap_or_else(|| crate::i18n::tr!("debug-config-unspecified").to_string());
-    crate::i18n::tr!(
-        "debug-config-requirement-line",
-        name = name,
-        value = value,
-        source = source
+        .unwrap_or_else(|| tr!("<unspecified>").to_string());
+    tr!(
+        "  - {name}: {value} (source: {source})",
+        name,
+        value,
+        source
     )
     .into()
 }
 
 fn join_or_empty(values: Vec<String>) -> String {
     if values.is_empty() {
-        crate::i18n::tr!("debug-config-empty").to_string()
+        tr!("<empty>").to_string()
     } else {
         values.join(", ")
     }

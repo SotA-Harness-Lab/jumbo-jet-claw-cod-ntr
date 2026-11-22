@@ -99,9 +99,9 @@ impl UserVerificationView {
             footer_note: Some(
                 accept_cancel_hint_line(
                     list_keymap.primary_hint(ListAction::Accept),
-                    crate::i18n::tr!("user-verification-to-confirm"),
+                    "to confirm",
                     list_keymap.primary_hint(ListAction::Cancel),
-                    crate::i18n::tr!("user-verification-to-cancel"),
+                    "to cancel",
                 )
                 .dim(),
             ),
@@ -259,12 +259,12 @@ impl Renderable for UserVerificationView {
 fn user_verification_options(keymap: &ApprovalKeymap) -> Vec<UserVerificationOption> {
     vec![
         UserVerificationOption {
-            label: crate::i18n::tr!("user-verification-verify").to_string(),
+            label: tr!("Verify and approve").to_string(),
             decision: UserVerificationDecision::Verify,
             shortcuts: keymap.approve.clone(),
         },
         UserVerificationOption {
-            label: crate::i18n::tr!("user-verification-cancel").to_string(),
+            label: tr!("Cancel this request").to_string(),
             decision: UserVerificationDecision::Cancel,
             shortcuts: keymap.cancel.clone(),
         },
@@ -285,14 +285,14 @@ fn request_details(request: &UserVerificationRequest) -> Box<dyn Renderable> {
     let mut lines = Vec::new();
     if let Some(thread_label) = &request.thread_label {
         lines.push(Line::from(vec![
-            crate::i18n::tr!("user-verification-thread").into(),
+            tr!(in "user-verification", "Thread: ").into(),
             thread_label.clone().bold(),
         ]));
         lines.push(Line::from(""));
     }
     lines.extend([
         Line::from(vec![
-            crate::i18n::tr!("user-verification-server").into(),
+            tr!("Server: ").into(),
             crate::app_server_approval_conversions::mcp_server_label(
                 &request.server_name,
                 request.environment_id.as_deref(),
@@ -307,10 +307,7 @@ fn request_details(request: &UserVerificationRequest) -> Box<dyn Renderable> {
 
 fn waiting_view(request: &UserVerificationRequest, keymap: &ListKeymap) -> Box<dyn Renderable> {
     let mut view = ColumnRenderable::new();
-    view.push(
-        Paragraph::new(crate::i18n::tr!("user-verification-waiting").bold())
-            .wrap(Wrap { trim: false }),
-    );
+    view.push(Paragraph::new(tr!("Waiting for verification…").bold()).wrap(Wrap { trim: false }));
     view.push(Line::from(""));
     view.push(request_details(request));
     view.push(Line::from(""));
@@ -319,7 +316,7 @@ fn waiting_view(request: &UserVerificationRequest, keymap: &ListKeymap) -> Box<d
             /*accept*/ None,
             "",
             keymap.primary_hint(ListAction::Cancel),
-            crate::i18n::tr!("user-verification-cancel-hint"),
+            "to cancel this request",
         ))
         .wrap(Wrap { trim: false }),
     );

@@ -500,8 +500,8 @@ use ratatui::style::Color;
 const LARGE_PASTE_CHAR_THRESHOLD: usize = 1000;
 
 fn user_input_too_large_message(actual_chars: usize) -> String {
-    crate::i18n::tr!(
-        "chat-composer-message-too-large",
+    tr!(
+        "Message exceeds the maximum length of {max} characters ({actual_chars} provided).",
         max = MAX_USER_INPUT_TEXT_CHARS as i64,
         actual_chars = actual_chars as i64
     )
@@ -1834,7 +1834,7 @@ impl ChatComposer {
 
     pub(crate) fn set_parent_owned_thread(&mut self) {
         self.blocks_direct_input = true;
-        self.placeholder_text = crate::i18n::tr!("chat-composer-viewing-subagent").to_string();
+        self.placeholder_text = tr!("Viewing sub-agent — direct input is disabled").to_string();
     }
 
     /// Move the cursor to the end of the current text buffer.
@@ -3244,7 +3244,10 @@ impl ChatComposer {
                 .slash_input()
                 .validate_submission(&text, input_starts_with_space)
         {
-            let message = crate::i18n::tr!("chat-composer-unrecognized-command", name = name);
+            let message = tr!(
+                "Unrecognized command '/{name}'. Type \"/\" for a list of supported commands.",
+                name
+            );
             self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
                 history_cell::new_info_event(message, /*hint*/ None),
             )));
@@ -3281,8 +3284,8 @@ impl ChatComposer {
             if self.footer.hint_override.is_some() {
                 self.show_footer_flash(
                     Line::from(
-                        crate::i18n::tr!(
-                            "chat-composer-message-too-long-limit",
+                        tr!(
+                            "Message too long; limit {max} characters",
                             max = MAX_USER_INPUT_TEXT_CHARS as i64
                         )
                         .red(),
@@ -3617,8 +3620,8 @@ impl ChatComposer {
         {
             return false;
         }
-        let message = crate::i18n::tr!(
-            "chat-composer-command-disabled-during-task",
+        let message = tr!(
+            in "chat-composer", "'/{command}' is disabled while a task is in progress.",
             command = command.command()
         );
         self.app_event_tx.send(AppEvent::InsertHistoryCell(Box::new(
@@ -3811,11 +3814,9 @@ impl ChatComposer {
     }
 
     fn shell_mode_footer_line(&self) -> Option<Line<'static>> {
-        self.is_bang_shell_command().then_some(()).map(|_| {
-            Line::from(vec![
-                Span::from(crate::i18n::tr!("chat-composer-shell-mode")).light_red(),
-            ])
-        })
+        self.is_bang_shell_command()
+            .then_some(())
+            .map(|_| Line::from(vec![Span::from(tr!("Shell mode")).light_red()]))
     }
 
     /// Handles keys that mutate the textarea, including paste-burst detection.
@@ -4455,29 +4456,25 @@ impl ChatComposer {
                     .unwrap_or((plugin.config_name.as_str(), ""));
                 let mut capability_labels = Vec::new();
                 if plugin.has_skills {
-                    capability_labels
-                        .push(crate::i18n::tr!("chat-composer-capability-skills").to_string());
+                    capability_labels.push(tr!(in "chat-composer", "skills").to_string());
                 }
                 if !plugin.mcp_server_names.is_empty() {
                     let mcp_server_count = plugin.mcp_server_names.len();
-                    capability_labels.push(crate::i18n::tr!(
-                        "chat-composer-capability-mcp-servers",
+                    capability_labels.push(tr!(
+                        "1 MCP server" | "{count} MCP servers",
                         count = mcp_server_count as i64
                     ));
                 }
                 if !plugin.app_connector_ids.is_empty() {
                     let app_count = plugin.app_connector_ids.len();
-                    capability_labels.push(crate::i18n::tr!(
-                        "chat-composer-capability-apps",
-                        count = app_count as i64
-                    ));
+                    capability_labels.push(tr!("1 app" | "{count} apps", count = app_count as i64));
                 }
                 let description = plugin.description.clone().or_else(|| {
                     Some(if capability_labels.is_empty() {
-                        crate::i18n::tr!("chat-composer-plugin-description").to_string()
+                        tr!("Plugin").to_string()
                     } else {
-                        crate::i18n::tr!(
-                            "chat-composer-plugin-description-capabilities",
+                        tr!(
+                            "Plugin · {capabilities}",
                             capabilities = capability_labels.join(" · ")
                         )
                     })
@@ -4559,7 +4556,7 @@ impl ChatComposer {
     pub(crate) fn show_shutdown_in_progress(&mut self) {
         self.set_input_enabled(
             /*enabled*/ false,
-            Some(crate::i18n::tr!("chat-composer-shutting-down").to_string()),
+            Some(tr!("Shutting down...").to_string()),
         );
         self.footer.quit_shortcut_expires_at = None;
         self.footer.mode = FooterMode::ComposerEmpty;
@@ -5062,7 +5059,7 @@ impl ChatComposer {
                 self.draft
                     .input_disabled_placeholder
                     .as_deref()
-                    .unwrap_or(crate::i18n::tr!("chat-composer-input-disabled"))
+                    .unwrap_or(tr!("Input disabled."))
                     .to_string()
             };
             if !textarea_rect.is_empty() {

@@ -50,10 +50,8 @@ impl ChatWidget {
                 [question] if !question.title.trim().is_empty() => {
                     truncate_text(question.title.trim(), /*max_graphemes*/ 30)
                 }
-                _ if added_count == 1 => {
-                    crate::i18n::tr!("questions-question-requested").to_string()
-                }
-                _ => crate::i18n::tr!("questions-n-requested", count = added_count),
+                _ if added_count == 1 => tr!("Question requested").to_string(),
+                _ => tr!("{count} questions requested", count = added_count),
             };
             self.notify(Notification::AsyncQuestion { title });
         }

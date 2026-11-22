@@ -120,8 +120,8 @@ impl ToolOutputPreview {
             let omitted = self.omitted;
             self.lines.push(
                 truncate_line_with_ellipsis_if_overflow(
-                    crate::i18n::tr!(
-                        "tool-output-omitted-lines",
+                    tr!(
+                        "+{omitted} line ({hint})" | "+{omitted} lines ({hint})",
                         count = omitted as i64,
                         omitted = omitted as i64,
                         hint = transcript_hint()

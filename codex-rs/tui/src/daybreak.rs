@@ -18,7 +18,7 @@ pub(crate) fn program_for_turn(
 ) -> Result<Option<CyberAccessProgram>, String> {
     if !eligible_account {
         return if enabled {
-            Err(crate::i18n::tr!("daybreak-requires-openai").into())
+            Err(tr!("Daybreak requires the OpenAI provider with either ChatGPT sign-in or an API key with Daybreak support enabled. Turn it off to continue.").into())
         } else {
             Ok(None)
         };
@@ -36,7 +36,7 @@ pub(crate) fn program_for_turn(
         programs
             .daybreak()
             .map(Some)
-            .ok_or_else(|| crate::i18n::tr!("daybreak-unconfirmed", model = model))
+            .ok_or_else(|| tr!("Daybreak support for model {model} could not be confirmed by the connected server. Use /daybreak to turn it off, or choose a compatible model and server.", model))
     } else {
         Ok(programs.standard())
     }

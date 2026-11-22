@@ -26,18 +26,18 @@ pub(crate) fn compose_model_display(
 ) -> (String, Vec<String>) {
     let mut details: Vec<String> = Vec::new();
     if let Some((_, effort)) = entries.iter().find(|(k, _)| *k == "reasoning effort") {
-        details.push(crate::i18n::tr!(
-            "status-helpers-reasoning",
+        details.push(tr!(
+            "reasoning {effort}",
             effort = effort.to_ascii_lowercase()
         ));
     }
     if let Some((_, summary)) = entries.iter().find(|(k, _)| *k == "reasoning summaries") {
         let summary = summary.trim();
         if summary.eq_ignore_ascii_case("none") || summary.eq_ignore_ascii_case("off") {
-            details.push(crate::i18n::tr!("status-helpers-summaries-off").to_string());
+            details.push(tr!("summaries off").to_string());
         } else if !summary.is_empty() {
-            details.push(crate::i18n::tr!(
-                "status-helpers-summaries",
+            details.push(tr!(
+                "summaries {summary}",
                 summary = summary.to_ascii_lowercase()
             ));
         }
@@ -64,7 +64,7 @@ pub(crate) fn compose_agents_summary(config: &Config, paths: &[PathUri]) -> Stri
         let file_name = p
             .file_name()
             .map(|name| name.to_string_lossy().to_string())
-            .unwrap_or_else(|| crate::i18n::tr!("status-helpers-unknown").to_string());
+            .unwrap_or_else(|| tr!("<unknown>").to_string());
         let display = if let Some(parent) = p.parent() {
             if parent == config.cwd.as_path() {
                 file_name.clone()
@@ -96,7 +96,7 @@ pub(crate) fn compose_agents_summary(config: &Config, paths: &[PathUri]) -> Stri
     }
 
     if rels.is_empty() {
-        crate::i18n::tr!("status-helpers-none").to_string()
+        tr!("<none>").to_string()
     } else {
         rels.join(", ")
     }
@@ -188,9 +188,9 @@ pub(crate) fn format_reset_timestamp(
     if dt.date_naive() == captured_at.date_naive() {
         time
     } else {
-        crate::i18n::tr!(
-            "status-helpers-time-on-date",
-            time = time,
+        tr!(
+            "{time} on {date}",
+            time,
             date = dt.format("%-d %b").to_string()
         )
     }

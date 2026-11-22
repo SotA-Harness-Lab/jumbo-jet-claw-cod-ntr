@@ -640,7 +640,7 @@ impl Renderable for MultiSelectPicker {
         self.header.render(header_area, buf);
         if search_area.height > 0 {
             let query_span = if self.search_query.is_empty() {
-                crate::i18n::tr!("multi-select-type-to-search").dim()
+                tr!("Type to search").dim()
             } else {
                 self.search_query.clone().into()
             };
@@ -655,7 +655,7 @@ impl Renderable for MultiSelectPicker {
                 &rows.rows,
                 &rows.state,
                 usize::from(body.height),
-                crate::i18n::tr!("multi-select-no-matches"),
+                tr!("no matches"),
                 ColumnWidthConfig::default(),
             );
             picker_style::render_scroll_indicators(list_area, buf, rendered);
@@ -809,17 +809,19 @@ impl MultiSelectPickerBuilder {
     ///
     /// Initializes the filter to show all items and generates the initial
     /// preview line if a preview callback was set.
-    pub fn build(self) -> MultiSelectPicker {
+    pub fn build(mut self) -> MultiSelectPicker {
         let mut header = ColumnRenderable::new();
-        header.push(Paragraph::new(self.title.bold()).wrap(Wrap { trim: false }));
+        let title = crate::i18n::translate_owned_in("multi-select-heading", self.title);
+        header.push(Paragraph::new(title.bold()).wrap(Wrap { trim: false }));
         if let Some(subtitle) = self.subtitle {
+            let subtitle = crate::i18n::translate_owned_in("multi-select-heading", subtitle);
             header.push(Paragraph::new(subtitle.dim()).wrap(Wrap { trim: false }));
         }
 
         let instructions = if self.instructions.is_empty() {
             let mut spans = vec![
                 key_hint::plain(KeyCode::Char(' ')).into(),
-                crate::i18n::tr!("multi-select-toggle").dim(),
+                tr!(" toggle").dim(),
             ];
             if self.ordering_enabled
                 && let (Some(left), Some(right)) = (
@@ -833,11 +835,11 @@ impl MultiSelectPickerBuilder {
                     left.display_label(),
                     right.display_label()
                 )));
-                spans.push(crate::i18n::tr!("multi-select-reorder").dim());
+                spans.push(tr!(" reorder").dim());
             }
             for (action, label) in [
-                (ListAction::Accept, crate::i18n::tr!("multi-select-save")),
-                (ListAction::Cancel, crate::i18n::tr!("multi-select-cancel")),
+                (ListAction::Accept, tr!(" save")),
+                (ListAction::Cancel, tr!(" cancel")),
             ] {
                 if let Some(hint) = self.keymap.primary_hint(action) {
                     spans.push(" · ".dim());
@@ -850,6 +852,18 @@ impl MultiSelectPickerBuilder {
             self.instructions
         };
 
+        if let Some(translate) = crate::i18n::scoped_translator("multi-select-option") {
+            for item in &mut self.items {
+                if let Some(label) = translate(&item.name) {
+                    item.name = label.into();
+                }
+                if let Some(description) = &mut item.description
+                    && let Some(text) = translate(description)
+                {
+                    *description = text.into();
+                }
+            }
+        }
         let mut view = MultiSelectPicker {
             items: self.items,
             state: ScrollState::new(),

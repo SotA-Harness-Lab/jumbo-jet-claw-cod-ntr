@@ -48,8 +48,8 @@ impl ChatWidget {
             })
             .await
             .unwrap_or_else(|error| {
-                Err(crate::i18n::tr!(
-                    "image-submission-failed-images",
+                Err(tr!(
+                    "Failed to prepare images: {error}",
                     error = error.to_string()
                 ))
             });
@@ -76,8 +76,8 @@ impl ChatWidget {
             return;
         };
         match pending.result.try_recv().unwrap_or_else(|error| {
-            Err(crate::i18n::tr!(
-                "image-submission-failed-images",
+            Err(tr!(
+                "Failed to prepare images: {error}",
                 error = error.to_string()
             ))
         }) {
@@ -155,8 +155,11 @@ fn prepare_images(
                 detail: Some(ImageDetail::Original),
             };
             let prepared = (|| -> std::io::Result<()> {
-                let too_large =
-                    || std::io::Error::other(crate::i18n::tr!("image-submission-too-large"));
+                let too_large = || {
+                    std::io::Error::other(tr!(
+                        "image attachments exceed the 32 MiB transport limit"
+                    ))
+                };
                 if std::fs::metadata(&image.path)?.len() > (remaining_image_bytes / 4 * 3) as u64 {
                     return Err(too_large());
                 }
@@ -173,8 +176,8 @@ fn prepare_images(
                 Ok(())
             })();
             prepared.map_err(|error| {
-                crate::i18n::tr!(
-                    "image-submission-failed-image",
+                tr!(
+                    "Failed to prepare image: {path}: {error}",
                     path = image.path.display().to_string(),
                     error = error.to_string()
                 )

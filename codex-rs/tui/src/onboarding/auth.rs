@@ -129,7 +129,7 @@ impl SignInOption {
 }
 
 fn api_key_disabled_message() -> &'static str {
-    crate::i18n::tr!("auth-api-key-disabled")
+    tr!("API key login is disabled.")
 }
 pub(super) fn onboarding_request_id() -> codex_app_server_protocol::RequestId {
     codex_app_server_protocol::RequestId::String(Uuid::new_v4().to_string())
@@ -557,22 +557,19 @@ impl AuthModeWidget {
 
     fn render_pick_mode(&self, area: Rect, buf: &mut Buffer) {
         let mut lines: Vec<Line> = if self.highlighted_mode.is_alternative() {
-            vec![
-                crate::i18n::tr!("auth-sign-in-another-way-heading").into(),
-                "".into(),
-            ]
+            vec![tr!("  Sign in another way").into(), "".into()]
         } else if self.bedrock_setup_enabled || self.gcp_setup_enabled || self.gateway_setup_enabled
         {
-            vec![crate::i18n::tr!("auth-choose-how-to-use").into(), "".into()]
+            vec![tr!("  Choose how you want to use Codex.").into(), "".into()]
         } else {
             vec![
                 Line::from(vec![
                     "  ".into(),
-                    crate::i18n::tr!("auth-sign-in-paid-plan").into(),
+                    tr!("Sign in with ChatGPT to use Codex as part of your paid plan").into(),
                 ]),
                 Line::from(vec![
                     "  ".into(),
-                    crate::i18n::tr!("auth-or-connect-api-key").into(),
+                    tr!("or connect an API key for usage-based billing").into(),
                 ]),
                 "".into(),
             ]
@@ -611,11 +608,11 @@ impl AuthModeWidget {
         };
 
         let chatgpt_description = if !self.is_chatgpt_login_allowed() {
-            crate::i18n::tr!("auth-chatgpt-login-disabled")
+            tr!("ChatGPT login is disabled")
         } else {
-            crate::i18n::tr!("auth-usage-included-plans")
+            tr!("Usage included with Plus, Pro, Business, and Enterprise plans")
         };
-        let device_code_description = crate::i18n::tr!("auth-device-code-description");
+        let device_code_description = tr!("Sign in from another device with a one-time code");
 
         for (idx, option) in self.displayed_sign_in_options().into_iter().enumerate() {
             match option {
@@ -623,14 +620,14 @@ impl AuthModeWidget {
                     lines.extend(create_mode_item(
                         idx,
                         option,
-                        crate::i18n::tr!("auth-sign-in-another-way"),
+                        tr!("Sign in another way"),
                         if self.bedrock_setup_enabled
                             || self.gcp_setup_enabled
                             || self.gateway_setup_enabled
                         {
-                            crate::i18n::tr!("auth-use-api-key-or-provider")
+                            tr!("Use an API key or another provider")
                         } else {
-                            crate::i18n::tr!("auth-use-openai-api-key-description")
+                            tr!("Use an OpenAI API key")
                         },
                     ));
                 }
@@ -638,7 +635,7 @@ impl AuthModeWidget {
                     lines.extend(create_mode_item(
                         idx,
                         option,
-                        crate::i18n::tr!("auth-sign-in-chatgpt"),
+                        tr!("Sign in with ChatGPT"),
                         chatgpt_description,
                     ));
                 }
@@ -646,7 +643,7 @@ impl AuthModeWidget {
                     lines.extend(create_mode_item(
                         idx,
                         option,
-                        crate::i18n::tr!("auth-sign-in-device-code-option"),
+                        tr!("Sign in with Device Code"),
                         device_code_description,
                     ));
                 }
@@ -654,24 +651,24 @@ impl AuthModeWidget {
                     lines.extend(create_mode_item(
                         idx,
                         option,
-                        crate::i18n::tr!("auth-use-openai-api-key"),
-                        crate::i18n::tr!("auth-pay-for-what-you-use"),
+                        tr!("Use an OpenAI API key"),
+                        tr!("Pay for what you use"),
                     ));
                 }
                 SignInOption::Bedrock => {
                     lines.extend(create_mode_item(
                         idx,
                         option,
-                        crate::i18n::tr!("auth-use-bedrock"),
-                        crate::i18n::tr!("auth-bedrock-description"),
+                        tr!("Use Amazon Bedrock"),
+                        tr!("Connect using your AWS credentials"),
                     ));
                 }
                 SignInOption::Gcp => {
                     lines.extend(create_mode_item(
                         idx,
                         option,
-                        crate::i18n::tr!("auth-use-vertex"),
-                        crate::i18n::tr!("auth-vertex-description"),
+                        tr!("Use Google Cloud Vertex AI"),
+                        tr!("Connect using your Google Cloud credentials"),
                     ));
                 }
                 SignInOption::Gateway => {
@@ -679,7 +676,7 @@ impl AuthModeWidget {
                         idx,
                         option,
                         use_custom_provider(),
-                        crate::i18n::tr!("auth-gateway-description"),
+                        tr!("Choose a saved configuration or create a new one"),
                     ));
                 }
             }
@@ -689,22 +686,22 @@ impl AuthModeWidget {
         let options_end = lines.len();
         if !self.is_api_login_allowed() {
             lines.push(
-                crate::i18n::tr!("auth-api-key-disabled-by-workspace")
+                tr!("  API key login is disabled by this workspace. Sign in with ChatGPT to continue.")
                     .dim()
                     .into(),
             );
             lines.push("".into());
         }
         lines.push(Line::from(vec![
-            crate::i18n::tr!("auth-press").dim(),
+            tr!("  Press ").dim(),
             self.confirm_binding().into(),
-            crate::i18n::tr!("auth-to-continue").dim(),
+            tr!(" to continue").dim(),
         ]));
         if self.highlighted_mode.is_alternative() {
             lines.push(Line::from(vec![
-                crate::i18n::tr!("auth-press").dim(),
+                tr!("  Press ").dim(),
                 self.cancel_binding().into(),
-                crate::i18n::tr!("auth-to-go-back").dim(),
+                tr!(" to go back").dim(),
             ]));
         }
         if let Some(err) = self.error_message() {
@@ -737,19 +734,19 @@ impl AuthModeWidget {
             self.request_frame
                 .schedule_frame_in(std::time::Duration::from_millis(100));
             spans.extend(shimmer_text(
-                crate::i18n::tr!("auth-finish-signing-in"),
+                tr!("Finish signing in via your browser"),
                 MotionMode::Animated,
             ));
         } else {
-            spans.push(crate::i18n::tr!("auth-finish-signing-in").into());
+            spans.push(tr!("Finish signing in via your browser").into());
         }
         let mut lines = vec![spans.into(), "".into()];
 
         let auth_url = if !state.auth_url.is_empty() {
             lines.push(Line::from(vec![
-                crate::i18n::tr!("auth-link-does-not-open").into(),
+                tr!("  If the link doesn't open automatically, press ").into(),
                 keys::COPY_LINK[0].into(),
-                crate::i18n::tr!("auth-to-copy-it").into(),
+                tr!(" to copy it:").into(),
             ]));
             if let Some(message) = self.error_message() {
                 lines.push(format!("  {message}").dim().into());
@@ -761,10 +758,10 @@ impl AuthModeWidget {
             ]));
             lines.push("".into());
             lines.push(Line::from(vec![
-                crate::i18n::tr!("auth-remote-machine-press").into(),
+                tr!("  On a remote or headless machine? Press ").into(),
                 self.cancel_binding().into(),
-                crate::i18n::tr!("auth-and-choose").into(),
-                crate::i18n::tr!("auth-sign-in-device-code").cyan(),
+                tr!(" and choose ").into(),
+                tr!("Sign in with Device Code").cyan(),
                 ".".into(),
             ]));
             lines.push("".into());
@@ -774,9 +771,9 @@ impl AuthModeWidget {
         };
 
         lines.push(Line::from(vec![
-            crate::i18n::tr!("auth-press").dim(),
+            tr!("  Press ").dim(),
             self.cancel_binding().into(),
-            crate::i18n::tr!("auth-to-cancel").dim(),
+            tr!(" to cancel").dim(),
         ]));
         Paragraph::new(lines)
             .wrap(Wrap { trim: false })
@@ -790,39 +787,45 @@ impl AuthModeWidget {
     }
 
     fn render_chatgpt_success_message(&self, area: Rect, buf: &mut Buffer) {
-        let mut docs_line =
-            HyperlinkLine::new(Line::from(crate::i18n::tr!("auth-learn-permissions")).dim());
+        let mut docs_line = HyperlinkLine::new(
+            Line::from(tr!("  Learn about permissions and approvals in the ")).dim(),
+        );
         docs_line.push_span(
-            crate::i18n::tr!("auth-codex-docs").underlined(),
+            tr!("Codex docs").underlined(),
             Some("https://developers.openai.com/codex/security"),
         );
         let mut preferences_line =
-            HyperlinkLine::new(Line::from(crate::i18n::tr!("auth-plan-rate-limits")).dim());
+            HyperlinkLine::new(Line::from(tr!("  Your plan's rate limits and ")).dim());
         preferences_line.push_span(
-            crate::i18n::tr!("auth-training-data-preferences").underlined(),
+            tr!("training data preferences").underlined(),
             Some("https://chatgpt.com/#settings"),
         );
-        preferences_line.push_span(
-            crate::i18n::tr!("auth-apply").into(),
-            /*destination*/ None,
-        );
+        preferences_line.push_span(tr!(" apply").into(), /*destination*/ None);
 
         let lines = vec![
-            HyperlinkLine::new(crate::i18n::tr!("auth-signed-in").fg(Color::Green).into()),
+            HyperlinkLine::new(
+                tr!("✓ Signed in with your ChatGPT account")
+                    .fg(Color::Green)
+                    .into(),
+            ),
             "".into(),
-            crate::i18n::tr!("auth-in-control").into(),
+            tr!("  You're in control").into(),
             docs_line,
             "".into(),
-            crate::i18n::tr!("auth-can-make-mistakes").into(),
-            HyperlinkLine::new(crate::i18n::tr!("auth-review-code").dim().into()),
+            tr!("  Codex can make mistakes").into(),
+            HyperlinkLine::new(
+                tr!("  Review the code it writes and commands it runs")
+                    .dim()
+                    .into(),
+            ),
             "".into(),
-            crate::i18n::tr!("auth-included-with-plan").into(),
+            tr!("  Included with your ChatGPT plan").into(),
             preferences_line,
             "".into(),
             HyperlinkLine::new(Line::from(vec![
-                crate::i18n::tr!("auth-press").fg(Color::Cyan),
+                tr!("  Press ").fg(Color::Cyan),
                 self.confirm_binding().into(),
-                crate::i18n::tr!("auth-to-continue").fg(Color::Cyan),
+                tr!(" to continue").fg(Color::Cyan),
             ])),
         ];
 
@@ -833,7 +836,11 @@ impl AuthModeWidget {
     }
 
     fn render_chatgpt_success(&self, area: Rect, buf: &mut Buffer) {
-        let lines = vec![crate::i18n::tr!("auth-signed-in").fg(Color::Green).into()];
+        let lines = vec![
+            tr!("✓ Signed in with your ChatGPT account")
+                .fg(Color::Green)
+                .into(),
+        ];
 
         Paragraph::new(lines)
             .wrap(Wrap { trim: false })
@@ -842,11 +849,9 @@ impl AuthModeWidget {
 
     fn render_api_key_configured(&self, area: Rect, buf: &mut Buffer) {
         let lines = vec![
-            crate::i18n::tr!("auth-api-key-configured")
-                .fg(Color::Green)
-                .into(),
+            tr!("✓ API key configured").fg(Color::Green).into(),
             "".into(),
-            crate::i18n::tr!("auth-usage-based-billing").into(),
+            tr!("  Codex will use usage-based billing with your API key.").into(),
         ];
 
         Paragraph::new(lines)
@@ -865,15 +870,19 @@ impl AuthModeWidget {
         let mut intro_lines: Vec<Line> = vec![
             Line::from(vec![
                 "> ".into(),
-                crate::i18n::tr!("auth-use-own-api-key").bold(),
+                tr!("Use your own OpenAI API key for usage-based billing").bold(),
             ]),
             "".into(),
-            crate::i18n::tr!("auth-paste-key-below").into(),
+            tr!("  Paste or type your API key below.").into(),
             "".into(),
         ];
         if state.prepopulated_from_env {
-            intro_lines.push(crate::i18n::tr!("auth-detected-env-key").into());
-            intro_lines.push(crate::i18n::tr!("auth-paste-different-key").dim().into());
+            intro_lines.push(tr!("  Detected OPENAI_API_KEY environment variable.").into());
+            intro_lines.push(
+                tr!("  Paste a different key if you prefer to use another account.")
+                    .dim()
+                    .into(),
+            );
             intro_lines.push("".into());
         }
         Paragraph::new(intro_lines)
@@ -881,7 +890,7 @@ impl AuthModeWidget {
             .render(intro_area, buf);
 
         let content_line: Line = if state.value.is_empty() {
-            vec![crate::i18n::tr!("auth-paste-key-placeholder").dim()].into()
+            vec![tr!("Paste or type your API key").dim()].into()
         } else {
             Line::from(state.value.clone())
         };
@@ -889,7 +898,7 @@ impl AuthModeWidget {
             .wrap(Wrap { trim: false })
             .block(
                 Block::default()
-                    .title(crate::i18n::tr!("auth-api-key-title"))
+                    .title(tr!("API key"))
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
                     .border_style(Style::default().fg(Color::Cyan)),
@@ -898,14 +907,14 @@ impl AuthModeWidget {
 
         let mut footer_lines: Vec<Line> = vec![
             Line::from(vec![
-                crate::i18n::tr!("auth-press").dim(),
+                tr!("  Press ").dim(),
                 self.confirm_binding().into(),
-                crate::i18n::tr!("auth-to-save").dim(),
+                tr!(" to save").dim(),
             ]),
             Line::from(vec![
-                crate::i18n::tr!("auth-press").dim(),
+                tr!("  Press ").dim(),
                 self.cancel_binding().into(),
-                crate::i18n::tr!("auth-to-go-back").dim(),
+                tr!(" to go back").dim(),
             ]),
         ];
         if let Some(error) = self.error_message() {
@@ -933,7 +942,7 @@ impl AuthModeWidget {
                 {
                     let trimmed = state.value.trim().to_string();
                     if trimmed.is_empty() {
-                        self.set_error(Some(crate::i18n::tr!("auth-api-key-empty").to_string()));
+                        self.set_error(Some(tr!("API key cannot be empty").to_string()));
                         should_request_frame = true;
                     } else {
                         should_save = Some(trimmed);
@@ -1060,8 +1069,8 @@ impl AuthModeWidget {
                     *sign_in_state.write().unwrap() = SignInState::ApiKeyConfigured;
                 }
                 Ok(other) => {
-                    *error.write().unwrap() = Some(crate::i18n::tr!(
-                        "auth-unexpected-response",
+                    *error.write().unwrap() = Some(tr!(
+                        "Unexpected account/login/start response: {response}",
                         response = format!("{other:?}")
                     ));
                     *sign_in_state.write().unwrap() = SignInState::ApiKeyEntry(ApiKeyInputState {
@@ -1070,8 +1079,8 @@ impl AuthModeWidget {
                     });
                 }
                 Err(err) => {
-                    *error.write().unwrap() = Some(crate::i18n::tr!(
-                        "auth-failed-to-save-key",
+                    *error.write().unwrap() = Some(tr!(
+                        "Failed to save API key: {error}",
                         error = err.to_string()
                     ));
                     *sign_in_state.write().unwrap() = SignInState::ApiKeyEntry(ApiKeyInputState {
@@ -1136,8 +1145,8 @@ impl AuthModeWidget {
                 }
                 Ok(other) => {
                     *sign_in_state.write().unwrap() = SignInState::PickMode;
-                    *error.write().unwrap() = Some(crate::i18n::tr!(
-                        "auth-unexpected-response",
+                    *error.write().unwrap() = Some(tr!(
+                        "Unexpected account/login/start response: {response}",
                         response = format!("{other:?}")
                     ));
                 }
@@ -1268,15 +1277,15 @@ impl WidgetRef for AuthModeWidget {
             }
             SignInState::GatewayOAuth { url, .. } => {
                 let title = if url.is_some() {
-                    crate::i18n::tr!("auth-gateway-finish-signing-in")
+                    tr!("Finish signing in to your gateway in the browser.")
                 } else {
-                    crate::i18n::tr!("auth-gateway-starting")
+                    tr!("Starting gateway sign-in…")
                 };
                 let mut lines = vec![Line::from(title.bold())];
                 if let Some(url) = url {
                     lines.push(Line::from(url.clone().cyan().underlined()));
                 }
-                lines.push(Line::from(crate::i18n::tr!("auth-press-ctrl-c-quit").dim()));
+                lines.push(Line::from(tr!("Press Ctrl+C to quit.").dim()));
                 Paragraph::new(lines)
                     .wrap(Wrap { trim: false })
                     .render(area, buf);
@@ -1287,23 +1296,23 @@ impl WidgetRef for AuthModeWidget {
             SignInState::GatewayOAuthFailed { message, .. } => {
                 Paragraph::new(vec![
                     Line::from(message.clone().red()),
-                    Line::from(crate::i18n::tr!("auth-press-enter-retry").dim()),
+                    Line::from(tr!("Press Enter to retry or Ctrl+C to quit.").dim()),
                 ])
                 .wrap(Wrap { trim: false })
                 .render(area, buf);
             }
             SignInState::GatewaySelected(_) | SignInState::GatewayConfigured => {
-                Paragraph::new(crate::i18n::tr!("auth-custom-provider-configured").green())
+                Paragraph::new(tr!("✓ Custom provider configured").green())
                     .wrap(Wrap { trim: false })
                     .render(area, buf);
             }
             SignInState::GcpConfigured => {
-                Paragraph::new(crate::i18n::tr!("auth-vertex-configured").green())
+                Paragraph::new(tr!("✓ Google Cloud Vertex AI configured").green())
                     .wrap(Wrap { trim: false })
                     .render(area, buf);
             }
             SignInState::BedrockConfigured => {
-                Paragraph::new(crate::i18n::tr!("auth-bedrock-configured").green())
+                Paragraph::new(tr!("✓ Amazon Bedrock configured").green())
                     .wrap(Wrap { trim: false })
                     .render(area, buf);
             }

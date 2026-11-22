@@ -63,8 +63,8 @@ impl MigrationMenuOption {
 
     fn label(self) -> &'static str {
         match self {
-            Self::TryNewModel => crate::i18n::tr!("model-migration-try-new"),
-            Self::UseExistingModel => crate::i18n::tr!("model-migration-use-existing"),
+            Self::TryNewModel => tr!("Try new model"),
+            Self::UseExistingModel => tr!("Use existing model"),
         }
     }
 }
@@ -93,8 +93,8 @@ pub(crate) fn migration_copy_for_models(
         };
     }
 
-    let heading_text = Span::from(crate::i18n::tr!(
-        "model-migration-upgrade-heading",
+    let heading_text = Span::from(tr!(
+        "Codex just got an upgrade. Introducing {name}.",
         name = target_display_name.as_str()
     ))
     .bold();
@@ -106,8 +106,8 @@ pub(crate) fn migration_copy_for_models(
             .filter(|desc| !desc.is_empty())
             .map(Line::from)
             .unwrap_or_else(|| {
-                Line::from(crate::i18n::tr!(
-                    "model-migration-recommended",
+                Line::from(tr!(
+                    "{name} is recommended for better performance and reliability.",
                     name = target_display_name.as_str()
                 ))
             });
@@ -115,8 +115,8 @@ pub(crate) fn migration_copy_for_models(
 
     let mut content = vec![];
     if migration_copy.is_none() {
-        content.push(Line::from(crate::i18n::tr!(
-            "model-migration-recommend-switch",
+        content.push(Line::from(tr!(
+            "We recommend switching from {current} to {target}.",
             current = current_model,
             target = target_model
         )));
@@ -125,8 +125,8 @@ pub(crate) fn migration_copy_for_models(
 
     if let Some(model_link) = model_link {
         content.push(Line::from(vec![
-            crate::i18n::tr!(
-                "model-migration-learn-more",
+            tr!(
+                "{description} Learn more about {name} at ",
                 description = description_line.to_string(),
                 name = target_display_name.as_str()
             )
@@ -140,8 +140,8 @@ pub(crate) fn migration_copy_for_models(
     }
 
     if can_opt_out {
-        content.push(Line::from(crate::i18n::tr!(
-            "model-migration-keep-existing",
+        content.push(Line::from(tr!(
+            "You can continue using {current} if you prefer.",
             current = current_model
         )));
     }
@@ -312,12 +312,12 @@ impl WidgetRef for &ModelMigrationScreen {
             key_hint::plain(KeyCode::Esc).display_label()
         ));
         hints.push(if self.copy.can_opt_out {
-            crate::i18n::tr!("model-migration-hint-confirm").dim()
+            tr!(" confirm · ").dim()
         } else {
-            crate::i18n::tr!("model-migration-hint-continue").dim()
+            tr!(" continue · ").dim()
         });
         hints.push(key_hint::ctrl(KeyCode::Char('c')).into());
-        hints.push(crate::i18n::tr!("model-migration-hint-quit").dim());
+        hints.push(tr!(" quit").dim());
         column.push(
             /*flex*/ 0,
             Paragraph::new(Line::from(hints))

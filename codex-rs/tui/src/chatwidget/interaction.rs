@@ -321,8 +321,9 @@ impl ChatWidget {
             return KeyEventAction::None;
         }
 
-        let review_steer_unavailable_message =
-            crate::i18n::tr!("interaction-review-steer-unavailable");
+        let review_steer_unavailable_message = tr!(
+            "Steer messages aren't supported during /review. Press Ctrl+C now to cancel the review."
+        );
 
         if self.chat_keymap.interrupt_turn.is_pressed(key_event)
             && self.review.is_review_mode
@@ -505,7 +506,7 @@ impl ChatWidget {
             return true;
         }
 
-        let message = crate::i18n::tr!("interaction-ctrl-l-disabled").to_string();
+        let message = tr!("Ctrl+L is disabled while a task is in progress.").to_string();
         self.add_to_history(history_cell::new_error_event(message));
         self.request_redraw();
         false
@@ -519,7 +520,7 @@ impl ChatWidget {
                 KeyEventAction::CopyLastResponse(markdown.into())
             }
             _ => {
-                self.add_error_message(crate::i18n::tr!("interaction-no-agent-response").into());
+                self.add_error_message(tr!("No agent response to copy").into());
                 KeyEventAction::None
             }
         };
@@ -541,9 +542,7 @@ impl ChatWidget {
         }
         match result {
             Ok(status) => self.add_info_message(status.message(label), /*hint*/ None),
-            Err(error) => {
-                self.add_error_message(crate::i18n::tr!("interaction-copy-failed", error = error))
-            }
+            Err(error) => self.add_error_message(tr!("Copy failed: {error}", error)),
         }
         self.request_redraw();
     }
@@ -560,23 +559,23 @@ impl ChatWidget {
         let tx = self.app_event_tx.clone();
         let existing_name = self.thread_name.as_deref().filter(|name| !name.is_empty());
         let title = if existing_name.is_some() {
-            crate::i18n::tr!("interaction-rename-thread")
+            tr!("Rename thread")
         } else {
-            crate::i18n::tr!("interaction-name-thread")
+            tr!("Name thread")
         };
         let suggestion_request = self
             .thread_id
             .map(|thread_id| (thread_id, uuid::Uuid::new_v4()));
         let mut view = CustomPromptView::new(
             title.to_string(),
-            crate::i18n::tr!("interaction-type-a-name").to_string(),
+            tr!("Type a name and press Enter").to_string(),
             /*initial_text*/ existing_name.unwrap_or_default().to_string(),
             /*context_label*/ None,
             Box::new(move |name: String| {
                 let Some(name) = normalize_thread_name(&name) else {
                     tx.send(AppEvent::InsertHistoryCell(Box::new(
                         history_cell::new_error_event(
-                            crate::i18n::tr!("interaction-thread-name-empty").to_string(),
+                            tr!("Thread name cannot be empty.").to_string(),
                         ),
                     )));
                     return;
@@ -587,8 +586,8 @@ impl ChatWidget {
         if let Some((_, request_id)) = suggestion_request {
             view = view.with_text_suggestion(
                 request_id,
-                crate::i18n::tr!("interaction-generating-title").to_string(),
-                crate::i18n::tr!("interaction-suggested-from-conversation").to_string(),
+                tr!("Generating a title suggestion…").to_string(),
+                tr!("Suggested from this conversation").to_string(),
             );
         }
         self.bottom_pane.show_text_prompt(view);

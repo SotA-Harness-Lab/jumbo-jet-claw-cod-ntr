@@ -45,13 +45,7 @@ impl ChatWidget {
                 .as_deref()
                 .map(str::trim)
                 .filter(|reason| !reason.is_empty())
-                .map(|reason| {
-                    crate::i18n::tr!(
-                        "tool-requests-subject-reason",
-                        subject = subject,
-                        reason = reason
-                    )
-                })
+                .map(|reason| tr!("{subject}: {reason}", subject, reason))
                 .unwrap_or_else(|| subject.to_string())
         };
         let guardian_action_summary = |action: &GuardianAssessmentAction| match action {
@@ -70,12 +64,15 @@ impl ChatWidget {
                 Some(auto_review_denials::action_summary(action))
             }
             GuardianAssessmentAction::ApplyPatch { files, .. } => Some(if files.len() == 1 {
-                crate::i18n::tr!("tool-requests-patch-one", file = files[0].render_for_ui())
+                tr!(
+                    "apply_patch touching {file}",
+                    file = files[0].render_for_ui()
+                )
             } else {
-                crate::i18n::tr!("tool-requests-patch-many", count = files.len())
+                tr!("apply_patch touching {count} files", count = files.len())
             }),
-            GuardianAssessmentAction::NetworkAccess { target, .. } => Some(crate::i18n::tr!(
-                "tool-requests-network-access",
+            GuardianAssessmentAction::NetworkAccess { target, .. } => Some(tr!(
+                "network access to {target}",
                 target = target.to_string()
             )),
             GuardianAssessmentAction::McpToolCall {
@@ -85,18 +82,15 @@ impl ChatWidget {
                 ..
             } => {
                 let label = connector_name.as_deref().unwrap_or(server.as_str());
-                Some(crate::i18n::tr!(
-                    "tool-requests-mcp-on",
+                Some(tr!(
+                    "MCP {tool_name} on {label}",
                     tool_name = tool_name.to_string(),
                     label = label.to_string()
                 ))
             }
-            GuardianAssessmentAction::RequestPermissions { reason, .. } => {
-                Some(permission_request_summary(
-                    crate::i18n::tr!("tool-requests-permission-request"),
-                    reason,
-                ))
-            }
+            GuardianAssessmentAction::RequestPermissions { reason, .. } => Some(
+                permission_request_summary(tr!("permission request"), reason),
+            ),
         };
         let guardian_command = |action: &GuardianAssessmentAction| match action {
             GuardianAssessmentAction::Command { command, .. } => shlex::split(command)
@@ -185,8 +179,8 @@ impl ChatWidget {
             } else {
                 match &ev.action {
                     GuardianAssessmentAction::WriteStdin { .. } => {
-                        history_cell::new_guardian_timed_out_action_request(crate::i18n::tr!(
-                            "tool-requests-could-action",
+                        history_cell::new_guardian_timed_out_action_request(tr!(
+                            "codex could {summary}",
                             summary = auto_review_denials::action_summary(&ev.action)
                         ))
                     }
@@ -199,21 +193,21 @@ impl ChatWidget {
                     }
                     GuardianAssessmentAction::McpToolCall {
                         server, tool_name, ..
-                    } => history_cell::new_guardian_timed_out_action_request(crate::i18n::tr!(
-                        "tool-requests-could-mcp",
+                    } => history_cell::new_guardian_timed_out_action_request(tr!(
+                        "codex could call MCP tool {server}.{tool_name}",
                         server = server.to_string(),
                         tool_name = tool_name.to_string()
                     )),
                     GuardianAssessmentAction::NetworkAccess { target, .. } => {
-                        history_cell::new_guardian_timed_out_action_request(crate::i18n::tr!(
-                            "tool-requests-could-access",
+                        history_cell::new_guardian_timed_out_action_request(tr!(
+                            "codex could access {target}",
                             target = target.to_string()
                         ))
                     }
                     GuardianAssessmentAction::RequestPermissions { reason, .. } => {
                         history_cell::new_guardian_timed_out_action_request(
                             permission_request_summary(
-                                crate::i18n::tr!("tool-requests-could-permissions"),
+                                tr!("codex could request permissions"),
                                 reason,
                             ),
                         )
@@ -241,8 +235,8 @@ impl ChatWidget {
         } else {
             match &ev.action {
                 GuardianAssessmentAction::WriteStdin { .. } => {
-                    history_cell::new_guardian_denied_action_request(crate::i18n::tr!(
-                        "tool-requests-to-action",
+                    history_cell::new_guardian_denied_action_request(tr!(
+                        "codex to {summary}",
                         summary = auto_review_denials::action_summary(&ev.action)
                     ))
                 }
@@ -255,20 +249,20 @@ impl ChatWidget {
                 }
                 GuardianAssessmentAction::McpToolCall {
                     server, tool_name, ..
-                } => history_cell::new_guardian_denied_action_request(crate::i18n::tr!(
-                    "tool-requests-to-mcp",
+                } => history_cell::new_guardian_denied_action_request(tr!(
+                    "codex to call MCP tool {server}.{tool_name}",
                     server = server.to_string(),
                     tool_name = tool_name.to_string()
                 )),
                 GuardianAssessmentAction::NetworkAccess { target, .. } => {
-                    history_cell::new_guardian_denied_action_request(crate::i18n::tr!(
-                        "tool-requests-to-access",
+                    history_cell::new_guardian_denied_action_request(tr!(
+                        "codex to access {target}",
                         target = target.to_string()
                     ))
                 }
                 GuardianAssessmentAction::RequestPermissions { reason, .. } => {
                     history_cell::new_guardian_denied_action_request(permission_request_summary(
-                        crate::i18n::tr!("tool-requests-to-permissions"),
+                        tr!("codex to request permissions"),
                         reason,
                     ))
                 }
@@ -312,12 +306,9 @@ impl ChatWidget {
     pub(crate) fn handle_exec_approval_now(&mut self, ev: ExecApprovalRequestEvent) {
         self.flush_answer_stream_with_separator();
         let subject = if ev.kind == CommandExecutionApprovalKind::WriteStdin {
-            crate::i18n::tr!("tool-requests-send-input").to_string()
+            tr!("send terminal input").to_string()
         } else if let Some(network) = &ev.network_approval_context {
-            crate::i18n::tr!(
-                "tool-requests-network-host",
-                host = network.host.to_string()
-            )
+            tr!("network access to {host}", host = network.host.to_string())
         } else {
             strip_bash_lc_and_escape(&ev.command)
         };
@@ -492,8 +483,8 @@ impl ChatWidget {
         let summary = Notification::user_input_request_summary(&ev.questions);
         let title = match (question_count, summary.as_deref()) {
             (1, Some(summary)) => summary.to_string(),
-            (1, None) => crate::i18n::tr!("tool-requests-question-requested").to_string(),
-            (count, _) => crate::i18n::tr!("tool-requests-questions-requested", count = count),
+            (1, None) => tr!("Question requested").to_string(),
+            (count, _) => tr!("{count} questions requested", count),
         };
         self.notify(Notification::PlanModePrompt { title });
         self.bottom_pane.push_user_input_request(ev);

@@ -114,10 +114,10 @@ impl ProgramStatus {
     fn iterm_label(self) -> &'static str {
         match self {
             Self::Idle | Self::Done | Self::Error => {
-                crate::i18n::tr!("terminal-program-status-idle")
+                tr!("Idle")
             }
-            Self::Working => crate::i18n::tr!("status-state-working"),
-            Self::Blocked(_) => crate::i18n::tr!("terminal-program-status-waiting"),
+            Self::Working => tr!("Working"),
+            Self::Blocked(_) => tr!("Waiting"),
         }
     }
 

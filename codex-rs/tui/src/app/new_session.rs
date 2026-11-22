@@ -74,9 +74,7 @@ impl App {
         let cwd = self.chat_widget.config_ref().cwd.to_path_buf();
         self.load_new_session_config_from(app_server, &settings, cwd, /*cloud_switch*/ None)
             .await?
-            .ok_or_else(|| {
-                color_eyre::eyre::eyre!(crate::i18n::tr!("new-session-only-cloud-cancel"))
-            })
+            .ok_or_else(|| color_eyre::eyre::eyre!(tr!("Only a Cloud switch can be canceled")))
     }
 
     pub(super) async fn load_new_session_config_from(

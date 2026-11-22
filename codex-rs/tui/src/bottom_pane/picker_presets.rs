@@ -13,6 +13,15 @@ impl SelectionViewParams {
     pub(crate) fn confirmation() -> Self {
         Self {
             presentation: super::ViewPresentation::Centered,
+            option_translation_scope: Some("confirmation-option"),
+            ..Self::picker()
+        }
+    }
+
+    /// A picker whose option labels belong to the TUI.
+    pub(crate) fn fixed_choices() -> Self {
+        Self {
+            option_translation_scope: Some("picker-option"),
             ..Self::picker()
         }
     }

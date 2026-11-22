@@ -127,7 +127,7 @@ impl TranscriptOverlay {
             .keymap
             .primary_hint("jump_bottom", &self.keymap.jump_bottom)
             .map_or_else(String::new, |hint| {
-                crate::i18n::tr!("pager-transcript-latest", key = hint.display_label())
+                tr!("{key} latest", key = hint.display_label())
             });
         if let Some(mut footer) =
             self.view
@@ -155,8 +155,8 @@ impl TranscriptOverlay {
             } else {
                 self.view
                     .status_line_with_navigation(
-                        &crate::i18n::tr!(
-                            "pager-transcript-select",
+                        &tr!(
+                            "{key} select",
                             key = crate::key_hint::ctrl(KeyCode::Char(' ')).display_label()
                         ),
                         self.motion,
@@ -545,14 +545,14 @@ impl TranscriptOverlay {
                 }
             }
             self.notice = Some(match result {
-                Ok(status) => status.message(crate::i18n::tr!("pager-transcript-selection")),
+                Ok(status) => status.message(tr!("selection")),
                 Err(error) => error,
             });
         } else if let ViewAction::OpenLink(url) = action
             && let Err(error) = webbrowser::open(&url)
         {
-            self.notice = Some(crate::i18n::tr!(
-                "pager-transcript-open-link-failed",
+            self.notice = Some(tr!(
+                "Could not open link: {error}",
                 error = error.to_string()
             ));
         }
@@ -578,8 +578,8 @@ impl TranscriptOverlay {
             .finish_copy(&self.cells, completion, /*current*/ true)
         {
             self.notice = Some(match &completion.1 {
-                Ok(status) => status.message(crate::i18n::tr!("pager-transcript-selection")),
-                Err(error) => crate::i18n::tr!("clipboard-copy-failed", error = error.to_string()),
+                Ok(status) => status.message(tr!("selection")),
+                Err(error) => tr!("Copy failed: {error}", error = error.to_string()),
             });
             if follow {
                 self.finish_select_follow(close_overlay.unwrap_or(false));
@@ -593,26 +593,26 @@ impl TranscriptOverlay {
         let second = Rect::new(area.x, first.bottom(), area.width, /*height*/ 1).intersection(area);
         let mut pairs = vec![(
             first_or_empty(&self.keymap, "close", &self.keymap.close),
-            crate::i18n::tr!("pager-transcript-close"),
+            tr!("close"),
         )];
         if !self.keymap.find.is_empty() {
             pairs.push((
                 first_or_empty(&self.keymap, "find", &self.keymap.find),
-                crate::i18n::tr!("pager-transcript-find"),
+                tr!("find"),
             ));
         }
         pairs.push((
             vec![key_hint::plain(KeyCode::Esc).into()],
-            crate::i18n::tr!("pager-transcript-browse-prompts"),
+            tr!("browse prompts"),
         ));
         if self.highlight_cell.is_some() {
             pairs.push((
                 vec![key_hint::plain(KeyCode::Right).into()],
-                crate::i18n::tr!("pager-transcript-edit-next"),
+                tr!("to edit next"),
             ));
             pairs.push((
                 vec![key_hint::plain(KeyCode::Enter).into()],
-                crate::i18n::tr!("pager-transcript-edit-message"),
+                tr!("to edit message"),
             ));
         }
         render_key_hints(second, buf, &pairs);

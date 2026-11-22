@@ -101,11 +101,11 @@ impl PendingInputPreview {
         let mut lines = vec![];
 
         if !self.pending_steers.is_empty() {
-            let mut header = vec![crate::i18n::tr!("pending-input-after-tool-call").into()];
+            let mut header = vec![tr!("Messages to be submitted after next tool call").into()];
             if let Some(interrupt_binding) = self.interrupt_binding {
-                header.push(crate::i18n::tr!("pending-input-press").dim());
+                header.push(tr!(" (press ").dim());
                 header.extend(interrupt_binding.spans());
-                header.push(crate::i18n::tr!("pending-input-to-interrupt").dim());
+                header.push(tr!(" to interrupt and send immediately)").dim());
             }
             Self::push_section_header(&mut lines, width, Line::from(header));
 
@@ -130,7 +130,7 @@ impl PendingInputPreview {
             Self::push_section_header(
                 &mut lines,
                 width,
-                crate::i18n::tr!("pending-input-end-of-turn").into(),
+                tr!("Messages to be submitted at end of turn").into(),
             );
 
             for steer in &self.rejected_steers {
@@ -151,11 +151,7 @@ impl PendingInputPreview {
             if !lines.is_empty() {
                 lines.push(HyperlinkLine::new(Line::from("")));
             }
-            Self::push_section_header(
-                &mut lines,
-                width,
-                crate::i18n::tr!("pending-input-queued-follow-ups").into(),
-            );
+            Self::push_section_header(&mut lines, width, tr!("Queued follow-up inputs").into());
 
             for message in &self.queued_messages {
                 let wrapped = wrap_preview_lines(
@@ -181,8 +177,7 @@ impl PendingInputPreview {
         {
             let mut hint = Line::from("    ");
             hint.spans.extend(edit_binding.spans());
-            hint.spans
-                .push(crate::i18n::tr!("pending-input-edit-last").dim());
+            hint.spans.push(tr!(" edit last queued message").dim());
             lines.push(HyperlinkLine::new(hint));
         }
 

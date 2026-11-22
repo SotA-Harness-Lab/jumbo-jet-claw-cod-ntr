@@ -23,7 +23,7 @@ impl ChatWidget {
     pub(crate) fn open_model_popup(&mut self) {
         if !self.is_session_configured() {
             self.add_info_message(
-                crate::i18n::tr!("model-popups-disabled-until-startup").to_string(),
+                tr!("Model selection is disabled until startup completes.").to_string(),
                 /*hint*/ None,
             );
             return;
@@ -38,7 +38,8 @@ impl ChatWidget {
             Ok(models) => models,
             Err(_) => {
                 self.add_info_message(
-                    crate::i18n::tr!("model-popups-being-updated").to_string(),
+                    tr!("Models are being updated; please try /model again in a moment.")
+                        .to_string(),
                     /*hint*/ None,
                 );
                 return;
@@ -49,7 +50,7 @@ impl ChatWidget {
         if presets.is_empty() {
             self.bottom_pane.show_selection_view(SelectionViewParams {
                 view_id: Some(MODEL_LOADING_VIEW_ID),
-                title: Some(crate::i18n::tr!("model-popups-loading-models").into()),
+                title: Some("Loading models…".into()),
                 ..SelectionViewParams::picker()
             });
         } else {
@@ -68,14 +69,14 @@ impl ChatWidget {
         }
         if let Some(selection) = &self.cloud_picker_selection {
             let effort = selection.effort.as_ref().map_or_else(
-                || crate::i18n::tr!("model-popups-server-effort").to_string(),
+                || tr!("server effort").to_string(),
                 Self::reasoning_effort_label,
             );
             header.push(
-                crate::i18n::tr!(
-                    "model-popups-accepted-future-turns",
+                tr!(
+                    "Accepted for future turns: {model} · {effort}",
                     model = selection.model.to_string(),
-                    effort = effort
+                    effort
                 )
                 .dim()
                 .into(),
@@ -89,7 +90,10 @@ impl ChatWidget {
 
     fn model_menu_warning_line(&self) -> Option<Line<'static>> {
         let base_url = self.custom_openai_base_url()?;
-        let warning = crate::i18n::tr!("model-popups-base-url-warning", base_url = base_url);
+        let warning = tr!(
+            "Warning: OpenAI base URL is overridden to {base_url}. Selecting models may not be supported or work properly.",
+            base_url
+        );
         Some(Line::from(warning.red()))
     }
 
@@ -196,20 +200,20 @@ impl ChatWidget {
             .collect();
 
         if !other_presets.is_empty() {
-            model_ids.push(crate::i18n::tr!("model-popups-all-models").to_string());
+            model_ids.push(tr!("All models").to_string());
             let scoped = self.scope_model_picker_event();
             let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
                 tx.send(scoped(AppEvent::OpenAllModelsPopup));
             })];
 
             let is_current = !items.iter().any(|item| item.is_current);
-            let description = Some(crate::i18n::tr!(
-                "model-popups-choose-specific",
-                current_label = current_label
+            let description = Some(tr!(
+                "Choose a specific model and reasoning level (current: {current_label})",
+                current_label
             ));
 
             items.push(SelectionItem {
-                name: crate::i18n::tr!("model-popups-all-models").to_string(),
+                name: tr!("All models").to_string(),
                 description,
                 is_current,
                 actions,
@@ -219,8 +223,8 @@ impl ChatWidget {
         }
 
         let header = self.model_menu_header(
-            crate::i18n::tr!("model-popups-select-model"),
-            crate::i18n::tr!("model-popups-pick-quick-mode"),
+            tr!("Select Model"),
+            tr!("Pick a quick auto mode or browse all models."),
         );
         self.show_model_selection_view(
             model_ids,
@@ -272,7 +276,7 @@ impl ChatWidget {
         if presets.is_empty() {
             self.bottom_pane.dismiss_view_by_id(view_id);
             self.add_info_message(
-                crate::i18n::tr!("model-popups-no-additional").to_string(),
+                tr!("No additional models are available right now.").to_string(),
                 /*hint*/ None,
             );
             return;
@@ -313,8 +317,7 @@ impl ChatWidget {
             });
         }
 
-        let header =
-            self.model_menu_header(crate::i18n::tr!("model-popups-select-model-effort"), "");
+        let header = self.model_menu_header(tr!("Select Model and Effort"), "");
         self.show_model_selection_view(
             model_ids,
             SelectionViewParams {
@@ -402,26 +405,24 @@ impl ChatWidget {
         effort: Option<ReasoningEffortConfig>,
     ) {
         let reasoning_phrase = match effort.as_ref() {
-            Some(ReasoningEffortConfig::None) => {
-                crate::i18n::tr!("model-popups-no-reasoning").to_string()
-            }
+            Some(ReasoningEffortConfig::None) => tr!("no reasoning").to_string(),
             Some(selected_effort) => {
-                crate::i18n::tr!(
-                    "model-popups-n-reasoning",
+                tr!(
+                    "{label} reasoning",
                     label = Self::reasoning_effort_sentence_label(selected_effort)
                 )
             }
-            None => crate::i18n::tr!("model-popups-selected-reasoning").to_string(),
+            None => tr!("the selected reasoning").to_string(),
         };
-        let plan_only_description = crate::i18n::tr!(
-            "model-popups-always-use-in-plan",
+        let plan_only_description = tr!(
+            "Always use {reasoning_phrase} in Plan mode",
             reasoning_phrase = reasoning_phrase.to_string()
         );
         let plan_reasoning_source = if let Some(plan_override) =
             self.config.plan_mode_reasoning_effort.as_ref()
         {
-            crate::i18n::tr!(
-                "model-popups-user-plan-override",
+            tr!(
+                "user-chosen Plan override ({label})",
                 label = Self::reasoning_effort_sentence_label(plan_override)
             )
         } else if let Some(plan_mask) = collaboration_modes::plan_mask(self.model_catalog.as_ref())
@@ -431,22 +432,22 @@ impl ChatWidget {
                 .as_ref()
                 .and_then(|effort| effort.as_ref())
             {
-                Some(plan_effort) => crate::i18n::tr!(
-                    "model-popups-builtin-plan-default",
+                Some(plan_effort) => tr!(
+                    "built-in Plan default ({label})",
                     label = Self::reasoning_effort_sentence_label(plan_effort)
                 ),
-                None => crate::i18n::tr!("model-popups-builtin-plan-default-none").to_string(),
+                None => tr!("built-in Plan default (no reasoning)").to_string(),
             }
         } else {
-            crate::i18n::tr!("model-popups-builtin-plan-default-plain").to_string()
+            tr!("built-in Plan default").to_string()
         };
-        let all_modes_description = crate::i18n::tr!(
-            "model-popups-all-modes-description",
-            plan_reasoning_source = plan_reasoning_source
+        let all_modes_description = tr!(
+            "Set the global default reasoning level and Plan mode override, replacing the current {plan_reasoning_source}",
+            plan_reasoning_source
         );
-        let subtitle = crate::i18n::tr!(
-            "model-popups-choose-where-apply",
-            reasoning_phrase = reasoning_phrase
+        let subtitle = tr!(
+            "Choose where to apply {reasoning_phrase}.",
+            reasoning_phrase
         );
         let warning = effort
             .as_ref()
@@ -502,28 +503,28 @@ impl ChatWidget {
 
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(MODEL_OPTIONS_VIEW_ID),
-            title: Some(crate::i18n::tr!("model-popups-apply-reasoning-change").to_string()),
+            title: Some("Apply reasoning change".to_string()),
             subtitle: Some(subtitle),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("model-popups-apply-plan-override").to_string(),
+                    name: "Apply to Plan mode override".to_string(),
                     description: Some(plan_only_description),
                     actions: plan_only_actions,
                     dismiss_on_select: true,
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("model-popups-apply-global-and-plan").to_string(),
+                    name: "Apply to global default and Plan mode override".to_string(),
                     description: Some(all_modes_description),
                     actions: all_modes_actions,
                     dismiss_on_select: true,
                     ..Default::default()
                 },
             ],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         });
         self.notify(Notification::PlanModePrompt {
-            title: crate::i18n::tr!("model-popups-apply-reasoning-change").to_string(),
+            title: tr!("Apply reasoning change").to_string(),
         });
     }
 
@@ -552,9 +553,9 @@ impl ChatWidget {
         };
         let warning_text = warn_effort.as_ref().map(|effort| {
             let effort_label = Self::reasoning_effort_label(effort);
-            crate::i18n::tr!(
-                "model-popups-plus-rate-limit-warning",
-                effort_label = effort_label
+            tr!(
+                "⚠ {effort_label} reasoning effort can quickly consume Plus plan rate limits",
+                effort_label
             )
         });
         let warn_for_model = preset.model.starts_with("gpt-5.1-codex")
@@ -618,7 +619,7 @@ impl ChatWidget {
             let effort = choice.clone();
             let mut effort_label = Self::reasoning_effort_label(&effort);
             if Some(choice) == default_choice.as_ref() {
-                effort_label.push_str(crate::i18n::tr!("model-popups-default-suffix"));
+                effort_label.push_str(tr!(" (default)"));
             }
 
             let description = supported
@@ -668,7 +669,7 @@ impl ChatWidget {
                 .iter()
                 .map(Self::reasoning_effort_label)
                 .collect::<Vec<_>>()
-                .join(crate::i18n::tr!("model-popups-and"));
+                .join(tr!(" and "));
             let preset_for_action = preset;
             let scoped = self.scope_model_picker_event();
             let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
@@ -677,11 +678,11 @@ impl ChatWidget {
                 }));
             })];
             items.push(SelectionItem {
-                name: crate::i18n::tr!("model-popups-more-reasoning").to_string(),
-                description: Some(crate::i18n::tr!(
-                    "model-popups-advanced-consumes",
-                    label = advanced_label,
-                    count = advanced_choices.len()
+                name: tr!("More reasoning…").to_string(),
+                description: Some(tr!(
+                    "{label} consumes usage limits faster" | "{label} consume usage limits faster",
+                    count = advanced_choices.len(),
+                    label = advanced_label
                 )),
                 is_current: is_current_model
                     && highlight_choice
@@ -694,11 +695,7 @@ impl ChatWidget {
         }
 
         let header = Paragraph::new(Line::from(
-            crate::i18n::tr!(
-                "model-popups-select-reasoning-level",
-                model_label = model_label
-            )
-            .bold(),
+            tr!("Select Reasoning Level for {model_label}", model_label).bold(),
         ))
         .wrap(Wrap { trim: false });
 
@@ -738,10 +735,12 @@ impl ChatWidget {
         for effort in choices {
             let description = match &effort {
                 ReasoningEffortConfig::Max => {
-                    crate::i18n::tr!("model-popups-max-description")
+                    tr!(
+                        "For difficult problems when quality matters more than speed · higher usage"
+                    )
                 }
                 ReasoningEffortConfig::Ultra => {
-                    crate::i18n::tr!("model-popups-ultra-description")
+                    tr!("For demanding work using multiple agents · highest usage")
                 }
                 _ => unreachable!("advanced choices are limited to Max and Ultra"),
             };
@@ -766,8 +765,8 @@ impl ChatWidget {
         }
 
         let header = Paragraph::new(vec![
-            Line::from(crate::i18n::tr!("model-popups-advanced-reasoning").bold()),
-            Line::from(crate::i18n::tr!("model-popups-consumes-faster").cyan()),
+            Line::from(tr!("Advanced Reasoning").bold()),
+            Line::from(tr!("⚠ Consumes usage limits faster").cyan()),
         ])
         .wrap(Wrap { trim: false });
         self.bottom_pane.show_selection_view(SelectionViewParams {
@@ -787,25 +786,15 @@ impl ChatWidget {
 
     pub(super) fn reasoning_effort_label(effort: &ReasoningEffortConfig) -> String {
         match effort {
-            ReasoningEffortConfig::None => crate::i18n::tr!("model-popups-effort-none").to_string(),
-            ReasoningEffortConfig::Minimal => {
-                crate::i18n::tr!("model-popups-effort-minimal").to_string()
-            }
-            ReasoningEffortConfig::Low => crate::i18n::tr!("model-popups-effort-low").to_string(),
-            ReasoningEffortConfig::Medium => {
-                crate::i18n::tr!("model-popups-effort-medium").to_string()
-            }
-            ReasoningEffortConfig::High => crate::i18n::tr!("model-popups-effort-high").to_string(),
-            ReasoningEffortConfig::XHigh => {
-                crate::i18n::tr!("model-popups-effort-xhigh").to_string()
-            }
-            ReasoningEffortConfig::Max => crate::i18n::tr!("model-popups-effort-max").to_string(),
-            ReasoningEffortConfig::Ultra => {
-                crate::i18n::tr!("model-popups-effort-ultra").to_string()
-            }
-            ReasoningEffortConfig::Persistent => {
-                crate::i18n::tr!("model-popups-effort-persistent").to_string()
-            }
+            ReasoningEffortConfig::None => tr!("None").to_string(),
+            ReasoningEffortConfig::Minimal => tr!("Minimal").to_string(),
+            ReasoningEffortConfig::Low => tr!("Low").to_string(),
+            ReasoningEffortConfig::Medium => tr!("Medium").to_string(),
+            ReasoningEffortConfig::High => tr!("High").to_string(),
+            ReasoningEffortConfig::XHigh => tr!("Extra high").to_string(),
+            ReasoningEffortConfig::Max => tr!("Max").to_string(),
+            ReasoningEffortConfig::Ultra => tr!("Ultra").to_string(),
+            ReasoningEffortConfig::Persistent => tr!("Persistent").to_string(),
             ReasoningEffortConfig::Custom(value) => value.clone(),
         }
     }
@@ -834,10 +823,10 @@ impl ChatWidget {
         }
 
         let max_subagents = max_threads.saturating_sub(1);
-        Some(crate::i18n::tr!(
-            "model-popups-ultra-concurrency-warning",
-            max_threads = max_threads,
-            max_subagents = max_subagents
+        Some(tr!(
+            "Ultra reasoning may proactively use multiple agents. This session is configured for {max_threads} concurrent threads with up to {max_subagents} subagents which can increase usage quickly. Consider setting features.multi_agent_v2.max_concurrent_threads_per_session below 8.",
+            max_threads,
+            max_subagents
         ))
     }
 

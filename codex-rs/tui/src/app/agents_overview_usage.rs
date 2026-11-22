@@ -201,31 +201,19 @@ pub(super) fn usage_lines(
     let mut lines = Vec::new();
     let mut tokens = Vec::new();
     if let Some(input) = input {
-        tokens.push(crate::i18n::tr!(
-            "agents-overview-usage-tokens-in",
-            count = format_tokens_compact(input)
-        ));
+        tokens.push(tr!("{count} in", count = format_tokens_compact(input)));
     }
     if let Some(output) = output {
-        tokens.push(crate::i18n::tr!(
-            "agents-overview-usage-tokens-out",
-            count = format_tokens_compact(output)
-        ));
+        tokens.push(tr!("{count} out", count = format_tokens_compact(output)));
     }
     if !tokens.is_empty() {
-        lines.push(
-            vec![
-                crate::i18n::tr!("agents-overview-usage-tokens").dim(),
-                tokens.join(" · ").into(),
-            ]
-            .into(),
-        );
+        lines.push(vec![tr!("Tokens: ").dim(), tokens.join(" · ").into()].into());
     }
     if let Some(estimate) = &usage.estimate {
         let mut values = Vec::new();
         if plan_type != Some(PlanType::Ent26) && estimate.estimated_usage_credits_micros >= 0 {
-            values.push(crate::i18n::tr!(
-                "agents-overview-usage-credits",
+            values.push(tr!(
+                "{count} credits",
                 count = format_credit_micros(estimate.estimated_usage_credits_micros)
             ));
         }
@@ -235,13 +223,7 @@ pub(super) fn usage_lines(
             values.push(cost);
         }
         if !values.is_empty() {
-            lines.push(
-                vec![
-                    crate::i18n::tr!("agents-overview-usage-estimated").dim(),
-                    values.join(" · ").into(),
-                ]
-                .into(),
-            );
+            lines.push(vec![tr!("Est. usage: ").dim(), values.join(" · ").into()].into());
         }
     }
     lines

@@ -102,7 +102,7 @@ impl Renderable for AsyncQuestions {
                 &option_rows,
                 &options_state,
                 option_rows.len().max(1),
-                crate::i18n::tr!("async-questions-no-options"),
+                tr!("No options"),
             );
         }
 
@@ -192,28 +192,28 @@ impl AsyncQuestions {
         {
             tips.push(crate::footer_hint::shortcut(
                 &key.display_label(),
-                crate::i18n::tr!("async-questions-submit"),
+                tr!("submit"),
             ));
         }
         if let Some(key) = chat_hint("skip_question") {
             tips.push(crate::footer_hint::shortcut(
                 &key.display_label(),
-                crate::i18n::tr!("async-questions-skip"),
+                tr!("skip"),
             ));
         }
         tips.extend(option_tip.map(Line::from));
         if let Some(key) = chat_hint("prompt_stack_back") {
             let label = if self.state.current_idx > 0 {
-                crate::i18n::tr!("async-questions-prev-question")
+                tr!("prev question")
             } else {
-                crate::i18n::tr!("async-questions-main-prompt")
+                tr!("main prompt")
             };
             tips.push(crate::footer_hint::shortcut(&key.display_label(), label));
         }
         let next = if self.state.current_idx + 1 < self.state.pending.len() {
-            Some(crate::i18n::tr!("async-questions-next-question"))
+            Some(tr!("next question"))
         } else if self.has_queued_messages {
-            Some(crate::i18n::tr!("async-questions-queued-messages"))
+            Some(tr!("queued messages"))
         } else {
             None
         };
@@ -239,8 +239,8 @@ impl AsyncQuestions {
     }
 
     pub(super) fn option_tip(&self) -> Span<'static> {
-        crate::i18n::tr!(
-            "async-questions-option-position",
+        tr!(
+            "option {current}/{total}",
             current = self.selected_option_index().unwrap_or(0) + 1,
             total = self.options_len()
         )

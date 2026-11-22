@@ -46,17 +46,10 @@ pub(super) fn render(
         if question.is_empty() {
             question.push(HyperlinkLine::default());
         }
-        let mut wrapped = question.into_iter().enumerate().flat_map(|(index, row)| {
-            wrap(
-                row,
-                width,
-                if index == 0 {
-                    crate::i18n::tr!("async-replies-re")
-                } else {
-                    ""
-                },
-            )
-        });
+        let mut wrapped = question
+            .into_iter()
+            .enumerate()
+            .flat_map(|(index, row)| wrap(row, width, if index == 0 { tr!("Re: ") } else { "" }));
         let mut caption: Vec<_> = wrapped.by_ref().take(2).collect();
         if wrapped.next().is_some()
             && let Some(last) = caption.last_mut()
@@ -68,7 +61,7 @@ pub(super) fn render(
             // Copy the visible excerpt as prose alongside the Markdown answer.
             caption.iter_mut().for_each(mark_as_prose);
         } else {
-            retain_initial_prefix(&mut caption, crate::i18n::tr!("async-replies-re"));
+            retain_initial_prefix(&mut caption, tr!("Re: "));
         }
         let caption = prefix_hyperlink_lines(caption, "↪ ".fg(accent).not_dim(), "  ".into());
         lines.extend(caption.into_iter().map(|row| {

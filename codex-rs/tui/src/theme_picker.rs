@@ -141,7 +141,7 @@ const WIDE_PREVIEW_LEFT_INSET: u16 = 2;
 const PREVIEW_FRAME_PADDING: u16 = 1;
 
 fn preview_fallback_subtitle() -> &'static str {
-    crate::i18n::tr!("theme-picker-fallback-subtitle")
+    tr!("Move up/down to live preview themes")
 }
 
 /// Side-by-side preview: syntax-highlighted Rust diff snippet, vertically
@@ -297,7 +297,10 @@ fn theme_picker_subtitle(codex_home: Option<&Path>, terminal_width: Option<u16>)
     if let Some(path) = themes_dir_display
         && path.starts_with('~')
     {
-        let subtitle = crate::i18n::tr!("theme-picker-custom-subtitle", path = path);
+        let subtitle = tr!(
+            "Custom .tmTheme files can be added to the {path} directory.",
+            path
+        );
         if UnicodeWidthStr::width(subtitle.as_str()) <= available_width {
             return subtitle;
         }
@@ -346,7 +349,7 @@ pub(crate) fn build_theme_picker_params(
         .enumerate()
         .map(|(idx, entry)| {
             let display_name = if entry.is_custom {
-                crate::i18n::tr!("theme-picker-custom-name", name = entry.name.clone())
+                tr!("{name} (custom)", name = entry.name.clone())
             } else {
                 entry.name.clone()
             };
@@ -396,7 +399,7 @@ pub(crate) fn build_theme_picker_params(
     );
     SelectionViewParams {
         allow_input_when_disconnected: true,
-        title: Some(crate::i18n::tr!("theme-picker-title").to_string()),
+        title: Some("Select Syntax Theme".to_string()),
         subtitle: Some(theme_picker_subtitle(
             codex_home_owned.as_deref(),
             terminal_width,
@@ -404,7 +407,7 @@ pub(crate) fn build_theme_picker_params(
         footer_hint: Some(standard_popup_hint_line()),
         items,
         is_searchable: true,
-        search_placeholder: Some(crate::i18n::tr!("theme-picker-search").to_string()),
+        search_placeholder: Some("Type to filter themes...".to_string()),
         initial_selected_idx: initial_idx,
         side_content: Box::new(ThemePreviewWideRenderable),
         side_content_width: SideContentWidth::Half,

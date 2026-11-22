@@ -158,13 +158,13 @@ pub(super) async fn try_submit_user_turn(
                 .hold_unconfirmed_user_message(client_user_message_id);
             if !reconnect || !app.recover_transport_error(&error) {
                 let label = if reconnect {
-                    crate::i18n::tr!("user-turn-submission-label")
+                    tr!("Submission")
                 } else {
-                    crate::i18n::tr!("user-turn-submission-label-cloud")
+                    tr!("Cloud submission")
                 };
-                app.chat_widget.add_error_message(crate::i18n::tr!(
-                    "user-turn-submission-unconfirmed",
-                    label = label,
+                app.chat_widget.add_error_message(tr!(
+                    "{label} could not be confirmed: {error}",
+                    label,
                     error = error.to_string()
                 ));
             }

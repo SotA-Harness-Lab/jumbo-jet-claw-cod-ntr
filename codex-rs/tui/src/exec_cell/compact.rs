@@ -96,13 +96,13 @@ impl ExecCell {
             "•".green().bold()
         };
         let title = if let Some(output) = nonzero_exit {
-            crate::i18n::tr!("compact-exited-status", status = output.exit_code)
+            tr!("Exited (status {status})", status = output.exit_code)
         } else if self.is_active() {
-            crate::i18n::tr!("compact-running").to_owned()
+            tr!("Running").to_owned()
         } else if call.is_unified_exec_interaction() {
-            crate::i18n::tr!("compact-background-output").to_owned()
+            tr!("Background output").to_owned()
         } else {
-            crate::i18n::tr!("compact-ran").to_owned()
+            tr!("Ran").to_owned()
         };
         let script = strip_bash_lc_and_escape(&call.command);
         // Highlight before clipping so the compact row keeps the same shell token colors.
@@ -130,7 +130,7 @@ impl ExecCell {
             }
             if lines.len() == 1 && !call.is_unified_exec_interaction() {
                 lines.push(clipped_line(
-                    Line::from(format!("  └ {}", crate::i18n::tr!("compact-no-output")).dim()),
+                    Line::from(format!("  └ {}", tr!("(no output)")).dim()),
                     width,
                 ));
             }

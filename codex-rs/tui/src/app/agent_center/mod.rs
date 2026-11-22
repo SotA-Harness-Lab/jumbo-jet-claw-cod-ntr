@@ -24,13 +24,14 @@ pub(super) const TASK_FILTERS: &[(&str, Option<AgentsOverviewGroup>)] = &[
 
 /// The label of the task filter at `index` of [`TASK_FILTERS`], in the TUI's language.
 pub(super) fn task_filter_label(index: usize) -> &'static str {
-    match index {
-        0 => crate::i18n::tr!("agent-center-filter-all"),
-        1 => crate::i18n::tr!("agent-center-filter-needs-you"),
-        2 => crate::i18n::tr!("agent-center-filter-working"),
-        3 => crate::i18n::tr!("agent-center-filter-ready"),
-        _ => crate::i18n::tr!("agent-center-filter-inactive"),
-    }
+    let label = match index {
+        0 => "All",
+        1 => "Needs you",
+        2 => "Working",
+        3 => "Ready",
+        _ => "Inactive",
+    };
+    crate::i18n::translate_in("agent-filter-label", label)
 }
 
 impl AgentsOverviewView {

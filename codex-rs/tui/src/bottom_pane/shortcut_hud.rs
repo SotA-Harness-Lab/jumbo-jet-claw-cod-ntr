@@ -49,7 +49,7 @@ impl ShortcutHud {
         commands: Vec<Line<'static>>,
     ) -> Self {
         Self {
-            title: title.into(),
+            title: crate::i18n::translate_owned_in("shortcut-hud-title", title.into()),
             viewport: None,
             entries: HudEntries::Flat(entries),
             commands,
@@ -61,11 +61,14 @@ impl ShortcutHud {
             title,
             viewport: None,
             entries: HudEntries::Grouped(groups),
-            commands: vec![crate::i18n::tr!("shortcut-hud-esc-cancel").dim().into()],
+            commands: vec![tr!("Esc cancel").dim().into()],
         }
     }
 
-    pub(crate) fn item(key: impl Into<String>, label: Span<'static>) -> Line<'static> {
+    pub(crate) fn item(key: impl Into<String>, mut label: Span<'static>) -> Line<'static> {
+        if let std::borrow::Cow::Borrowed(source) = label.content {
+            label.content = crate::i18n::translate_in("shortcut-hud-action", source).into();
+        }
         vec![
             key.into().fg(accent_color()),
             " · ".set_style(secondary_text_style()),
@@ -255,7 +258,8 @@ fn grouped_lines(groups: &[(&'static str, Vec<Line<'static>>)], width: u16) -> V
         if !column.is_empty() {
             column.push(Line::default());
         }
-        column.push((*title).dim().into());
+        let title = crate::i18n::translate_in("workspace-shortcut", title);
+        column.push(title.dim().into());
         column.extend(entries.iter().cloned());
     }
     column_lines(&columns, width)
@@ -303,7 +307,7 @@ fn render_clipped(mut lines: Vec<Line<'static>>, area: Rect, buf: &mut Buffer) {
     let height = usize::from(area.height);
     if lines.len() > height {
         lines.truncate(height);
-        lines[height - 1] = crate::i18n::tr!("shortcut-hud-more").dim().into();
+        lines[height - 1] = tr!("… more shortcuts").dim().into();
     }
     Paragraph::new(lines).render(area, buf);
 }

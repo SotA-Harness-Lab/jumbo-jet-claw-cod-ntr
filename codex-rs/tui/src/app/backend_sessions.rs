@@ -179,13 +179,10 @@ impl BackendSessions {
     pub(super) fn displayed_name(&self, target: &AppServerTarget) -> Option<String> {
         let slot = self.displayed.0;
         self.entries[slot].listening.then(|| match (target, slot) {
-            (AppServerTarget::Cloud, _) => crate::i18n::tr!("backend-sessions-cloud").to_string(),
-            (_, 0) => crate::i18n::tr!("backend-sessions-local").to_string(),
+            (AppServerTarget::Cloud, _) => tr!("Cloud").to_string(),
+            (_, 0) => tr!("Local").to_string(),
             (_, index) => {
-                crate::i18n::tr!(
-                    "backend-sessions-connection",
-                    number = (index + 1).to_string()
-                )
+                tr!("Connection {number}", number = (index + 1).to_string())
             }
         })
     }

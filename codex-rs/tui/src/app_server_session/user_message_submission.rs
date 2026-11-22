@@ -282,7 +282,7 @@ impl AppServerSession {
         if selection.is_some() && !self.cloud_model_catalog_is_current() {
             self.cloud_turn_settings.lock().remove(&thread_id);
             return Err(UserMessageSubmissionFailure::Preflight(
-                crate::i18n::tr!("user-message-cloud-account-changed").into(),
+                tr!("The Cloud account changed. Reopen the conversation before sending.").into(),
             ));
         }
         let selected_model = selection
@@ -366,7 +366,7 @@ impl AppServerSession {
             |error| match UserMessageSubmissionFailure::conventional(error, intent) {
                 UserMessageSubmissionFailure::Rejected(error) => {
                     UserMessageSubmissionFailure::Rejected(
-                        error.wrap_err(crate::i18n::tr!("user-message-failed-to-start-turn")),
+                        error.wrap_err(tr!("Failed to start turn")),
                     )
                 }
                 failure => failure,

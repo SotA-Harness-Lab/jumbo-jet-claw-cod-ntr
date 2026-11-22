@@ -124,29 +124,29 @@ impl CopyFeedback {
         let characters = self.characters;
         let labels = match self.result {
             Ok(CopyStatus::Confirmed) => [
-                crate::i18n::tr!("composer-gap-copied-chars-host", characters = characters),
-                crate::i18n::tr!("composer-gap-copied-chars", characters = characters),
-                crate::i18n::tr!("composer-gap-copied").into(),
+                tr!("Copied {characters} chars to host clipboard", characters),
+                tr!("Copied {characters} chars", characters),
+                tr!("Copied").into(),
             ],
             Ok(CopyStatus::Pending(_)) => [
-                crate::i18n::tr!("composer-gap-copying-chars", characters = characters),
-                crate::i18n::tr!("composer-gap-copying").into(),
-                crate::i18n::tr!("composer-gap-copying").into(),
+                tr!("Copying {characters} chars…", characters),
+                tr!("Copying…").into(),
+                tr!("Copying…").into(),
             ],
             Ok(CopyStatus::Busy) => [
-                crate::i18n::tr!("composer-gap-already-in-progress").into(),
-                crate::i18n::tr!("composer-gap-in-progress").into(),
-                crate::i18n::tr!("composer-gap-busy").into(),
+                tr!("Copy already in progress").into(),
+                tr!("Copy in progress").into(),
+                tr!("Copy busy").into(),
             ],
             Ok(CopyStatus::Unconfirmed) => [
-                crate::i18n::tr!("composer-gap-sent-to-terminal").into(),
-                crate::i18n::tr!("composer-gap-sent-verify").into(),
-                crate::i18n::tr!("composer-gap-unconfirmed").into(),
+                tr!("Copy sent to terminal · paste to verify").into(),
+                tr!("Copy sent · verify paste").into(),
+                tr!("Copy unconfirmed").into(),
             ],
             Err(()) => [
-                crate::i18n::tr!("composer-gap-failed-try-again").into(),
-                crate::i18n::tr!("composer-gap-failed").into(),
-                crate::i18n::tr!("composer-gap-failed").into(),
+                tr!("Copy failed · try again").into(),
+                tr!("Copy failed").into(),
+                tr!("Copy failed").into(),
             ],
         };
         let line = first_fitting_line(labels.map(Line::from), width);

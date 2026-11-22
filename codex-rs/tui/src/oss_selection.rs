@@ -71,13 +71,13 @@ static OSS_SELECT_OPTIONS: LazyLock<Vec<SelectOption>> = LazyLock::new(|| {
     vec![
         SelectOption {
             label: Line::from(vec!["L".underlined(), "M Studio".into()]),
-            description: crate::i18n::tr!("oss-selection-lmstudio-desc"),
+            description: tr!("Local LM Studio server (default port 1234)"),
             key: KeyCode::Char('l'),
             provider_id: LMSTUDIO_OSS_PROVIDER_ID,
         },
         SelectOption {
             label: Line::from(vec!["O".underlined(), "llama".into()]),
-            description: crate::i18n::tr!("oss-selection-ollama-desc"),
+            description: tr!("Local Ollama server (Responses API, default port 11434)"),
             key: KeyCode::Char('o'),
             provider_id: OLLAMA_OSS_PROVIDER_ID,
         },
@@ -215,13 +215,13 @@ impl WidgetRef for &OssSelectionWidget<'_> {
         column.push(/*flex*/ 1, RenderableItem::Borrowed(&""));
         column.push(
             /*flex*/ 0,
-            Paragraph::new(crate::i18n::tr!("oss-selection-title").bold())
+            Paragraph::new(tr!("Select an open-source provider").bold())
                 .wrap(Wrap { trim: false })
                 .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),
         );
         column.push(
             /*flex*/ 1,
-            Paragraph::new(crate::i18n::tr!("oss-selection-subtitle").dim())
+            Paragraph::new(tr!("Choose a local AI server for this session.").dim())
                 .wrap(Wrap { trim: false })
                 .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),
         );
@@ -231,15 +231,9 @@ impl WidgetRef for &OssSelectionWidget<'_> {
             .zip(&self.provider_statuses)
             .map(|(option, status)| {
                 let (label, color) = match status {
-                    ProviderStatus::Running => {
-                        (crate::i18n::tr!("oss-selection-running"), Color::Green)
-                    }
-                    ProviderStatus::NotRunning => {
-                        (crate::i18n::tr!("oss-selection-not-running"), Color::Red)
-                    }
-                    ProviderStatus::Unknown => {
-                        (crate::i18n::tr!("oss-selection-unknown"), Color::Yellow)
-                    }
+                    ProviderStatus::Running => (tr!("● Running"), Color::Green),
+                    ProviderStatus::NotRunning => (tr!("○ Not running"), Color::Red),
+                    ProviderStatus::Unknown => (tr!("? Unknown"), Color::Yellow),
                 };
                 let mut line = option.label.clone();
                 line.spans.extend([" · ".dim(), label.fg(color)]);
@@ -261,13 +255,13 @@ impl WidgetRef for &OssSelectionWidget<'_> {
             /*flex*/ 0,
             Paragraph::new(Line::from(vec![
                 "↑/↓".bold(),
-                crate::i18n::tr!("oss-selection-hint-choose").dim(),
+                tr!(" choose · ").dim(),
                 key_hint::plain(KeyCode::Enter).into(),
-                crate::i18n::tr!("oss-selection-hint-select").dim(),
+                tr!(" select · ").dim(),
                 key_hint::plain(KeyCode::Esc).into(),
-                crate::i18n::tr!("oss-selection-hint-lmstudio").dim(),
+                tr!(" LM Studio · ").dim(),
                 key_hint::ctrl(KeyCode::Char('c')).into(),
-                crate::i18n::tr!("oss-selection-hint-exit").dim(),
+                tr!(" exit").dim(),
             ]))
             .wrap(Wrap { trim: false })
             .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),

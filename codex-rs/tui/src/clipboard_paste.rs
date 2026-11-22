@@ -27,23 +27,21 @@ impl std::fmt::Display for PasteImageError {
             PasteImageError::ClipboardUnavailable(msg) => write!(
                 f,
                 "{}",
-                crate::i18n::tr!("clipboard-paste-unavailable", error = msg.as_str())
+                tr!("clipboard unavailable: {error}", error = msg.as_str())
             ),
             PasteImageError::NoImage(msg) => write!(
                 f,
                 "{}",
-                crate::i18n::tr!("clipboard-paste-no-image", error = msg.as_str())
+                tr!("no image on clipboard: {error}", error = msg.as_str())
             ),
             PasteImageError::EncodeFailed(msg) => write!(
                 f,
                 "{}",
-                crate::i18n::tr!("clipboard-paste-encode-failed", error = msg.as_str())
+                tr!("could not encode image: {error}", error = msg.as_str())
             ),
-            PasteImageError::IoError(msg) => write!(
-                f,
-                "{}",
-                crate::i18n::tr!("clipboard-paste-io-error", error = msg.as_str())
-            ),
+            PasteImageError::IoError(msg) => {
+                write!(f, "{}", tr!("io error: {error}", error = msg.as_str()))
+            }
         }
     }
 }
@@ -140,7 +138,7 @@ fn read_clipboard_image(
 #[cfg(target_os = "android")]
 pub fn paste_image_as_png() -> Result<(Vec<u8>, PastedImageInfo), PasteImageError> {
     Err(PasteImageError::ClipboardUnavailable(
-        crate::i18n::tr!("clipboard-paste-android-unsupported").into(),
+        tr!("clipboard image paste is unsupported on Android").into(),
     ))
 }
 
@@ -260,7 +258,7 @@ fn try_dump_windows_clipboard_image() -> Option<String> {
 pub fn paste_image_to_temp_png() -> Result<(PathBuf, PastedImageInfo), PasteImageError> {
     // Keep error consistent with paste_image_as_png.
     Err(PasteImageError::ClipboardUnavailable(
-        crate::i18n::tr!("clipboard-paste-android-unsupported").into(),
+        tr!("clipboard image paste is unsupported on Android").into(),
     ))
 }
 

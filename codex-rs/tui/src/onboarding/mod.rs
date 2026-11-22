@@ -23,5 +23,5 @@ pub(crate) use trust_directory::TrustCancelAction;
 mod welcome;
 
 pub(crate) fn setup_connection_lost() -> &'static str {
-    crate::i18n::tr!("const-setup-connection-lost")
+    tr!("Codex lost its connection during setup. Restart Codex to continue.")
 }

@@ -109,14 +109,13 @@ impl Renderable for AgentsOverviewView {
         if state.editing_metadata() && !layout.search.is_empty() {
             if state.rename_target.is_some() {
                 let mut area = layout.search;
-                let prefix_width =
-                    (crate::i18n::tr!("render-rename-prefix").width() as u16).min(area.width);
+                let prefix_width = (tr!("Rename › ").width() as u16).min(area.width);
                 area.x += prefix_width;
                 area.width -= prefix_width;
                 return state.input.cursor_pos(area);
             }
             let input = &state.search;
-            let prefix = crate::i18n::tr!("render-search-prefix");
+            let prefix = tr!("Search › ");
             let available = usize::from(layout.search.width).saturating_sub(prefix.width() + 1);
             return Some((
                 layout.search.x
@@ -142,10 +141,10 @@ impl Renderable for AgentsOverviewView {
             self.center_filter_hint()
         };
         let grouping = match state.grouping {
-            AgentsOverviewGrouping::Project => crate::i18n::tr!("render-grouping-project"),
-            AgentsOverviewGrouping::Directory => crate::i18n::tr!("render-grouping-directory"),
-            AgentsOverviewGrouping::Status => crate::i18n::tr!("render-grouping-status"),
-            AgentsOverviewGrouping::Model => crate::i18n::tr!("render-grouping-model"),
+            AgentsOverviewGrouping::Project => tr!("Project"),
+            AgentsOverviewGrouping::Directory => tr!("Directory"),
+            AgentsOverviewGrouping::Status => tr!("Status"),
+            AgentsOverviewGrouping::Model => tr!("Model"),
         };
         let group_key = self
             .agents_keymap
@@ -154,10 +153,10 @@ impl Renderable for AgentsOverviewView {
             .unwrap_or_default();
         line(
             vec![
-                crate::i18n::tr!("render-agent-command-center").bold(),
-                crate::i18n::tr!(
-                    "render-group-label",
-                    grouping = grouping,
+                tr!("Agent command center").bold(),
+                tr!(
+                    "  Group: {grouping}  {group_key}",
+                    grouping,
                     group_key = group_key.as_str()
                 )
                 .dim(),
@@ -181,8 +180,7 @@ impl Renderable for AgentsOverviewView {
             })
             .collect::<Vec<_>>();
         let mut tabs = inset(row(layout.header, /*offset*/ 1, /*height*/ 1));
-        let filter_hint =
-            hint_line(&[(filter_keys, crate::i18n::tr!("render-filter-hint").into())]);
+        let filter_hint = hint_line(&[(filter_keys, tr!("filter").into())]);
         if tabs.width >= 80 && filter_hint.width() > 0 {
             let hint_width = filter_hint.width() as u16;
             filter_hint.render(
@@ -207,19 +205,14 @@ impl Renderable for AgentsOverviewView {
         if state.editing_metadata() {
             buf.set_style(layout.search, crate::bottom_pane::active_tab_style());
             if state.rename_target.is_some() {
-                line(
-                    crate::i18n::tr!("render-rename-prefix").cyan().bold(),
-                    layout.search,
-                    buf,
-                );
+                line(tr!("Rename › ").cyan().bold(), layout.search, buf);
                 let mut area = layout.search;
-                let prefix_width =
-                    (crate::i18n::tr!("render-rename-prefix").width() as u16).min(area.width);
+                let prefix_width = (tr!("Rename › ").width() as u16).min(area.width);
                 area.x += prefix_width;
                 area.width -= prefix_width;
                 WidgetRef::render_ref(&&state.input, area, buf);
             } else {
-                let label = crate::i18n::tr!("render-search-prefix");
+                let label = tr!("Search › ");
                 let available = usize::from(layout.search.width).saturating_sub(label.width() + 1);
                 line(
                     vec![
@@ -237,22 +230,21 @@ impl Renderable for AgentsOverviewView {
             .or_else(|| {
                 state
                     .creating_worktree
-                    .then(|| crate::i18n::tr!("render-creating-worktree").to_owned())
+                    .then(|| tr!("Creating worktree…").to_owned())
             })
             .or_else(|| {
                 state.removal.map(|action| match action {
                     AgentsOverviewAction::Archive => {
-                        crate::i18n::tr!("render-archiving-task").to_owned()
+                        tr!("Archiving task…  You can still browse.").to_owned()
                     }
                     AgentsOverviewAction::Delete => {
-                        crate::i18n::tr!("render-deleting-task").to_owned()
+                        tr!("Deleting task…  You can still browse.").to_owned()
                     }
                 })
             })
             .or_else(|| {
                 let failed = state.refresh_failed || history.is_some_and(|s| s.failed);
-                (failed && !state.loading)
-                    .then(|| crate::i18n::tr!("render-error-loading-tasks").to_owned())
+                (failed && !state.loading).then(|| tr!("Error loading tasks").to_owned())
             })
             .or_else(|| state.server_version_notice.clone());
         if let Some(notice) = notice.filter(|_| !state.help) {
@@ -273,7 +265,7 @@ impl Renderable for AgentsOverviewView {
             let mut lines = self.center_help_lines(body.width);
             if lines.len() > usize::from(body.height) {
                 lines.truncate(usize::from(body.height.saturating_sub(/*rhs*/ 1)));
-                lines.push(crate::i18n::tr!("render-resize-to-see-all").dim().into());
+                lines.push(tr!("… resize to see all").dim().into());
             }
             Paragraph::new(lines).render(body, buf);
             return;

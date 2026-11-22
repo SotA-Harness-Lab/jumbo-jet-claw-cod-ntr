@@ -468,9 +468,9 @@ fn render_changes_block(
     let mut header_spans: Vec<RtSpan<'static>> = vec!["• ".dim()];
     if let [row] = &rows[..] {
         let verb = match row.change {
-            FileChange::Add { .. } => crate::i18n::tr!("diff-render-added"),
-            FileChange::Delete { .. } => crate::i18n::tr!("diff-render-deleted"),
-            _ => crate::i18n::tr!("diff-render-edited"),
+            FileChange::Add { .. } => tr!("Added"),
+            FileChange::Delete { .. } => tr!("Deleted"),
+            _ => tr!("Edited"),
         };
         header_spans.push(verb.bold());
         header_spans.push(" ".into());
@@ -478,9 +478,14 @@ fn render_changes_block(
         header_spans.push(" ".into());
         header_spans.extend(render_line_count_summary(row.added, row.removed));
     } else {
-        header_spans.push(crate::i18n::tr!("diff-render-edited").bold());
-        header_spans
-            .push(crate::i18n::tr!("diff-render-file-count", count = file_count as i64).into());
+        header_spans.push(tr!("Edited").bold());
+        header_spans.push(
+            tr!(
+                " {count} file " | " {count} files ",
+                count = file_count as i64
+            )
+            .into(),
+        );
         header_spans.extend(render_line_count_summary(total_added, total_removed));
     }
     out.push(RtLine::from(header_spans).into());

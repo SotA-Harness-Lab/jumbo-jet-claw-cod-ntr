@@ -89,15 +89,12 @@ impl ChatComposer {
             .unwrap_or_else(|| "/warnings".into());
         let mut full = Line::from(vec![
             "⚠ ".into(),
-            Span::styled(
-                crate::i18n::tr!("warning-notice-count", count = count),
-                accent,
-            ),
+            Span::styled(tr!("1 warning" | "{count} warnings", count), accent),
             " · ".into(),
         ])
         .style(secondary);
         full.extend(key_hint::key_label_spans(&shortcut));
-        full.push_span(crate::i18n::tr!("warning-notice-to-view"));
+        full.push_span(tr!(" to view"));
         let mut compact = Line::from(vec![
             "⚠ ".into(),
             Span::styled(count.to_string(), accent),

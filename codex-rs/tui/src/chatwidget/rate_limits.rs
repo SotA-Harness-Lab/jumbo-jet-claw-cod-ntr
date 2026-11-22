@@ -67,10 +67,10 @@ impl RateLimitWarningState {
                 let limit_label =
                     limit_label_for_window(secondary_window_minutes, /*is_secondary*/ true);
                 let remaining_percent = 100.0 - threshold;
-                warnings.push(crate::i18n::tr!(
-                    "rate-limits-heads-up",
+                warnings.push(tr!(
+                    "Heads up, you have less than {remaining_percent}% of your {limit_label} limit left. Run /status for a breakdown.",
                     remaining_percent = format!("{remaining_percent:.0}"),
-                    limit_label = limit_label
+                    limit_label
                 ));
             }
         }
@@ -95,10 +95,10 @@ impl RateLimitWarningState {
                 let limit_label =
                     limit_label_for_window(primary_window_minutes, /*is_secondary*/ false);
                 let remaining_percent = 100.0 - threshold;
-                warnings.push(crate::i18n::tr!(
-                    "rate-limits-heads-up",
+                warnings.push(tr!(
+                    "Heads up, you have less than {remaining_percent}% of your {limit_label} limit left. Run /status for a breakdown.",
                     remaining_percent = format!("{remaining_percent:.0}"),
-                    limit_label = limit_label
+                    limit_label
                 ));
             }
         }
@@ -124,15 +124,15 @@ pub(crate) fn get_limits_duration(windows_minutes: i64) -> Option<String> {
     let windows_minutes = windows_minutes.max(0);
 
     if is_approximate_window(windows_minutes, MINUTES_PER_5_HOURS) {
-        Some(crate::i18n::tr!("rate-limits-window-5h").to_string())
+        Some(tr!("5h").to_string())
     } else if is_approximate_window(windows_minutes, MINUTES_PER_DAY) {
-        Some(crate::i18n::tr!("rate-limits-window-daily").to_string())
+        Some(tr!("daily").to_string())
     } else if is_approximate_window(windows_minutes, MINUTES_PER_WEEK) {
-        Some(crate::i18n::tr!("rate-limits-window-weekly").to_string())
+        Some(tr!("weekly").to_string())
     } else if is_approximate_window(windows_minutes, MINUTES_PER_MONTH) {
-        Some(crate::i18n::tr!("rate-limits-window-monthly").to_string())
+        Some(tr!("monthly").to_string())
     } else if is_approximate_window(windows_minutes, MINUTES_PER_YEAR) {
-        Some(crate::i18n::tr!("rate-limits-window-annual").to_string())
+        Some(tr!("annual").to_string())
     } else {
         None
     }
@@ -140,9 +140,9 @@ pub(crate) fn get_limits_duration(windows_minutes: i64) -> Option<String> {
 
 pub(crate) fn fallback_limit_label(is_secondary: bool) -> &'static str {
     if is_secondary {
-        crate::i18n::tr!("rate-limits-fallback-secondary")
+        tr!("secondary usage")
     } else {
-        crate::i18n::tr!("rate-limits-fallback-primary")
+        tr!("usage")
     }
 }
 
@@ -534,13 +534,13 @@ impl ChatWidget {
         if *seconds_shown != seconds {
             let params = SelectionViewParams {
                 view_id: Some(RATE_LIMIT_SWITCH_PROMPT_VIEW_ID),
-                title: Some(crate::i18n::tr!("rate-limits-no-longer-close").into()),
-                subtitle: Some(crate::i18n::tr!(
-                    "rate-limits-dismissing-in",
-                    seconds = seconds
+                title: Some("You’re no longer close to your usage limit.".into()),
+                subtitle: Some(tr!(
+                    "Dismissing in 1 second…" | "Dismissing in {seconds} seconds…",
+                    seconds
                 )),
                 items: vec![SelectionItem {
-                    name: crate::i18n::tr!("rate-limits-dismiss").into(),
+                    name: "Dismiss".into(),
                     dismiss_on_select: true,
                     ..Default::default()
                 }],
@@ -589,15 +589,15 @@ impl ChatWidget {
             tx.send(AppEvent::PersistRateLimitSwitchPromptHidden);
         })];
         let description = if preset.description.is_empty() {
-            Some(crate::i18n::tr!("rate-limits-fewer-credits").to_string())
+            Some(tr!("Uses fewer credits for upcoming turns").to_string())
         } else {
             Some(preset.description)
         };
 
         let items = vec![
             SelectionItem {
-                name: crate::i18n::tr!(
-                    "rate-limits-switch-to",
+                name: tr!(
+                    "Switch to {switch_model}",
                     switch_model = switch_model.clone()
                 ),
                 description,
@@ -608,7 +608,7 @@ impl ChatWidget {
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("rate-limits-keep-model").to_string(),
+                name: "Keep current model".to_string(),
                 description: None,
                 selected_description: None,
                 is_current: false,
@@ -617,8 +617,10 @@ impl ChatWidget {
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("rate-limits-keep-model-never").to_string(),
-                description: Some(crate::i18n::tr!("rate-limits-hide-reminders").to_string()),
+                name: "Keep current model (never show again)".to_string(),
+                description: Some(
+                    "Hide future rate limit reminders about switching models".to_string(),
+                ),
                 selected_description: None,
                 is_current: false,
                 actions: never_actions,
@@ -629,10 +631,10 @@ impl ChatWidget {
 
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(RATE_LIMIT_SWITCH_PROMPT_VIEW_ID),
-            title: Some(crate::i18n::tr!("rate-limits-approaching").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "rate-limits-switch-lower-usage",
-                switch_model = switch_model
+            title: Some("Approaching rate limits".to_string()),
+            subtitle: Some(tr!(
+                "Switch to {switch_model} for lower credit usage?",
+                switch_model
             )),
             footer_hint: Some(standard_popup_hint_line()),
             items,
@@ -650,12 +652,16 @@ impl ChatWidget {
 
         let (title, prompt) = match credit_type {
             AddCreditsNudgeCreditType::Credits => (
-                crate::i18n::tr!("rate-limits-workspace-credit-limit"),
-                crate::i18n::tr!("rate-limits-workspace-out-of-credits"),
+                tr!("You've reached your workspace credit limit"),
+                tr!(
+                    "Your workspace is out of credits. Ask your workspace owner to add more. Notify owner?"
+                ),
             ),
             AddCreditsNudgeCreditType::UsageLimit => (
-                crate::i18n::tr!("rate-limits-usage-limit-reached"),
-                crate::i18n::tr!("rate-limits-request-increase"),
+                tr!("Usage limit reached"),
+                tr!(
+                    "Request a limit increase from your owner to continue using codex. Request increase?"
+                ),
             ),
         };
         let send_actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
@@ -663,14 +669,14 @@ impl ChatWidget {
         })];
         let items = vec![
             SelectionItem {
-                name: crate::i18n::tr!("rate-limits-yes").to_string(),
+                name: tr!("Yes").to_string(),
                 display_shortcut: Some(key_hint::plain(KeyCode::Char('y')).into()),
                 actions: send_actions,
                 dismiss_on_select: true,
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("rate-limits-no-default").to_string(),
+                name: tr!("No (default)").to_string(),
                 display_shortcut: Some(key_hint::plain(KeyCode::Char('n')).into()),
                 dismiss_on_select: true,
                 ..Default::default()
@@ -718,24 +724,24 @@ impl ChatWidget {
         self.add_credits_nudge_email_in_flight = None;
         let message = match (credit_type, result) {
             (AddCreditsNudgeCreditType::Credits, Ok(AddCreditsNudgeEmailStatus::Sent)) => {
-                crate::i18n::tr!("rate-limits-owner-notified")
+                tr!("Workspace owner notified.")
             }
             (
                 AddCreditsNudgeCreditType::Credits,
                 Ok(AddCreditsNudgeEmailStatus::CooldownActive),
-            ) => crate::i18n::tr!("rate-limits-owner-already-notified"),
+            ) => tr!("Workspace owner was already notified recently."),
             (AddCreditsNudgeCreditType::Credits, Err(_)) => {
-                crate::i18n::tr!("rate-limits-owner-notify-failed")
+                tr!("Could not notify your workspace owner. Please try again.")
             }
             (AddCreditsNudgeCreditType::UsageLimit, Ok(AddCreditsNudgeEmailStatus::Sent)) => {
-                crate::i18n::tr!("rate-limits-increase-requested")
+                tr!("Limit increase requested.")
             }
             (
                 AddCreditsNudgeCreditType::UsageLimit,
                 Ok(AddCreditsNudgeEmailStatus::CooldownActive),
-            ) => crate::i18n::tr!("rate-limits-increase-already-requested"),
+            ) => tr!("A limit increase was already requested recently."),
             (AddCreditsNudgeCreditType::UsageLimit, Err(_)) => {
-                crate::i18n::tr!("rate-limits-increase-request-failed")
+                tr!("Could not request a limit increase. Please try again.")
             }
         };
         self.add_to_history(history_cell::new_info_event(
