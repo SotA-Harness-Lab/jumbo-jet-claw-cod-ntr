@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: fill the Config fields the fork added
+
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::io::IsTerminal;
@@ -244,6 +249,8 @@ async fn new_config(
         application_auth_route_config: Some(auth_config.auth_route_config.clone()),
         config_layer_stack,
         plugins: Default::default(),
+        mod_config: Default::default(),
+        claude_plugins: Vec::new(),
         startup_warnings: Vec::new(),
         bypass_hook_trust: false,
         model,
