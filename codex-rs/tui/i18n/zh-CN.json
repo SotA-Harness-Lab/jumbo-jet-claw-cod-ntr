@@ -3638,9 +3638,6 @@
     "event-dispatch": {
       "Voice conversation failed: {error}": "语音对话失败: { $error }"
     },
-    "fields": {
-      "AWS profile": "AWS 配置文件"
-    },
     "history-notice-title": {
       "This content can't be shown": null,
       "This content can’t be shown": null
