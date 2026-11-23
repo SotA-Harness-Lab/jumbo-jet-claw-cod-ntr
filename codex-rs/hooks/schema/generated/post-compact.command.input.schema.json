@@ -16,6 +16,10 @@
     "agent_type": {
       "type": "string"
     },
+    "compact_summary": {
+      "description": "Plaintext summary for local Claude Code hooks, when the compactor provides it.",
+      "type": "string"
+    },
     "cwd": {
       "type": "string"
     },

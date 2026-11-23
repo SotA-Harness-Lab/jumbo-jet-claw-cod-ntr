@@ -61,6 +61,7 @@ pub struct PostCompactRequest {
     pub transcript_path: Option<PathBuf>,
     pub model: String,
     pub trigger: String,
+    pub compact_summary: Option<String>,
 }
 
 #[derive(Debug)]
@@ -247,6 +248,7 @@ fn post_command_input(request: &PostCompactRequest) -> Result<Value, serde_json:
         hook_event_name: "PostCompact".to_string(),
         model: request.model.clone(),
         trigger: request.trigger.clone(),
+        compact_summary: request.compact_summary.clone(),
     })
 }
 
@@ -572,7 +574,24 @@ mod tests {
             transcript_path: None,
             model: "gpt-test".to_string(),
             trigger: "manual".to_string(),
+            compact_summary: None,
         }
+    }
+
+    #[test]
+    fn post_compact_input_includes_a_summary_only_when_available() {
+        let mut request = post_request();
+        assert!(
+            super::post_command_input(&request)
+                .expect("post compact input")
+                .get("compact_summary")
+                .is_none()
+        );
+        request.compact_summary = Some("A generated summary.".to_string());
+        assert_eq!(
+            super::post_command_input(&request).expect("post compact input")["compact_summary"],
+            "A generated summary."
+        );
     }
 
     fn handler(event_name: HookEventName) -> ConfiguredHandler {

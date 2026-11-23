@@ -393,9 +393,9 @@ pub(crate) async fn run_post_tool_use_failure_hooks(
     tool_use_id: String,
     tool_input: Value,
     error: String,
+    target_environments: &[&str],
 ) -> Vec<codex_hooks::HookContext> {
-    let hooks = sess.hooks();
-    if !hooks.has_post_tool_use_failure_hooks() {
+    if !sess.hooks().has_post_tool_use_failure_hooks() {
         return Vec::new();
     }
     let turn_context = &step_context.turn;
@@ -411,10 +411,15 @@ pub(crate) async fn run_post_tool_use_failure_hooks(
         error,
         is_interrupt: false,
     };
-    hooks
-        .run_post_tool_use_failure(request)
-        .await
-        .additional_contexts
+    with_tool_environment_hooks(
+        sess,
+        turn_context,
+        &step_context.environments,
+        target_environments,
+    )
+    .run_post_tool_use_failure(request)
+    .await
+    .additional_contexts
 }
 
 /// Starts Claude Code's `Notification` hooks while Codex waits for the user, without
@@ -732,6 +737,7 @@ pub(crate) async fn run_post_compact_hooks(
     sess: &Arc<Session>,
     turn_context: &Arc<TurnContext>,
     trigger: CompactionTrigger,
+    compact_summary: Option<String>,
 ) -> PostCompactHookOutcome {
     let request = codex_hooks::PostCompactRequest {
         session_id: sess.session_id().into(),
@@ -742,6 +748,7 @@ pub(crate) async fn run_post_compact_hooks(
         transcript_path: sess.hook_transcript_path().await,
         model: turn_context.model_info().slug.clone(),
         trigger: compaction_trigger_label(trigger).to_string(),
+        compact_summary,
     };
     let hooks = with_environment_hooks(
         sess,

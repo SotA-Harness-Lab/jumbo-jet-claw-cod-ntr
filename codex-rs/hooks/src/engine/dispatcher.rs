@@ -4,6 +4,7 @@
 // Modified by Tianyu (Sky) Lu in 2026: run more of Claude Code's hooks;
 // follow more of Claude Code's behaviour
 
+use std::borrow::Cow;
 use std::path::Path;
 
 use futures::StreamExt;
@@ -19,6 +20,7 @@ use codex_protocol::protocol::HookRunStatus;
 use codex_protocol::protocol::HookRunSummary;
 use codex_protocol::protocol::HookScope;
 use codex_protocol::protocol::HookSource;
+use codex_utils_absolute_path::AbsolutePathBuf;
 
 use super::ClaudeHooksEngine;
 use super::ConfiguredHandler;
@@ -345,6 +347,8 @@ pub(crate) async fn execute_handler(
     cwd: &Path,
     metadata: Option<&Map<String, Value>>,
 ) -> HandlerRunResult {
+    let input = post_compact_input_for_handler(handler, &engine.claude_settings_paths, event_input);
+    let event_input = input.as_ref();
     match &handler.kind {
         ConfiguredHandlerKind::Command {
             command,
@@ -421,6 +425,33 @@ pub(crate) async fn execute_handler(
             .await
         }
     }
+}
+
+fn post_compact_input_for_handler<'a>(
+    handler: &ConfiguredHandler,
+    claude_settings_paths: &[AbsolutePathBuf],
+    input: &'a Value,
+) -> Cow<'a, Value> {
+    if handler.event_name != HookEventName::PostCompact || input.get("compact_summary").is_none() {
+        return Cow::Borrowed(input);
+    }
+    // Share the conversation summary only with local Claude hooks. Environment requirements
+    // and executor-scoped plugins keep their existing payload.
+    if let HandlerSourcePath::Local(path) = &handler.source_path
+        && (claude_settings_paths.contains(path)
+            || matches!(
+                &handler.kind,
+                ConfiguredHandlerKind::Command { posix_sh: true, .. }
+                    | ConfiguredHandlerKind::Http(_)
+            ))
+    {
+        return Cow::Borrowed(input);
+    }
+    let mut input = input.clone();
+    if let Some(fields) = input.as_object_mut() {
+        fields.remove("compact_summary");
+    }
+    Cow::Owned(input)
 }
 
 pub(crate) fn completed_summary(
@@ -544,10 +575,14 @@ mod tests {
     use codex_protocol::protocol::HookSource;
     use codex_utils_absolute_path::test_support::PathBufExt;
     use codex_utils_absolute_path::test_support::test_path_buf;
+    use codex_utils_path_uri::PathUri;
     use pretty_assertions::assert_eq;
+    use serde_json::json;
 
     use super::ConfiguredHandler;
     use super::ConfiguredHandlerKind;
+    use super::HandlerSourcePath;
+    use super::post_compact_input_for_handler;
     use super::select_handlers;
     use super::select_handlers_for_matcher_inputs;
 
@@ -584,6 +619,32 @@ mod tests {
             condition.to_string(),
         ));
         handler
+    }
+
+    #[test]
+    fn post_compact_summaries_go_only_to_local_claude_hooks() {
+        let mut handler = make_handler(HookEventName::PostCompact, None, "true", 0);
+        let input = json!({"trigger":"manual", "compact_summary":"conversation summary"});
+        let ordinary_input = json!({"trigger":"manual"});
+        let settings_path = test_path_buf("/tmp/hooks.json").abs();
+        assert_eq!(
+            post_compact_input_for_handler(&handler, &[], &input).as_ref(),
+            &ordinary_input
+        );
+        assert_eq!(
+            post_compact_input_for_handler(&handler, std::slice::from_ref(&settings_path), &input)
+                .as_ref(),
+            &input
+        );
+        handler.source_path = HandlerSourcePath::Environment {
+            environment_id: "remote".to_string(),
+            cwd: PathUri::from_abs_path(&test_path_buf("/tmp").abs()),
+            source_path: PathUri::from_abs_path(&settings_path),
+        };
+        assert_eq!(
+            post_compact_input_for_handler(&handler, &[settings_path], &input).as_ref(),
+            &ordinary_input
+        );
     }
 
     #[test]

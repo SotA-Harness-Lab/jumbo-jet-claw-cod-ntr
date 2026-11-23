@@ -502,6 +502,27 @@ fn tool_name_wildcards_match_full_names_for_ask_and_deny() {
 }
 
 #[test]
+fn reports_permission_diagnostics_with_exact_configuration_positions() {
+    let warnings = super::permission_rule_warnings(&json!({
+        "permissions": {
+            "allow": ["Bash(git * main)", "Bash(git diff *)", "Write(./draft.md)"],
+            "ask": ["Glob(./src/**)", "Edit(src/**) unexpected", "Bash(command:*)"],
+            "deny": ["Bash(command:git status)", "Grep(pattern:token)", "Write(content:test)"]
+        }
+    }));
+    assert_eq!(
+        warnings,
+        [
+            "permissions.allow[0] has a wildcard before the subcommand. Put the wildcard after the subcommand",
+            "permissions.allow[2] should use Edit(path)",
+            "permissions.ask[0] should use Read(path)",
+            "permissions.ask[1] must end at its closing parenthesis",
+            "permissions.deny[0] must use the tool's command, path or domain rule syntax for its primary input",
+        ]
+    );
+}
+
+#[test]
 fn parameter_rules_match_explicit_scalar_values_before_normalization() {
     let rules = local_rules(
         &["Agent", "Bash"],

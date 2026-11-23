@@ -91,12 +91,11 @@ struct RawPluginManifestName {
     name: String,
 }
 
-/// Returns the plugin manifest `name` defined directly below `plugin_root`.
-pub async fn plugin_namespace_for_root_uri(
+/// Finds the first manifest supported by plugin discovery under this root.
+pub async fn discoverable_plugin_manifest_uri(
     fs: &dyn EnvironmentAccess,
     plugin_root: &PathUri,
-) -> Option<String> {
-    let mut manifest_path = None;
+) -> Option<PathUri> {
     for relative_path in DISCOVERABLE_PLUGIN_MANIFEST_PATHS {
         let candidate = plugin_root.join(relative_path).ok()?;
         match fs
@@ -104,14 +103,22 @@ pub async fn plugin_namespace_for_root_uri(
             .await
         {
             Ok(metadata) if metadata.is_file => {
-                manifest_path = Some(candidate);
-                break;
+                return Some(candidate);
             }
             Ok(_) | Err(_) => {}
         }
     }
+    None
+}
+
+/// Returns the plugin manifest `name` defined directly below `plugin_root`.
+pub async fn plugin_namespace_for_root_uri(
+    fs: &dyn EnvironmentAccess,
+    plugin_root: &PathUri,
+) -> Option<String> {
+    let manifest_path = discoverable_plugin_manifest_uri(fs, plugin_root).await?;
     let contents = fs
-        .read_file_text(&manifest_path?, ReadFileOptions::default())
+        .read_file_text(&manifest_path, ReadFileOptions::default())
         .await
         .ok()?;
     // A manifest saved with a UTF-8 byte order mark is read as if it had none, as Claude

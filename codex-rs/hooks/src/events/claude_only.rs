@@ -4,10 +4,9 @@
 //! Claude Code hook events that Codex's own hook configuration does not have:
 //! `Notification`, `PostToolUseFailure` and `StopFailure`.
 //!
-//! They are read only from Claude Code's settings files and run only command handlers. Their
-//! stdin is shaped as Claude Code shapes it, and, as in Claude Code, they run outside the
-//! transcript: no hook run is reported to the UI. Only `PostToolUseFailure` can talk back,
-//! through `additionalContext` (or exit code 2 and stderr), which reaches the model.
+//! They are read from Claude Code's settings files and receive Claude Code's input shapes.
+//! They run outside the transcript. `PostToolUseFailure` can send the model additional
+//! context, command feedback or a judge's reason.
 
 use std::path::Path;
 use std::path::PathBuf;
@@ -66,7 +65,7 @@ impl ClaudeOnlyEvent {
     }
 }
 
-/// A command handler of a Claude-only event.
+/// A handler of a Claude-only event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ClaudeOnlyHandler {
     pub event: ClaudeOnlyEvent,

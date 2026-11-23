@@ -4338,6 +4338,7 @@ impl Config {
             &mut shell_environment_policy,
             &resolved_cwd,
             active_project.is_trusted(),
+            &mut startup_warnings,
         );
         // Claude Code's `effortLevel` is the default only where Codex's own configuration
         // names no reasoning effort.
@@ -5720,12 +5721,22 @@ fn add_claude_code_env(
     policy: &mut ShellEnvironmentPolicy,
     cwd: &AbsolutePathBuf,
     project_trusted: bool,
+    startup_warnings: &mut Vec<String>,
 ) {
     // Unit tests never read the real home directory's Claude Code settings.
     if cfg!(test) || !codex_claude_compat::enabled() {
         return;
     }
-    for (name, value) in claude_code_settings_env(cwd, project_trusted) {
+    let mut env = std::collections::HashMap::new();
+    for (path, settings) in claude_code_settings(cwd, project_trusted) {
+        startup_warnings.extend(
+            codex_claude_compat::permission_rule_warnings(&settings)
+                .into_iter()
+                .map(|warning| format!("In Claude Code settings `{}`, {warning}", path.display())),
+        );
+        env.extend(codex_claude_compat::settings_env(&settings));
+    }
+    for (name, value) in env {
         policy.r#set.entry(name).or_insert(value);
     }
 }
@@ -5736,25 +5747,30 @@ fn claude_code_settings_env(
     cwd: &AbsolutePathBuf,
     project_trusted: bool,
 ) -> std::collections::HashMap<String, String> {
+    claude_code_settings(cwd, project_trusted)
+        .flat_map(|(_, settings)| codex_claude_compat::settings_env(&settings))
+        .collect()
+}
+
+fn claude_code_settings(
+    cwd: &AbsolutePathBuf,
+    project_trusted: bool,
+) -> impl Iterator<Item = (PathBuf, serde_json::Value)> {
     let home = dirs::home_dir();
     let claude_home = codex_claude_compat::user_config_dir();
-    let mut env = std::collections::HashMap::new();
     let project_dir = project_trusted.then_some(cwd.as_path());
-    for path in
-        codex_claude_compat::settings_paths(claude_home.as_deref(), home.as_deref(), project_dir)
-    {
-        match codex_claude_compat::read_settings(&path) {
-            Ok(Some(settings)) => env.extend(codex_claude_compat::settings_env(&settings)),
-            Ok(None) => {}
+    codex_claude_compat::settings_paths(claude_home.as_deref(), home.as_deref(), project_dir)
+        .into_iter()
+        .filter_map(|path| match codex_claude_compat::read_settings(&path) {
+            Ok(settings) => settings.map(|settings| (path, settings)),
             Err(err) => {
                 tracing::warn!(
                     "failed to read Claude Code settings {}: {err}",
                     path.display()
                 );
+                None
             }
-        }
-    }
-    env
+        })
 }
 
 /// The time limits Claude Code's `MCP_TIMEOUT` and `MCP_TOOL_TIMEOUT` give its MCP servers,
@@ -5818,29 +5834,9 @@ fn claude_code_setting<T>(
     if cfg!(test) || !codex_claude_compat::enabled() {
         return None;
     }
-    let home = dirs::home_dir();
-    let claude_home = codex_claude_compat::user_config_dir();
-    let project_dir = project_trusted.then_some(cwd.as_path());
-    let mut value = None;
-    for path in
-        codex_claude_compat::settings_paths(claude_home.as_deref(), home.as_deref(), project_dir)
-    {
-        match codex_claude_compat::read_settings(&path) {
-            Ok(Some(settings)) => {
-                if let Some(parsed) = parse(&settings) {
-                    value = Some(parsed);
-                }
-            }
-            Ok(None) => {}
-            Err(err) => {
-                tracing::warn!(
-                    "failed to read Claude Code settings {}: {err}",
-                    path.display()
-                );
-            }
-        }
-    }
-    value
+    claude_code_settings(cwd, project_trusted)
+        .filter_map(|(_, settings)| parse(&settings))
+        .last()
 }
 
 /// The MCP servers Claude Code would start in `cwd`, from `~/.claude.json` and the

@@ -16,12 +16,14 @@ use codex_protocol::protocol::SkillScope;
 use codex_skills::ParsedSkillFrontmatter;
 use codex_skills::SkillError;
 use codex_skills::SkillMetadata;
+use codex_skills::parse_claude_skill_frontmatter_metadata;
 use codex_skills::parse_skill_frontmatter_metadata;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_path_uri::PathUri;
 use codex_utils_plugins::PluginIdentity;
 use codex_utils_plugins::PluginSkillRoot;
 use codex_utils_plugins::SkillDiscoveryMode;
+use codex_utils_plugins::discoverable_plugin_manifest_uri;
 use futures::StreamExt;
 use tracing::error;
 
@@ -47,6 +49,7 @@ pub(crate) struct HostSkillRoot<'a> {
     pub(crate) path: AbsolutePathBuf,
     pub(crate) scope: SkillScope,
     pub(crate) file_system: &'a dyn EnvironmentAccess,
+    pub(crate) claude_skill: bool,
     plugin: Option<PluginSkillRootContext>,
     /// A directory of Claude Code's custom slash commands rather than of skills.
     command_files: bool,
@@ -69,8 +72,20 @@ impl<'a> HostSkillRoot<'a> {
             path,
             scope,
             file_system,
+            claude_skill: false,
             plugin: None,
             command_files: false,
+        }
+    }
+
+    pub(crate) fn claude_skill(
+        path: AbsolutePathBuf,
+        scope: SkillScope,
+        file_system: &'a dyn EnvironmentAccess,
+    ) -> Self {
+        Self {
+            claude_skill: true,
+            ..Self::host(path, scope, file_system)
         }
     }
 
@@ -92,6 +107,7 @@ impl<'a> HostSkillRoot<'a> {
             path: root.path,
             scope: SkillScope::User,
             file_system,
+            claude_skill: false,
             plugin: Some(PluginSkillRootContext {
                 identity: root.plugin_identity,
                 namespace: root.plugin_namespace,
@@ -184,6 +200,22 @@ async fn load_skills_under_root(
         None => None,
     };
     let discovery_mode = skill_root.discovery_mode();
+    let fallback_description = if discovery_mode == SkillDiscoveryMode::CommandFiles {
+        Some("Custom command")
+    } else if skill_root.claude_skill {
+        Some("Skill")
+    } else if discovery_mode != SkillDiscoveryMode::DirectChildren
+        && let Some(plugin_root) = &plugin_root
+    {
+        let plugin_root = PathUri::from_abs_path(plugin_root);
+        discoverable_plugin_manifest_uri(file_system, &plugin_root)
+            .await
+            .and_then(|manifest| manifest.parent().and_then(|dir| dir.basename()))
+            .is_some_and(|dir| dir == ".claude-plugin")
+            .then_some("Skill")
+    } else {
+        None
+    };
     let directory_symlinks = match skill_root.scope {
         SkillScope::User | SkillScope::Repo | SkillScope::Admin => DirectorySymlinkPolicy::Follow,
         SkillScope::System => DirectorySymlinkPolicy::Ignore,
@@ -347,6 +379,7 @@ async fn load_skills_under_root(
                     plugin_identity,
                     plugin_root,
                     command_name,
+                    fallback_description,
                 )
                 .await
                 .map(|mut parsed| {
@@ -408,6 +441,7 @@ async fn parse_skill_file(
     plugin_identity: Option<&PluginIdentity>,
     plugin_root: Option<&AbsolutePathBuf>,
     command_name: Option<String>,
+    fallback_description: Option<&str>,
 ) -> Result<SkillMetadata, String> {
     let metadata_path = path_uri
         .parent()
@@ -423,23 +457,21 @@ async fn parse_skill_file(
         file_system.read_file_text(path_uri, ReadFileOptions::default(),),
         load_host_skill_metadata(file_system, path, &metadata, plugin_root),
     );
-    let mut contents = contents.map_err(|error| format!("failed to read file: {error}"))?;
-    // Claude Code reads a file saved with a UTF-8 byte order mark as if it had none.
-    if let Some(without_bom) = contents.strip_prefix('\u{feff}') {
-        contents = without_bom.to_string();
-    }
-    // A command file may have no frontmatter at all; its description then comes from the
-    // first line of the body, as for a skill without one.
-    if command_name.is_some() && !contents.trim_start().starts_with("---") {
-        contents = format!("---\n{{}}\n---\n{contents}");
-    }
+    let contents = contents.map_err(|error| format!("failed to read file: {error}"))?;
     let ParsedSkillFrontmatter {
         name,
         description,
         short_description,
         disable_model_invocation,
-    } = parse_skill_frontmatter_metadata(&contents, || default_skill_name(path))
-        .map_err(|error| error.to_string())?;
+    } = match fallback_description {
+        Some(description) => parse_claude_skill_frontmatter_metadata(
+            &contents,
+            || default_skill_name(path),
+            description,
+        ),
+        None => parse_skill_frontmatter_metadata(&contents, || default_skill_name(path)),
+    }
+    .map_err(|error| error.to_string())?;
     // Claude Code names a command after its file, whatever its frontmatter says.
     let name = command_name.unwrap_or(name);
     let LoadedSkillMetadata {
@@ -465,7 +497,8 @@ async fn parse_skill_file(
 
 /// The name Claude Code gives the command file at `path` below the commands directory `root`:
 /// its path without `.md`, the directories joined with `:` (`git/commit.md` is `git:commit`).
-/// A file a plugin's manifest names on its own is its own root, and is named after itself.
+/// A commands subdirectory's SKILL.md uses the directory's name. A file explicitly
+/// named by a plugin manifest is its own root and uses its own name.
 fn command_skill_name(root: &AbsolutePathBuf, path: &AbsolutePathBuf) -> Option<String> {
     let relative = path.as_path().strip_prefix(root.as_path()).ok()?;
     let relative = if relative.as_os_str().is_empty() {
@@ -473,13 +506,16 @@ fn command_skill_name(root: &AbsolutePathBuf, path: &AbsolutePathBuf) -> Option<
     } else {
         relative
     };
-    let parts = relative
+    let file = relative.file_name()?.to_str()?;
+    let mut parts = relative
+        .parent()?
         .iter()
-        .map(|part| part.to_str().map(str::to_string))
+        .map(|part| part.to_str())
         .collect::<Option<Vec<_>>>()?;
-    let name = parts.join(":");
-    let name = name.strip_suffix(".md").unwrap_or(&name);
-    let name = sanitize_single_line(name);
+    if parts.is_empty() || file != super::SKILLS_FILENAME {
+        parts.push(file.strip_suffix(".md").unwrap_or(file));
+    }
+    let name = sanitize_single_line(&parts.join(":"));
     (!name.is_empty()).then_some(name)
 }
 

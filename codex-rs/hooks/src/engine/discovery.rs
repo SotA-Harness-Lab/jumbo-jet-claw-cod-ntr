@@ -390,7 +390,7 @@ struct ClaudePluginHooks<'a> {
     http_policy: super::http_runner::HttpHookPolicy,
 }
 
-/// Admits the command handlers of the Claude Code events Codex's own configuration does not
+/// Admits handlers of the Claude Code events Codex's own configuration does not
 /// have. They are not listed among Codex's hooks.
 fn append_claude_only_handlers(
     claude_only_handlers: &mut Vec<ClaudeOnlyHandler>,
@@ -423,62 +423,104 @@ fn append_claude_only_handlers(
                 }
             };
             for (handler_index, handler) in group.hooks.iter().enumerate() {
-                let HookHandlerConfig::Command {
-                    command,
-                    timeout_sec,
-                    r#async,
-                    status_message,
-                    additional_context_limit,
-                    ..
-                } = handler
-                else {
-                    warnings.push(format!(
-                        "skipping a {} hook in {}: only command hooks run for this event",
-                        event.label(),
-                        claude_hooks.path.display()
-                    ));
-                    continue;
+                let position = (event.label().to_string(), group_index, handler_index);
+                let (kind, timeout_sec, status_message, additional_context_limit) = match handler {
+                    HookHandlerConfig::Command {
+                        command,
+                        timeout_sec,
+                        r#async,
+                        status_message,
+                        additional_context_limit,
+                        ..
+                    } => {
+                        if command.trim().is_empty() {
+                            warnings.push(format!(
+                                "skipping empty hook command in {}",
+                                claude_hooks.path.display()
+                            ));
+                            continue;
+                        }
+                        let command = env.iter().fold(command.clone(), |command, (key, value)| {
+                            command.replace(&format!("${{{key}}}"), value)
+                        });
+                        (
+                            ConfiguredHandlerKind::Command {
+                                command,
+                                env: env.clone(),
+                                r#async: *r#async,
+                                posix_sh: true,
+                            },
+                            timeout_sec.unwrap_or(600).max(1),
+                            status_message.clone(),
+                            AdditionalContextLimit::from_config(*additional_context_limit),
+                        )
+                    }
+                    HookHandlerConfig::McpTool {
+                        server,
+                        tool,
+                        input,
+                        timeout_sec,
+                        status_message,
+                    } => {
+                        if server.trim().is_empty() || tool.trim().is_empty() {
+                            warnings.push(format!(
+                                "skipping MCP tool hook in {} because server and tool must be set",
+                                claude_hooks.path.display()
+                            ));
+                            continue;
+                        }
+                        (
+                            ConfiguredHandlerKind::McpTool {
+                                server: server.clone(),
+                                tool: tool.clone(),
+                                input: input.clone(),
+                            },
+                            timeout_sec.unwrap_or(600).max(1),
+                            status_message.clone(),
+                            AdditionalContextLimit::from_config(None),
+                        )
+                    }
+                    _ => {
+                        let spec = claude_hooks.extras.handlers.get(&position).filter(|spec| {
+                            matches!(spec.kind, ClaudeHandlerKind::Http(_))
+                                || *event == ClaudeOnlyEvent::PostToolUseFailure
+                        });
+                        let Some(spec) = spec else {
+                            warnings.push(format!(
+                                "skipping unsupported {} hook handler in {}",
+                                event.label(),
+                                claude_hooks.path.display()
+                            ));
+                            continue;
+                        };
+                        let (kind, default_timeout_sec) = claude_handler_kind(&spec.kind);
+                        (
+                            kind,
+                            spec.timeout_sec.unwrap_or(default_timeout_sec).max(1),
+                            spec.status_message.clone(),
+                            AdditionalContextLimit::from_config(None),
+                        )
+                    }
                 };
-                if command.trim().is_empty() {
-                    warnings.push(format!(
-                        "skipping empty hook command in {}",
-                        claude_hooks.path.display()
-                    ));
-                    continue;
-                }
-                let command = env.iter().fold(command.clone(), |command, (key, value)| {
-                    command.replace(&format!("${{{key}}}"), value)
-                });
                 claude_only_handlers.push(ClaudeOnlyHandler {
                     event: *event,
                     handler: ConfiguredHandler {
                         builtin: false,
                         plugin_trust: None,
                         event_name: event.stand_in(),
-                        matcher: match claude_hooks.extras.conditions.get(&(
-                            event.label().to_string(),
-                            group_index,
-                            handler_index,
-                        )) {
+                        matcher: match claude_hooks.extras.conditions.get(&position) {
                             Some(condition) => {
                                 Some(HookMatcher::conditional(matcher.clone(), condition.clone()))
                             }
                             None => matcher.clone(),
                         },
-                        timeout_sec: timeout_sec.unwrap_or(600).max(1),
-                        status_message: status_message.clone(),
-                        additional_context_limit: AdditionalContextLimit::from_config(
-                            *additional_context_limit,
-                        ),
+                        timeout_sec,
+                        status_message,
+                        additional_context_limit,
                         source_path: claude_hooks.path.clone().into(),
                         source,
                         display_order: *display_order,
-                        kind: ConfiguredHandlerKind::Command {
-                            command,
-                            env: env.clone(),
-                            r#async: *r#async,
-                            posix_sh: true,
-                        },
+                        kind,
                     },
                 });
                 *display_order += 1;
@@ -920,6 +962,28 @@ fn runs_judge_hooks(event_name: HookEventName) -> bool {
     )
 }
 
+fn claude_handler_kind(kind: &ClaudeHandlerKind) -> (ConfiguredHandlerKind, u64) {
+    match kind {
+        ClaudeHandlerKind::Http(hook) => (ConfiguredHandlerKind::Http(hook.clone()), 600),
+        ClaudeHandlerKind::Prompt { prompt, model } => (
+            ConfiguredHandlerKind::Judge {
+                prompt: prompt.clone(),
+                agentic: false,
+                model: model.clone(),
+            },
+            30,
+        ),
+        ClaudeHandlerKind::Agent { prompt, model } => (
+            ConfiguredHandlerKind::Judge {
+                prompt: prompt.clone(),
+                agentic: true,
+                model: model.clone(),
+            },
+            60,
+        ),
+    }
+}
+
 fn append_matcher_groups(
     handlers: &mut Vec<ConfiguredHandler>,
     hook_entries: &mut Vec<HookListEntry>,
@@ -1128,32 +1192,10 @@ fn append_matcher_groups(
                         );
                         continue;
                     };
-                    let (kind, default_timeout_sec, allowed) = match &spec.kind {
-                        ClaudeHandlerKind::Http(hook) => (
-                            ConfiguredHandlerKind::Http(hook.clone()),
-                            600,
-                            // As in Claude Code, which has no session to ask about a request
-                            // this early.
-                            event_name != HookEventName::SessionStart,
-                        ),
-                        ClaudeHandlerKind::Prompt { prompt, model } => (
-                            ConfiguredHandlerKind::Judge {
-                                prompt: prompt.clone(),
-                                agentic: false,
-                                model: model.clone(),
-                            },
-                            30,
-                            runs_judge_hooks(event_name),
-                        ),
-                        ClaudeHandlerKind::Agent { prompt, model } => (
-                            ConfiguredHandlerKind::Judge {
-                                prompt: prompt.clone(),
-                                agentic: true,
-                                model: model.clone(),
-                            },
-                            60,
-                            runs_judge_hooks(event_name),
-                        ),
+                    let allowed = match &spec.kind {
+                        // Claude Code has no session to ask about a request this early.
+                        ClaudeHandlerKind::Http(_) => event_name != HookEventName::SessionStart,
+                        _ => runs_judge_hooks(event_name),
                     };
                     if !allowed {
                         source.record_load_failure(
@@ -1166,6 +1208,7 @@ fn append_matcher_groups(
                         );
                         continue;
                     }
+                    let (kind, default_timeout_sec) = claude_handler_kind(&spec.kind);
                     NormalizedHandler {
                         config: handler.clone(),
                         kind,

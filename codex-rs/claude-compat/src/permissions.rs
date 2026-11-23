@@ -968,6 +968,103 @@ pub fn parse_rule(text: &str) -> (String, Option<String>) {
     (tool, Some(content))
 }
 
+/// Diagnostics for permission rules in one settings file, in configuration order.
+pub fn permission_rule_warnings(settings: &Value) -> Vec<String> {
+    let Some(permissions) = settings.get("permissions") else {
+        return Vec::new();
+    };
+    ["allow", "ask", "deny"]
+        .into_iter()
+        .flat_map(|decision| {
+            permissions
+                .get(decision)
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .enumerate()
+                .filter_map(move |(index, rule)| {
+                    let rule = rule.as_str()?;
+                    permission_rule_warning(rule, decision == "allow")
+                        .map(|message| format!("permissions.{decision}[{index}] {message}"))
+                })
+        })
+        .collect()
+}
+
+fn permission_rule_warning(rule: &str, is_allow: bool) -> Option<&'static str> {
+    if let Some(open) = find_unescaped(rule, '(', /*last*/ false)
+        && find_unescaped(rule, ')', /*last*/ true)
+            .is_none_or(|close| close <= open || !rule[close + 1..].is_empty())
+    {
+        return Some("must end at its closing parenthesis");
+    }
+
+    let (tool, content) = parse_rule(rule);
+    let content = content.as_deref()?;
+    // `Bash(command:*)` is the older spelling of the prefix rule `Bash(command *)`.
+    if let Some((field, value)) = content.split_once(':')
+        && is_primary_parameter(&tool, field.trim())
+        && !(matches!(tool.as_str(), "Bash" | "PowerShell") && value.trim() == "*")
+    {
+        return Some(
+            "must use the tool's command, path or domain rule syntax for its primary input",
+        );
+    }
+    // A colon can also introduce a scalar parameter rule such as Write(content:example).
+    let is_path_selector = !content.split_once(':').is_some_and(|(field, _)| {
+        !is_allow && is_supported_secondary_parameter(&tool, field.trim())
+    });
+    if is_path_selector {
+        match tool.as_str() {
+            "Write" | "NotebookEdit" | "MultiEdit" => return Some("should use Edit(path)"),
+            "Grep" | "Glob" => return Some("should use Read(path)"),
+            _ => {}
+        }
+    }
+    if is_allow
+        && tool == "Bash"
+        && let bash::ShellRule::Wildcard(pattern) = bash::parse_shell_rule(content)
+    {
+        let mut words = pattern.split_ascii_whitespace();
+        let program = words.next()?;
+        let first_arg = words.next();
+        if program == "*" || first_arg == Some("*") && words.next().is_some() {
+            return Some(
+                "has a wildcard before the subcommand. Put the wildcard after the subcommand",
+            );
+        }
+    }
+    None
+}
+
+fn is_supported_secondary_parameter(tool: &str, field: &str) -> bool {
+    matches!(
+        (tool, field),
+        ("Write", "content")
+            | (
+                "NotebookEdit",
+                "cell_id" | "new_source" | "cell_type" | "edit_mode"
+            )
+            | ("Glob", "pattern")
+            | (
+                "Grep",
+                "pattern"
+                    | "glob"
+                    | "type"
+                    | "output_mode"
+                    | "offset"
+                    | "head_limit"
+                    | "-A"
+                    | "-B"
+                    | "-C"
+                    | "-i"
+                    | "-n"
+                    | "context"
+                    | "multiline"
+            )
+    )
+}
+
 /// The byte index of the first (or last) `target` not escaped by an odd number of
 /// backslashes.
 fn find_unescaped(text: &str, target: char, last: bool) -> Option<usize> {

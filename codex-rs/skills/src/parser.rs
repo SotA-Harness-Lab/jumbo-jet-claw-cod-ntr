@@ -8,7 +8,7 @@ use thiserror::Error;
 
 const MAX_NAME_LEN: usize = 64;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 struct SkillFrontmatter {
     #[serde(default)]
     name: Option<String>,
@@ -75,24 +75,49 @@ pub fn parse_skill_frontmatter_metadata(
     contents: &str,
     default_name: impl FnOnce() -> String,
 ) -> Result<ParsedSkillFrontmatter, SkillParseError> {
+    parse_skill_metadata(contents, default_name, /*fallback_description*/ None)
+}
+
+/// Claude Code skills and commands can be plain Markdown or have an empty description.
+pub fn parse_claude_skill_frontmatter_metadata(
+    contents: &str,
+    default_name: impl FnOnce() -> String,
+    fallback_description: &str,
+) -> Result<ParsedSkillFrontmatter, SkillParseError> {
+    parse_skill_metadata(contents, default_name, Some(fallback_description))
+}
+
+fn parse_skill_metadata(
+    contents: &str,
+    default_name: impl FnOnce() -> String,
+    fallback_description: Option<&str>,
+) -> Result<ParsedSkillFrontmatter, SkillParseError> {
     // A file saved with a UTF-8 byte order mark still starts with its frontmatter, as
     // Claude Code reads it.
     let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
-    let frontmatter = extract_frontmatter(contents).ok_or(SkillParseError::MissingFrontmatter)?;
-
-    let parsed: SkillFrontmatter = match serde_yaml::from_str(&frontmatter) {
-        Ok(parsed) => Ok(parsed),
-        Err(original_error) => match repair_frontmatter_scalar_fields(&frontmatter) {
-            // Some third-party skills use prose like `description: Build for AWS: ECS`
-            // or `argument-hint: <duration: e.g. 7d>`. Keep the repair line-oriented
-            // so unrelated invalid YAML still surfaces.
-            Some(repaired_frontmatter) => {
-                serde_yaml::from_str(&repaired_frontmatter).map_err(|_| original_error)
+    let (parsed, body) = match extract_frontmatter(contents) {
+        Some(frontmatter) if fallback_description.is_some() && frontmatter.trim().is_empty() => (
+            SkillFrontmatter::default(),
+            body_after_frontmatter(contents).unwrap_or_default(),
+        ),
+        Some(frontmatter) => (
+            parse_skill_frontmatter(&frontmatter)?,
+            body_after_frontmatter(contents).unwrap_or_default(),
+        ),
+        None if fallback_description.is_some() => {
+            let body = body_after_frontmatter(contents);
+            if body.is_none()
+                && contents
+                    .lines()
+                    .next()
+                    .is_some_and(|line| line.trim() == "---")
+            {
+                return Err(SkillParseError::MissingFrontmatter);
             }
-            None => Err(original_error),
-        },
-    }
-    .map_err(SkillParseError::InvalidYaml)?;
+            (SkillFrontmatter::default(), body.unwrap_or(contents))
+        }
+        None => return Err(SkillParseError::MissingFrontmatter),
+    };
 
     let name = parsed
         .name
@@ -107,7 +132,7 @@ pub fn parse_skill_frontmatter_metadata(
         .as_deref()
         .map(sanitize_single_line)
         .filter(|value| !value.is_empty())
-        .or_else(|| description_from_body(contents))
+        .or_else(|| description_from_body(body))
         .unwrap_or_default();
     let description = match parsed
         .when_to_use
@@ -127,9 +152,13 @@ pub fn parse_skill_frontmatter_metadata(
         .filter(|value| !value.is_empty());
 
     validate_len(&name, MAX_NAME_LEN, "name")?;
-    if description.is_empty() {
-        return Err(SkillParseError::MissingField("description"));
-    }
+    let description = if description.is_empty() {
+        fallback_description
+            .ok_or(SkillParseError::MissingField("description"))?
+            .to_string()
+    } else {
+        description
+    };
 
     Ok(ParsedSkillFrontmatter {
         name,
@@ -144,11 +173,26 @@ pub fn parse_skill_frontmatter_metadata(
     })
 }
 
+fn parse_skill_frontmatter(frontmatter: &str) -> Result<SkillFrontmatter, SkillParseError> {
+    match serde_yaml::from_str(frontmatter) {
+        Ok(parsed) => Ok(parsed),
+        Err(original_error) => match repair_frontmatter_scalar_fields(frontmatter) {
+            // Some third-party skills use prose like `description: Build for AWS: ECS`
+            // or `argument-hint: <duration: e.g. 7d>`. Keep the repair line-oriented
+            // so unrelated invalid YAML still surfaces.
+            Some(repaired_frontmatter) => {
+                serde_yaml::from_str(&repaired_frontmatter).map_err(|_| original_error)
+            }
+            None => Err(original_error),
+        },
+    }
+    .map_err(SkillParseError::InvalidYaml)
+}
+
 const BODY_DESCRIPTION_MAX_CHARS: usize = 100;
 
 /// The first non-empty line of the body, without heading marks, cut to a short length.
-fn description_from_body(contents: &str) -> Option<String> {
-    let body = body_after_frontmatter(contents)?;
+fn description_from_body(body: &str) -> Option<String> {
     let line = body
         .lines()
         .map(|line| line.trim().trim_start_matches('#').trim())
