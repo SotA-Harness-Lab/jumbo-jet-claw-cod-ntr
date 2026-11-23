@@ -10,7 +10,6 @@
 //! A context entry set to `null` uses the matching translation in `messages`.
 
 use std::collections::HashMap;
-use std::fmt::Write;
 use std::sync::OnceLock;
 
 use fluent::FluentArgs;
@@ -53,7 +52,7 @@ impl Catalog {
                     // Fluent needs identifiers. These are private to this bundle.
                     let id = format!("message-{count}");
                     count += 1;
-                    writeln!(fluent_source, "{id} = {translation}").expect("writing to a String");
+                    fluent_source.push_str(&format!("{id} = {translation}\n"));
                     (english, Message { id, plain: None })
                 })
                 .collect::<HashMap<_, _>>()
