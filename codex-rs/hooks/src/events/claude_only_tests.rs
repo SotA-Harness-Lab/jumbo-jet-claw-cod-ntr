@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::time::Duration;
 
 use codex_protocol::ThreadId;
@@ -23,6 +24,9 @@ use super::StopFailureRequest;
 use super::post_tool_use_failure_context;
 use super::stop_failure_error;
 use crate::ClaudeHookSettings;
+use crate::EnvironmentHookOutput;
+use crate::HookEnvironmentExecutor;
+use crate::HookJudgeRequest;
 use crate::engine::ClaudeHooksEngine;
 use crate::engine::CommandShell;
 use crate::engine::ConfiguredHandlerKind;
@@ -39,6 +43,49 @@ impl HookMcpExecutor for NoMcp {
         Box::pin(futures::future::ready(Err::<HookMcpOutput, _>(
             anyhow::anyhow!("no MCP servers in these tests"),
         )))
+    }
+}
+
+#[derive(Default)]
+struct HookCalls {
+    judges: Mutex<Vec<HookJudgeRequest>>,
+    mcp: Mutex<Vec<HookMcpCall>>,
+}
+
+impl HookEnvironmentExecutor for HookCalls {
+    fn execute(
+        &self,
+        _environment_id: &str,
+        _command: &str,
+        _env: &HashMap<String, String>,
+        _input_json: &str,
+        _timeout: Duration,
+    ) -> BoxFuture<'_, anyhow::Result<EnvironmentHookOutput>> {
+        Box::pin(async { anyhow::bail!("unexpected command hook") })
+    }
+
+    fn judge(&self, request: HookJudgeRequest) -> BoxFuture<'_, anyhow::Result<String>> {
+        self.judges.lock().expect("judge calls").push(request);
+        Box::pin(async { Ok(r#"{"ok":false,"reason":"inspect the failure"}"#.to_string()) })
+    }
+}
+
+impl HookMcpExecutor for HookCalls {
+    fn execute(&self, call: HookMcpCall) -> BoxFuture<'_, anyhow::Result<HookMcpOutput>> {
+        self.mcp.lock().expect("MCP calls").push(call);
+        Box::pin(async {
+            Ok(HookMcpOutput {
+                text: json!({
+                    "hookSpecificOutput": {
+                        "hookEventName": "PostToolUseFailure",
+                        "additionalContext": "check the generated report"
+                    }
+                })
+                .to_string(),
+                structured_content: None,
+                source_tool_namespace: None,
+            })
+        })
     }
 }
 
@@ -178,6 +225,97 @@ async fn post_tool_use_failure_hooks_get_claude_input_and_give_context() {
         .run_post_tool_use_failure(request("apply_patch"))
         .await;
     assert!(other.additional_contexts.is_empty());
+}
+
+#[tokio::test]
+async fn failure_hooks_dispatch_judges_and_mcp_and_apply_http_policy() {
+    let tmp = TempDir::new().expect("temp dir");
+    let root = tmp.path().join("home/.claude");
+    fs::create_dir_all(&root).expect("create settings directory");
+    let http = json!({"type":"http", "url":"http://127.0.0.1:1/hook"});
+    let mcp = json!({"type":"mcp_tool", "server":"report", "tool":"inspect", "input":{}});
+    fs::write(
+        root.join("settings.json"),
+        json!({
+            "allowedHttpHookUrls": [],
+            "hooks": {
+                "Notification": [{"hooks": [http, mcp]}],
+                "StopFailure": [{"hooks": [http, mcp]}],
+                "PostToolUseFailure": [{"matcher":"Bash", "hooks": [
+                    {"type":"prompt", "prompt":"Review $ARGUMENTS", "model":"haiku"},
+                    {"type":"agent", "prompt":"Review $ARGUMENTS"},
+                    http,
+                    mcp
+                ]}]
+            }
+        })
+        .to_string(),
+    )
+    .expect("write settings");
+    let mut engine = engine(&tmp, /*bypass_hook_trust*/ false);
+    assert!(engine.warnings().is_empty(), "{:?}", engine.warnings());
+    for event in [ClaudeOnlyEvent::Notification, ClaudeOnlyEvent::StopFailure] {
+        let handlers = engine
+            .claude_only_handlers
+            .iter()
+            .filter(|entry| entry.event == event)
+            .map(|entry| &entry.handler.kind)
+            .collect::<Vec<_>>();
+        assert!(matches!(
+            handlers.as_slice(),
+            [
+                ConfiguredHandlerKind::Http(_),
+                ConfiguredHandlerKind::McpTool { .. }
+            ]
+        ));
+    }
+    assert!(engine.claude_only_handlers.iter().any(|entry| {
+        entry.event == ClaudeOnlyEvent::PostToolUseFailure
+            && matches!(&entry.handler.kind, ConfiguredHandlerKind::Http(hook) if hook.policy.allowed_urls == Some(Vec::new()))
+    }));
+
+    let calls = Arc::new(HookCalls::default());
+    engine.command_runtime.environment_executor = Some(calls.clone());
+    engine.mcp_executor = calls.clone();
+    let outcome = engine
+        .run_post_tool_use_failure(PostToolUseFailureRequest {
+            session_id: ThreadId::new(),
+            cwd: absolute(tmp.path()),
+            transcript_path: None,
+            permission_mode: "default".to_string(),
+            tool_name: "Bash".to_string(),
+            matcher_aliases: Vec::new(),
+            tool_use_id: "call-1".to_string(),
+            tool_input: json!({"command":"cargo test"}),
+            error: "Exit code 1".to_string(),
+            is_interrupt: false,
+        })
+        .await;
+    assert_eq!(
+        outcome
+            .additional_contexts
+            .iter()
+            .map(|context| context.text.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "Prompt hook condition was not met: inspect the failure",
+            "Agent hook condition was not met: inspect the failure",
+            "check the generated report"
+        ]
+    );
+    let judges = calls.judges.lock().expect("judge calls");
+    assert_eq!(judges.len(), 2);
+    assert!(judges.iter().all(|call| {
+        call.prompt
+            .contains(r#""hook_event_name":"PostToolUseFailure""#)
+    }));
+    assert!(
+        judges
+            .iter()
+            .any(|call| !call.agentic && call.model.as_deref() == Some("haiku"))
+    );
+    assert!(judges.iter().any(|call| call.agentic));
+    assert_eq!(calls.mcp.lock().expect("MCP calls")[0].server, "report");
 }
 
 #[tokio::test]

@@ -1094,6 +1094,7 @@ impl ToolRegistry {
                 tool_use_id,
                 tool_input,
                 error,
+                &invocation.environments.hook_ids(),
             )
             .or_cancel_tool(&cancellation_token)
             .await?;
