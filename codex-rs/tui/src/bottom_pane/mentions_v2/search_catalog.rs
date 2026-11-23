@@ -215,10 +215,10 @@ fn plugin_description(plugin: &PluginCapabilitySummary) -> Option<String> {
     let capability_labels = plugin_capability_labels(plugin);
     plugin.description.clone().or_else(|| {
         Some(if capability_labels.is_empty() {
-            crate::i18n::tr!("mentions-catalog-plugin").to_string()
+            tr!("Plugin").to_string()
         } else {
-            crate::i18n::tr!(
-                "mentions-catalog-plugin-with-capabilities",
+            tr!(
+                "Plugin - {capabilities}",
                 capabilities = capability_labels.join(" - ")
             )
         })
@@ -228,18 +228,18 @@ fn plugin_description(plugin: &PluginCapabilitySummary) -> Option<String> {
 fn plugin_capability_labels(plugin: &PluginCapabilitySummary) -> Vec<String> {
     let mut labels = Vec::new();
     if plugin.has_skills {
-        labels.push(crate::i18n::tr!("mentions-catalog-skills").to_string());
+        labels.push(tr!("skills").to_string());
     }
     if !plugin.mcp_server_names.is_empty() {
         let mcp_server_count = plugin.mcp_server_names.len();
-        labels.push(crate::i18n::tr!(
-            "mentions-catalog-mcp-servers",
+        labels.push(tr!(
+            "1 MCP server" | "{count} MCP servers",
             count = mcp_server_count
         ));
     }
     if !plugin.app_connector_ids.is_empty() {
         let app_count = plugin.app_connector_ids.len();
-        labels.push(crate::i18n::tr!("mentions-catalog-apps", count = app_count));
+        labels.push(tr!("1 app" | "{count} apps", count = app_count));
     }
     labels
 }

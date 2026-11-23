@@ -32,10 +32,8 @@ pub(crate) fn remote_connection_status_value(
         AppServerTarget::Embedded => return None,
         AppServerTarget::Cloud => {
             return Some(RemoteConnectionStatus {
-                address: crate::i18n::tr!("remote-connection-cloud").into(),
-                version: server_version
-                    .unwrap_or(crate::i18n::tr!("remote-connection-unknown"))
-                    .into(),
+                address: tr!("Cloud").into(),
+                version: server_version.unwrap_or(tr!("unknown")).into(),
                 is_local_daemon: false,
                 is_managed_daemon: false,
             });
@@ -48,9 +46,7 @@ pub(crate) fn remote_connection_status_value(
         RemoteAppServerEndpoint::WebSocket { websocket_url, .. } => {
             sanitized_websocket_url(websocket_url)
                 .map(|url| url.to_string())
-                .unwrap_or_else(|| {
-                    crate::i18n::tr!("remote-connection-invalid-websocket-url").to_string()
-                })
+                .unwrap_or_else(|| tr!("<invalid websocket URL>").to_string())
         }
         RemoteAppServerEndpoint::UnixSocket { socket_path } => {
             format!("unix://{}", socket_path.display())
@@ -58,7 +54,7 @@ pub(crate) fn remote_connection_status_value(
     };
     let version = server_version
         .map(|version| format!("v{version}"))
-        .unwrap_or_else(|| crate::i18n::tr!("remote-connection-unknown").to_string());
+        .unwrap_or_else(|| tr!("unknown").to_string());
     Some(RemoteConnectionStatus {
         address,
         version,
@@ -71,15 +67,15 @@ pub(crate) fn server_version_notice(client: &str, server: Option<&str>) -> Optio
     let server = server?;
     Some(
         match crate::update_versions::server_version_notice_kind(client, server)? {
-            ServerVersionNoticeKind::Older => crate::i18n::tr!(
-                "remote-connection-service-older",
-                server = server,
-                client = client
+            ServerVersionNoticeKind::Older => tr!(
+                "A background Codex service is running v{server}, older than your Codex CLI v{client}.",
+                server,
+                client
             ),
-            ServerVersionNoticeKind::Different => crate::i18n::tr!(
-                "remote-connection-service-different",
-                server = server,
-                client = client
+            ServerVersionNoticeKind::Different => tr!(
+                "A background Codex service is running v{server}, different from your Codex CLI v{client}.",
+                server,
+                client
             ),
         },
     )

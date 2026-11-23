@@ -46,7 +46,7 @@ impl ChatWidget {
                 self.bottom_pane.show_selection_view(params);
             }
             Err(err) => {
-                self.add_error_message(crate::i18n::tr!("keymap-picker-invalid-config", err = err));
+                self.add_error_message(tr!("Invalid `tui.keymap` configuration: {err}", err));
             }
         }
     }

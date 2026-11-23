@@ -19,8 +19,8 @@ impl App {
         feature: Feature,
     ) {
         let label = match feature {
-            Feature::Collab => crate::i18n::tr!("app-experimental-features-label-subagents"),
-            Feature::MemoryTool => crate::i18n::tr!("app-experimental-features-label-memories"),
+            Feature::Collab => tr!("Subagents"),
+            Feature::MemoryTool => tr!("Memories"),
             _ => return,
         };
         let mut edits = vec![crate::config_update::build_feature_enabled_edit(
@@ -41,24 +41,24 @@ impl App {
         .await
         {
             Ok(response) if response.status == WriteStatus::Ok => {
-                Box::new(history_cell::new_warning_event(crate::i18n::tr!(
-                    "app-experimental-features-saved-new-threads",
-                    label = label
+                Box::new(history_cell::new_warning_event(tr!(
+                    "{label} setting saved on the server for new threads. This thread is unchanged. Project or task settings may override it.",
+                    label
                 )))
             }
             Ok(response) => {
                 self.transcript_view.jump_to_latest();
-                Box::new(history_cell::new_error_event(crate::i18n::tr!(
-                    "app-experimental-features-saved-overridden",
-                    label = label,
+                Box::new(history_cell::new_error_event(tr!(
+                    "{label} setting was saved but is overridden: {detail}",
+                    label,
                     detail = overridden_write_message(&response)
                 )))
             }
             Err(err) => {
                 self.transcript_view.jump_to_latest();
-                Box::new(history_cell::new_error_event(crate::i18n::tr!(
-                    "app-experimental-features-save-failed",
-                    label = label,
+                Box::new(history_cell::new_error_event(tr!(
+                    "Failed to save {label} setting: {detail}",
+                    label,
                     detail = crate::config_update::format_config_error(&err)
                 )))
             }
@@ -95,7 +95,8 @@ impl App {
         response_tx: oneshot::Sender<Result<FeatureWriteResult, String>>,
     ) {
         let Ok(guard) = self.feature_write_lock.clone().try_lock_owned() else {
-            let error = crate::i18n::tr!("app-experimental-features-save-in-progress");
+            let error =
+                tr!("An experimental feature save is still in progress. Retry after it finishes.");
             self.chat_widget.add_warning_message(error.to_string());
             let _ = response_tx.send(Err(error.to_string()));
             return;

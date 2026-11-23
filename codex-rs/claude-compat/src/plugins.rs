@@ -169,13 +169,19 @@ pub fn load_claude_plugins(
     claude_home: &Path,
     project_dir: Option<&Path>,
 ) -> (Vec<ClaudePlugin>, Vec<String>) {
-    load_claude_plugins_for(claude_home, project_dir, /*project_trusted*/ true)
+    load_claude_plugins_for(
+        claude_home,
+        claude_home.parent(),
+        project_dir,
+        /*project_trusted*/ true,
+    )
 }
 
 /// [`load_claude_plugins`], for a project that may not be trusted: then its settings files
 /// can turn a plugin off but not on, since they come with the repository.
 pub fn load_claude_plugins_for(
     claude_home: &Path,
+    home_dir: Option<&Path>,
     project_dir: Option<&Path>,
     project_trusted: bool,
 ) -> (Vec<ClaudePlugin>, Vec<String>) {
@@ -194,7 +200,7 @@ pub fn load_claude_plugins_for(
     };
     let mut settings = Vec::new();
     // The user's file is always first, read or not, so that its place is known.
-    for (index, path) in settings_paths(Some(claude_home), project_dir)
+    for (index, path) in settings_paths(Some(claude_home), home_dir, project_dir)
         .iter()
         .enumerate()
     {

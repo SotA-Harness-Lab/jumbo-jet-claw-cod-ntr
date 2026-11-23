@@ -123,7 +123,10 @@ impl Renderable for RequestUserInputOverlay {
 impl RequestUserInputOverlay {
     fn unanswered_confirmation_data(&self) -> UnansweredConfirmationData {
         let unanswered = self.unanswered_question_count();
-        let subtitle = crate::i18n::tr!("request-input-unanswered", count = unanswered);
+        let subtitle = tr!(
+            "1 unanswered question" | "{count} unanswered questions",
+            count = unanswered
+        );
         UnansweredConfirmationData {
             title_line: Line::from(super::unanswered_confirm_title().bold()),
             subtitle_line: Line::from(subtitle.dim()),
@@ -224,7 +227,7 @@ impl RequestUserInputOverlay {
             &layout.rows,
             &layout.state,
             layout.rows.len().max(1),
-            crate::i18n::tr!("request-input-no-choices"),
+            tr!("No choices"),
         );
 
         cursor_y = cursor_y.saturating_add(rows_height);
@@ -306,7 +309,7 @@ impl RequestUserInputOverlay {
                     &option_rows,
                     &options_state,
                     option_rows.len().max(1),
-                    crate::i18n::tr!("request-input-no-options"),
+                    tr!("No options"),
                 );
             }
         }
@@ -335,12 +338,7 @@ impl RequestUserInputOverlay {
             let selected = self.selected_option_index().unwrap_or(0).saturating_add(1);
             let total = self.options_len();
             Some(Line::from(
-                crate::i18n::tr!(
-                    "request-input-option-position",
-                    selected = selected,
-                    total = total
-                )
-                .dim(),
+                tr!("option {selected}/{total}", selected, total).dim(),
             ))
         } else {
             None

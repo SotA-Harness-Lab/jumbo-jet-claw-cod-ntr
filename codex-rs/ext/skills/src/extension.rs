@@ -437,6 +437,11 @@ where
 
             let mut injected_host_skill_prompts = InjectedHostSkillPrompts::default();
             let analytics = SkillAnalytics::from_stores(session_store, thread_store);
+            let variables = input
+                .step_store
+                .get::<codex_claude_compat::SkillExecutionVariables>();
+            let default_variables = codex_claude_compat::SkillExecutionVariables::default();
+            let variables = variables.as_deref().unwrap_or(&default_variables);
             for entry in &selected_entries {
                 match self
                     .read_main_prompt(
@@ -455,6 +460,7 @@ where
                                 crate::claude_grants::skill_tool_grants(
                                     &read_result.contents,
                                     entry.rendered_path(),
+                                    variables.project_dir.as_deref(),
                                 ),
                             );
                             expand_explicit_skill(
@@ -463,6 +469,7 @@ where
                                 entry.rendered_path(),
                                 thread_store.level_id(),
                                 &input.user_input,
+                                variables,
                             )
                         } else {
                             read_result.contents

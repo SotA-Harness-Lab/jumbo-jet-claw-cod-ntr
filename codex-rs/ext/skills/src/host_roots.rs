@@ -34,7 +34,6 @@ const SKILLS_DIR_NAME: &str = "skills";
 /// Claude Code's custom slash commands, loaded as skills beside `.claude/skills`.
 const COMMANDS_DIR_NAME: &str = "commands";
 const CLAUDE_DIR_NAME: &str = ".claude";
-const CLAUDE_COMPAT_ENV: &str = "CCN_CLAUDE_COMPAT";
 const MAX_CONCURRENT_ANCESTOR_PROBES: usize = 8;
 
 #[derive(Default)]
@@ -78,33 +77,23 @@ pub(crate) async fn resolve_skill_roots<'a>(
 ) -> Vec<HostSkillRoot<'a>> {
     let home_dir =
         home_dir().and_then(|path| AbsolutePathBuf::from_absolute_path_checked(path).ok());
-    let mut roots = resolve_skill_roots_with_home_dir(
+    let claude_home = (!cfg!(test) && codex_claude_compat::enabled())
+        .then(codex_claude_compat::user_config_dir)
+        .flatten()
+        .and_then(|path| AbsolutePathBuf::from_absolute_path_checked(path).ok());
+    resolve_skill_roots_with_home_dir(
         repository_file_system,
         host,
         config_layer_stack,
         cwd,
         project_markers,
         home_dir.as_ref(),
+        claude_home.as_ref(),
         plugin_skill_roots,
         extra_skill_roots,
         empty_remote_roots,
     )
-    .await;
-    if !claude_compat_enabled()
-        && let Some(home_dir) = &home_dir
-    {
-        let claude_skills = home_dir.join(CLAUDE_DIR_NAME).join(SKILLS_DIR_NAME);
-        let claude_commands = home_dir.join(CLAUDE_DIR_NAME).join(COMMANDS_DIR_NAME);
-        roots.retain(|root| root.path != claude_skills && root.path != claude_commands);
-    }
-    roots
-}
-
-/// Whether the Claude Code skills of the real home directory are shared with Codex: on
-/// unless `CCN_CLAUDE_COMPAT=0`. Unit tests, which resolve roots against the real home
-/// directory, never see them.
-fn claude_compat_enabled() -> bool {
-    !cfg!(test) && std::env::var_os(CLAUDE_COMPAT_ENV).is_none_or(|value| value != "0")
+    .await
 }
 
 #[expect(
@@ -118,12 +107,18 @@ async fn resolve_skill_roots_with_home_dir<'a>(
     cwd: &AbsolutePathBuf,
     project_markers: Option<&dyn EnvironmentAccess>,
     home_dir: Option<&AbsolutePathBuf>,
+    claude_home: Option<&AbsolutePathBuf>,
     plugin_skill_roots: Vec<PluginSkillRoot>,
     extra_skill_roots: Vec<AbsolutePathBuf>,
     empty_remote_roots: Option<&Mutex<EmptyRemoteRootsCache>>,
 ) -> Vec<HostSkillRoot<'a>> {
-    let mut roots =
-        roots_from_layer_stack(config_layer_stack, home_dir, repository_file_system, host);
+    let mut roots = roots_from_layer_stack(
+        config_layer_stack,
+        home_dir,
+        claude_home,
+        repository_file_system,
+        host,
+    );
     roots.extend(
         plugin_skill_roots
             .into_iter()
@@ -151,6 +146,7 @@ async fn resolve_skill_roots_with_home_dir<'a>(
 fn roots_from_layer_stack<'a>(
     config_layer_stack: &ConfigLayerStack,
     home_dir: Option<&AbsolutePathBuf>,
+    claude_home: Option<&AbsolutePathBuf>,
     repository_file_system: Option<&'a dyn EnvironmentAccess>,
     host: &'a dyn EnvironmentAccess,
 ) -> Vec<HostSkillRoot<'a>> {
@@ -186,15 +182,17 @@ fn roots_from_layer_stack<'a>(
                         SkillScope::User,
                         host,
                     ));
+                }
+                if let Some(claude_home) = claude_home {
                     // Claude Code compatibility: the user's Claude Code skills are
                     // discovered where they are, after `~/.agents/skills`.
                     roots.push(HostSkillRoot::host(
-                        home_dir.join(CLAUDE_DIR_NAME).join(SKILLS_DIR_NAME),
+                        claude_home.join(SKILLS_DIR_NAME),
                         SkillScope::User,
                         host,
                     ));
                     roots.push(HostSkillRoot::commands(
-                        home_dir.join(CLAUDE_DIR_NAME).join(COMMANDS_DIR_NAME),
+                        claude_home.join(COMMANDS_DIR_NAME),
                         SkillScope::User,
                         host,
                     ));
@@ -279,7 +277,7 @@ async fn repo_agents_skill_roots<'a>(
     let mut roots = Vec::new();
     let mut missing = Vec::new();
     // Claude Code keeps a project's skills in `.claude/skills`, beside Codex's `.agents/skills`.
-    let config_dirs: &[&str] = if claude_compat_enabled() {
+    let config_dirs: &[&str] = if !cfg!(test) && codex_claude_compat::enabled() {
         &[AGENTS_DIR_NAME, CLAUDE_DIR_NAME]
     } else {
         &[AGENTS_DIR_NAME]

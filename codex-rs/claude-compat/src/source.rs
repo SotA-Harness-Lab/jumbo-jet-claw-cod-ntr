@@ -15,6 +15,11 @@ pub trait FileSource: Send + Sync {
     /// Reads a file as text, or returns `None` when it is missing or not a regular file.
     fn read<'a>(&'a self, path: &'a Path) -> SourceFuture<'a, Option<String>>;
 
+    /// Resolves symlinks when the filesystem supports it.
+    fn canonicalize<'a>(&'a self, _path: &'a Path) -> SourceFuture<'a, Option<PathBuf>> {
+        Box::pin(async { Ok(None) })
+    }
+
     /// Lists a directory as `(path, is_directory)` pairs, empty when it is missing.
     fn list<'a>(&'a self, dir: &'a Path) -> SourceFuture<'a, Vec<(PathBuf, bool)>>;
 }
@@ -24,6 +29,10 @@ pub trait FileSource: Send + Sync {
 pub struct LocalFiles;
 
 impl FileSource for LocalFiles {
+    fn canonicalize<'a>(&'a self, path: &'a Path) -> SourceFuture<'a, Option<PathBuf>> {
+        Box::pin(async move { Ok(std::fs::canonicalize(path).ok()) })
+    }
+
     fn read<'a>(&'a self, path: &'a Path) -> SourceFuture<'a, Option<String>> {
         Box::pin(async move {
             match std::fs::metadata(path) {

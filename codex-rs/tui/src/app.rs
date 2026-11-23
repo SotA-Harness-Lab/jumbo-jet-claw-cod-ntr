@@ -338,7 +338,7 @@ use self::startup_prompts::*;
 use self::thread_events::*;
 
 fn external_editor_hint() -> &'static str {
-    crate::i18n::tr!("app-external-editor-hint")
+    tr!("Save and close external editor to continue.")
 }
 const THREAD_EVENT_CHANNEL_CAPACITY: usize = 32768;
 

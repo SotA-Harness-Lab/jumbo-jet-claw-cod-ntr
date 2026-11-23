@@ -5,10 +5,10 @@
 
 Counts the rows of the four chapters of that file and writes:
 
-- .github/compat-progress.svg (and -zh.svg, its legend in Chinese): a bar of three coloured parts (fully compatible, partly compatible,
-  not started yet), each with its share of the planned features, and a grey end in proportion to
-  the features that are not planned (the chapter "Incompatible"), which carries no percentage;
-- the block between `<!-- compat-progress -->` and `<!-- /compat-progress -->` of README.md and
+- .github/compat-progress.svg (and -zh.svg, with Chinese labels) shows the implemented,
+  partially implemented and unimplemented entries. The grey segment represents the
+  core differences in "Incompatible", which are outside the percentage totals.
+- The block between `<!-- compat-progress -->` and `<!-- /compat-progress -->` of README.md and
   README/README_CN.md: the bar and a line with the numbers.
 
 Run it from anywhere after changing docs/claude-compat.md:
@@ -42,9 +42,8 @@ CHAPTERS = {
     "Not yet implemented": "todo",
     "Incompatible": "never",
 }
-# A pill in the flat style: each kind a light tint of its own hue (green done, amber partly done,
-# blue not started, grey not planned) with its share in a deep shade of the same hue, never a solid
-# fill. Each kind: (fill, text) for the light theme, then the dark theme.
+# Each kind has a tinted fill and darker text. The pairs are (fill, text) for
+# the light theme and then for the dark theme.
 COLORS = {
     "full": (("#DCFCE7", "#166534"), ("#14301F", "#86EFAC")),
     "partial": (("#FEF3C7", "#92400E"), ("#33280E", "#FCD34D")),
@@ -52,8 +51,8 @@ COLORS = {
     "never": (("#E5E7EB", None), ("#262B33", None)),
 }
 LABELS = {
-    "en": {"full": "Fully compatible", "partial": "Partly compatible", "todo": "Not started", "never": "Not planned"},
-    "zh": {"full": "完全兼容", "partial": "部分兼容", "todo": "尚未开始", "never": "不计划"},
+    "en": {"full": "Fully compatible", "partial": "Partly compatible", "todo": "Unimplemented", "never": "Core differences"},
+    "zh": {"full": "完全兼容", "partial": "部分兼容", "todo": "尚未实现", "never": "核心差异"},
 }
 SEPARATOR = re.compile(r"^\|\s*:?-{3,}")
 
@@ -77,10 +76,10 @@ def count_rows(text: str) -> dict[str, int]:
 
 
 def shares(counts: dict[str, int]) -> dict[str, float]:
-    """Percent of the planned features (all but `never`), one decimal, summing to 100."""
-    planned = counts["full"] + counts["partial"] + counts["todo"]
-    full = round(100 * counts["full"] / planned, 1)
-    partial = round(100 * counts["partial"] / planned, 1)
+    """Percent of the ccn inventory outside core differences, summing to 100."""
+    tracked = counts["full"] + counts["partial"] + counts["todo"]
+    full = round(100 * counts["full"] / tracked, 1)
+    partial = round(100 * counts["partial"] / tracked, 1)
     return {"full": full, "partial": partial, "todo": round(100 - full - partial, 1)}
 
 
@@ -101,8 +100,8 @@ def svg(counts: dict[str, int], percent: dict[str, float], language: str) -> str
         x += w + gap
     label = (
         f"Claude Code compatibility: {percent['full']:.1f}% fully compatible, "
-        f"{percent['partial']:.1f}% partly, {percent['todo']:.1f}% not started; "
-        f"{counts['never']} features not planned"
+        f"{percent['partial']:.1f}% partly, {percent['todo']:.1f}% unimplemented. "
+        f"{counts['never']} differences tied to Codex's core."
     )
 
     def theme(which: int, indent: str) -> str:
@@ -138,29 +137,29 @@ def svg(counts: dict[str, int], percent: dict[str, float], language: str) -> str
 
 
 def block(counts: dict[str, int], percent: dict[str, float], image: str, language: str) -> str:
-    planned = counts["full"] + counts["partial"] + counts["todo"]
+    tracked = counts["full"] + counts["partial"] + counts["todo"]
     if language == "zh":
-        alt = f"Claude Code 兼容度：完全兼容 {percent['full']:.1f}%，部分兼容 {percent['partial']:.1f}%，尚未开始 {percent['todo']:.1f}%"
+        alt = f"Claude Code 兼容度：完全兼容 {percent['full']:.1f}%，部分兼容 {percent['partial']:.1f}%，尚未实现 {percent['todo']:.1f}%"
         line = (
-            f"在计划兼容的 {planned} 项 Claude Code 功能中："
+            f"ccn 兼容度按清单中的 {tracked} 项统计。"
             f"完全兼容 **{percent['full']:.1f}%**（{counts['full']} 项），"
             f"部分兼容 **{percent['partial']:.1f}%**（{counts['partial']} 项，差异逐条写明），"
-            f"尚未开始 **{percent['todo']:.1f}%**（{counts['todo']} 项）。"
-            f"条末的灰色是不计划兼容的 {counts['never']} 项（和 Codex 的核心冲突），按全部 "
-            f"{planned + counts['never']} 项的比例画出，不计入百分比。"
+            f"尚未实现 **{percent['todo']:.1f}%**（{counts['todo']} 项）。"
+            f"灰色表示另外 {counts['never']} 项涉及 Codex 核心机制的差异。"
+            f"分工和目标见兼容表。"
         )
     else:
         alt = (
             f"Claude Code compatibility: {percent['full']:.1f}% fully compatible, "
-            f"{percent['partial']:.1f}% partly, {percent['todo']:.1f}% not started"
+            f"{percent['partial']:.1f}% partly, {percent['todo']:.1f}% unimplemented"
         )
         line = (
-            f"Of the {planned} Claude Code features planned: "
-            f"**{percent['full']:.1f}%** fully compatible ({counts['full']}), "
-            f"**{percent['partial']:.1f}%** partly compatible ({counts['partial']}, each difference written "
-            f"down), **{percent['todo']:.1f}%** not started yet ({counts['todo']}). The grey end of the bar is "
-            f"the {counts['never']} features not planned (they contradict Codex's core), drawn in proportion to all "
-            f"{planned + counts['never']} and left out of the percentages."
+            f"The ccn compatibility figures cover {tracked} entries. "
+            f"**{percent['full']:.1f}%** are fully compatible ({counts['full']}), "
+            f"**{percent['partial']:.1f}%** are partly compatible ({counts['partial']}), "
+            f"and **{percent['todo']:.1f}%** are unimplemented ({counts['todo']}). "
+            f"The grey segment represents {counts['never']} additional differences tied to Codex's core. "
+            f"The compatibility tables give the scope for each follow-up."
         )
     return (
         "<!-- compat-progress -->\n"
@@ -198,7 +197,7 @@ def main() -> int:
         path.write_text(wanted[path], encoding="utf-8")
     print(
         f"full {counts['full']} ({percent['full']}%), partial {counts['partial']} ({percent['partial']}%), "
-        f"not started {counts['todo']} ({percent['todo']}%), not planned {counts['never']}; "
+        f"unimplemented {counts['todo']} ({percent['todo']}%), core differences {counts['never']}. "
         f"updated {len(stale)} file(s)"
     )
     return 0

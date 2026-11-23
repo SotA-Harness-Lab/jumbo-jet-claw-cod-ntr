@@ -15,7 +15,6 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::fs;
 use std::io;
-use std::path::Path;
 use std::path::PathBuf;
 
 use codex_config::HookEventsToml;
@@ -36,6 +35,7 @@ const KNOWN_HANDLER_TYPES: &[&str] = &["command", "prompt", "agent", "http", "mc
 pub struct ClaudeHookSettings {
     /// The user's Claude Code configuration directory, `~/.claude`.
     pub user_dir: Option<AbsolutePathBuf>,
+    pub home_dir: Option<AbsolutePathBuf>,
     /// The project directory: its `.claude/settings.json` and `.claude/settings.local.json`
     /// are read, and hooks see it as `CLAUDE_PROJECT_DIR`.
     pub project_dir: Option<AbsolutePathBuf>,
@@ -87,11 +87,13 @@ impl ClaudeHookSettings {
         if std::env::var_os("CCN_CLAUDE_COMPAT").is_some_and(|value| value == "0") {
             return None;
         }
-        let user_dir = std::env::var_os("HOME")
-            .map(|home| Path::new(&home).join(".claude"))
+        let home_dir =
+            dirs::home_dir().and_then(|dir| AbsolutePathBuf::from_absolute_path_checked(dir).ok());
+        let user_dir = codex_claude_compat::user_config_dir()
             .and_then(|dir| AbsolutePathBuf::from_absolute_path_checked(dir).ok());
         Some(Self {
             user_dir,
+            home_dir,
             project_dir,
             entrypoint,
             plugins: Vec::new(),
@@ -273,28 +275,18 @@ impl ClaudeSettingsStamp {
 
 /// The settings files, user's first, each with whether it is the user's own.
 fn settings_files(settings: &ClaudeHookSettings) -> Vec<(AbsolutePathBuf, bool)> {
-    let mut files = Vec::new();
-    if let Some(user_dir) = &settings.user_dir {
-        files.push((user_dir.join("settings.json"), true));
-    }
-    if let Some(project_dir) = &settings.project_dir {
-        let dot_claude = project_dir.join(".claude");
-        // In the home directory, `.claude` is the user's own configuration.
-        if settings.user_dir.as_ref() != Some(&dot_claude) {
-            files.push((dot_claude.join("settings.json"), false));
-            let home_dir = settings.user_dir.as_ref().and_then(AbsolutePathBuf::parent);
-            files.extend(
-                codex_claude_compat::local_settings_paths(
-                    project_dir.as_path(),
-                    home_dir.as_ref().map(AbsolutePathBuf::as_path),
-                )
-                .into_iter()
-                .filter_map(|path| AbsolutePathBuf::from_absolute_path_checked(path).ok())
-                .map(|path| (path, false)),
-            );
-        }
-    }
-    files
+    codex_claude_compat::settings_paths(
+        settings.user_dir.as_ref().map(AbsolutePathBuf::as_path),
+        settings.home_dir.as_ref().map(AbsolutePathBuf::as_path),
+        settings.project_dir.as_ref().map(AbsolutePathBuf::as_path),
+    )
+    .into_iter()
+    .enumerate()
+    .filter_map(|(index, path)| {
+        let path = AbsolutePathBuf::from_absolute_path_checked(path).ok()?;
+        Some((path, index == 0 && settings.user_dir.is_some()))
+    })
+    .collect()
 }
 
 fn read_settings(path: &AbsolutePathBuf, warnings: &mut Vec<String>) -> Option<Value> {

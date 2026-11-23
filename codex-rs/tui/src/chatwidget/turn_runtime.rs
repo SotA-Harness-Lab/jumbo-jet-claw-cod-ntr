@@ -38,7 +38,7 @@ impl ChatWidget {
         if self.status_state.current_status.is_guardian_review() {
             let header = self
                 .mcp_startup_status_header()
-                .unwrap_or_else(|| crate::i18n::tr!("status-state-working").to_string());
+                .unwrap_or_else(|| tr!("Working").to_string());
             self.set_status_header(header);
         }
     }
@@ -81,7 +81,7 @@ impl ChatWidget {
             self.add_plain_history_lines(vec![
                 vec![
                     "• ".dim(),
-                    crate::i18n::tr!("turn-runtime-websocket-timing", label = label).dark_gray(),
+                    tr!("WebSocket timing: {label}", label).dark_gray(),
                 ]
                 .into(),
             ]);
@@ -122,7 +122,7 @@ impl ChatWidget {
             .set_interrupt_hint_visible(/*visible*/ true);
         self.status_state.terminal_title_status_kind = TerminalTitleStatusKind::Working;
         if self.mcp_startup_status.is_none() || !self.status_header_is_mcp_startup_owned() {
-            self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
+            self.set_status_header(tr!("Working").to_string());
         }
         self.reasoning_summary_parts.clear();
         self.reasoning_buffer.clear();
@@ -319,19 +319,13 @@ impl ChatWidget {
             if used_percent <= 0 {
                 return None;
             }
-            return Some(crate::i18n::tr!(
-                "turn-runtime-percent-used",
-                used_percent = used_percent
-            ));
+            return Some(tr!("{used_percent}% used", used_percent));
         }
 
         if let Some(tokens) = used_tokens
             && tokens > 0
         {
-            return Some(crate::i18n::tr!(
-                "turn-runtime-tokens-used",
-                tokens = format_tokens_compact(tokens)
-            ));
+            return Some(tr!("{tokens} used", tokens = format_tokens_compact(tokens)));
         }
 
         None
@@ -415,7 +409,7 @@ impl ChatWidget {
         self.finalize_turn();
 
         let message = if message.trim().is_empty() {
-            crate::i18n::tr!("turn-runtime-high-load").to_string()
+            tr!("Codex is currently experiencing high load.").to_string()
         } else {
             message
         };
@@ -469,10 +463,10 @@ impl ChatWidget {
             && let Some(thread_id) = self.thread_id
         {
             self.bottom_pane.show_selection_view(SelectionViewParams {
-                title: Some(crate::i18n::tr!("turn-runtime-daybreak-title").into()),
+                title: Some("Turn on Daybreak for your next request?".into()),
                 items: vec![
                     SelectionItem {
-                        name: crate::i18n::tr!("turn-runtime-daybreak-enable").into(),
+                        name: tr!("Enable Daybreak").into(),
                         actions: vec![Box::new(move |tx| {
                             tx.send(AppEvent::PersistDaybreakSelection {
                                 thread_id,
@@ -483,7 +477,7 @@ impl ChatWidget {
                         ..Default::default()
                     },
                     SelectionItem {
-                        name: crate::i18n::tr!("turn-runtime-daybreak-not-now").into(),
+                        name: tr!("Not now").into(),
                         dismiss_on_select: true,
                         ..Default::default()
                     },
@@ -525,11 +519,11 @@ impl ChatWidget {
         // Keep owner remediation in history even when the optional backend banner is unavailable.
         let (message, nudge) = match rate_limit_reached_type {
             Some(RateLimitReachedType::WorkspaceOwnerCreditsDepleted) => (
-                crate::i18n::tr!("turn-runtime-out-of-credits").to_string(),
+                tr!("You're out of credits. Your workspace is out of credits. Add credits to continue using Codex.").to_string(),
                 None,
             ),
             Some(RateLimitReachedType::WorkspaceOwnerUsageLimitReached) => (
-                crate::i18n::tr!("turn-runtime-usage-limit-reached").to_string(),
+                tr!("Usage limit reached. You've reached your usage limit. Increase your limits to continue using codex.").to_string(),
                 None,
             ),
             Some(RateLimitReachedType::WorkspaceMemberCreditsDepleted) => {

@@ -71,34 +71,22 @@ fn success_message(
     let session_id = session_id.to_string();
     match (action, session_name) {
         (SessionArchiveAction::Archive, Some(name)) => {
-            crate::i18n::tr!(
-                "session-archive-archived-named",
-                name = name,
-                id = session_id
-            )
+            tr!("Archived session {name} ({id}).", name, id = session_id)
         }
         (SessionArchiveAction::Archive, None) => {
-            crate::i18n::tr!("session-archive-archived", id = session_id)
+            tr!("Archived session {id}.", id = session_id)
         }
         (SessionArchiveAction::Delete(_), Some(name)) => {
-            crate::i18n::tr!(
-                "session-archive-deleted-named",
-                name = name,
-                id = session_id
-            )
+            tr!("Deleted session {name} ({id}).", name, id = session_id)
         }
         (SessionArchiveAction::Delete(_), None) => {
-            crate::i18n::tr!("session-archive-deleted", id = session_id)
+            tr!("Deleted session {id}.", id = session_id)
         }
         (SessionArchiveAction::Unarchive, Some(name)) => {
-            crate::i18n::tr!(
-                "session-archive-unarchived-named",
-                name = name,
-                id = session_id
-            )
+            tr!("Unarchived session {name} ({id}).", name, id = session_id)
         }
         (SessionArchiveAction::Unarchive, None) => {
-            crate::i18n::tr!("session-archive-unarchived", id = session_id)
+            tr!("Unarchived session {id}.", id = session_id)
         }
     }
 }
@@ -141,7 +129,7 @@ async fn run_session_archive_action_with_app_server(
             if matches!(confirmation, DeleteConfirmation::Prompt)
                 && !confirm_session_delete(&resolved)?
             {
-                return Ok(crate::i18n::tr!("session-archive-delete-cancelled").to_string());
+                return Ok(tr!("Delete cancelled.").to_string());
             }
             app_server.thread_delete(resolved.session_id).await?;
             resolved.session_name
@@ -173,9 +161,9 @@ async fn resolve_session_target(
                 .thread_read(session_id, /*include_turns*/ false)
                 .await
                 .with_context(|| {
-                    crate::i18n::tr!(
-                        "session-archive-not-found-active-or-archived",
-                        target = target
+                    tr!(
+                        "No active or archived session found matching '{target}'.",
+                        target
                     )
                 })?;
             return Ok(ResolvedSessionTarget {
@@ -221,14 +209,14 @@ async fn resolve_session_target(
         "{}",
         match not_found_id {
             "session-archive-not-found-active" => {
-                crate::i18n::tr!("session-archive-not-found-active", target = target)
+                tr!(in "session-archive-commands", "No active session found matching '{target}'.", target)
             }
             "session-archive-not-found-archived" => {
-                crate::i18n::tr!("session-archive-not-found-archived", target = target)
+                tr!("No archived session found matching '{target}'.", target)
             }
-            _ => crate::i18n::tr!(
-                "session-archive-not-found-active-or-archived",
-                target = target
+            _ => tr!(
+                "No active or archived session found matching '{target}'.",
+                target
             ),
         }
     ))
@@ -245,8 +233,8 @@ fn session_target_from_app_server_thread(thread: AppServerThread) -> Result<Reso
 
 fn confirm_session_delete(target: &ResolvedSessionTarget) -> Result<bool> {
     if !(std::io::stdin().is_terminal() && std::io::stderr().is_terminal()) {
-        return Err(eyre!(crate::i18n::tr!(
-            "session-archive-confirm-needs-terminal"
+        return Err(eyre!(tr!(
+            "cannot confirm session deletion without an interactive terminal; rerun with --force and a session UUID"
         )));
     }
 
@@ -255,17 +243,17 @@ fn confirm_session_delete(target: &ResolvedSessionTarget) -> Result<bool> {
         Some(name) => writeln!(
             stderr,
             "{}",
-            crate::i18n::tr!(
-                "session-archive-confirm-delete-named",
-                name = name,
+            tr!(
+                "Permanently delete session '{name}' ({id})?",
+                name,
                 id = target.session_id.to_string()
             )
         ),
         None => writeln!(
             stderr,
             "{}",
-            crate::i18n::tr!(
-                "session-archive-confirm-delete",
+            tr!(
+                "Permanently delete session {id}?",
                 id = target.session_id.to_string()
             )
         ),
@@ -273,13 +261,9 @@ fn confirm_session_delete(target: &ResolvedSessionTarget) -> Result<bool> {
     writeln!(
         stderr,
         "{}",
-        crate::i18n::tr!("session-archive-cannot-undo")
+        tr!("This cannot be undone. Subagent threads will also be deleted.")
     )?;
-    write!(
-        stderr,
-        "{}",
-        crate::i18n::tr!("session-archive-continue-prompt")
-    )?;
+    write!(stderr, "{}", tr!("Continue? [y/N]: "))?;
     stderr.flush()?;
 
     let mut input = String::new();

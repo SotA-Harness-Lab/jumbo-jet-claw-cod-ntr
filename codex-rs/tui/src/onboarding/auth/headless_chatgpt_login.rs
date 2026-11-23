@@ -71,8 +71,8 @@ pub(super) fn start_headless_chatgpt_login(widget: &mut AuthModeWidget) {
                     &request_frame,
                     &error,
                     &request_id,
-                    crate::i18n::tr!(
-                        "headless-login-unexpected-response",
+                    tr!(
+                        "Unexpected account/login/start response: {response}",
                         response = format!("{other:?}")
                     ),
                 );
@@ -97,9 +97,9 @@ pub(super) fn render_device_code_login(
     state: &ContinueWithDeviceCodeState,
 ) {
     let banner = if state.is_showing_copyable_auth() {
-        crate::i18n::tr!("headless-login-finish-signing-in")
+        tr!("Finish signing in via your browser")
     } else {
-        crate::i18n::tr!("headless-login-preparing")
+        tr!("Preparing device code login")
     };
 
     let mut spans = vec!["  ".into()];
@@ -121,8 +121,8 @@ pub(super) fn render_device_code_login(
             .as_deref()
             .zip(state.user_code.as_deref()),
         [
-            crate::i18n::tr!("headless-login-step-open-link"),
-            crate::i18n::tr!("headless-login-step-enter-code"),
+            tr!("  1. Open this link in your browser and sign in"),
+            tr!("  2. Enter this one-time code after you are signed in (expires in 15 minutes)"),
         ],
         widget.cancel_binding(),
     );
@@ -150,26 +150,22 @@ pub(crate) fn render_device_code_prompt<'a>(
         lines.push(Line::from(vec!["  ".into(), user_code.cyan().bold()]));
         lines.push("".into());
         lines.push(
-            crate::i18n::tr!("headless-login-continue-only-if")
+            tr!("  Continue only if you started this login in Codex. If a website or another person gave you this code, cancel.")
                 .dim()
                 .into(),
         );
         lines.push("".into());
         Some(verification_url)
     } else {
-        lines.push(
-            crate::i18n::tr!("headless-login-requesting-code")
-                .dim()
-                .into(),
-        );
+        lines.push(tr!("  Requesting a one-time code...").dim().into());
         lines.push("".into());
         None
     };
 
     lines.push(Line::from(vec![
-        crate::i18n::tr!("headless-login-press").dim(),
+        tr!("  Press ").dim(),
         cancel.into(),
-        crate::i18n::tr!("headless-login-to-cancel").dim(),
+        tr!(" to cancel").dim(),
     ]));
     Paragraph::new(lines)
         .wrap(Wrap { trim: false })

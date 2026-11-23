@@ -117,16 +117,15 @@ impl Renderable for PetPickerPreviewRenderable {
             inner.last_area = Some(area);
             match &inner.status {
                 PetPickerPreviewStatus::Hidden => return,
-                PetPickerPreviewStatus::Loading => (crate::i18n::tr!("pets-preview-loading"), None),
+                PetPickerPreviewStatus::Loading => (tr!("Loading preview..."), None),
                 PetPickerPreviewStatus::Disabled => (
-                    crate::i18n::tr!("pets-preview-disabled"),
-                    Some(crate::i18n::tr!("pets-preview-no-pet").to_string()),
+                    tr!("Terminal pets disabled"),
+                    Some(tr!("No pet will be shown.").to_string()),
                 ),
                 PetPickerPreviewStatus::Ready => return,
-                PetPickerPreviewStatus::Error { message } => (
-                    crate::i18n::tr!("pets-preview-unavailable"),
-                    Some(message.clone()),
-                ),
+                PetPickerPreviewStatus::Error { message } => {
+                    (tr!("Preview unavailable"), Some(message.clone()))
+                }
             }
         };
 

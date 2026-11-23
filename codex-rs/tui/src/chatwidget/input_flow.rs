@@ -84,7 +84,7 @@ impl ChatWidget {
                     self.reasoning_buffer.clear();
                     self.reasoning_header = None;
                     self.reasoning_summary_parts.clear();
-                    self.set_status_header(crate::i18n::tr!("status-state-working").to_string());
+                    self.set_status_header(tr!("Working").to_string());
                     self.submit_user_message_with_history_and_shell_escape_policy(
                         user_message,
                         UserMessageHistoryRecord::UserMessageText,
@@ -392,8 +392,8 @@ impl ChatWidget {
         if let Some(pending) = &self.pending_image_submission {
             preview.queued_messages.insert(
                 /*index*/ 0,
-                crate::i18n::tr!(
-                    "input-flow-preparing-images",
+                tr!(
+                    "Preparing images: {text}",
                     text = pending.message.text.to_string()
                 ),
             );
@@ -426,7 +426,9 @@ impl ChatWidget {
         if self.turn_lifecycle.agent_turn_running
             && self.active_collaboration_mask.as_ref() != Some(&collaboration_mode)
         {
-            self.add_error_message(crate::i18n::tr!("input-flow-cannot-switch-mode").to_string());
+            self.add_error_message(
+                tr!("Cannot switch collaboration mode while a turn is running.").to_string(),
+            );
             return;
         }
         self.set_collaboration_mask_from_user_action(collaboration_mode);

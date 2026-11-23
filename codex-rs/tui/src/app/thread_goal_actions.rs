@@ -21,7 +21,9 @@ use codex_app_server_protocol::ThreadGoalStatus;
 use codex_protocol::ThreadId;
 
 fn ephemeral_thread_goal_error_message() -> &'static str {
-    crate::i18n::tr!("thread-goal-actions-ephemeral")
+    tr!(
+        "Goals need a saved session. This session is temporary.\nRun `codex` to start a saved session, or `codex resume` / `/resume` to reopen one."
+    )
 }
 
 impl App {
@@ -47,7 +49,7 @@ impl App {
         let Some(goal) = response.goal else {
             self.chat_widget.add_info_message(
                 goal_usage().to_string(),
-                Some(crate::i18n::tr!("thread-goal-actions-no-goal-set").to_string()),
+                Some(tr!("No goal is currently set.").to_string()),
             );
             return;
         };
@@ -217,8 +219,8 @@ impl App {
                     return;
                 }
                 self.chat_widget.add_info_message(
-                    crate::i18n::tr!(
-                        "thread-goal-actions-goal-status",
+                    tr!(
+                        "Goal {status}",
                         status = goal_status_label(response.goal.status)
                     ),
                     Some(goal_usage_summary(&response.goal)),
@@ -257,8 +259,8 @@ impl App {
 
         match result {
             Ok(response) => self.chat_widget.add_info_message(
-                crate::i18n::tr!(
-                    "thread-goal-actions-goal-status",
+                tr!(
+                    "Goal {status}",
                     status = goal_status_label(response.goal.status)
                 ),
                 Some(goal_usage_summary(&response.goal)),
@@ -282,16 +284,12 @@ impl App {
         match result {
             Ok(response) => {
                 if response.cleared {
-                    self.chat_widget.add_info_message(
-                        crate::i18n::tr!("thread-goal-actions-cleared").to_string(),
-                        /*hint*/ None,
-                    );
+                    self.chat_widget
+                        .add_info_message(tr!("Goal cleared").to_string(), /*hint*/ None);
                 } else {
                     self.chat_widget.add_info_message(
-                        crate::i18n::tr!("thread-goal-actions-no-goal-to-clear").to_string(),
-                        Some(
-                            crate::i18n::tr!("thread-goal-actions-no-goal-this-thread").to_string(),
-                        ),
+                        tr!("No goal to clear").to_string(),
+                        Some(tr!("This thread does not currently have a goal.").to_string()),
                     );
                 }
             }
@@ -317,23 +315,23 @@ impl App {
         })];
         let items = vec![
             SelectionItem {
-                name: crate::i18n::tr!("thread-goal-actions-replace-current").to_string(),
-                description: Some(crate::i18n::tr!("thread-goal-actions-replace-desc").to_string()),
+                name: tr!("Replace current goal").to_string(),
+                description: Some(tr!("Set the new objective and start it now").to_string()),
                 actions: replace_actions,
                 dismiss_on_select: true,
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("thread-goal-actions-cancel").to_string(),
-                description: Some(crate::i18n::tr!("thread-goal-actions-keep-current").to_string()),
+                name: tr!("Cancel").to_string(),
+                description: Some(tr!("Keep the current goal").to_string()),
                 dismiss_on_select: true,
                 ..Default::default()
             },
         ];
         self.chat_widget.show_selection_view(SelectionViewParams {
-            title: Some(crate::i18n::tr!("thread-goal-actions-replace-title").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "thread-goal-actions-new-objective",
+            title: Some("Replace goal?".to_string()),
+            subtitle: Some(tr!(
+                "New objective: {objective}",
                 objective = truncate_text(&objective, /*max_graphemes*/ 200)
             )),
             footer_hint: Some(standard_popup_hint_line()),
@@ -344,10 +342,10 @@ impl App {
 
     fn show_no_thread_goal_to_edit(&mut self) {
         self.chat_widget
-            .add_error_message(crate::i18n::tr!("thread-goal-actions-no-goal-set").to_string());
+            .add_error_message(tr!("No goal is currently set.").to_string());
         self.chat_widget.add_info_message(
             goal_usage().to_string(),
-            Some(crate::i18n::tr!("thread-goal-actions-create-first").to_string()),
+            Some(tr!("Create a goal before editing it.").to_string()),
         );
     }
 }
@@ -369,11 +367,11 @@ fn thread_goal_error_message(action: &str, err: &color_eyre::Report) -> String {
     } else {
         let err = err.to_string();
         match action {
-            "read" => crate::i18n::tr!("thread-goal-actions-failed-read", err = err),
-            "replace" => crate::i18n::tr!("thread-goal-actions-failed-replace", err = err),
-            "set" => crate::i18n::tr!("thread-goal-actions-failed-set", err = err),
-            "clear" => crate::i18n::tr!("thread-goal-actions-failed-clear", err = err),
-            _ => crate::i18n::tr!("thread-goal-actions-failed-update", err = err),
+            "read" => tr!("Failed to read thread goal: {err}", err),
+            "replace" => tr!("Failed to replace thread goal: {err}", err),
+            "set" => tr!("Failed to set thread goal: {err}", err),
+            "clear" => tr!("Failed to clear thread goal: {err}", err),
+            _ => tr!("Failed to update thread goal: {err}", err),
         }
     }
 }

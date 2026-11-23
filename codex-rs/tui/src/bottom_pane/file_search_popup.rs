@@ -178,9 +178,9 @@ impl WidgetRef for &FileSearchPopup {
         };
 
         let empty_message = if self.waiting {
-            crate::i18n::tr!("file-search-popup-loading")
+            tr!("  loading...")
         } else {
-            crate::i18n::tr!("file-search-popup-no-matches")
+            tr!("  no matches")
         };
 
         render_rows_single_line(

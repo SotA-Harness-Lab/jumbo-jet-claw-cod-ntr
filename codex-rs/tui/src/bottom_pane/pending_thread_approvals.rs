@@ -50,8 +50,8 @@ impl PendingThreadApprovals {
         let mut lines = Vec::new();
         for thread in self.threads.iter().take(3) {
             let wrapped = adaptive_wrap_lines(
-                std::iter::once(Line::from(crate::i18n::tr!(
-                    "pending-thread-approvals-needed",
+                std::iter::once(Line::from(tr!(
+                    "Approval needed in {thread}",
                     thread = thread.as_str()
                 ))),
                 RtOptions::new(width as usize)
@@ -69,7 +69,7 @@ impl PendingThreadApprovals {
             Line::from(vec![
                 "    ".into(),
                 "/subagents".cyan().bold(),
-                crate::i18n::tr!("pending-thread-approvals-review").dim(),
+                tr!(" to review requests").dim(),
             ])
             .dim(),
         );

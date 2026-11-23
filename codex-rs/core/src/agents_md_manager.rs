@@ -144,7 +144,14 @@ impl AgentsMdManager {
             if budget > 0
                 && let Some(loaded) = &loaded
             {
-                let bytes = loaded.text().len();
+                // With Claude Code's files read, only the project `AGENTS.md` files are measured
+                // against the budget: the global and thread instructions and Claude Code's files are
+                // never cut to it, and Claude Code sets no limit on their total.
+                let bytes = if codex_claude_compat::enabled() {
+                    loaded.agents_md_bytes()
+                } else {
+                    loaded.text().len()
+                };
                 if bytes > budget {
                     warnings.push(format!(
                         "Combined user instructions use {bytes} bytes, above the {budget}-byte `project_doc_max_bytes` setting. The total includes global and thread instructions. The limit applies only to project files."

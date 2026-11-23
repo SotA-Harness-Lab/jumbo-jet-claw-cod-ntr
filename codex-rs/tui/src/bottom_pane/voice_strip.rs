@@ -100,15 +100,11 @@ impl Renderable for VoiceStrip {
             "◌".dark_gray()
         };
         let activity = format!(" {}", self.state.activity).into();
-        let mut status = Line::from(vec![
-            crate::i18n::tr!("voice-strip-voice-prefix").dim(),
-            marker,
-            activity,
-        ]);
+        let mut status = Line::from(vec![tr!("voice ").dim(), marker, activity]);
         let mute_word = if self.state.microphone_muted {
-            crate::i18n::tr!("voice-strip-unmute")
+            tr!("unmute")
         } else {
-            crate::i18n::tr!("voice-strip-mute")
+            tr!("mute  ")
         };
         let mute = self.state.mute_hint.map_or_else(
             || "/voice mute".to_string(),
@@ -119,8 +115,7 @@ impl Renderable for VoiceStrip {
         let can_mute = !connecting || self.state.microphone_live || self.state.microphone_muted;
         if can_mute
             && available < status.width() + full_controls.width() + 1
-            && available
-                >= crate::i18n::tr!("voice-strip-voice-prefix").width() + full_controls.width() + 2
+            && available >= tr!("voice ").width() + full_controls.width() + 2
         {
             status.spans.pop();
         }
@@ -131,7 +126,7 @@ impl Renderable for VoiceStrip {
             "/voice stop"
         };
         if available < status.width() + controls.width() + 1 {
-            status = Line::from(vec![crate::i18n::tr!("voice-strip-voice").dim()]);
+            status = Line::from(vec![tr!("voice").dim()]);
         }
         status.spans.push(
             " ".repeat(available.saturating_sub(status.width() + controls.width()))
@@ -154,7 +149,7 @@ impl Renderable for VoiceStrip {
             .saturating_div(/*rhs*/ 2)
             .min(/*other*/ 6);
         let mut meters = Vec::with_capacity(meter_width * 2 + 2);
-        meters.push(crate::i18n::tr!("voice-strip-mic").dim());
+        meters.push(tr!("  mic ").dim());
         append_voice_history(
             &mut meters,
             &self.state.microphone_history,
@@ -162,7 +157,7 @@ impl Renderable for VoiceStrip {
             Color::Cyan,
             self.state.microphone_muted || !self.state.microphone_live,
         );
-        meters.push(crate::i18n::tr!("voice-strip-codex").dim());
+        meters.push(tr!("  codex ").dim());
         append_voice_history(
             &mut meters,
             &self.state.speaker_history,

@@ -17,7 +17,7 @@ use crate::app_command::UserVerificationFailure;
 pub(super) fn verification_failure(error: &TypedRequestError) -> UserVerificationFailure {
     let TypedRequestError::Server { source, .. } = error else {
         return UserVerificationFailure {
-            message: crate::i18n::tr!("user-verification-could-not-complete-local"),
+            message: tr!("Could not complete user verification with the local Codex binary."),
             details: UserVerificationErrorDetails::Failed {
                 reason: UserVerificationFailureReason::ServiceError,
             },
@@ -30,35 +30,37 @@ pub(super) fn verification_failure(error: &TypedRequestError) -> UserVerificatio
     let message = match details {
         Some(UserVerificationErrorDetails::InvalidRequest {
             reason: UserVerificationInvalidRequestReason::InvalidParams,
-        }) => crate::i18n::tr!("user-verification-could-not-verify-request"),
+        }) => tr!("The local Codex binary could not verify this request."),
         Some(UserVerificationErrorDetails::Unavailable {
             reason: UserVerificationUnavailableReason::CredentialMissing,
-        }) => crate::i18n::tr!("user-verification-no-credential"),
+        }) => tr!("No user-verification credential is available in the local Codex binary."),
         Some(UserVerificationErrorDetails::Unavailable {
             reason: UserVerificationUnavailableReason::BiometricsUnavailable,
-        }) => crate::i18n::tr!("user-verification-biometric-unavailable"),
+        }) => tr!("Biometric verification is currently unavailable on this device."),
         Some(UserVerificationErrorDetails::Unavailable {
             reason: UserVerificationUnavailableReason::ProviderUnavailable,
-        }) => crate::i18n::tr!("user-verification-unavailable-for-request"),
+        }) => tr!("User verification is unavailable for this request."),
         Some(UserVerificationErrorDetails::Cancelled {
             reason: UserVerificationCancellationReason::UserCancelled,
-        }) => crate::i18n::tr!("user-verification-cancelled"),
+        }) => tr!("User verification was cancelled."),
         Some(UserVerificationErrorDetails::Cancelled {
             reason: UserVerificationCancellationReason::Interrupted,
-        }) => crate::i18n::tr!("user-verification-interrupted"),
+        }) => tr!("User verification was interrupted."),
         Some(UserVerificationErrorDetails::Failed {
             reason: UserVerificationFailureReason::AuthenticationFailed,
-        }) => crate::i18n::tr!("user-verification-biometric-failed"),
+        }) => {
+            tr!("Biometric verification did not succeed. The request was cancelled.")
+        }
         Some(UserVerificationErrorDetails::Failed {
             reason: UserVerificationFailureReason::Timeout,
-        }) => crate::i18n::tr!("user-verification-timed-out"),
+        }) => tr!("User verification timed out. The request was cancelled."),
         Some(UserVerificationErrorDetails::Failed {
             reason: UserVerificationFailureReason::ProviderError,
         })
         | Some(UserVerificationErrorDetails::Failed {
             reason: UserVerificationFailureReason::ServiceError,
         })
-        | None => crate::i18n::tr!("user-verification-could-not-complete"),
+        | None => tr!("The local Codex binary could not complete user verification."),
     };
     UserVerificationFailure {
         message,

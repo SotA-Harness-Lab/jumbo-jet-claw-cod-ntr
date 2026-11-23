@@ -216,7 +216,7 @@ impl WidgetRef for &UpdatePromptScreen {
         column.push(
             /*flex*/ 0,
             Paragraph::new(Line::from(vec![
-                crate::i18n::tr!("update-prompt-update-available").bold(),
+                tr!("Update available").bold(),
                 " · ".dim(),
                 format!(
                     "{current} → {latest}",
@@ -231,7 +231,7 @@ impl WidgetRef for &UpdatePromptScreen {
         column.push(
             /*flex*/ 1,
             Paragraph::new(Line::from(vec![
-                crate::i18n::tr!("update-prompt-release-notes").dim(),
+                tr!("Release notes: ").dim(),
                 RELEASE_NOTES_URL.dim().underlined(),
             ]))
             .wrap(Wrap { trim: false })
@@ -246,12 +246,12 @@ impl WidgetRef for &UpdatePromptScreen {
             /*flex*/ 1,
             picker_option_list(
                 vec![
-                    crate::i18n::tr!(
-                        "update-prompt-update-now",
+                    tr!(
+                        "Update now (runs `{update_command}`)",
                         update_command = update_command.as_str()
                     ),
-                    crate::i18n::tr!("update-prompt-skip").to_string(),
-                    crate::i18n::tr!("update-prompt-skip-until-next").to_string(),
+                    tr!("Skip").to_string(),
+                    tr!("Skip until next version").to_string(),
                 ],
                 selected_index,
             ),
@@ -260,9 +260,9 @@ impl WidgetRef for &UpdatePromptScreen {
             /*flex*/ 0,
             Paragraph::new(Line::from(vec![
                 key_hint::plain(KeyCode::Enter).into(),
-                crate::i18n::tr!("update-prompt-continue").dim(),
+                tr!(" continue · ").dim(),
                 key_hint::plain(KeyCode::Esc).into(),
-                crate::i18n::tr!("update-prompt-skip-hint").dim(),
+                tr!(" skip").dim(),
             ]))
             .wrap(Wrap { trim: false })
             .inset(Insets::vh(/*v*/ 0, /*h*/ 2)),

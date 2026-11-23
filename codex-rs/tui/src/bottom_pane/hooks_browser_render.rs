@@ -23,7 +23,7 @@ impl HooksBrowserView {
         let mut rows = header.split_off(header.len().saturating_sub(events.len()));
         if width < 72 {
             header.pop();
-            header.push(crate::i18n::tr!("hooks-browser-event-header").dim().into());
+            header.push(tr!("Event               Active/Installed").dim().into());
             rows = events
                 .iter()
                 .enumerate()
@@ -146,7 +146,7 @@ impl Renderable for HooksBrowserView {
             HooksBrowserPage::Events => render_line_rows(body, buf, rows, self.state),
             HooksBrowserPage::Handlers(event) => {
                 if rows.is_empty() {
-                    Paragraph::new(crate::i18n::tr!("hooks-browser-no-hooks"))
+                    Paragraph::new(tr!("  No hooks installed for this event."))
                         .dim()
                         .render(body, buf);
                 } else {

@@ -178,7 +178,7 @@ pub(crate) fn print_unsent_draft() {
         let _ = writeln!(
             std::io::stderr().lock(),
             "{}",
-            crate::i18n::tr!("startup-recovery-unsent-draft", text = text)
+            tr!("\nUnsent draft:\n{text}\n", text)
         );
     }
 }

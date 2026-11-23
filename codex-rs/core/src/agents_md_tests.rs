@@ -751,6 +751,7 @@ async fn read_agents_md_loads_cwd_instructions_when_parent_markers_are_unreadabl
         &PathUri::from_abs_path(&cwd),
         config.project_doc_max_bytes,
         /*sandbox*/ None,
+        /*local*/ true,
         &mut Vec::new(),
     )
     .await
@@ -779,6 +780,7 @@ async fn read_agents_md_propagates_read_errors() {
         &PathUri::from_abs_path(&cwd),
         config.project_doc_max_bytes,
         /*sandbox*/ None,
+        /*local*/ true,
         &mut Vec::new(),
     )
     .await
@@ -806,6 +808,7 @@ async fn read_agents_md_ignores_files_removed_after_discovery() {
         &PathUri::from_abs_path(&cwd),
         config.project_doc_max_bytes,
         /*sandbox*/ None,
+        /*local*/ true,
         &mut Vec::new(),
     )
     .await
@@ -1833,6 +1836,7 @@ async fn claude_project_files_load_in_claude_code_order() {
         &PathUri::from_abs_path(&cwd),
         /*sandbox*/ None,
         /*project_trusted*/ true,
+        /*local*/ true,
         &mut warnings,
     )
     .await;

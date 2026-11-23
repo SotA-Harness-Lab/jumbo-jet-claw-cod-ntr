@@ -24,7 +24,7 @@ impl App {
                     .clipboard
                     .copy(text, CopyFormat::Markdown, tui.frame_requester());
                 self.chat_widget
-                    .show_copy_result(crate::i18n::tr!("clipboard-last-message"), result);
+                    .show_copy_result(tr!("last message"), result);
             }
             KeyEventAction::PasteImage {
                 text_fallback,
@@ -40,7 +40,7 @@ impl App {
                 // Finish paste before the next key, but never wait on the copy worker's lock.
                 if tui.clipboard.is_busy() || self.pending_right_click_paste.is_some() {
                     self.chat_widget.add_info_message(
-                        crate::i18n::tr!("clipboard-busy").into(),
+                        tr!("Clipboard busy; try again").into(),
                         /*hint*/ None,
                     );
                 } else {
@@ -55,8 +55,8 @@ impl App {
                         }
                         Err(err) => {
                             tracing::warn!("failed to paste image: {err}");
-                            self.chat_widget.add_error_message(crate::i18n::tr!(
-                                "clipboard-paste-image-failed",
+                            self.chat_widget.add_error_message(tr!(
+                                "Failed to paste image: {err}",
                                 err = err.to_string()
                             ));
                         }

@@ -50,12 +50,13 @@ enum ActionMenuOption {
 
 impl ActionMenuOption {
     fn label(self) -> &'static str {
-        match self {
-            Self::Proceed => crate::i18n::tr!("external-migration-import-selected"),
-            Self::Customize => crate::i18n::tr!("external-migration-customize-selection"),
-            Self::Skip => crate::i18n::tr!("external-migration-cancel"),
-            Self::Back => crate::i18n::tr!("external-migration-review-selection"),
-        }
+        let label = match self {
+            Self::Proceed => "Import selected",
+            Self::Customize => "Customize selection",
+            Self::Skip => "Cancel",
+            Self::Back => "Review selection",
+        };
+        crate::i18n::translate(label, /*context*/ None)
     }
 }
 
@@ -256,11 +257,10 @@ impl ExternalAgentConfigMigrationScreen {
                     .sum::<usize>();
                 return format!(
                     "{description} {}",
-                    crate::i18n::tr!(
-                        "external-migration-plugin-counts",
+                    tr!(
+                        "({marketplaces} marketplaces, {plugins} plugins)",
                         marketplaces = marketplace_count as i64,
-                        plugins = plugin_count as i64
-                    )
+                        plugins = plugin_count as i64; match (marketplaces == 1, plugins == 1) { (true, true) => format!("({marketplaces} marketplace, {plugins} plugin)"), (true, false) => format!("({marketplaces} marketplace, {plugins} plugins)"), (false, true) => format!("({marketplaces} marketplaces, {plugins} plugin)"), (false, false) => format!("({marketplaces} marketplaces, {plugins} plugins)"), })
                 );
             }
             return description;
@@ -318,8 +318,8 @@ impl ExternalAgentConfigMigrationScreen {
                     .len()
                     .saturating_sub(plugin_names.len());
                 if hidden_plugin_count > 0 {
-                    plugin_names.push(crate::i18n::tr!(
-                        "external-migration-plus-more",
+                    plugin_names.push(tr!(
+                        "+{hidden_plugin_count} more",
                         hidden_plugin_count = hidden_plugin_count as i64
                     ));
                 }
@@ -334,8 +334,8 @@ impl ExternalAgentConfigMigrationScreen {
         if hidden_marketplace_count > 0 {
             lines.push(Line::from(format!(
                 "      • {}",
-                crate::i18n::tr!(
-                    "external-migration-plus-more-marketplaces",
+                tr!(
+                    "+{hidden_marketplace_count} more marketplaces",
                     hidden_marketplace_count = hidden_marketplace_count as i64
                 )
             )));
@@ -597,10 +597,10 @@ impl ExternalAgentConfigMigrationScreen {
     fn section_title(cwd: Option<&std::path::Path>) -> Line<'static> {
         match cwd {
             Some(cwd) => Line::from(vec![
-                crate::i18n::tr!("external-migration-current-project").bold(),
+                tr!("Current project: ").bold(),
                 cwd.display().to_string().dim(),
             ]),
-            None => Line::from(crate::i18n::tr!("external-migration-home").bold()),
+            None => Line::from(tr!("Home").bold()),
         }
     }
 
@@ -642,18 +642,9 @@ impl ExternalAgentConfigMigrationScreen {
                         item_idx: None,
                         kind: RenderLineKind::ItemDetail,
                         line: Line::from(if count_summary.is_empty() {
-                            format!(
-                                "      {}",
-                                crate::i18n::tr!("external-migration-importing-none")
-                            )
+                            format!("      {}", tr!("Importing: none"))
                         } else {
-                            format!(
-                                "      {}",
-                                crate::i18n::tr!(
-                                    "external-migration-importing-summary",
-                                    count_summary = count_summary
-                                )
-                            )
+                            format!("      {}", tr!("Importing: {count_summary}", count_summary))
                         }),
                     },
                 ]

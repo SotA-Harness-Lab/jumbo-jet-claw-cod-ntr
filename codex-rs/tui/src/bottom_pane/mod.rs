@@ -2161,7 +2161,7 @@ impl BottomPane {
         self.pause_status_timer_for_modal();
         self.set_composer_input_enabled(
             /*enabled*/ false,
-            Some(crate::i18n::tr!("bottom-pane-answer-the-questions-to-continue").to_string()),
+            Some(tr!("Answer the questions to continue.").to_string()),
         );
         self.push_view(Box::new(modal));
     }
@@ -2216,10 +2216,10 @@ impl BottomPane {
                     description: None,
                     instructions: match suggestion_type {
                         AppLinkSuggestionType::Install => {
-                            crate::i18n::tr!("bottom-pane-install-this-app-in-your").to_string()
+                            tr!("Install this app in your browser, then return here.").to_string()
                         }
                         AppLinkSuggestionType::Enable => {
-                            crate::i18n::tr!("bottom-pane-enable-this-app-to-use").to_string()
+                            tr!("Enable this app to use it for the current request.").to_string()
                         }
                         AppLinkSuggestionType::Auth => unreachable!(
                             "auth uses URL mode elicitation, not tool suggestion forms"
@@ -2245,7 +2245,7 @@ impl BottomPane {
             self.pause_status_timer_for_modal();
             self.set_composer_input_enabled(
                 /*enabled*/ false,
-                Some(crate::i18n::tr!("bottom-pane-respond-to-the-tool-suggestion").to_string()),
+                Some(tr!("Respond to the tool suggestion to continue.").to_string()),
             );
             self.push_view(Box::new(view));
             return;
@@ -2262,7 +2262,7 @@ impl BottomPane {
         self.pause_status_timer_for_modal();
         self.set_composer_input_enabled(
             /*enabled*/ false,
-            Some(crate::i18n::tr!("bottom-pane-respond-to-the-mcp-server").to_string()),
+            Some(tr!("Respond to the MCP server request to continue.").to_string()),
         );
         self.push_view(Box::new(modal));
     }

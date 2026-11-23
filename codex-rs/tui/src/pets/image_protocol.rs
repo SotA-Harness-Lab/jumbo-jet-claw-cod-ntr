@@ -76,16 +76,22 @@ impl PetImageUnsupportedReason {
     fn message(self) -> &'static str {
         match self {
             Self::Tmux => {
-                crate::i18n::tr!("image-protocol-tmux")
+                tr!(
+                    "Pets are unavailable in this tmux pane. Use fullscreen Codex with allow-passthrough all, or run Codex outside tmux."
+                )
             }
             Self::Zellij => {
-                crate::i18n::tr!("image-protocol-zellij")
+                tr!(
+                    "Pets are disabled in Zellij. Terminal images don’t stay reliably pane-local in Zellij. Run Codex outside Zellij to use pets."
+                )
             }
             Self::Iterm2TooOld => {
-                crate::i18n::tr!("image-protocol-iterm2-too-old")
+                tr!("Pets require iTerm2 3.6 or newer. Upgrade iTerm2 to use terminal pets.")
             }
             Self::Terminal => {
-                crate::i18n::tr!("image-protocol-terminal")
+                tr!(
+                    "Pets aren’t available in this terminal. Terminal pets need image support, and this terminal environment doesn’t expose a supported image protocol. Try a terminal with Kitty graphics or Sixel support, or run Codex outside tmux."
+                )
             }
         }
     }

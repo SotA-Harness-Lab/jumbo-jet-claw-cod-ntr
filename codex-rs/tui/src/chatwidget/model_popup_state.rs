@@ -15,8 +15,8 @@ use super::*;
 impl ChatWidget {
     pub(crate) fn model_picker_unavailable(&self) -> Option<String> {
         match self.model_catalog.provider_write.try_lock() {
-            Ok(changed) => changed.then(|| crate::i18n::tr!("model-popup-state-list-stale").into()),
-            Err(_) => Some(crate::i18n::tr!("model-popup-state-saving-provider").into()),
+            Ok(changed) => changed.then(|| tr!("The model list may be out of date. Restart the app server and TUI to refresh /model.").into()),
+            Err(_) => Some(tr!("Saving the default provider. Try /model after the save finishes.").into()),
         }
     }
 
@@ -95,7 +95,7 @@ impl ChatWidget {
             match &result {
                 Ok(presets) => self.open_model_popup_with_presets(presets.clone()),
                 Err(_) => {
-                    self.add_error_message(crate::i18n::tr!("model-popup-state-load-failed").into())
+                    self.add_error_message(tr!("Could not load models. Try /model again.").into())
                 }
             }
             if self.no_modal_or_popup_active() {

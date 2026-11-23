@@ -8,7 +8,7 @@ use codex_app_server_protocol::ThreadGoal;
 use codex_app_server_protocol::ThreadGoalStatus;
 
 pub(crate) fn goal_usage() -> &'static str {
-    crate::i18n::tr!("const-goal-usage")
+    tr!("Usage: /goal [<objective>|clear|edit|pause|resume]")
 }
 
 pub(crate) fn format_goal_elapsed_seconds(seconds: i64) -> String {
@@ -38,30 +38,31 @@ pub(crate) fn format_goal_elapsed_seconds(seconds: i64) -> String {
 }
 
 pub(crate) fn goal_status_label(status: ThreadGoalStatus) -> &'static str {
-    match status {
-        ThreadGoalStatus::Active => crate::i18n::tr!("goal-display-status-active"),
-        ThreadGoalStatus::Paused => crate::i18n::tr!("goal-display-status-paused"),
-        ThreadGoalStatus::Blocked => crate::i18n::tr!("goal-display-status-stalled"),
-        ThreadGoalStatus::UsageLimited => crate::i18n::tr!("goal-display-status-usage-limited"),
-        ThreadGoalStatus::BudgetLimited => crate::i18n::tr!("goal-display-status-budget-limited"),
-        ThreadGoalStatus::Complete => crate::i18n::tr!("goal-display-status-complete"),
-    }
+    let label = match status {
+        ThreadGoalStatus::Active => "active",
+        ThreadGoalStatus::Paused => "paused",
+        ThreadGoalStatus::Blocked => "stalled",
+        ThreadGoalStatus::UsageLimited => "usage limited",
+        ThreadGoalStatus::BudgetLimited => "limited by budget",
+        ThreadGoalStatus::Complete => "complete",
+    };
+    crate::i18n::translate(label, /*context*/ None)
 }
 
 pub(crate) fn goal_usage_summary(goal: &ThreadGoal) -> String {
-    let mut parts = vec![crate::i18n::tr!(
-        "goal-display-objective",
+    let mut parts = vec![tr!(
+        "Objective: {objective}",
         objective = goal.objective.as_str()
     )];
     if goal.time_used_seconds > 0 {
-        parts.push(crate::i18n::tr!(
-            "goal-display-time",
+        parts.push(tr!(
+            "Time: {time}.",
             time = format_goal_elapsed_seconds(goal.time_used_seconds)
         ));
     }
     if let Some(token_budget) = goal.token_budget {
-        parts.push(crate::i18n::tr!(
-            "goal-display-tokens",
+        parts.push(tr!(
+            "Tokens: {used}/{budget}.",
             used = format_tokens_compact(goal.tokens_used),
             budget = format_tokens_compact(token_budget)
         ));

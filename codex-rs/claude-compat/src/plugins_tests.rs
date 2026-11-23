@@ -479,16 +479,24 @@ fn an_untrusted_project_can_turn_a_plugin_off_but_not_on() {
         r#"{"enabledPlugins": {"a@m": false, "b@m": true}}"#,
     );
 
-    let (plugins, _) =
-        load_claude_plugins_for(&claude_home, Some(&project), /*project_trusted*/ false);
+    let (plugins, _) = load_claude_plugins_for(
+        &claude_home,
+        claude_home.parent(),
+        Some(&project),
+        /*project_trusted*/ false,
+    );
     assert_eq!(plugins, Vec::new());
 
     write(
         &project.join(".claude/settings.json"),
         r#"{"enabledPlugins": {"b@m": true}}"#,
     );
-    let (plugins, _) =
-        load_claude_plugins_for(&claude_home, Some(&project), /*project_trusted*/ false);
+    let (plugins, _) = load_claude_plugins_for(
+        &claude_home,
+        claude_home.parent(),
+        Some(&project),
+        /*project_trusted*/ false,
+    );
     assert_eq!(
         plugins
             .iter()

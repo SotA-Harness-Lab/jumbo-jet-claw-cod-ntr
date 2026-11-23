@@ -111,7 +111,8 @@ impl App {
             && matches!(resume_cwd_mode, Some(ResumeCwdMode::Current))
         {
             self.add_session_picker_error(
-                crate::i18n::tr!("resume-config-cwd-needs-cd").to_string(),
+                tr!("`tui.resume_cwd = \"current\"` requires `--cd` when using a remote workspace")
+                    .to_string(),
             );
             return Err(AppRunControl::Continue);
         }
@@ -141,8 +142,8 @@ impl App {
             .await;
             match outcome {
                 Err(err) => {
-                    self.add_session_picker_error(crate::i18n::tr!(
-                        "resume-config-cwd-failed",
+                    self.add_session_picker_error(tr!(
+                        "Failed to determine working directory for resume: {err}",
                         err = err.to_string()
                     ));
                     return Err(AppRunControl::Continue);
@@ -174,8 +175,8 @@ impl App {
         {
             Ok(cfg) => cfg,
             Err(err) => {
-                self.add_session_picker_error(crate::i18n::tr!(
-                    "resume-config-rebuild-failed",
+                self.add_session_picker_error(tr!(
+                    "Failed to rebuild configuration for resume: {err}",
                     err = err.to_string()
                 ));
                 return Err(AppRunControl::Continue);
@@ -190,8 +191,8 @@ impl App {
                     .thread_read(target_session.thread_id, /*include_turns*/ false)
                     .await
                     .map_err(|error| {
-                        self.add_session_picker_error(crate::i18n::tr!(
-                            "resume-config-check-folder-failed",
+                        self.add_session_picker_error(tr!(
+                            "Unable to check resumed folder: {error}",
                             error = error.to_string()
                         ));
                         AppRunControl::Continue
@@ -282,8 +283,8 @@ impl App {
         )
         .await
         .map_err(|error| {
-            self.add_session_picker_error(crate::i18n::tr!(
-                "resume-config-check-trust-failed",
+            self.add_session_picker_error(tr!(
+                "Unable to check folder trust: {error}",
                 error = error.to_string()
             ));
             AppRunControl::Continue
@@ -317,8 +318,8 @@ impl App {
             )
             .await
             .map_err(|error| {
-                self.add_session_picker_error(crate::i18n::tr!(
-                    "resume-config-reload-trust-failed",
+                self.add_session_picker_error(tr!(
+                    "Failed to reload trusted folder settings: {error}",
                     error = error.to_string()
                 ));
                 AppRunControl::Continue
@@ -349,8 +350,8 @@ impl App {
                     }
                     .await
                     .map_err(|error| {
-                        self.add_session_picker_error(crate::i18n::tr!(
-                            "resume-config-load-hooks-failed",
+                        self.add_session_picker_error(tr!(
+                            "Unable to load folder hooks: {error}",
                             error = error.to_string()
                         ));
                         AppRunControl::Continue
@@ -367,8 +368,8 @@ impl App {
                 )
                 .await
                 .map_err(|error| {
-                    self.add_session_picker_error(crate::i18n::tr!(
-                        "resume-config-review-hooks-failed",
+                    self.add_session_picker_error(tr!(
+                        "Unable to review folder hooks: {error}",
                         error = error.to_string()
                     ));
                     AppRunControl::Continue

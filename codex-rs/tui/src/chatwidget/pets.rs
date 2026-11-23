@@ -203,10 +203,10 @@ impl ChatWidget {
         // Warnings are collected outside the live transcript. A command the user
         // just invoked also needs an immediate explanation above the composer.
         self.bottom_pane.show_selection_view(SelectionViewParams {
-            title: Some(crate::i18n::tr!("pets-unavailable").to_string()),
+            title: Some("Pets unavailable".to_string()),
             subtitle: Some(message.to_string()),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("pets-close").to_string(),
+                name: tr!("Close").to_string(),
                 dismiss_on_select: true,
                 ..Default::default()
             }],
@@ -264,10 +264,7 @@ impl ChatWidget {
                 true
             }
             Err(err) => {
-                self.add_warning_message(crate::i18n::tr!(
-                    "pets-failed-to-load-configured",
-                    err = err
-                ));
+                self.add_warning_message(tr!("Failed to load configured pet: {err}", err));
                 false
             }
         }
@@ -367,10 +364,10 @@ impl ChatWidget {
         self.pet_picker_preview_pet = None;
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(PET_SELECTION_LOADING_VIEW_ID),
-            title: Some(crate::i18n::tr!("pets-loading-title").to_string()),
-            subtitle: Some(crate::i18n::tr!("pets-preparing").to_string()),
+            title: Some("Loading Pet".to_string()),
+            subtitle: Some("Preparing the terminal pet.".to_string()),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("pets-loading-selected").to_string(),
+                name: "Loading selected pet...".to_string(),
                 is_disabled: true,
                 ..Default::default()
             }],
@@ -429,8 +426,8 @@ fn spawn_pet_load<T>(
                 Ok(runtime) => runtime.block_on(future),
                 Err(err) => {
                     tracing::warn!(error = %err, "failed to start pet load runtime");
-                    Err(crate::i18n::tr!(
-                        "pets-failed-to-start-runtime",
+                    Err(tr!(
+                        "failed to start pet load runtime: {err}",
                         err = err.to_string()
                     ))
                 }

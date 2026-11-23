@@ -184,73 +184,68 @@ impl serde::Serialize for StatusLineItem {
 impl StatusLineItem {
     /// User-visible description shown in the popup.
     pub(crate) fn description(self) -> &'static str {
-        match self {
-            StatusLineItem::ModelName => crate::i18n::tr!("status-line-item-model-name"),
-            StatusLineItem::ModelWithReasoning => {
-                crate::i18n::tr!("status-line-item-model-with-reasoning")
-            }
-            StatusLineItem::Reasoning => crate::i18n::tr!("status-line-item-reasoning"),
+        let description = match self {
+            StatusLineItem::ModelName => "Current model name",
+            StatusLineItem::ModelWithReasoning => "Current model name with reasoning level",
+            StatusLineItem::Reasoning => "Current reasoning level",
             StatusLineItem::Profile => {
-                crate::i18n::tr!("status-line-item-profile")
+                "Config profile selected with --profile (omitted when unset)"
             }
-            StatusLineItem::Provider => crate::i18n::tr!("status-line-item-provider"),
-            StatusLineItem::CurrentDir => crate::i18n::tr!("status-line-item-current-dir"),
-            StatusLineItem::ProjectRoot => crate::i18n::tr!("status-line-item-project-root"),
-            StatusLineItem::Hostname => crate::i18n::tr!("status-line-item-hostname"),
-            StatusLineItem::GitBranch => crate::i18n::tr!("status-line-item-git-branch"),
+            StatusLineItem::Provider => "Model provider for the active thread",
+            StatusLineItem::CurrentDir => "Current working directory",
+            StatusLineItem::ProjectRoot => "Project name (omitted when unavailable)",
+            StatusLineItem::Hostname => "Current machine hostname (omitted when unavailable)",
+            StatusLineItem::GitBranch => "Current Git branch (omitted when unavailable)",
             StatusLineItem::PullRequestNumber => {
-                crate::i18n::tr!("status-line-item-pull-request-number")
+                "Open pull request number for the current branch (omitted when unavailable)"
             }
             StatusLineItem::BranchChanges => {
-                crate::i18n::tr!("status-line-item-branch-changes")
+                "Committed branch changes against the default branch (omitted when unavailable)"
             }
-            StatusLineItem::Status => crate::i18n::tr!("status-line-item-status"),
-            StatusLineItem::Permissions => crate::i18n::tr!("status-line-item-permissions"),
-            StatusLineItem::ApprovalMode => crate::i18n::tr!("status-line-item-approval-mode"),
+            StatusLineItem::Status => "Compact session run-state text (Ready, Working, Thinking)",
+            StatusLineItem::Permissions => "Active permission profile or sandbox mode",
+            StatusLineItem::ApprovalMode => "Active command approval mode",
             StatusLineItem::ContextRemaining => {
-                crate::i18n::tr!("status-line-item-context-remaining")
+                "Percentage of context window remaining (omitted when unknown)"
             }
             StatusLineItem::ContextUsed => {
-                crate::i18n::tr!("status-line-item-context-used")
+                "Percentage of context window used (omitted when unknown)"
             }
             StatusLineItem::FiveHourLimit => {
-                crate::i18n::tr!("status-line-item-five-hour-limit")
+                "Remaining usage on the primary usage limit (omitted when unavailable)"
             }
             StatusLineItem::WeeklyLimit => {
-                crate::i18n::tr!("status-line-item-weekly-limit")
+                "Remaining usage on the secondary usage limit (omitted when unavailable)"
             }
-            StatusLineItem::CodexVersion => crate::i18n::tr!("status-line-item-codex-version"),
+            StatusLineItem::CodexVersion => "Codex application version",
             StatusLineItem::ContextWindowSize => {
-                crate::i18n::tr!("status-line-item-context-window-size")
+                "Total context window size in tokens (omitted when unknown)"
             }
-            StatusLineItem::UsedTokens => crate::i18n::tr!("status-line-item-used-tokens"),
-            StatusLineItem::TotalInputTokens => {
-                crate::i18n::tr!("status-line-item-total-input-tokens")
-            }
-            StatusLineItem::TotalOutputTokens => {
-                crate::i18n::tr!("status-line-item-total-output-tokens")
-            }
+            StatusLineItem::UsedTokens => "Total tokens used in session (omitted when zero)",
+            StatusLineItem::TotalInputTokens => "Total input tokens used in session",
+            StatusLineItem::TotalOutputTokens => "Total output tokens used in session",
             StatusLineItem::ThreadCredits => {
-                crate::i18n::tr!("status-line-item-thread-credits")
+                "Estimated current-thread credits (Enterprise workspaces only; omitted when unavailable)"
             }
             StatusLineItem::EstimatedThreadCost => {
-                crate::i18n::tr!("status-line-item-estimated-thread-cost")
+                "Estimated current-thread cost in USD (Enterprise workspaces only; omitted when unavailable)"
             }
-            StatusLineItem::SessionId => crate::i18n::tr!("status-line-item-session-id"),
-            StatusLineItem::FastMode => crate::i18n::tr!("status-line-item-fast-mode"),
-            StatusLineItem::Daybreak => crate::i18n::tr!("status-line-item-daybreak"),
-            StatusLineItem::RawOutput => crate::i18n::tr!("status-line-item-raw-output"),
-            StatusLineItem::ThreadName => crate::i18n::tr!("status-line-item-thread-name"),
+            StatusLineItem::SessionId => "Current thread identifier (omitted until thread starts)",
+            StatusLineItem::FastMode => "Effective processing tier for the current model",
+            StatusLineItem::Daybreak => "Whether Daybreak is enabled for this thread",
+            StatusLineItem::RawOutput => "Whether raw scrollback mode is active",
+            StatusLineItem::ThreadName => "Current thread name (omitted when unnamed)",
             StatusLineItem::ThreadTitle => {
-                crate::i18n::tr!("status-line-item-thread-title")
+                "Current thread title, or thread identifier when unnamed"
             }
             StatusLineItem::WorkspaceHeadline => {
-                crate::i18n::tr!("status-line-item-workspace-headline")
+                "Workspace notification headline (Enterprise workspaces only; omitted when unavailable)"
             }
             StatusLineItem::TaskProgress => {
-                crate::i18n::tr!("status-line-item-task-progress")
+                "Latest task progress from update_plan (omitted until available)"
             }
-        }
+        };
+        crate::i18n::translate(description, /*context*/ None)
     }
 
     pub(crate) fn preview_item(self) -> StatusSurfacePreviewItem {
@@ -331,7 +326,7 @@ impl StatusLineSetupView {
         let mut items = Vec::new();
         if provider_actions {
             items.push(MultiSelectItem {
-                name: crate::i18n::tr!("status-line-setup-choose-plugin").into(),
+                name: "Choose a statusline plugin".into(),
                 orderable: false,
                 section_break_after: true,
                 on_activate: Some(|tx, key| tx.send(AppEvent::OpenStatuslinePicker(key))),
@@ -340,10 +335,8 @@ impl StatusLineSetupView {
         }
         items.push(MultiSelectItem {
             id: STATUS_LINE_USE_THEME_COLORS_ITEM_ID.to_string(),
-            name: crate::i18n::tr!("status-line-setup-use-theme-colors").to_string(),
-            description: Some(
-                crate::i18n::tr!("status-line-setup-use-theme-colors-desc").to_string(),
-            ),
+            name: "Use theme colors".to_string(),
+            description: Some("Apply colors from the active /theme".to_string()),
             enabled: use_theme_colors,
             orderable: false,
             section_break_after: true,
@@ -381,8 +374,8 @@ impl StatusLineSetupView {
 
         Self {
             picker: MultiSelectPicker::builder(
-                crate::i18n::tr!("status-line-setup-title").to_string(),
-                Some(crate::i18n::tr!("status-line-setup-subtitle").to_string()),
+                "Configure Status Line".to_string(),
+                Some("Select which items to display in the status line.".to_string()),
                 app_event_tx,
             )
             .list_keymap(list_keymap)

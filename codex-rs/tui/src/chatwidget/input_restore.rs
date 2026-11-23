@@ -470,14 +470,14 @@ impl ChatWidget {
         if self.interrupted_turn_notice_mode != InterruptedTurnNoticeMode::Suppress {
             if send_pending_steers_immediately {
                 self.add_to_history(history_cell::new_info_event(
-                    crate::i18n::tr!("input-restore-interrupted-for-steer").to_owned(),
+                    tr!("Model interrupted to submit steer instructions.").to_owned(),
                     /*hint*/ None,
                 ));
             } else {
                 match reason {
                     TurnAbortReason::BudgetLimited => {
                         self.add_to_history(history_cell::new_error_event(
-                            crate::i18n::tr!("input-restore-goal-budget-reached").to_string(),
+                            tr!("Goal budget reached - the turn was stopped.").to_string(),
                         ))
                     }
                     TurnAbortReason::Interrupted => self.add_to_history(
@@ -824,14 +824,8 @@ impl ChatWidget {
             self.input_queue.startup_submission = input_state.startup_submission;
             if self.input_queue.startup_submission.is_some() {
                 self.bottom_pane.set_footer_hint_override(Some(vec![
-                    (
-                        crate::i18n::tr!("input-restore-waiting-startup").into(),
-                        String::new(),
-                    ),
-                    (
-                        "esc".into(),
-                        crate::i18n::tr!("input-restore-cancel").into(),
-                    ),
+                    (tr!("Waiting for startup").into(), String::new()),
+                    ("esc".into(), tr!("cancel").into()),
                 ]));
             }
             self.input_queue.recovered_queue = input_state.recovered_queue;

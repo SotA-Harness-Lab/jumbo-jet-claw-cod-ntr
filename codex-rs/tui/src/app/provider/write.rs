@@ -58,10 +58,10 @@ impl Write {
             .or_insert_with(|| app.model_catalog.provider_write.clone());
         let Ok(mut provider_changed) = write.clone().try_lock_owned() else {
             app.chat_widget
-                .add_error_message(crate::i18n::tr!("provider-write-already-saving").into());
+                .add_error_message(tr!("A provider change is already saving.").into());
             return;
         };
-        let (view, dismissed) = progress(SAVING_VIEW, crate::i18n::tr!("provider-write-saving"));
+        let (view, dismissed) = progress(SAVING_VIEW, tr!("Saving model provider…"));
         let source = match self {
             Self::Default { .. } => LIST_VIEW,
             Self::Settings(_) => editor::VIEW_ID,
@@ -77,7 +77,10 @@ impl Write {
         let offline = app.reconnect.offline;
         tokio::spawn(async move {
             let result = if offline {
-                Err(crate::i18n::tr!("provider-write-offline").into())
+                Err(
+                    tr!("Could not save provider: Reconnect to the app server and try again.")
+                        .into(),
+                )
             } else {
                 self.run(&handle, &mut provider_changed).await
             };
@@ -101,9 +104,9 @@ impl Write {
                 rpc::write_provider(handle, settings.1.clone())
                     .await
                     .map(|result| match result {
-                        rpc::ProviderWrite::Saved(_) => SaveNotice::Saved(
-                            crate::i18n::tr!("provider-write-saved-config").into(),
-                        ),
+                        rpc::ProviderWrite::Saved(_) => {
+                            SaveNotice::Saved(tr!("Saved provider configuration.").into())
+                        }
                         rpc::ProviderWrite::UnconfirmedCreate => SaveNotice::UnconfirmedCreate,
                     })
             }
@@ -116,12 +119,13 @@ impl Write {
                 let response = rpc::set_default_provider(handle, id)
                     .await
                     .map_err(|error| match error {
-                        TypedRequestError::Server { .. } if rpc::unsupported_method(&error) => {
-                            crate::i18n::tr!("provider-write-update-server").into()
-                        }
+                        TypedRequestError::Server { .. } if rpc::unsupported_method(&error) => tr!(
+                            "Update the connected app server to change the default model provider."
+                        )
+                        .into(),
                         TypedRequestError::Server { .. } => {
-                            crate::i18n::tr!(
-                                "provider-write-save-failed",
+                            tr!(
+                                "Could not save provider: {error}",
                                 error = error.to_string()
                             )
                         }
@@ -129,9 +133,9 @@ impl Write {
                         | TypedRequestError::Deserialize { .. } => {
                             // The server may have committed the write before its reply was lost.
                             *provider_changed = true;
-                            crate::i18n::tr!(
-                                "provider-write-confirm-failed",
-                                name = name,
+                            tr!(
+                                "Could not confirm whether {name} was saved: {error}",
+                                name,
                                 error = error.to_string()
                             )
                         }
@@ -139,17 +143,14 @@ impl Write {
                 match response.status {
                     WriteStatus::Ok => {
                         *provider_changed = true;
-                        Ok(SaveNotice::Saved(crate::i18n::tr!(
-                            "provider-write-now-use",
-                            name = name
-                        )))
+                        Ok(SaveNotice::Saved(tr!("New chats now use {name}.", name)))
                     }
                     WriteStatus::OkOverridden => {
                         let reason = rpc::override_reason(response);
-                        Ok(SaveNotice::Saved(crate::i18n::tr!(
-                            "provider-write-saved-name",
-                            name = name,
-                            reason = reason
+                        Ok(SaveNotice::Saved(tr!(
+                            "Saved {name}. {reason}",
+                            name,
+                            reason
                         )))
                     }
                 }

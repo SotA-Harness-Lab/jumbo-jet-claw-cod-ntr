@@ -21,11 +21,11 @@ pub(crate) const MAX_POPUP_ROWS: usize = 8;
 /// Standard footer hint text used by popups.
 pub(crate) fn standard_popup_hint_line() -> Line<'static> {
     Line::from(vec![
-        crate::i18n::tr!("popup-press").into(),
+        tr!("Press ").into(),
         key_hint::plain(KeyCode::Enter).into(),
-        crate::i18n::tr!("popup-to-confirm-or").into(),
+        tr!(" to confirm or ").into(),
         key_hint::plain(KeyCode::Esc).into(),
-        crate::i18n::tr!("popup-to-go-back").into(),
+        tr!(" to go back").into(),
     ])
 }
 
@@ -33,8 +33,8 @@ pub(crate) fn standard_popup_hint_line() -> Line<'static> {
 pub(crate) fn picker_hint_line_for_keymap(list_keymap: &ListKeymap) -> Line<'static> {
     let mut spans = Vec::new();
     for (action, label) in [
-        (ListAction::Accept, crate::i18n::tr!("popup-select")),
-        (ListAction::Cancel, crate::i18n::tr!("popup-back")),
+        (ListAction::Accept, tr!(" select")),
+        (ListAction::Cancel, tr!(" back")),
     ] {
         if let Some(hint) = list_keymap.primary_hint(action) {
             if !spans.is_empty() {
@@ -55,16 +55,18 @@ pub(crate) fn accept_cancel_hint_line(
 ) -> Line<'static> {
     let mut spans = Vec::new();
     if let Some(accept) = accept {
-        spans.push(crate::i18n::tr!("popup-press").dim());
+        let accept_label = crate::i18n::translate_in("accept-cancel-hint", accept_label);
+        spans.push(tr!("Press ").dim());
         spans.extend(accept.spans());
         spans.push(format!(" {accept_label}").dim());
     }
     if let Some(cancel) = cancel {
+        let cancel_label = crate::i18n::translate_in("accept-cancel-hint", cancel_label);
         spans.push(
             if spans.is_empty() {
-                crate::i18n::tr!("popup-press")
+                tr!("Press ")
             } else {
-                crate::i18n::tr!("popup-or")
+                tr!(" or ")
             }
             .dim(),
         );

@@ -41,29 +41,27 @@ pub(super) fn reset_credit_options(
                 Some(expires_at) => DateTime::<Utc>::from_timestamp(expires_at, 0)
                     .map(|expires_at| {
                         let expires_at = expires_at.with_timezone(&Local);
-                        crate::i18n::tr!(
-                            "reset-credits-expires",
+                        tr!(
+                            "Expires {time} on {date}",
                             time = expires_at.format(clock_format.time_format()).to_string(),
                             date = expires_at.format("%-d %b %Y").to_string()
                         )
                     })
-                    .unwrap_or_else(|| {
-                        crate::i18n::tr!("reset-credits-expiration-unavailable").to_string()
-                    }),
-                None => crate::i18n::tr!("reset-credits-does-not-expire").to_string(),
+                    .unwrap_or_else(|| tr!("Expiration unavailable").to_string()),
+                None => tr!("Does not expire").to_string(),
             };
             let reset_title = credit
                 .title
                 .as_deref()
                 .map(str::trim)
                 .filter(|title| !title.is_empty())
-                .unwrap_or(crate::i18n::tr!("reset-credits-full-reset"));
+                .unwrap_or(tr!("Full reset"));
             let reset_description = credit
                 .description
                 .as_deref()
                 .map(str::trim)
                 .filter(|description| !description.is_empty())
-                .unwrap_or(crate::i18n::tr!("reset-credits-reset-limits"));
+                .unwrap_or(tr!("Reset your current usage limits"));
             ResetCreditOption {
                 credit_id: Some(credit.id.clone()),
                 name: reset_title.to_string(),
@@ -76,9 +74,9 @@ pub(super) fn reset_credit_options(
     if options.is_empty() {
         options.push(ResetCreditOption {
             credit_id: None,
-            name: crate::i18n::tr!("reset-credits-full-reset").to_string(),
+            name: tr!("Full reset").to_string(),
             detail: None,
-            description: crate::i18n::tr!("reset-credits-reset-limits").to_string(),
+            description: tr!("Reset your current usage limits").to_string(),
         });
     }
 

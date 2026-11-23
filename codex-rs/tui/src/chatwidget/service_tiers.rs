@@ -65,7 +65,9 @@ impl ChatWidget {
                     tier: command.id,
                 });
             } else {
-                self.add_error_message(crate::i18n::tr!("service-tiers-open-cloud-first").into());
+                self.add_error_message(
+                    tr!("Open the Cloud conversation before choosing a speed.").into(),
+                );
             }
             return;
         }

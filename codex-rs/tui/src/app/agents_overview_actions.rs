@@ -172,9 +172,9 @@ impl App {
             }
             Err(error) => {
                 self.add_agents_overview_error(if pinned {
-                    crate::i18n::tr!("agents-overview-actions-pin-failed", error = error)
+                    tr!("Failed to pin task: {error}", error)
                 } else {
-                    crate::i18n::tr!("agents-overview-actions-unpin-failed", error = error)
+                    tr!("Failed to unpin task: {error}", error)
                 });
             }
         }
@@ -206,26 +206,32 @@ impl App {
             .lines()
             .next()
             .filter(|name| !name.is_empty())
-            .unwrap_or(crate::i18n::tr!("agents-overview-actions-untitled-task"));
+            .unwrap_or(tr!("Untitled task"));
         let (title, description, label) = match action {
             AgentsOverviewAction::Archive
                 if self.app_server_target == crate::AppServerTarget::Cloud =>
             {
                 (
-                    crate::i18n::tr!("agents-overview-actions-archive-title", name = name),
-                    crate::i18n::tr!("agents-overview-actions-archive-task-description"),
-                    crate::i18n::tr!("agents-overview-actions-archive-task"),
+                    tr!("Archive “{name}”?", name),
+                    tr!(
+                        "This stops any running work in this task and archives it. Child agents stay unchanged. Its history can be restored from the resume picker."
+                    ),
+                    tr!("Archive task"),
                 )
             }
             AgentsOverviewAction::Archive => (
-                crate::i18n::tr!("agents-overview-actions-archive-title", name = name),
-                crate::i18n::tr!("agents-overview-actions-archive-children-description"),
-                crate::i18n::tr!("agents-overview-actions-archive-children"),
+                tr!("Archive “{name}”?", name),
+                tr!(
+                    "This stops any running work in this task and its child agents, then archives them. Their history can be restored from the resume picker."
+                ),
+                tr!("Archive task and child agents"),
             ),
             AgentsOverviewAction::Delete => (
-                crate::i18n::tr!("agents-overview-actions-delete-title", name = name),
-                crate::i18n::tr!("agents-overview-actions-delete-description"),
-                crate::i18n::tr!("agents-overview-actions-delete"),
+                tr!("Permanently delete “{name}”?", name),
+                tr!(
+                    "Tasks with saved side chats stay intact. Otherwise, deleting this task stops its running work and permanently deletes its history and its child agents’ history."
+                ),
+                tr!("Permanently delete task and child agents"),
             ),
         };
         self.chat_widget.show_selection_view(SelectionViewParams {
@@ -235,7 +241,7 @@ impl App {
             ])),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("agents-overview-actions-cancel").to_string(),
+                    name: "Cancel".to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
@@ -434,10 +440,10 @@ impl App {
         if let Err(error) = result {
             let failed_title = match action {
                 AgentsOverviewAction::Archive => {
-                    crate::i18n::tr!("agents-overview-actions-could-not-archive")
+                    tr!("Could not archive task")
                 }
                 AgentsOverviewAction::Delete => {
-                    crate::i18n::tr!("agents-overview-actions-could-not-delete")
+                    tr!("Could not delete task")
                 }
             };
             let mut header = vec![
@@ -446,7 +452,7 @@ impl App {
             ];
             if attempted {
                 header.push(
-                    crate::i18n::tr!("agents-overview-actions-work-may-have-stopped")
+                    tr!("Work may have stopped. Resume the task to continue, or retry the action.")
                         .dim()
                         .into(),
                 );
@@ -454,7 +460,7 @@ impl App {
             self.chat_widget.show_selection_view(SelectionViewParams {
                 header: Box::new(LifecycleHeader(header)),
                 items: vec![SelectionItem {
-                    name: crate::i18n::tr!("agents-overview-actions-back-to-agents").to_string(),
+                    name: tr!("Back to agents").to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 }],

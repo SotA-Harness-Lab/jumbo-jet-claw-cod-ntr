@@ -65,6 +65,18 @@ pub fn validate(todos: &[Todo]) -> Result<(), String> {
     Ok(())
 }
 
+/// Claude Code clears the list once no incomplete item remains.
+pub fn retained_todos(todos: &[Todo]) -> &[Todo] {
+    if todos
+        .iter()
+        .all(|todo| todo.status == TodoStatus::Completed)
+    {
+        &[]
+    } else {
+        todos
+    }
+}
+
 /// The `update_plan` arguments for a list: one step a todo, with its status. The step in
 /// progress shows its present continuous form, as Claude Code's own list does.
 pub fn update_plan_arguments(todos: &[Todo]) -> Value {

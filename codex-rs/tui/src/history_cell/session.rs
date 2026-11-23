@@ -90,10 +90,7 @@ impl HistoryCell for TooltipHistoryCell {
     }
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
-        vec![Line::from(crate::i18n::tr!(
-            "session-tip",
-            tip = self.tip.as_str()
-        ))]
+        vec![Line::from(tr!("Tip: {tip}", tip = self.tip.as_str()))]
     }
 }
 
@@ -224,32 +221,34 @@ pub(crate) fn new_session_info(
     if is_first_event && local_settings.tui.show_tooltips {
         // Help lines below the header (new copy and list)
         let help_lines: Vec<Line<'static>> = vec![
-            crate::i18n::tr!("session-get-started").dim().into(),
+            tr!("  To get started, describe a task or try one of these commands:")
+                .dim()
+                .into(),
             Line::from(""),
             Line::from(vec![
                 "  ".into(),
                 "/init".into(),
-                crate::i18n::tr!("session-help-init").dim(),
+                tr!(" - create an AGENTS.md file with instructions for Codex").dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
                 "/status".into(),
-                crate::i18n::tr!("session-help-status").dim(),
+                tr!(" - show current session configuration").dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
                 "/permissions".into(),
-                crate::i18n::tr!("session-help-permissions").dim(),
+                tr!(" - choose what Codex is allowed to do").dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
                 "/model".into(),
-                crate::i18n::tr!("session-help-model").dim(),
+                tr!(" - choose what model and reasoning effort to use").dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
                 "/review".into(),
-                crate::i18n::tr!("session-help-review").dim(),
+                tr!(" - review any changes and find issues").dim(),
             ]),
         ];
 
@@ -264,13 +263,9 @@ pub(crate) fn new_session_info(
         }
         if requested_model != session.model.as_str() {
             let lines = vec![
-                crate::i18n::tr!("session-model-changed")
-                    .magenta()
-                    .bold()
-                    .into(),
-                crate::i18n::tr!("session-model-requested", requested_model = requested_model)
-                    .into(),
-                crate::i18n::tr!("session-model-used", model = session.model.as_str()).into(),
+                tr!("model changed:").magenta().bold().into(),
+                tr!("requested: {requested_model}", requested_model).into(),
+                tr!("used: {model}", model = session.model.as_str()).into(),
             ];
             parts.push(Box::new(PlainHistoryCell { lines }));
         }
@@ -404,8 +399,8 @@ impl HistoryCell for SessionHeaderHistoryCell {
         ];
         if self.yolo_mode {
             lines.push(Line::from(vec![
-                crate::i18n::tr!("session-permissions-label").dim(),
-                crate::i18n::tr!("session-yolo-mode").magenta().bold(),
+                tr!("  permissions: ").dim(),
+                tr!("YOLO mode").magenta().bold(),
             ]));
         }
         lines
@@ -417,21 +412,21 @@ impl HistoryCell for SessionHeaderHistoryCell {
     fn raw_lines(&self) -> Vec<Line<'static>> {
         let mut lines = vec![
             Line::from(format!("ClawCod NTR (v{})", self.version)),
-            Line::from(crate::i18n::tr!(
-                "session-raw-model",
+            Line::from(tr!(
+                "model: {model}{reasoning}",
                 model = self.model.as_str(),
                 reasoning = self
                     .reasoning_label()
                     .map(|reasoning| format!(" {reasoning}"))
                     .unwrap_or_default()
             )),
-            Line::from(crate::i18n::tr!(
-                "session-raw-directory",
+            Line::from(tr!(
+                "directory: {directory}",
                 directory = self.format_directory(/*max_width*/ None)
             )),
         ];
         if self.yolo_mode {
-            lines.push(Line::from(crate::i18n::tr!("session-raw-permissions-yolo")));
+            lines.push(Line::from(tr!("permissions: YOLO mode")));
         }
         lines
     }

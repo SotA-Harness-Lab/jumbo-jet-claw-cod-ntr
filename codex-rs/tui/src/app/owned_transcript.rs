@@ -434,7 +434,7 @@ impl App {
                                 ratatui::text::Text::from(Line::from(vec![
                                     glyph.set_style(crate::style::accent_style()),
                                     " ".into(),
-                                    crate::i18n::tr!("owned-transcript-starting-side-chat").dim(),
+                                    tr!("Starting side chat…").dim(),
                                 ]))
                             }
                             CreationState::Failed { message, .. } => {
@@ -641,9 +641,9 @@ impl App {
         );
         let composer = self.first_screen_composer();
         let latest_navigation = if self.enter_returns_to_latest() {
-            crate::i18n::tr!("owned-transcript-nav-enter-esc-latest")
+            tr!("enter/esc latest")
         } else {
-            crate::i18n::tr!("owned-transcript-nav-esc-latest")
+            tr!(in "owned-transcript", "esc latest")
         };
         self.sync_owned_transcript(area.width);
         let transcript_width = self
@@ -658,7 +658,7 @@ impl App {
             .has_active_interaction()
         {
             Some(
-                ratatui::text::Line::from(crate::i18n::tr!("owned-transcript-selecting-text"))
+                ratatui::text::Line::from(tr!("Selecting text · esc cancel"))
                     .dim()
                     .into(),
             )

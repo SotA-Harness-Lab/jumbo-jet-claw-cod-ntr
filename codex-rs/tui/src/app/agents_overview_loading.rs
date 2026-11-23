@@ -13,13 +13,10 @@ use ratatui::widgets::Paragraph;
 
 pub(super) fn draw(tui: &mut Tui) -> std::io::Result<()> {
     tui.draw(u16::MAX, |frame| {
-        let lines = textwrap::wrap(
-            crate::i18n::tr!("agents-overview-loading-task"),
-            usize::from(frame.area().width.max(1)),
-        )
-        .into_iter()
-        .map(|line| Line::from(line.into_owned().bold()))
-        .collect::<Vec<_>>();
+        let lines = textwrap::wrap(tr!("Loading task…"), usize::from(frame.area().width.max(1)))
+            .into_iter()
+            .map(|line| Line::from(line.into_owned().bold()))
+            .collect::<Vec<_>>();
         frame.render_widget_ref(&Paragraph::new(lines), frame.area());
     })?;
     tui.frame_requester().schedule_frame();

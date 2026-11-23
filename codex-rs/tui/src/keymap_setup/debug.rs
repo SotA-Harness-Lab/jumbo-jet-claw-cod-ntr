@@ -28,10 +28,12 @@ use super::key_event_to_config_key_spec;
 
 const MISSING_KEY_HINT_DELAY: Duration = Duration::from_secs(3);
 fn short_missing_key_hint() -> &'static str {
-    crate::i18n::tr!("debug-tip-inspect-keys")
+    tr!("Tip: Codex can only inspect keys your terminal sends.")
 }
 fn delayed_missing_key_hint() -> &'static str {
-    crate::i18n::tr!("debug-still-waiting")
+    tr!(
+        "Still waiting? If nothing changes when you press a key, your terminal is not sending that key to Codex. Only received keys can be assigned as shortcuts."
+    )
 }
 
 struct KeymapDebugReport {
@@ -71,8 +73,11 @@ impl KeymapDebugView {
     fn lines_at(&self, width: u16, now: Instant) -> Vec<Line<'static>> {
         let wrap_width = usize::from(width.max(1));
         let mut lines = vec![
-            Line::from(crate::i18n::tr!("debug-keypress-inspector").bold()),
-            Line::from(crate::i18n::tr!("debug-press-any-key").dim()),
+            Line::from(tr!("Keypress Inspector").bold()),
+            Line::from(
+                tr!("Press any key to see what Codex receives. Esc is inspected; Ctrl+C closes.")
+                    .dim(),
+            ),
         ];
         let hint = if self.should_show_delayed_hint(now) {
             delayed_missing_key_hint()
@@ -83,30 +88,28 @@ impl KeymapDebugView {
 
         let Some(report) = &self.last_report else {
             lines.push(Line::from(""));
-            lines.push(Line::from(
-                crate::i18n::tr!("debug-waiting-keypress").cyan(),
-            ));
+            lines.push(Line::from(tr!("Waiting for a keypress...").cyan()));
             return lines;
         };
 
         lines.push(Line::from(""));
         lines.push(Line::from(vec![
-            crate::i18n::tr!("debug-detected").dim(),
+            tr!("Detected: ").dim(),
             report.detected.display_label().cyan(),
         ]));
         match &report.config_key {
             Ok(config_key) => {
                 lines.push(Line::from(vec![
-                    crate::i18n::tr!("debug-config-key").dim(),
+                    tr!("Config key: ").dim(),
                     config_key.clone().cyan(),
                 ]));
             }
             Err(error) => {
                 push_wrapped_dim(
                     &mut lines,
-                    crate::i18n::tr!("debug-unsupported", error = error),
+                    tr!("unsupported - {error}", error),
                     wrap_width,
-                    crate::i18n::tr!("debug-config-key"),
+                    tr!("Config key: "),
                     "            ",
                 );
             }
@@ -115,13 +118,13 @@ impl KeymapDebugView {
             &mut lines,
             report.raw_event.clone(),
             wrap_width,
-            crate::i18n::tr!("debug-raw-event"),
+            tr!("Raw event: "),
             "           ",
         );
         lines.push(Line::from(""));
-        lines.push(Line::from(crate::i18n::tr!("debug-assigned-actions").dim()));
+        lines.push(Line::from(tr!("Assigned actions:").dim()));
         if report.matches.is_empty() {
-            lines.push(Line::from(crate::i18n::tr!("debug-none").dim()));
+            lines.push(Line::from(tr!("  none").dim()));
         } else {
             for matched_action in &report.matches {
                 let action = format!(

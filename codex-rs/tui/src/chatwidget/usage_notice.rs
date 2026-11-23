@@ -48,14 +48,14 @@ impl UsageNoticeState {
             format!("{}%", 100 - window.used_percent)
         };
         let summary = if window.used_percent >= 95 {
-            crate::i18n::tr!(
-                "usage-notice-summary-only",
+            tr!(
+                "⚠ {label} limit: only {remaining} left",
                 label = label.to_string(),
                 remaining = remaining.clone()
             )
         } else {
-            crate::i18n::tr!(
-                "usage-notice-summary",
+            tr!(
+                "⚠ {label} limit: {remaining} left",
                 label = label.to_string(),
                 remaining = remaining.clone()
             )
@@ -67,8 +67,8 @@ impl UsageNoticeState {
             .map(|reset| {
                 format!(
                     " · {}",
-                    crate::i18n::tr!(
-                        "usage-notice-resets-at",
+                    tr!(
+                        "resets at {time}",
                         time = crate::status::format_reset_timestamp(
                             reset.with_timezone(&Local),
                             now,
@@ -82,11 +82,7 @@ impl UsageNoticeState {
         if window.used_percent >= 90 {
             style = style.bold();
         }
-        let compact = Line::from(crate::i18n::tr!(
-            "usage-notice-compact",
-            label = label,
-            remaining = remaining
-        ));
+        let compact = Line::from(tr!("⚠ {label} {remaining} left", label, remaining));
         // Prefer half the row, but keep a complete warning on narrow terminals.
         let notice_width = (usize::from(width) / 2)
             .max(compact.width())

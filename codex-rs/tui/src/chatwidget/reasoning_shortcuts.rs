@@ -39,8 +39,11 @@ impl ReasoningShortcutDirection {
     fn bound_message(self, effort: &ReasoningEffortConfig) -> String {
         let label = ChatWidget::reasoning_effort_sentence_label(effort);
         match self {
-            Self::Lower => crate::i18n::tr!("reasoning-shortcuts-lowest", label = label),
-            Self::Raise => crate::i18n::tr!("reasoning-shortcuts-highest", label = label),
+            Self::Lower => tr!("Reasoning is already at the lowest level ({label}).", label),
+            Self::Raise => tr!(
+                "Reasoning is already at the highest level ({label}).",
+                label
+            ),
         }
     }
 }
@@ -85,7 +88,7 @@ impl ChatWidget {
 
         if !self.is_session_configured() {
             self.add_info_message(
-                crate::i18n::tr!("reasoning-shortcuts-disabled-startup").to_string(),
+                tr!("Reasoning shortcuts are disabled until startup completes.").to_string(),
                 /*hint*/ None,
             );
             return true;
@@ -94,7 +97,10 @@ impl ChatWidget {
         let current_model = self.current_model().to_string();
         let Some(preset) = self.current_model_preset() else {
             self.add_info_message(
-                crate::i18n::tr!("reasoning-shortcuts-unavailable", model = current_model),
+                tr!(
+                    "Reasoning shortcuts are unavailable for {model}.",
+                    model = current_model
+                ),
                 /*hint*/ None,
             );
             return true;
@@ -127,10 +133,13 @@ impl ChatWidget {
             let model_path = if current_model.starts_with("codex-auto-") {
                 current_model
             } else {
-                crate::i18n::tr!("reasoning-shortcuts-all-models", model = current_model)
+                tr!("All models → {model}", model = current_model)
             };
             self.add_info_message(
-                crate::i18n::tr!("reasoning-shortcuts-ultra-available", path = model_path),
+                tr!(
+                    "Ultra is available under /model → {path} → More reasoning…",
+                    path = model_path
+                ),
                 /*hint*/ None,
             );
             return true;

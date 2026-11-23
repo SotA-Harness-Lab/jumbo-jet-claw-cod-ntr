@@ -63,7 +63,7 @@ use crossterm::event::KeyEventKind;
 #[cfg(test)]
 const NO_PREVIOUS_MESSAGE_TO_EDIT: &str = "No previous message to edit.";
 pub(crate) fn side_edit_previous_unavailable_message() -> &'static str {
-    crate::i18n::tr!("const-side-edit-previous-unavailable-message")
+    tr!("Editing previous prompts is unavailable in side conversations.")
 }
 
 /// Aggregates all backtrack-related state used by the App.
@@ -221,30 +221,30 @@ impl App {
             .iter()
             .take(NAMED_FILES)
             .map(|(file, _)| {
-                file.file_name()
-                    .map_or_else(|| file.display().to_string(), |name| {
-                        name.to_string_lossy().into_owned()
-                    })
+                file.file_name().map_or_else(
+                    || file.display().to_string(),
+                    |name| name.to_string_lossy().into_owned(),
+                )
             })
             .collect::<Vec<_>>()
             .join(", ");
         if plan.files.len() > NAMED_FILES {
             names.push_str(&crate::i18n::tr!(
-                "backtrack-restore-more-files",
+                " and {count} more",
                 count = plan.files.len() - NAMED_FILES
             ));
         }
         let mut lines = vec![
-            Line::from(crate::i18n::tr!("backtrack-restore-title")).bold(),
+            Line::from(crate::i18n::tr!("Put the files back too?")).bold(),
             Line::from(crate::i18n::tr!(
-                "backtrack-restore-files-changed",
+                "Edits after this prompt changed {count} file(s): {names}",
                 count = plan.files.len(),
-                names = names
+                names = names.as_str()
             )),
-            Line::from(crate::i18n::tr!("backtrack-restore-warning")).dim(),
+            Line::from(crate::i18n::tr!("Only edits made with the editing tools are known. What shell commands or you changed stays as it is.")).dim(),
         ];
         if plan.incomplete {
-            lines.push(Line::from(crate::i18n::tr!("backtrack-restore-incomplete")).dim());
+            lines.push(Line::from(crate::i18n::tr!("Some edits since then could not be recorded in full, so the files may not end up exactly as they were.")).dim());
         }
         let choice = |files: FileRestoreChoice, name: &str, description: &str| {
             let selected_cell = Arc::clone(&selected_cell);
@@ -267,21 +267,21 @@ impl App {
         let items = vec![
             choice(
                 FileRestoreChoice::CodeAndConversation,
-                crate::i18n::tr!("backtrack-restore-both"),
-                crate::i18n::tr!("backtrack-restore-both-description"),
+                crate::i18n::tr!("Restore code and conversation"),
+                crate::i18n::tr!("Put the files back, then go back to before this prompt."),
             ),
             choice(
                 FileRestoreChoice::Conversation,
-                crate::i18n::tr!("backtrack-restore-conversation"),
-                crate::i18n::tr!("backtrack-restore-conversation-description"),
+                crate::i18n::tr!("Restore conversation"),
+                crate::i18n::tr!("Go back to before this prompt. The files stay as they are."),
             ),
             choice(
                 FileRestoreChoice::Code,
-                crate::i18n::tr!("backtrack-restore-code"),
-                crate::i18n::tr!("backtrack-restore-code-description"),
+                crate::i18n::tr!("Restore code"),
+                crate::i18n::tr!("Put the files back. The conversation stays as it is."),
             ),
             SelectionItem {
-                name: crate::i18n::tr!("backtrack-restore-cancel").to_string(),
+                name: crate::i18n::tr!("Never mind").to_string(),
                 dismiss_on_select: true,
                 ..Default::default()
             },
@@ -301,14 +301,14 @@ impl App {
         let failed = codex_claude_compat::file_history::restore(plan);
         for (file, err) in &failed {
             self.chat_widget.add_error_message(crate::i18n::tr!(
-                "backtrack-restore-failed",
+                "Could not put {path} back: {error}",
                 path = file.display().to_string(),
                 error = err.to_string()
             ));
         }
         self.chat_widget.add_info_message(
             crate::i18n::tr!(
-                "backtrack-restore-done",
+                "Put {count} file(s) back to what they held before this prompt.",
                 count = plan.files.len() - failed.len()
             ),
             /*hint*/ None,
@@ -321,8 +321,8 @@ impl App {
         err: impl std::fmt::Display,
     ) {
         self.chat_widget.restore_user_message_to_composer(prompt);
-        self.chat_widget.add_error_message(crate::i18n::tr!(
-            "app-backtrack-edit-failed",
+        self.chat_widget.add_error_message(tr!(
+            "Failed to edit the selected prompt: {error}",
             error = format!("{err:#}")
         ));
     }
@@ -419,7 +419,7 @@ impl App {
         if !has_backtrack_target(&self.transcript_cells) && !self.scrollback_has_older_history {
             self.reset_backtrack_state();
             self.chat_widget.add_info_message(
-                crate::i18n::tr!("app-backtrack-no-previous-message").to_string(),
+                tr!("No previous message to edit.").to_string(),
                 /*hint*/ None,
             );
             tui.frame_requester().schedule_frame();
@@ -439,7 +439,7 @@ impl App {
         if !has_backtrack_target(&self.transcript_cells) && !self.scrollback_has_older_history {
             self.close_transcript_overlay(tui);
             self.chat_widget.add_info_message(
-                crate::i18n::tr!("app-backtrack-no-previous-message").to_string(),
+                tr!("No previous message to edit.").to_string(),
                 /*hint*/ None,
             );
             tui.frame_requester().schedule_frame();
@@ -729,7 +729,7 @@ pub(crate) fn backtrack_revert_before_turn_id(
                     .map(|item| (index, item))
             })
             .ok_or_else(|| {
-                color_eyre::eyre::eyre!(crate::i18n::tr!("app-backtrack-boundary-missing"))
+                color_eyre::eyre::eyre!(tr!("the loaded history boundary no longer exists"))
             })?,
         None => (0, 0),
     };
@@ -802,10 +802,16 @@ pub(crate) fn backtrack_revert_before_turn_id(
             }
 
             if is_steer {
-                bail!("{}", crate::i18n::tr!("app-backtrack-steer"));
+                bail!(
+                    "{}",
+                    tr!("the selected prompt is a steer and cannot be edited independently")
+                );
             }
             if matches!(turn.status, TurnStatus::InProgress) {
-                bail!("{}", crate::i18n::tr!("app-backtrack-in-progress"));
+                bail!(
+                    "{}",
+                    tr!("the selected prompt belongs to a turn that is still in progress")
+                );
             }
 
             let selected_local_images = prompt.local_images.iter().map(|image| &image.path);
@@ -814,7 +820,10 @@ pub(crate) fn backtrack_revert_before_turn_id(
                 || prompt.remote_image_urls != display.remote_image_urls
                 || !selected_local_images.eq(display.local_images.iter())
             {
-                bail!("{}", crate::i18n::tr!("app-backtrack-mismatch"));
+                bail!(
+                    "{}",
+                    tr!("the selected transcript prompt no longer matches the persisted thread")
+                );
             }
             prompt.mention_bindings = mention_bindings_from_user_inputs(content, &display.message);
 
@@ -822,7 +831,10 @@ pub(crate) fn backtrack_revert_before_turn_id(
         }
     }
 
-    bail!("{}", crate::i18n::tr!("app-backtrack-not-found"));
+    bail!(
+        "{}",
+        tr!("the selected prompt was not found in the persisted thread")
+    );
 }
 
 /// Returns whether a turn is the reconstructed inline-review child with duplicated prompt inputs.

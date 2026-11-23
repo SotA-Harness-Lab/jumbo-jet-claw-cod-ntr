@@ -157,9 +157,9 @@ impl HookCell {
             {
                 message.to_string()
             } else if multiple {
-                crate::i18n::tr!("hook-cell-running-hooks").to_string()
+                tr!("Running hooks").to_string()
             } else {
-                crate::i18n::tr!("hook-cell-running-hook").to_string()
+                tr!("Running hook").to_string()
             },
         )
     }
@@ -296,18 +296,15 @@ impl HookCell {
             if *status == HookRunStatus::Completed
                 && let Some(mut first_line) = system_message_lines.as_mut().and_then(Iterator::next)
             {
-                first_line.spans.insert(
-                    /*index*/ 0,
-                    crate::i18n::tr!("hook-cell-hook-prefix").dim(),
-                );
+                first_line.spans.insert(/*index*/ 0, tr!("↳ Hook · ").dim());
                 lines.push(first_line);
             } else {
                 let header_text = match status {
-                    HookRunStatus::Completed => crate::i18n::tr!("hook-cell-hook-completed"),
-                    HookRunStatus::Failed => crate::i18n::tr!("hook-cell-hook-failed"),
-                    HookRunStatus::Blocked => crate::i18n::tr!("hook-cell-blocked-by-hook"),
-                    HookRunStatus::Stopped => crate::i18n::tr!("hook-cell-hook-stopped"),
-                    HookRunStatus::Running => crate::i18n::tr!("hook-cell-hook-running"),
+                    HookRunStatus::Completed => tr!("Hook completed"),
+                    HookRunStatus::Failed => tr!("Hook failed"),
+                    HookRunStatus::Blocked => tr!("Blocked by hook"),
+                    HookRunStatus::Stopped => tr!("Hook stopped"),
+                    HookRunStatus::Running => tr!("Hook running"),
                 };
                 lines.push(
                     vec![

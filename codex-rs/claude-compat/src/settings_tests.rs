@@ -15,6 +15,7 @@ use super::read_settings;
 use super::settings_effort_level;
 use super::settings_env;
 use super::settings_paths;
+use super::settings_reply_language;
 use super::settings_stamp;
 
 fn rule(prefix: &[&str], decision: PermissionDecision) -> BashPrefixRule {
@@ -51,6 +52,73 @@ fn bash_rules_become_prefixes() {
 }
 
 #[test]
+fn exec_policy_does_not_import_approvals_that_need_the_full_command() {
+    let settings = json!({
+        "permissions": {
+            "allow": ["Bash(find *)", "Bash(watch -n 5 date)", "Bash(git status)"],
+            "deny": ["Bash(find *)"]
+        }
+    });
+    let (rules, unsupported) = bash_prefix_rules(&settings);
+    assert_eq!(
+        rules,
+        vec![
+            rule(&["git", "status"], PermissionDecision::Allow),
+            rule(&["find"], PermissionDecision::Deny),
+        ]
+    );
+    assert_eq!(unsupported, vec!["Bash(find *)", "Bash(watch -n 5 date)"]);
+}
+
+#[test]
+fn exec_policy_does_not_import_a_prefix_that_ends_in_a_wrapper() {
+    let settings = json!({
+        "permissions": {
+            "allow": [
+                "Bash(nice *)",
+                "Bash(timeout 30 *)",
+                "Bash(sudo -u build env *)",
+                "Bash(xargs *)",
+                "Bash(xargs -n 1 echo *)",
+                "Bash(nice make *)",
+                "Bash(env FOO=1 cargo test *)"
+            ]
+        }
+    });
+    let (rules, unsupported) = bash_prefix_rules(&settings);
+    assert_eq!(
+        rules,
+        vec![
+            rule(&["nice", "make"], PermissionDecision::Allow),
+            rule(
+                &["env", "FOO=1", "cargo", "test"],
+                PermissionDecision::Allow
+            ),
+        ]
+    );
+    assert_eq!(
+        unsupported,
+        vec![
+            "Bash(nice *)",
+            "Bash(timeout 30 *)",
+            "Bash(sudo -u build env *)",
+            "Bash(xargs *)",
+            "Bash(xargs -n 1 echo *)"
+        ]
+    );
+}
+
+#[test]
+fn reply_language_accepts_language_names_and_ignores_empty_or_non_string_values() {
+    assert_eq!(
+        settings_reply_language(&json!({"language": " 简体中文 "})),
+        Some("简体中文")
+    );
+    assert_eq!(settings_reply_language(&json!({"language": "  "})), None);
+    assert_eq!(settings_reply_language(&json!({"language": true})), None);
+}
+
+#[test]
 fn env_values_are_strings() {
     let settings = json!({"env": {"A": "1", "B": 2, "C": true}});
     assert_eq!(
@@ -67,11 +135,11 @@ fn env_values_are_strings() {
 fn settings_paths_skip_the_home_directory_as_a_project() {
     let home = Path::new("/home/u/.claude");
     assert_eq!(
-        settings_paths(Some(home), Some(Path::new("/home/u"))),
+        settings_paths(Some(home), home.parent(), Some(Path::new("/home/u"))),
         vec![PathBuf::from("/home/u/.claude/settings.json")]
     );
     assert_eq!(
-        settings_paths(Some(home), Some(Path::new("/work/p"))),
+        settings_paths(Some(home), home.parent(), Some(Path::new("/work/p"))),
         vec![
             PathBuf::from("/home/u/.claude/settings.json"),
             PathBuf::from("/work/p/.claude/settings.json"),
@@ -149,7 +217,7 @@ fn the_local_file_of_the_repository_root_is_read_from_a_subdirectory() {
     // Settings files come in Claude Code's order, the root's local file last.
     let claude_home = home.join(".claude");
     assert_eq!(
-        settings_paths(Some(&claude_home), Some(&sub)),
+        settings_paths(Some(&claude_home), Some(&home), Some(&sub)),
         vec![
             claude_home.join("settings.json"),
             sub.join(".claude").join("settings.json"),

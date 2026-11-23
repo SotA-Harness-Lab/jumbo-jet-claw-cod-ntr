@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; write Claude Code auto memory
+// Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; write Claude Code auto memory;
+// measure only AGENTS.md against the budget
 
 //! AGENTS.md discovery and user instruction assembly.
 //!
@@ -97,6 +98,7 @@ pub(crate) async fn load_project_instructions(
             turn_environment.cwd(),
             remaining,
             sandbox.as_ref(),
+            !turn_environment.environment().is_remote(),
             warnings,
         )
         .await
@@ -143,6 +145,7 @@ async fn read_agents_md(
     cwd: &PathUri,
     max_total: usize,
     sandbox: Option<&FileSystemSandboxContext>,
+    local: bool,
     warnings: &mut Vec<String>,
 ) -> io::Result<Option<LoadedAgentsMd>> {
     let paths = agents_md_paths(config, cwd, fs, sandbox).await?;
@@ -203,6 +206,7 @@ async fn read_agents_md(
                 cwd,
                 sandbox,
                 config.active_project.is_trusted(),
+                local,
                 warnings,
             )
             .await,
@@ -226,14 +230,26 @@ async fn claude_project_entries(
     cwd: &PathUri,
     sandbox: Option<&FileSystemSandboxContext>,
     project_trusted: bool,
+    local: bool,
     warnings: &mut Vec<String>,
 ) -> Vec<InstructionEntry> {
     // An executor with other path conventions than the host's is out of reach.
     let Ok(cwd_path) = cwd.to_abs_path() else {
         return Vec::new();
     };
-    let source = ExecutorFiles { fs, sandbox };
+    let executor_files = ExecutorFiles { fs, sandbox };
     let home_dir = dirs::home_dir();
+    let claude_home = if cfg!(test) {
+        None
+    } else {
+        codex_claude_compat::user_config_dir()
+    };
+    let source = codex_claude_compat::InstructionExcludes::load(
+        &executor_files,
+        claude_home.as_deref(),
+        home_dir.as_deref(),
+        (project_trusted && local).then_some(cwd_path.as_path()),
+    );
     let mut directories = cwd_path
         .as_path()
         .ancestors()
@@ -279,25 +295,21 @@ async fn claude_project_entries(
     }
     // Unit tests never read the real home directory's Claude Code settings; they test
     // `crate::claude_memory` with a home directory of their own.
-    let memory_home = if cfg!(test) {
-        None
-    } else {
-        home_dir.as_deref()
-    };
-    if let Some(memory) = crate::claude_memory::claude_auto_memory_for(
-        &source,
-        cwd_path.as_path(),
-        memory_home,
-        &crate::claude_memory::process_env,
-        project_trusted,
-    )
-    .await
+    if !cfg!(test)
+        && let Some(memory) = crate::claude_memory::claude_auto_memory_for(
+            &executor_files,
+            cwd_path.as_path(),
+            home_dir.as_deref(),
+            &crate::claude_memory::process_env,
+            project_trusted,
+        )
+        .await
     {
         let index_path = memory.dir.join(AUTO_MEMORY_INDEX);
         // Claude Code puts the instructions in its system prompt and the index among the
         // CLAUDE.md files; Codex keeps both together, the instructions first.
         let mut contents = memory.instructions;
-        if let Some(file) = auto_memory_index(&source, &index_path).await {
+        if let Some(file) = auto_memory_index(&executor_files, &index_path).await {
             contents.push_str("\n\n");
             contents.push_str(&codex_claude_compat::render_instruction_files(
                 std::slice::from_ref(&file),
@@ -358,6 +370,17 @@ fn missing_or_denied(err: &io::Error) -> bool {
 }
 
 impl codex_claude_compat::FileSource for ExecutorFiles<'_> {
+    fn canonicalize<'a>(
+        &'a self,
+        path: &'a Path,
+    ) -> codex_claude_compat::SourceFuture<'a, Option<PathBuf>> {
+        Box::pin(async move {
+            let uri = Self::uri(path)?;
+            let target = self.fs.canonicalize(&uri, self.sandbox).await?;
+            Ok(Some(target.to_abs_path()?.into_path_buf()))
+        })
+    }
+
     fn read<'a>(&'a self, path: &'a Path) -> codex_claude_compat::SourceFuture<'a, Option<String>> {
         Box::pin(async move {
             let uri = Self::uri(path)?;
@@ -600,6 +623,25 @@ impl LoadedAgentsMd {
     }
 
     /// Returns the concatenated model-visible instruction text.
+    /// Bytes of the project `AGENTS.md` files, the files `project_doc_max_bytes` limits. Claude
+    /// Code's instruction files (`CLAUDE.md`, `CLAUDE.local.md`, rules) are left out: they are not
+    /// cut to that limit, and Claude Code sets no limit on their total.
+    pub(crate) fn agents_md_bytes(&self) -> usize {
+        self.entries
+            .iter()
+            .filter(|entry| match &entry.provenance {
+                InstructionProvenance::Project { source_path, .. } => {
+                    let path = source_path.to_string();
+                    !(path.ends_with("CLAUDE.md")
+                        || path.ends_with("CLAUDE.local.md")
+                        || path.contains("/.claude/"))
+                }
+                InstructionProvenance::Internal => false,
+            })
+            .map(|entry| entry.contents.len())
+            .sum()
+    }
+
     pub fn text(&self) -> String {
         if self.has_multiple_project_environments() {
             self.environment_labeled_text()

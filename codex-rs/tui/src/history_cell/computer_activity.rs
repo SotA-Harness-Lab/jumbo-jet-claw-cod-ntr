@@ -183,20 +183,18 @@ impl HistoryCell for ComputerActivityCell {
             })
             .unwrap_or_else(|| "•".dim());
         let label = if active.is_some() {
-            crate::i18n::tr!("computer-activity-using-computer")
+            tr!("Using computer")
         } else {
-            crate::i18n::tr!("computer-activity-used-computer")
+            tr!("Used computer")
         };
         let mut header = vec![
             bullet,
             " ".into(),
             label.bold(),
-            crate::i18n::tr!("computer-activity-action-count", count = count).dim(),
+            tr!(" · 1 action" | " · {count} actions", count).dim(),
         ];
         if failures > 0 {
-            header.push(
-                crate::i18n::tr!("computer-activity-failed-count", failures = failures).red(),
-            );
+            header.push(tr!(" · {failures} failed", failures).red());
         }
         let mut lines = adaptive_wrap_line(
             &Line::from(header),
@@ -228,25 +226,21 @@ impl HistoryCell for ComputerActivityCell {
                 .and_then(|args| args.get("title"))
                 .and_then(serde_json::Value::as_str)
                 .filter(|title| !title.trim().is_empty())
-                .unwrap_or(crate::i18n::tr!("computer-activity-computer-action"));
+                .unwrap_or(tr!("Computer action"));
             let failed = call.success() == Some(false);
             let summary = if failed {
                 match error_preview(call) {
                     Some(error) if width < 60 => {
-                        crate::i18n::tr!("computer-activity-failed-error", error = error)
+                        tr!("Failed: {error}", error)
                     }
                     Some(error) => {
                         let title = preview(title, usize::from(width) / 3);
-                        crate::i18n::tr!(
-                            "computer-activity-failed-title-error",
-                            title = title,
-                            error = error
-                        )
+                        tr!("Failed: {title} — {error}", title, error)
                     }
-                    None => crate::i18n::tr!("computer-activity-failed-title", title = title),
+                    None => tr!("Failed: {title}", title),
                 }
             } else if has_image(call) {
-                crate::i18n::tr!("computer-activity-captured-screenshot", title = title)
+                tr!("Captured screenshot · {title}", title)
             } else {
                 title.to_string()
             };
@@ -261,9 +255,9 @@ impl HistoryCell for ComputerActivityCell {
         }
         if hidden > 0 && active.is_none() {
             let summary = preview(
-                &crate::i18n::tr!(
-                    "computer-activity-hidden-more",
-                    hidden = hidden,
+                &tr!(
+                    "{hidden} more · {key}",
+                    hidden,
                     key =
                         crate::key_hint::ctrl(crossterm::event::KeyCode::Char('t')).display_label()
                 ),

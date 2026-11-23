@@ -18,17 +18,15 @@ pub(super) struct StatusIndicatorState {
 impl StatusIndicatorState {
     pub(super) fn working() -> Self {
         Self {
-            header: String::from(crate::i18n::tr!("status-state-working")),
+            header: String::from(tr!("Working")),
             details: None,
             details_max_lines: STATUS_DETAILS_DEFAULT_MAX_LINES,
         }
     }
 
     pub(super) fn is_guardian_review(&self) -> bool {
-        self.header == crate::i18n::tr!("status-state-reviewing-request")
-            || self
-                .header
-                .starts_with(crate::i18n::tr!("status-state-reviewing-prefix"))
+        self.header == tr!("Reviewing approval request")
+            || self.header.starts_with(tr!("Reviewing "))
     }
 }
 
@@ -98,16 +96,16 @@ impl PendingGuardianReviewStatus {
                 .collect::<Vec<_>>();
             let remaining = self.entries.len().saturating_sub(3);
             if remaining > 0 {
-                lines.push(crate::i18n::tr!("status-state-more", remaining = remaining));
+                lines.push(tr!("+{remaining} more", remaining));
             }
             Some(lines.join("\n"))
         };
         let details = details?;
         let header = if self.entries.len() == 1 {
-            String::from(crate::i18n::tr!("status-state-reviewing-request"))
+            String::from(tr!("Reviewing approval request"))
         } else {
-            crate::i18n::tr!(
-                "status-state-reviewing-requests",
+            tr!(
+                "Reviewing {count} approval requests",
                 count = self.entries.len()
             )
         };

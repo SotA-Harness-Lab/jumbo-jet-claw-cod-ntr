@@ -38,31 +38,25 @@ impl ChatWidget {
         let reset_eligible = self.has_chatgpt_account;
         let (reset_action_enabled, reset_description) =
             match (reset_eligible, self.available_rate_limit_reset_credits) {
-                (true, Some(available_count)) if available_count > 0 => (
-                    true,
-                    crate::i18n::tr!("usage-n-available", count = available_count),
-                ),
-                (true, None) => (
-                    true,
-                    crate::i18n::tr!("usage-check-availability").to_string(),
-                ),
-                (true, Some(_)) | (false, _) => {
-                    (false, crate::i18n::tr!("usage-none-available").to_string())
+                (true, Some(available_count)) if available_count > 0 => {
+                    (true, tr!("{count} available", count = available_count))
                 }
+                (true, None) => (true, tr!("Check availability").to_string()),
+                (true, Some(_)) | (false, _) => (false, tr!("None available").to_string()),
             };
 
         SelectionViewParams {
             view_id: Some(USAGE_MENU_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-title").to_string()),
-            subtitle: Some(crate::i18n::tr!("usage-subtitle").to_string()),
+            title: Some("Usage".to_string()),
+            subtitle: Some("Account usage and resets.".to_string()),
             footer_hint: Some(usage_hint_line(
                 &self.bottom_pane.list_keymap(),
-                crate::i18n::tr!("usage-hint-open"),
+                tr!("open"),
             )),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("usage-view-analytics").to_string(),
-                    description: Some(crate::i18n::tr!("usage-usage-history").to_string()),
+                    name: "View analytics".to_string(),
+                    description: Some(tr!("Usage history").to_string()),
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::OpenAnalytics { view: None });
                     })],
@@ -70,7 +64,7 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("usage-redeem-reset").to_string(),
+                    name: "Redeem reset".to_string(),
                     description: Some(reset_description),
                     is_disabled: !reset_action_enabled,
                     actions: vec![Box::new(|tx| {
@@ -117,10 +111,10 @@ impl ChatWidget {
         self.pending_rate_limit_reset_request_id = Some(request_id);
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(RATE_LIMIT_RESET_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-resets-title").to_string()),
-            subtitle: Some(crate::i18n::tr!("usage-checking-resets").to_string()),
+            title: Some("Usage limit resets".to_string()),
+            subtitle: Some("Checking your available resets...".to_string()),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("usage-loading").to_string(),
+                name: "Loading...".to_string(),
                 is_disabled: true,
                 ..Default::default()
             }],
@@ -152,12 +146,16 @@ impl ChatWidget {
                     shows_picker = true;
                     self.rate_limit_reset_picker_params(request_id, &response)
                 } else {
-                    Self::rate_limit_reset_message_params(crate::i18n::tr!("usage-no-resets"))
+                    Self::rate_limit_reset_message_params(tr!(
+                        "You don't have any usage limit resets available."
+                    ))
                 };
                 self.available_rate_limit_reset_credits = Some(available_count);
                 params
             }
-            Err(_) => Self::reset_refresh_params(crate::i18n::tr!("usage-load-failed")),
+            Err(_) => Self::reset_refresh_params(tr!(
+                "Couldn't load usage limit resets. Please try again."
+            )),
         };
         let replaced = self
             .bottom_pane
@@ -206,20 +204,20 @@ impl ChatWidget {
             })
             .collect::<Vec<_>>();
         items.push(SelectionItem {
-            name: crate::i18n::tr!("usage-cancel").to_string(),
+            name: "Cancel".to_string(),
             dismiss_on_select: true,
             ..Default::default()
         });
         SelectionViewParams {
             view_id: Some(RATE_LIMIT_RESET_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-resets-title").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "usage-resets-available",
+            title: Some("Usage limit resets".to_string()),
+            subtitle: Some(tr!(
+                "{count} usage limit reset available." | "{count} usage limit resets available.",
                 count = reset_credits.available_count
             )),
             footer_hint: Some(usage_hint_line(
                 &self.bottom_pane.list_keymap(),
-                crate::i18n::tr!("usage-hint-choose"),
+                tr!("choose"),
             )),
             items,
             initial_selected_idx: Some(0),
@@ -254,15 +252,15 @@ impl ChatWidget {
         );
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(RATE_LIMIT_RESET_CONFIRMATION_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-use-this-reset").to_string()),
+            title: Some("Use this reset?".to_string()),
             subtitle: Some(subtitle),
             footer_hint: Some(usage_hint_line(
                 &self.bottom_pane.list_keymap(),
-                crate::i18n::tr!("usage-hint-confirm"),
+                tr!("confirm"),
             )),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("usage-yes-use-reset").to_string(),
+                    name: "Yes, use reset".to_string(),
                     description: Some(reset_description),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::ConsumeRateLimitResetCredit {
@@ -274,8 +272,8 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("usage-no-go-back").to_string(),
-                    description: Some(crate::i18n::tr!("usage-choose-different").to_string()),
+                    name: "No, go back".to_string(),
+                    description: Some("Choose a different reset".to_string()),
                     actions: vec![Box::new(move |_| {
                         no_confirmation_gate.store(true, Ordering::Release);
                     })],
@@ -305,10 +303,10 @@ impl ChatWidget {
     fn rate_limit_reset_message_params(message: &str) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(RATE_LIMIT_RESET_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-resets-title").to_string()),
+            title: Some("Usage limit resets".to_string()),
             subtitle: Some(message.to_string()),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("usage-close").to_string(),
+                name: "Close".to_string(),
                 dismiss_on_select: true,
                 ..Default::default()
             }],
@@ -319,11 +317,11 @@ impl ChatWidget {
     fn reset_refresh_params(message: &str) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(RATE_LIMIT_RESET_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-resets-title").to_string()),
+            title: Some("Usage limit resets".to_string()),
             subtitle: Some(message.to_string()),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("usage-try-again").to_string(),
+                    name: "Try again".to_string(),
                     actions: vec![Box::new(|tx| {
                         tx.send(AppEvent::OpenRateLimitResetCredits);
                     })],
@@ -331,7 +329,7 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("usage-close").to_string(),
+                    name: "Close".to_string(),
                     dismiss_on_select: true,
                     ..Default::default()
                 },
@@ -352,10 +350,10 @@ impl ChatWidget {
             .dismiss_view_by_id(RATE_LIMIT_RESET_VIEW_ID);
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(RATE_LIMIT_RESET_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-resets-title").to_string()),
-            subtitle: Some(crate::i18n::tr!("usage-resetting").to_string()),
+            title: Some("Usage limit resets".to_string()),
+            subtitle: Some("Resetting your usage...".to_string()),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("usage-using-reset").to_string(),
+                name: tr!("Using a reset...").to_string(),
                 is_disabled: true,
                 ..Default::default()
             }],
@@ -393,18 +391,18 @@ impl ChatWidget {
                 self.pending_rate_limit_reset_request_id = None;
                 let message = match response.outcome {
                     ConsumeAccountRateLimitResetCreditOutcome::NothingToReset => {
-                        crate::i18n::tr!("usage-nothing-to-reset")
+                        tr!("Your usage does not need a reset right now.")
                     }
                     ConsumeAccountRateLimitResetCreditOutcome::NoCredit if credit_id.is_some() => {
                         self.available_rate_limit_reset_credits = None;
-                        self.replace_rate_limit_reset_popup(Self::reset_refresh_params(
-                            crate::i18n::tr!("usage-reset-gone"),
-                        ));
+                        self.replace_rate_limit_reset_popup(Self::reset_refresh_params(tr!(
+                            "That reset is no longer available. Refresh to see your current resets."
+                        )));
                         return false;
                     }
                     ConsumeAccountRateLimitResetCreditOutcome::NoCredit => {
                         self.available_rate_limit_reset_credits = Some(0);
-                        crate::i18n::tr!("usage-none-left")
+                        tr!("No usage limit resets are available.")
                     }
                     ConsumeAccountRateLimitResetCreditOutcome::Reset
                     | ConsumeAccountRateLimitResetCreditOutcome::AlreadyRedeemed => unreachable!(),
@@ -417,11 +415,11 @@ impl ChatWidget {
                 self.pending_rate_limit_reset_idempotency_key = Some(idempotency_key.clone());
                 self.replace_rate_limit_reset_popup(SelectionViewParams {
                     view_id: Some(RATE_LIMIT_RESET_VIEW_ID),
-                    title: Some(crate::i18n::tr!("usage-resets-title").to_string()),
-                    subtitle: Some(crate::i18n::tr!("usage-reset-failed").to_string()),
+                    title: Some("Usage limit resets".to_string()),
+                    subtitle: Some("Couldn't reset usage. Please try again.".to_string()),
                     items: vec![
                         SelectionItem {
-                            name: crate::i18n::tr!("usage-try-again").to_string(),
+                            name: "Try again".to_string(),
                             actions: vec![Box::new(move |tx| {
                                 tx.send(AppEvent::ConsumeRateLimitResetCredit {
                                     idempotency_key: idempotency_key.clone(),
@@ -432,7 +430,7 @@ impl ChatWidget {
                             ..Default::default()
                         },
                         SelectionItem {
-                            name: crate::i18n::tr!("usage-close").to_string(),
+                            name: "Close".to_string(),
                             dismiss_on_select: true,
                             ..Default::default()
                         },
@@ -462,9 +460,13 @@ impl ChatWidget {
             Ok(response) => {
                 let available_count = response.available_count;
                 self.available_rate_limit_reset_credits = Some(available_count);
-                crate::i18n::tr!("usage-reset-left", count = available_count)
+                tr!(
+                    "Usage reset. You have {count} usage limit reset left."
+                        | "Usage reset. You have {count} usage limit resets left.",
+                    count = available_count
+                )
             }
-            Err(_) => crate::i18n::tr!("usage-reset-done").to_string(),
+            Err(_) => tr!("Usage reset.").to_string(),
         };
         self.replace_rate_limit_reset_popup(Self::rate_limit_reset_message_params(&message));
         true
@@ -473,10 +475,10 @@ impl ChatWidget {
     fn rate_limit_reset_success_loading_params() -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(RATE_LIMIT_RESET_VIEW_ID),
-            title: Some(crate::i18n::tr!("usage-resets-title").to_string()),
-            subtitle: Some(crate::i18n::tr!("usage-reset-checking").to_string()),
+            title: Some("Usage limit resets".to_string()),
+            subtitle: Some("Usage reset. Checking your remaining resets...".to_string()),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("usage-refreshing").to_string(),
+                name: "Refreshing...".to_string(),
                 is_disabled: true,
                 ..Default::default()
             }],
@@ -564,7 +566,11 @@ impl ChatWidget {
             return;
         }
         self.pending_rate_limit_reset_hint = Some(history_cell::new_info_event(
-            crate::i18n::tr!("usage-reset-hint", count = available_count),
+            tr!(
+                "You have {count} usage limit reset available. Run /usage to use one."
+                    | "You have {count} usage limit resets available. Run /usage to use one.",
+                count = available_count
+            ),
             /*hint*/ None,
         ));
         self.bump_active_cell_revision();
@@ -588,10 +594,7 @@ fn usage_hint_line(
     let mut spans = Vec::new();
     for (action, label) in [
         (crate::keymap::ListAction::Accept, accept_label),
-        (
-            crate::keymap::ListAction::Cancel,
-            crate::i18n::tr!("usage-hint-back"),
-        ),
+        (crate::keymap::ListAction::Cancel, tr!("back")),
     ] {
         if let Some(hint) = keymap.primary_hint(action) {
             if !spans.is_empty() {

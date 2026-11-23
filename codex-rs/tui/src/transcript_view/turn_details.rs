@@ -142,9 +142,14 @@ impl ToolGroup {
         let (explored, ran) = (self.explored, self.ran);
         if calls.len() > 1 && explored + ran == calls.len() {
             return match (explored, ran) {
-                (0, _) => crate::i18n::tr!("turn-details-ran", ran = ran as i64),
-                (_, 0) => crate::i18n::tr!("turn-details-explored").into(),
-                _ => crate::i18n::tr!("turn-details-explored-ran", ran = ran as i64),
+                (0, _) => {
+                    tr!("Ran {ran} command" | "Ran {ran} commands", ran = ran as i64)
+                }
+                (_, 0) => tr!("Explored files").into(),
+                _ => tr!(
+                    "Explored files · ran {ran} command" | "Explored files · ran {ran} commands",
+                    ran = ran as i64
+                ),
             };
         }
         let mut lines = calls.last().into_iter().flat_map(|last| last.lines());
@@ -156,10 +161,10 @@ impl ToolGroup {
             label.push_str(" …");
         }
         if calls.len() > 1 {
-            return crate::i18n::tr!(
-                "turn-details-tool-calls",
+            return tr!(
+                "{count} tool calls · {label}",
                 count = calls.len() as i64,
-                label = label
+                label
             );
         }
         label
@@ -287,8 +292,8 @@ impl TurnDetails {
             let label = completion
                 .and_then(FinalMessageSeparator::display_label)
                 .unwrap_or_else(|| {
-                    crate::i18n::tr!(
-                        "turn-details-previous-messages",
+                    tr!(
+                        "1 previous message" | "{count} previous messages",
                         count = hidden_count as i64
                     )
                 });

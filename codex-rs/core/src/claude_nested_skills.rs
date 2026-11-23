@@ -55,8 +55,7 @@ pub(crate) fn nested_skill_roots(session_data: &ExtensionData) -> Vec<AbsolutePa
 /// `cwd`, and keeps those found for the session.
 pub(crate) async fn discover(session_data: &ExtensionData, cwd: &Path, files: &[PathBuf]) {
     // As in newer versions of Claude Code, the folders inside installed plugins do not count.
-    let plugins_dir =
-        dirs::home_dir().map(|home| home.join(codex_claude_compat::CLAUDE_DIR).join("plugins"));
+    let plugins_dir = codex_claude_compat::user_config_dir().map(|dir| dir.join("plugins"));
     let nested = session_data.get_or_init(NestedSkillDirs::default);
     let candidates = {
         let mut state = nested.state();

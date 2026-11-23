@@ -43,9 +43,9 @@ fn format_warning(additional_dirs: &[PathBuf]) -> String {
         .map(|path| path.to_string_lossy())
         .collect::<Vec<_>>()
         .join(", ");
-    crate::i18n::tr!(
-        "additional-dirs-ignored-warning",
-        joined_paths = joined_paths
+    tr!(
+        "Ignoring --add-dir ({joined_paths}) because the effective permissions do not allow additional writable roots. Switch to workspace-write or danger-full-access to allow them.",
+        joined_paths
     )
 }
 

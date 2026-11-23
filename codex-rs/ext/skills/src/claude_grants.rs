@@ -11,6 +11,7 @@
 use std::path::Path;
 use std::sync::Mutex;
 
+use codex_claude_compat::PROJECT_DIR_PLACEHOLDER;
 use codex_extension_api::ExtensionData;
 
 const SKILL_DIR_PLACEHOLDER: &str = "${CLAUDE_SKILL_DIR}";
@@ -23,7 +24,11 @@ struct SkillToolGrants(Mutex<Vec<String>>);
 /// `skill_md_path` holds `contents` grants, with `${CLAUDE_SKILL_DIR}` replaced by the
 /// skill's directory, as Claude Code replaces it in `Bash` rules. None with
 /// `CCN_CLAUDE_COMPAT=0`.
-pub fn skill_tool_grants(contents: &str, skill_md_path: &str) -> Vec<String> {
+pub fn skill_tool_grants(
+    contents: &str,
+    skill_md_path: &str,
+    project_dir: Option<&str>,
+) -> Vec<String> {
     if !codex_claude_compat::enabled() {
         return Vec::new();
     }
@@ -34,7 +39,19 @@ pub fn skill_tool_grants(contents: &str, skill_md_path: &str) -> Vec<String> {
     codex_claude_compat::skill_frontmatter(contents)
         .allowed_tools
         .into_iter()
-        .map(|rule| rule.replace(SKILL_DIR_PLACEHOLDER, &skill_dir))
+        .filter_map(|rule| {
+            let rule = rule.replace(SKILL_DIR_PLACEHOLDER, &skill_dir);
+            if !rule.contains(PROJECT_DIR_PLACEHOLDER) {
+                return Some(rule);
+            }
+            let (tool, _) = codex_claude_compat::parse_permission_rule(&rule);
+            if tool != codex_claude_compat::tools::BASH {
+                return Some(rule);
+            }
+            let dir = project_dir?.replace('\\', "/");
+            // A literal path with a wildcard must not broaden an allow rule.
+            (!dir.contains('*')).then(|| rule.replace(PROJECT_DIR_PLACEHOLDER, &dir))
+        })
         .collect()
 }
 

@@ -22,11 +22,11 @@ use codex_app_server_protocol::McpServerStatusUpdatedNotification;
 use super::ChatWidget;
 
 fn mcp_startup_single_header_prefix() -> &'static str {
-    crate::i18n::tr!("mcp-startup-single-header-prefix")
+    tr!("Booting MCP server:")
 }
 
 fn mcp_startup_multi_header_prefix() -> &'static str {
-    crate::i18n::tr!("mcp-startup-multi-header-prefix")
+    tr!("Starting MCP servers")
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -158,8 +158,8 @@ impl ChatWidget {
         if !cancelled.is_empty() {
             cancelled.sort();
             self.add_mcp_startup_warning(
-                vec![crate::i18n::tr!(
-                    "mcp-startup-interrupted",
+                vec![tr!(
+                    "MCP startup interrupted. The following servers were not initialized: {servers}",
                     servers = cancelled.join(", ")
                 )],
                 cancelled,
@@ -169,8 +169,8 @@ impl ChatWidget {
         if !failed.is_empty() {
             failed.sort();
             self.add_mcp_startup_warning(
-                vec![crate::i18n::tr!(
-                    "mcp-startup-incomplete",
+                vec![tr!(
+                    "MCP startup incomplete (failed: {servers})",
                     servers = failed.join(", ")
                 )],
                 failed,
@@ -251,14 +251,10 @@ impl ChatWidget {
                     failure_reason: notification.failure_reason,
                     error: match notification.error {
                         Some(error) if notification.environment_id.is_some() => {
-                            crate::i18n::tr!(
-                                "mcp-startup-server-error",
-                                server = server,
-                                error = error
-                            )
+                            tr!("{server}: {error}", server, error)
                         }
                         Some(error) => error,
-                        None => crate::i18n::tr!("mcp-startup-client-failed", server = server),
+                        None => tr!("MCP client for `{server}` failed to start", server),
                     },
                 }
             }

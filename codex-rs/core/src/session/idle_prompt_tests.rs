@@ -32,6 +32,7 @@ fn install_idle_prompt_hook(session: &Session, dir: &Path) -> PathBuf {
             user_dir: Some(
                 AbsolutePathBuf::from_absolute_path_checked(&claude_dir).expect("absolute path"),
             ),
+            home_dir: None,
             project_dir: None,
             entrypoint: Some("cli".to_string()),
             plugins: Vec::new(),

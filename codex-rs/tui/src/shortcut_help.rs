@@ -42,11 +42,13 @@ impl Group {
             .map(|entry| Span::raw(&entry.key).width())
             .max()
             .unwrap_or(/*default*/ 0);
-        let mut lines = vec![self.title.bold().into()];
+        let title = crate::i18n::translate_in("shortcut-help", self.title);
+        let mut lines = vec![title.bold().into()];
         for entry in &self.entries {
             let key = entry.key.clone().fg(accent_color());
             let padding = " ".repeat(key_width.saturating_sub(key.width()) + 2);
-            lines.push(vec![key, padding.into(), entry.action.into()].into());
+            let action = crate::i18n::translate_in("shortcut-help", entry.action);
+            lines.push(vec![key, padding.into(), action.into()].into());
         }
         lines
     }

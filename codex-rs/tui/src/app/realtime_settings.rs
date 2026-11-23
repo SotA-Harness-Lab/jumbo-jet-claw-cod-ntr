@@ -102,8 +102,8 @@ impl App {
                 .apply()
                 .await
         {
-            self.chat_widget.add_error_message(crate::i18n::tr!(
-                "realtime-settings-save-failed",
+            self.chat_widget.add_error_message(tr!(
+                "Failed to save audio setting: {error}",
                 error = error.to_string()
             ));
             return;
@@ -134,21 +134,22 @@ impl App {
                 self.chat_widget.local_settings.audio = self.local_settings.audio.clone();
                 if channel_overridden {
                     self.chat_widget.add_error_message(
-                        crate::i18n::tr!("realtime-settings-input-overridden").into(),
+                        tr!("Input device saved, but the input channel is overridden by another configuration layer. Update that override before starting voice.").into(),
                     );
                 } else if effective == value {
                     self.chat_widget.add_info_message(
-                        crate::i18n::tr!("realtime-settings-saved").to_string(),
+                        tr!("Audio setting saved. Applies to your next voice conversation.")
+                            .to_string(),
                         /*hint*/ None,
                     );
                 } else {
                     self.chat_widget.add_error_message(
-                        crate::i18n::tr!("realtime-settings-overridden").to_string(),
+                        tr!("Audio setting was saved but is overridden by another configuration layer.").to_string(),
                     );
                 }
             }
-            Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
-                "realtime-settings-read-failed",
+            Err(error) => self.chat_widget.add_error_message(tr!(
+                "Audio setting was saved, but effective settings could not be read: {error}",
                 error = error.to_string()
             )),
         }
@@ -177,7 +178,8 @@ impl App {
                 origin,
                 kind,
                 result: result.map_err(|_| {
-                    crate::i18n::tr!("realtime-settings-list-devices-failed").to_owned()
+                    tr!("Could not list audio devices. Check your audio device and voice package.")
+                        .to_owned()
                 }),
             });
         });
@@ -219,8 +221,8 @@ impl App {
         let voices = match Self::realtime_voices(app_server).await {
             Ok(voices) => voices,
             Err(error) => {
-                self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "realtime-settings-list-voices-failed",
+                self.chat_widget.add_error_message(tr!(
+                    "Failed to list voices: {error}",
                     error = error.to_string()
                 ));
                 return;
@@ -228,8 +230,8 @@ impl App {
         };
         match Self::effective_realtime_voice(app_server, &self.chat_widget.config_ref().cwd).await {
             Ok(voice) => self.chat_widget.open_realtime_voices(voice, voices),
-            Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
-                "realtime-settings-read-voice-failed",
+            Err(error) => self.chat_widget.add_error_message(tr!(
+                "Failed to read voice settings: {error}",
                 error = error.to_string()
             )),
         }
@@ -260,8 +262,8 @@ impl App {
                     None if response.status
                         == codex_app_server_protocol::WriteStatus::OkOverridden =>
                     {
-                        Err(color_eyre::eyre::eyre!(crate::i18n::tr!(
-                            "realtime-settings-voice-overridden-no-read"
+                        Err(color_eyre::eyre::eyre!(tr!(
+                            "the saved voice is overridden, but this server cannot read effective settings"
                         )))
                     }
                     None => Ok(Some(voice)),
@@ -273,21 +275,21 @@ impl App {
                         if effective_voice == Some(voice) {
                             self.chat_widget.on_realtime_voice_saved(voice);
                         } else {
-                            self.chat_widget.add_error_message(crate::i18n::tr!(
-                                "realtime-settings-voice-not-applied",
+                            self.chat_widget.add_error_message(tr!(
+                                "Voice preference was saved but not applied: {detail}",
                                 detail =
                                     super::config_persistence::overridden_write_message(&response)
                             ));
                         }
                     }
-                    Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
-                        "realtime-settings-voice-read-failed",
+                    Err(error) => self.chat_widget.add_error_message(tr!(
+                        "Voice preference was saved, but effective settings could not be read: {error}",
                         error = error.to_string()
                     )),
                 }
             }
-            Err(error) => self.chat_widget.add_error_message(crate::i18n::tr!(
-                "realtime-settings-voice-save-failed",
+            Err(error) => self.chat_widget.add_error_message(tr!(
+                "Failed to save voice: {error}",
                 error = error.to_string()
             )),
         }

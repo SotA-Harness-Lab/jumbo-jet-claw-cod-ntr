@@ -18,16 +18,18 @@ use crate::app_server_session::SideChatStorage;
 use crate::chatwidget::InterruptedTurnNoticeMode;
 
 fn side_rename_block_message() -> &'static str {
-    crate::i18n::tr!("side-cannot-be-renamed")
+    tr!("Side conversations cannot be renamed.")
 }
 fn side_main_thread_unavailable_message() -> &'static str {
-    crate::i18n::tr!("side-main-thread-unavailable")
+    tr!("'/side' is unavailable until the main thread is ready.")
 }
 fn side_no_started_conversation_message() -> &'static str {
-    crate::i18n::tr!("side-no-started-conversation")
+    tr!(
+        "'/side' is unavailable until the current conversation has started. Send a message first, then try /side again."
+    )
 }
 fn side_already_open_message() -> &'static str {
-    crate::i18n::tr!("side-already-open")
+    tr!("A side conversation is already open. Press ctrl + c to return before starting another.")
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum SideParentStatus {
@@ -41,22 +43,21 @@ pub(super) enum SideParentStatus {
 
 impl SideParentStatus {
     fn label(self, parent_is_main: bool) -> &'static str {
-        match (self, parent_is_main) {
-            (SideParentStatus::NeedsInput, true) => crate::i18n::tr!("side-main-needs-input"),
-            (SideParentStatus::NeedsInput, false) => crate::i18n::tr!("side-parent-needs-input"),
-            (SideParentStatus::NeedsApproval, true) => crate::i18n::tr!("side-main-needs-approval"),
-            (SideParentStatus::NeedsApproval, false) => {
-                crate::i18n::tr!("side-parent-needs-approval")
-            }
-            (SideParentStatus::Failed, true) => crate::i18n::tr!("side-main-failed"),
-            (SideParentStatus::Failed, false) => crate::i18n::tr!("side-parent-failed"),
-            (SideParentStatus::Interrupted, true) => crate::i18n::tr!("side-main-interrupted"),
-            (SideParentStatus::Interrupted, false) => crate::i18n::tr!("side-parent-interrupted"),
-            (SideParentStatus::Closed, true) => crate::i18n::tr!("side-main-closed"),
-            (SideParentStatus::Closed, false) => crate::i18n::tr!("side-parent-closed"),
-            (SideParentStatus::Finished, true) => crate::i18n::tr!("side-main-finished"),
-            (SideParentStatus::Finished, false) => crate::i18n::tr!("side-parent-finished"),
-        }
+        let label = match (self, parent_is_main) {
+            (SideParentStatus::NeedsInput, true) => "main needs input",
+            (SideParentStatus::NeedsInput, false) => "parent needs input",
+            (SideParentStatus::NeedsApproval, true) => "main needs approval",
+            (SideParentStatus::NeedsApproval, false) => "parent needs approval",
+            (SideParentStatus::Failed, true) => "main failed",
+            (SideParentStatus::Failed, false) => "parent failed",
+            (SideParentStatus::Interrupted, true) => "main interrupted",
+            (SideParentStatus::Interrupted, false) => "parent interrupted",
+            (SideParentStatus::Closed, true) => "main closed",
+            (SideParentStatus::Closed, false) => "parent closed",
+            (SideParentStatus::Finished, true) => "main finished",
+            (SideParentStatus::Finished, false) => "parent finished",
+        };
+        crate::i18n::translate(label, /*context*/ None)
     }
 
     fn is_actionable(self) -> bool {
@@ -250,7 +251,7 @@ impl App {
                     .set_side_conversation_context_label(Some(format!(
                         "{}{}",
                         binding.display_label(),
-                        crate::i18n::tr!("side-suffix-for-side")
+                        tr!(" for side")
                     )));
             }
             return;
@@ -269,13 +270,10 @@ impl App {
         let mut label_parts = Vec::new();
         let parent_is_main = self.primary_thread_id == Some(parent_thread_id);
         if parent_is_main {
-            label_parts.push(crate::i18n::tr!("side-from-main-thread").to_string());
+            label_parts.push(tr!("from main thread").to_string());
         } else {
             let parent_label = self.thread_label(parent_thread_id);
-            label_parts.push(crate::i18n::tr!(
-                "side-from-parent-thread",
-                parent_label = parent_label
-            ));
+            label_parts.push(tr!("from parent thread ({parent_label})", parent_label));
         }
         if let Some(parent_status) = parent_status {
             label_parts.push(parent_status.label(parent_is_main).to_string());
@@ -284,18 +282,14 @@ impl App {
             crate::keymap::KeymapContext::Global,
             "toggle_side_conversation",
         ) {
-            label_parts.push(format!(
-                "{}{}",
-                binding.display_label(),
-                crate::i18n::tr!("side-suffix-to-switch")
-            ));
+            label_parts.push(format!("{}{}", binding.display_label(), tr!(" to switch")));
         }
         let action = if storage == SideChatStorage::Attached
             && self.local_settings.workspace_enabled(&self.config)
         {
-            crate::i18n::tr!("side-suffix-to-archive")
+            tr!(" to archive")
         } else {
-            crate::i18n::tr!("side-suffix-to-close")
+            tr!(" to close")
         };
         label_parts.push(format!(
             "{}{action}",
@@ -304,7 +298,7 @@ impl App {
         self.chat_widget
             .set_side_conversation_context_label(Some(format!(
                 "{}{}",
-                crate::i18n::tr!("side-label-prefix"),
+                tr!("Side "),
                 label_parts.join(" · ")
             )));
     }
@@ -547,8 +541,8 @@ impl App {
             return false;
         }
         if let Err(err) = app_server.thread_unsubscribe(thread_id).await {
-            let message = crate::i18n::tr!(
-                "side-failed-close-still-open",
+            let message = tr!(
+                "Failed to close side conversation {thread_id}; it is still open: {err}",
                 thread_id = thread_id.to_string(),
                 err = err.to_string()
             );
@@ -662,8 +656,8 @@ impl App {
         interrupt_for_close(app_server, thread_id, turn_id, attachment)
             .await
             .map_err(|err| {
-                crate::i18n::tr!(
-                    "side-failed-close-still-open",
+                tr!(
+                    "Failed to close side conversation {thread_id}; it is still open: {err}",
                     thread_id = thread_id.to_string(),
                     err = err.to_string()
                 )
@@ -730,7 +724,10 @@ impl App {
         }) {
             side_no_started_conversation_message().to_string()
         } else {
-            crate::i18n::tr!("side-failed-start", err = err.to_string())
+            tr!(
+                "Failed to start side conversation: {err}",
+                err = err.to_string()
+            )
         }
     }
 
@@ -809,7 +806,7 @@ impl App {
             self.restore_side_user_message(user_message.take());
             self.sync_side_thread_ui();
             self.chat_widget
-                .add_error_message(crate::i18n::tr!("side-wait-permissions").into());
+                .add_error_message(tr!("Wait for permissions to update before forking.").into());
             return Ok(AppRunControl::Continue);
         }
 
@@ -952,8 +949,8 @@ impl App {
                 let forked = fork.thread;
                 let child_thread_id = forked.session.thread_id;
                 if let Err(err) = fork.boundary {
-                    let message = crate::i18n::tr!(
-                        "side-failed-prepare",
+                    let message = tr!(
+                        "Failed to prepare side conversation {child_thread_id}: {err}",
                         child_thread_id = child_thread_id.to_string(),
                         err = err.to_string()
                     );
@@ -1055,8 +1052,8 @@ impl App {
                         );
                     }
                     self.restore_side_user_message(user_message.take());
-                    self.chat_widget.add_error_message(crate::i18n::tr!(
-                        "side-failed-switch-into-err",
+                    self.chat_widget.add_error_message(tr!(
+                        "Failed to switch into side conversation {child_thread_id}: {err}",
                         child_thread_id = child_thread_id.to_string(),
                         err = err.to_string()
                     ));
@@ -1072,8 +1069,8 @@ impl App {
                     self.discard_side_thread_or_keep_visible(tui, app_server, child_thread_id)
                         .await;
                     self.restore_side_user_message(user_message.take());
-                    self.chat_widget.add_error_message(crate::i18n::tr!(
-                        "side-failed-switch-into",
+                    self.chat_widget.add_error_message(tr!(
+                        "Failed to switch into side conversation {child_thread_id}.",
                         child_thread_id = child_thread_id.to_string()
                     ));
                 }

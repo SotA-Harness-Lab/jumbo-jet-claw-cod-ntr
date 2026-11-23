@@ -20,13 +20,13 @@ impl App {
         {
             return None;
         }
-        let hint_details = crate::i18n::tr!("prompt-navigation-hint-details");
-        let hint_scroll = crate::i18n::tr!("prompt-navigation-hint-scroll");
-        let hint_prompts = crate::i18n::tr!("prompt-navigation-hint-prompts");
-        let hint_rewind = crate::i18n::tr!("prompt-navigation-hint-rewind");
-        let hint_back = crate::i18n::tr!("prompt-navigation-hint-back");
-        let label_long = crate::i18n::tr!("prompt-navigation-browsing-transcript");
-        let label = crate::i18n::tr!("prompt-navigation-browsing");
+        let hint_details = tr!("details");
+        let hint_scroll = tr!("scroll");
+        let hint_prompts = tr!("prompts");
+        let hint_rewind = tr!("rewind");
+        let hint_back = tr!("back");
+        let label_long = tr!("Browsing transcript");
+        let label = tr!("Browsing");
         let details = self
             .keymap
             .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript")

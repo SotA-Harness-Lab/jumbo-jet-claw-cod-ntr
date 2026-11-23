@@ -168,7 +168,7 @@ fn compute_desc_col(
             let mut spans = row.name_prefix_spans.clone();
             spans.push(row.name.clone().into());
             if row.disabled_reason.is_some() {
-                spans.push(crate::i18n::tr!("selection-popup-disabled-suffix").dim());
+                spans.push(tr!(" (disabled)").dim());
             }
             line_width(&Line::from(spans))
         })

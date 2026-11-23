@@ -54,11 +54,7 @@ fn combined_description(
     description_layout: SelectionDescriptionLayout,
 ) -> Option<String> {
     match (&row.description, &row.disabled_reason) {
-        (Some(desc), Some(reason)) => Some(crate::i18n::tr!(
-            "selection-row-desc-disabled",
-            desc = desc,
-            reason = reason
-        )),
+        (Some(desc), Some(reason)) => Some(tr!("{desc} (disabled: {reason})", desc, reason)),
         (Some(desc), None) => Some(desc.clone()),
         (None, Some(reason))
             if matches!(
@@ -69,7 +65,7 @@ fn combined_description(
         {
             Some(reason.clone())
         }
-        (None, Some(reason)) => Some(crate::i18n::tr!("selection-row-disabled", reason = reason)),
+        (None, Some(reason)) => Some(tr!("disabled: {reason}", reason)),
         (None, None) => None,
     }
 }
@@ -107,7 +103,7 @@ fn build_name_spans(row: &GenericDisplayRow, name_limit: usize) -> Vec<Span<'sta
         name_spans.push("…".into());
     }
     if row.disabled_reason.is_some() {
-        name_spans.push(crate::i18n::tr!("selection-row-disabled-suffix").dim());
+        name_spans.push(tr!(" (disabled)").dim());
     }
     name_spans
 }

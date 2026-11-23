@@ -60,8 +60,8 @@ pub(super) fn skill_load_warning_messages(errors: &[SkillErrorInfo]) -> Vec<Stri
     }
 
     let error_count = errors.len();
-    let mut messages = vec![crate::i18n::tr!(
-        "startup-prompts-skills-skipped",
+    let mut messages = vec![tr!(
+        "Skipped loading {error_count} skill(s) due to invalid SKILL.md files.",
         error_count = error_count as i64
     )];
     messages.extend(
@@ -92,7 +92,7 @@ pub(super) fn project_config_warning(config: &Config) -> Option<String> {
         return None;
     }
 
-    let mut message = crate::i18n::tr!("startup-prompts-project-config-disabled").to_string();
+    let mut message = tr!("Project-local config, hooks, and exec policies are disabled in the following folders until the project is trusted, but skills still load.\n").to_string();
     for (index, (folder, reason)) in disabled_folders.iter().enumerate() {
         let display_index = index + 1;
         message.push_str(&format!("    {display_index}. {folder}\n"));
@@ -137,20 +137,20 @@ pub(super) fn model_upgrade_for_migration(
         _ => return None,
     };
     let availability = if model == "openai.gpt-5.4" {
-        crate::i18n::tr!("startup-prompts-no-longer-offered")
+        tr!("no longer offered in Codex")
     } else {
-        crate::i18n::tr!("startup-prompts-no-longer-available")
+        tr!("no longer available")
     };
     Some(ModelUpgrade {
         id: target_model.to_string(),
         migration_config_key: model.to_string(),
         model_link: None,
         upgrade_copy: None,
-        migration_markdown: Some(crate::i18n::tr!(
-            "startup-prompts-model-migration",
-            current_name = current_name,
-            availability = availability,
-            target_name = target_name
+        migration_markdown: Some(tr!(
+            "{current_name} is {availability}\n\nCodex now uses {target_name} in place of {current_name}. Switch to {target_name} to continue.\n",
+            current_name,
+            availability,
+            target_name
         )),
         retirement_at: None,
     })

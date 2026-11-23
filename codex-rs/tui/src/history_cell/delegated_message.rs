@@ -18,9 +18,9 @@ pub(crate) struct DelegatedMessageCell {
 impl DelegatedMessageCell {
     pub(crate) fn new(source_thread_id: &str, markdown: String) -> Self {
         Self {
-            attribution: crate::i18n::tr!(
-                "delegated-message-sent-by-codex",
-                source_thread_id = source_thread_id
+            attribution: tr!(
+                "Sent by Codex from task {source_thread_id}",
+                source_thread_id
             ),
             markdown,
         }

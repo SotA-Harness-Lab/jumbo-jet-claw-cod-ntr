@@ -27,10 +27,10 @@ use std::sync::LazyLock;
 use regex_lite::Regex;
 use serde_json::Value;
 
-use crate::CLAUDE_DIR;
 use crate::plugins::INSTALLED_PLUGINS_FILE;
 use crate::plugins::installed_plugin_paths;
 use crate::settings::read_settings;
+use crate::user_config_dir;
 
 const MANIFEST: &str = ".claude-plugin/plugin.json";
 const PLUGIN_ROOT: &str = "${CLAUDE_PLUGIN_ROOT}";
@@ -69,7 +69,7 @@ impl PluginVariables {
     /// The variables of the plugin installed at `root`, with the option values found under
     /// the user's home directory. `None` when `root` holds no Claude Code plugin manifest.
     pub fn load(root: &Path) -> Option<Self> {
-        let claude_home = std::env::var_os("HOME").map(|home| Path::new(&home).join(CLAUDE_DIR));
+        let claude_home = user_config_dir();
         let plugin = Self::load_with_home(root, claude_home.as_deref())?;
         Some(match codex_home() {
             Some(codex_home) => plugin.with_codex_home(&codex_home),

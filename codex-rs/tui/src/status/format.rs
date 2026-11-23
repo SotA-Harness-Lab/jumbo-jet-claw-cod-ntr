@@ -21,7 +21,7 @@ impl FieldFormatter {
     {
         let label_width = labels
             .into_iter()
-            .map(|label| display_width(label.as_ref()))
+            .map(|label| display_width(crate::i18n::translate_in("status-field", label.as_ref())))
             .max()
             .unwrap_or(0);
         let indent_width = display_width(Self::INDENT);
@@ -66,6 +66,7 @@ impl FieldFormatter {
     }
 
     fn label_span(&self, label: &str) -> Span<'static> {
+        let label = crate::i18n::translate_in("status-field", label);
         let mut buf = String::with_capacity(self.value_offset);
         buf.push_str(self.indent);
 

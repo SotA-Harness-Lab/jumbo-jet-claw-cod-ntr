@@ -853,12 +853,10 @@ fn add_claude_code_bash_rules(policy: &mut Policy) {
     if !codex_claude_compat::enabled() {
         return;
     }
-    let Some(home) = dirs::home_dir() else {
+    let Some(claude_home) = codex_claude_compat::user_config_dir() else {
         return;
     };
-    let path = home
-        .join(codex_claude_compat::CLAUDE_DIR)
-        .join("settings.json");
+    let path = claude_home.join("settings.json");
     let settings = match codex_claude_compat::read_settings(&path) {
         Ok(Some(settings)) => settings,
         Ok(None) => return,

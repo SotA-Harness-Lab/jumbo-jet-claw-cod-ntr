@@ -36,15 +36,15 @@ impl App {
             match tokio::time::timeout_at(deadline, outcome).await {
                 Ok(Ok(Ok(()))) => {}
                 Ok(Ok(Err(error))) => {
-                    warnings.push(crate::i18n::tr!(
-                        "exit-summary-failed-archive-thread",
+                    warnings.push(tr!(
+                        "Failed to archive thread {thread_id}: {error}",
                         thread_id = thread_id.to_string(),
                         error = error.to_string()
                     ));
                 }
                 Ok(Err(_)) | Err(_) => {
-                    warnings.push(crate::i18n::tr!(
-                        "exit-summary-archive-not-confirmed",
+                    warnings.push(tr!(
+                        "Archive of thread {thread_id} was not confirmed.",
                         thread_id = thread_id.to_string()
                     ));
                 }
@@ -84,8 +84,8 @@ impl App {
                 .agents
                 .primary_hint("stop", &self.keymap.agents.stop)
                 .map_or_else(
-                    || crate::i18n::tr!("exit-summary-use-stop-shortcut").to_string(),
-                    |key| crate::i18n::tr!("exit-summary-press-key", key = key.display_label()),
+                    || tr!("use the configured stop shortcut").to_string(),
+                    |key| tr!("press {key}", key = key.display_label()),
                 );
             Some(DisconnectInfo { command, stop_hint })
         });
@@ -122,19 +122,19 @@ impl AppExitInfo {
             let turn_interrupted = matches!(self.exit_reason, ExitReason::TurnInterrupted);
             let message = match self.exit_reason {
                 ExitReason::UserRequested => {
-                    crate::i18n::tr!("exit-summary-disconnected-running-continues")
+                    tr!("Disconnected from this task. Any running work continues.")
                 }
                 ExitReason::Fatal(_) => {
-                    crate::i18n::tr!("exit-summary-disconnected-may-be-running")
+                    tr!("Disconnected from this task. Work may still be running.")
                 }
                 ExitReason::TurnInterrupted => {
-                    crate::i18n::tr!("exit-summary-disconnected-turn-stopped")
+                    tr!("Disconnected from this task. The current turn was stopped.")
                 }
             };
             lines.push(message.to_string());
             let mut resume_command = disconnect.command.clone();
             resume_command.extend(["resume".to_string(), thread_id.to_string()]);
-            lines.push(crate::i18n::tr!("exit-summary-to-reconnect").to_string());
+            lines.push(tr!("To reconnect, run:").to_string());
             lines.push(format!(
                 "  {}",
                 color_command(escape_command(&resume_command)),
@@ -142,8 +142,8 @@ impl AppExitInfo {
             if !turn_interrupted {
                 let mut agents_command = disconnect.command;
                 agents_command.push("agents".to_string());
-                lines.push(crate::i18n::tr!(
-                    "exit-summary-stop-current-turn",
+                lines.push(tr!(
+                    "Stop the current turn: run {command}, select this task, and {hint}.",
                     command = color_command(escape_command(&agents_command)),
                     hint = disconnect.stop_hint,
                 ));
@@ -163,21 +163,21 @@ impl AppExitInfo {
             lines.push(self.token_usage.to_string());
         }
         if let Some(thread) = self.resume_hint {
-            lines.push(crate::i18n::tr!("exit-summary-to-continue").to_string());
+            lines.push(tr!("To continue this session, run:").to_string());
             lines.push(format!(
                 "  {}",
                 color_command(format!("codex resume {}", thread.thread_id)),
             ));
             if let Some(thread_name) = thread.thread_name.filter(|name| !name.is_empty()) {
-                lines.push(crate::i18n::tr!(
-                    "exit-summary-or-run-select",
+                lines.push(tr!(
+                    "Or run {command} and select {name}.",
                     command = color_command("codex resume".to_string()),
                     name = color_command(thread_name),
                 ));
             }
         } else if let Some(thread_id) = self.thread_id {
-            lines.push(crate::i18n::tr!(
-                "exit-summary-session-id",
+            lines.push(tr!(
+                "Session ID: {thread_id}",
                 thread_id = thread_id.to_string()
             ));
         }

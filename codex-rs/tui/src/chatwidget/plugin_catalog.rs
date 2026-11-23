@@ -75,7 +75,7 @@ const REMOTE_LOADING_TAB_ID_PREFIX: &str = "remote-loading:";
 const REMOTE_EMPTY_TAB_ID_PREFIX: &str = "remote-empty:";
 const REMOTE_ERROR_TAB_ID_PREFIX: &str = "remote-error:";
 fn openai_curated_loading_description() -> &'static str {
-    crate::i18n::tr!("plugin-catalog-openai-curated-loading-desc")
+    tr!("This updates when OpenAI Curated plugins finish loading")
 }
 const WORKSPACE_SECTION_TAB_ORDER: u8 = 0;
 const SHARED_WITH_ME_SECTION_TAB_ORDER: u8 = 1;
@@ -135,11 +135,11 @@ impl MarketplaceProduct {
 
     fn label(self) -> Option<&'static str> {
         match self {
-            Self::OpenAiCurated => Some(crate::i18n::tr!("plugin-catalog-openai-curated")),
-            Self::Workspace => Some(crate::i18n::tr!("plugin-catalog-workspace")),
-            Self::SharedWithMe => Some(crate::i18n::tr!("plugin-catalog-shared-with-me")),
-            Self::SharedWithMeLink => Some(crate::i18n::tr!("plugin-catalog-shared-with-me-link")),
-            Self::Local => Some(crate::i18n::tr!("plugin-catalog-local")),
+            Self::OpenAiCurated => Some(tr!("OpenAI Curated")),
+            Self::Workspace => Some(tr!("Workspace")),
+            Self::SharedWithMe => Some(tr!("Shared with me")),
+            Self::SharedWithMeLink => Some(tr!("Shared with me (link)")),
+            Self::Local => Some(tr!("Local")),
             Self::Other => None,
         }
     }
@@ -176,36 +176,28 @@ fn remote_marketplace_sections() -> [RemoteMarketplaceSection; 2] {
     [
         RemoteMarketplaceSection {
             id: "workspace",
-            label: crate::i18n::tr!("plugin-catalog-workspace"),
+            label: tr!("Workspace"),
             loading_tab_id: "workspace-loading",
-            loading_item_description: crate::i18n::tr!(
-                "plugin-catalog-this-updates-when-workspace-plugins-f"
-            ),
+            loading_item_description: tr!("This updates when workspace plugins finish loading"),
             marketplace_names: &[REMOTE_WORKSPACE_MARKETPLACE_NAME],
             show_empty_tab: true,
-            empty_item_name: crate::i18n::tr!("plugin-catalog-no-workspace-plugins-available"),
-            empty_item_description: crate::i18n::tr!(
-                "plugin-catalog-no-workspace-directory-plugins-are-av"
-            ),
+            empty_item_name: tr!("No workspace plugins available"),
+            empty_item_description: tr!("No workspace directory plugins are available"),
             tab_order: WORKSPACE_SECTION_TAB_ORDER,
         },
         RemoteMarketplaceSection {
             id: "shared-with-me",
-            label: crate::i18n::tr!("plugin-catalog-shared-with-me"),
+            label: tr!("Shared with me"),
             loading_tab_id: "shared-with-me-loading",
-            loading_item_description: crate::i18n::tr!(
-                "plugin-catalog-this-updates-when-shared-plugins-fini"
-            ),
+            loading_item_description: tr!("This updates when shared plugins finish loading"),
             marketplace_names: &[
                 REMOTE_WORKSPACE_SHARED_WITH_ME_MARKETPLACE_NAME,
                 REMOTE_WORKSPACE_SHARED_WITH_ME_PRIVATE_MARKETPLACE_NAME,
                 REMOTE_WORKSPACE_SHARED_WITH_ME_UNLISTED_MARKETPLACE_NAME,
             ],
             show_empty_tab: false,
-            empty_item_name: crate::i18n::tr!("plugin-catalog-no-shared-plugins-available"),
-            empty_item_description: crate::i18n::tr!(
-                "plugin-catalog-no-plugins-have-been-shared-with"
-            ),
+            empty_item_name: tr!("No shared plugins available"),
+            empty_item_description: tr!("No plugins have been shared with you"),
             tab_order: SHARED_WITH_ME_SECTION_TAB_ORDER,
         },
     ]
@@ -302,9 +294,7 @@ impl Renderable for DelayedLoadingHeader {
         }
 
         let mut lines = Vec::with_capacity(3);
-        lines.push(Line::from(
-            crate::i18n::tr!("plugin-catalog-plugins").bold(),
-        ));
+        lines.push(Line::from(tr!("Plugins").bold()));
 
         let now = Instant::now();
         let elapsed = now.saturating_duration_since(self.started_at);
@@ -363,22 +353,16 @@ impl ChatWidget {
             header: Box::new(DelayedLoadingHeader::new(
                 self.frame_requester.clone(),
                 self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
-                crate::i18n::tr!("plugin-catalog-loading-available-plugins").to_string(),
-                Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-the-marketplace-lis")
-                        .to_string(),
-                ),
+                tr!("Loading available plugins...").to_string(),
+                Some(tr!("This updates when the marketplace list is ready.").to_string()),
             )),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-loading-plugins").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-the-marketplace-lis-2")
-                        .to_string(),
-                ),
+                name: "Loading plugins...".to_string(),
+                description: Some("This updates when the marketplace list is ready".to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -388,19 +372,18 @@ impl ChatWidget {
             header: Box::new(DelayedLoadingHeader::new(
                 self.frame_requester.clone(),
                 self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
-                crate::i18n::tr!("plugin-catalog-adding-marketplace").to_string(),
+                tr!("Adding marketplace...").to_string(),
                 /*note*/ None,
             )),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-adding-marketplace").to_string(),
+                name: "Adding marketplace...".to_string(),
                 description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-marketplace-install")
-                        .to_string(),
+                    "This updates when marketplace installation completes".to_string(),
                 ),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -411,17 +394,15 @@ impl ChatWidget {
         marketplace_display_name: String,
     ) -> SelectionViewParams {
         let header = Paragraph::new(vec![
-            Line::from(crate::i18n::tr!("plugin-catalog-plugins").bold()),
+            Line::from(tr!("Plugins").bold()),
             Line::from(
-                crate::i18n::tr!(
-                    "plugin-catalog-remove-marketplace-question",
+                tr!(
+                    "Remove {name} marketplace?",
                     name = marketplace_display_name.as_str()
                 )
                 .dim(),
             ),
-            Line::from(
-                crate::i18n::tr!("plugin-catalog-this-removes-the-configured-marketpla").dim(),
-            ),
+            Line::from(tr!("This removes the configured marketplace from Codex.").dim()),
         ])
         .wrap(Wrap { trim: false });
 
@@ -436,21 +417,19 @@ impl ChatWidget {
             header: Box::new(header),
             footer_hint: Some(Line::from(vec![
                 Span::from(key_hint::plain(KeyCode::Enter)),
-                crate::i18n::tr!("plugin-catalog-select").dim(),
+                tr!(" select").dim(),
                 " · ".into(),
                 Span::from(key_hint::plain(KeyCode::Esc)),
-                crate::i18n::tr!("plugin-catalog-close").dim(),
+                tr!(" close").dim(),
             ])),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("plugin-catalog-remove-marketplace").to_string(),
+                    name: "Remove marketplace".to_string(),
                     description: Some(
-                        crate::i18n::tr!("plugin-catalog-remove-this-marketplace-from-the-avai")
-                            .to_string(),
+                        "Remove this marketplace from the available plugin list".to_string(),
                     ),
                     selected_description: Some(
-                        crate::i18n::tr!("plugin-catalog-remove-this-marketplace-from-the-avai")
-                            .to_string(),
+                        "Remove this marketplace from the available plugin list".to_string(),
                     ),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::OpenMarketplaceRemoveLoading {
@@ -465,15 +444,9 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("plugin-catalog-back-to-plugins").to_string(),
-                    description: Some(
-                        crate::i18n::tr!("plugin-catalog-keep-this-marketplace-installed")
-                            .to_string(),
-                    ),
-                    selected_description: Some(
-                        crate::i18n::tr!("plugin-catalog-keep-this-marketplace-installed")
-                            .to_string(),
-                    ),
+                    name: "Back to plugins".to_string(),
+                    description: Some("Keep this marketplace installed".to_string()),
+                    selected_description: Some("Keep this marketplace installed".to_string()),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::OpenPluginsList {
                             cwd: cwd_for_cancel.clone(),
@@ -499,21 +472,15 @@ impl ChatWidget {
     ) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
-            title: Some(crate::i18n::tr!("plugin-catalog-plugins").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "plugin-catalog-removing-name",
-                name = marketplace_display_name
-            )),
+            title: Some("Plugins".to_string()),
+            subtitle: Some(tr!("Removing {name}...", name = marketplace_display_name)),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-removing-marketplace").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-marketplace-removal")
-                        .to_string(),
-                ),
+                name: "Removing marketplace...".to_string(),
+                description: Some("This updates when marketplace removal completes".to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -522,10 +489,8 @@ impl ChatWidget {
         marketplace_name: Option<&str>,
     ) -> SelectionViewParams {
         let loading_text = marketplace_name
-            .map(|name| crate::i18n::tr!("plugin-catalog-upgrading-name-marketplace", name = name))
-            .unwrap_or_else(|| {
-                crate::i18n::tr!("plugin-catalog-upgrading-marketplaces").to_string()
-            });
+            .map(|name| tr!("Upgrading {name} marketplace...", name))
+            .unwrap_or_else(|| tr!("Upgrading marketplaces...").to_string());
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
             header: Box::new(DelayedLoadingHeader::new(
@@ -536,14 +501,11 @@ impl ChatWidget {
             )),
             items: vec![SelectionItem {
                 name: loading_text,
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-marketplace-upgrade")
-                        .to_string(),
-                ),
+                description: Some("This updates when marketplace upgrade completes".to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -556,22 +518,16 @@ impl ChatWidget {
             header: Box::new(DelayedLoadingHeader::new(
                 self.frame_requester.clone(),
                 self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
-                crate::i18n::tr!(
-                    "plugin-catalog-loading-details-for",
-                    name = plugin_display_name
-                ),
+                tr!("Loading details for {name}...", name = plugin_display_name),
                 /*note*/ None,
             )),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-loading-plugin-details").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-plugin-details-load")
-                        .to_string(),
-                ),
+                name: "Loading plugin details...".to_string(),
+                description: Some("This updates when plugin details load".to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -581,21 +537,15 @@ impl ChatWidget {
     ) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
-            title: Some(crate::i18n::tr!("plugin-catalog-plugins").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "plugin-catalog-installing-name",
-                name = plugin_display_name
-            )),
+            title: Some("Plugins".to_string()),
+            subtitle: Some(tr!("Installing {name}...", name = plugin_display_name)),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-installing-plugin").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-plugin-installation")
-                        .to_string(),
-                ),
+                name: "Installing plugin...".to_string(),
+                description: Some("This updates when plugin installation completes".to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -605,58 +555,45 @@ impl ChatWidget {
     ) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
-            title: Some(crate::i18n::tr!("plugin-catalog-plugins").to_string()),
-            subtitle: Some(crate::i18n::tr!(
-                "plugin-catalog-uninstalling-name",
-                name = plugin_display_name
-            )),
+            title: Some("Plugins".to_string()),
+            subtitle: Some(tr!("Uninstalling {name}...", name = plugin_display_name)),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-uninstalling-plugin").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-updates-when-the-plugin-removal")
-                        .to_string(),
-                ),
+                name: "Uninstalling plugin...".to_string(),
+                description: Some("This updates when the plugin removal completes".to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
     pub(super) fn plugins_error_popup_params(&self, err: &str) -> SelectionViewParams {
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
-            title: Some(crate::i18n::tr!("plugin-catalog-plugins").to_string()),
-            subtitle: Some(crate::i18n::tr!("plugin-catalog-failed-to-load-plugins").to_string()),
+            title: Some("Plugins".to_string()),
+            subtitle: Some("Failed to load plugins.".to_string()),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-plugin-marketplace-unavailable").to_string(),
+                name: "Plugin marketplace unavailable".to_string(),
                 description: Some(err.to_string()),
                 is_disabled: true,
                 ..Default::default()
             }],
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
     pub(super) fn marketplace_add_error_popup_params(&self) -> SelectionViewParams {
         let mut items = vec![
             SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-marketplace-add-failed").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-failed-to-add-marketplace-from-the")
-                        .to_string(),
-                ),
+                name: "Marketplace add failed".to_string(),
+                description: Some("Failed to add marketplace from the provided source".to_string()),
                 is_disabled: true,
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-try-again").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-enter-a-marketplace-source").to_string(),
-                ),
-                selected_description: Some(
-                    crate::i18n::tr!("plugin-catalog-enter-a-marketplace-source").to_string(),
-                ),
+                name: "Try again".to_string(),
+                description: Some("Enter a marketplace source".to_string()),
+                selected_description: Some("Enter a marketplace source".to_string()),
                 actions: vec![Box::new(|tx| {
                     tx.send(AppEvent::OpenMarketplaceAddPrompt);
                 })],
@@ -667,13 +604,9 @@ impl ChatWidget {
         if let PluginsCacheState::Ready(plugins_response) = self.plugins_cache_for_current_cwd() {
             let cwd = self.config.cwd.to_path_buf();
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-back-to-plugins").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-                ),
-                selected_description: Some(
-                    crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-                ),
+                name: "Back to plugins".to_string(),
+                description: Some("Return to the plugin list".to_string()),
+                selected_description: Some("Return to the plugin list".to_string()),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::OpenPluginsList {
                         cwd: cwd.clone(),
@@ -686,13 +619,11 @@ impl ChatWidget {
 
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
-            title: Some(crate::i18n::tr!("plugin-catalog-plugins").to_string()),
-            subtitle: Some(
-                crate::i18n::tr!("plugin-catalog-failed-to-add-marketplace").to_string(),
-            ),
+            title: Some("Plugins".to_string()),
+            subtitle: Some("Failed to add marketplace.".to_string()),
             footer_hint: Some(plugin_detail_hint_line()),
             items,
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -705,24 +636,15 @@ impl ChatWidget {
         let marketplace_display_name = marketplace_display_name.to_string();
         let mut items = vec![
             SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-marketplace-removal-failed").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-failed-to-remove-the-selected-marketp")
-                        .to_string(),
-                ),
+                name: "Marketplace removal failed".to_string(),
+                description: Some("Failed to remove the selected marketplace".to_string()),
                 is_disabled: true,
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-try-again").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-review-the-confirmation-prompt-again")
-                        .to_string(),
-                ),
-                selected_description: Some(
-                    crate::i18n::tr!("plugin-catalog-review-the-confirmation-prompt-again")
-                        .to_string(),
-                ),
+                name: "Try again".to_string(),
+                description: Some("Review the confirmation prompt again".to_string()),
+                selected_description: Some("Review the confirmation prompt again".to_string()),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::OpenMarketplaceRemoveConfirm {
                         marketplace_name: marketplace_name.clone(),
@@ -736,13 +658,9 @@ impl ChatWidget {
         if let PluginsCacheState::Ready(plugins_response) = self.plugins_cache_for_current_cwd() {
             let cwd = self.config.cwd.to_path_buf();
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-back-to-plugins").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-                ),
-                selected_description: Some(
-                    crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-                ),
+                name: "Back to plugins".to_string(),
+                description: Some("Return to the plugin list".to_string()),
+                selected_description: Some("Return to the plugin list".to_string()),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::OpenPluginsList {
                         cwd: cwd.clone(),
@@ -755,13 +673,11 @@ impl ChatWidget {
 
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
-            title: Some(crate::i18n::tr!("plugin-catalog-plugins").to_string()),
-            subtitle: Some(
-                crate::i18n::tr!("plugin-catalog-failed-to-remove-marketplace").to_string(),
-            ),
+            title: Some("Plugins".to_string()),
+            subtitle: Some("Failed to remove marketplace.".to_string()),
             footer_hint: Some(plugin_detail_hint_line()),
             items,
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -771,7 +687,7 @@ impl ChatWidget {
         plugins_response: Option<&PluginListResponse>,
     ) -> SelectionViewParams {
         let mut items = vec![SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-plugin-detail-unavailable").to_string(),
+            name: "Plugin detail unavailable".to_string(),
             description: Some(err.to_string()),
             is_disabled: true,
             ..Default::default()
@@ -779,13 +695,9 @@ impl ChatWidget {
         if let Some(plugins_response) = plugins_response.cloned() {
             let cwd = self.config.cwd.to_path_buf();
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-back-to-plugins").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-                ),
-                selected_description: Some(
-                    crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-                ),
+                name: "Back to plugins".to_string(),
+                description: Some("Return to the plugin list".to_string()),
+                selected_description: Some("Return to the plugin list".to_string()),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::OpenPluginsList {
                         cwd: cwd.clone(),
@@ -798,13 +710,11 @@ impl ChatWidget {
 
         SelectionViewParams {
             view_id: Some(PLUGINS_SELECTION_VIEW_ID),
-            title: Some(crate::i18n::tr!("plugin-catalog-plugins").to_string()),
-            subtitle: Some(
-                crate::i18n::tr!("plugin-catalog-failed-to-load-plugin-details").to_string(),
-            ),
+            title: Some("Plugins".to_string()),
+            subtitle: Some("Failed to load plugin details.".to_string()),
             footer_hint: Some(plugin_detail_hint_line()),
             items,
-            ..SelectionViewParams::picker()
+            ..SelectionViewParams::fixed_choices()
         }
     }
 
@@ -828,9 +738,7 @@ impl ChatWidget {
             .map(|(_, _, display_name)| {
                 PLUGIN_ROW_PREFIX_WIDTH + UnicodeWidthStr::width(display_name.as_str())
             })
-            .chain([UnicodeWidthStr::width(crate::i18n::tr!(
-                "plugin-catalog-add-marketplace"
-            ))])
+            .chain([UnicodeWidthStr::width(tr!("Add marketplace"))])
             .max()
             .map(|width| width.min(/*other*/ 36));
         let installed_entries = all_entries
@@ -845,19 +753,19 @@ impl ChatWidget {
             all_entries,
             &preferred_local_sources,
             /*include_marketplace_names*/ true,
-            crate::i18n::tr!("plugin-catalog-no-marketplace-plugins-available"),
-            crate::i18n::tr!("plugin-catalog-no-plugins-are-available-in-the"),
+            tr!("No marketplace plugins available"),
+            tr!("No plugins are available in the discovered marketplaces"),
         );
 
         tabs.push(SelectionTab {
             id: ALL_PLUGINS_TAB_ID.to_string(),
-            label: crate::i18n::tr!("plugin-catalog-all-plugins").to_string(),
+            label: tr!("All Plugins").to_string(),
             header: plugins_header(
-                crate::i18n::tr!("plugin-catalog-browse-plugins").to_string(),
-                crate::i18n::tr!(
-                    "plugin-catalog-installed-of-available",
-                    installed = installed,
-                    total = total
+                tr!("Browse plugins from available marketplaces.").to_string(),
+                tr!(
+                    "Installed {installed} of {total} available plugins.",
+                    installed,
+                    total
                 ),
             ),
             items: all_items,
@@ -865,17 +773,17 @@ impl ChatWidget {
 
         tabs.push(SelectionTab {
             id: INSTALLED_PLUGINS_TAB_ID.to_string(),
-            label: crate::i18n::tr!("plugin-catalog-installed-tab", installed = installed),
+            label: tr!("Installed ({installed})", installed),
             header: plugins_header(
-                crate::i18n::tr!("plugin-catalog-installed-plugins").to_string(),
-                crate::i18n::tr!("plugin-catalog-showing-installed", installed = installed),
+                tr!("Installed plugins.").to_string(),
+                tr!("Showing {installed} installed plugins.", installed),
             ),
             items: self.plugin_selection_items(
                 installed_entries,
                 &preferred_local_sources,
                 /*include_marketplace_names*/ true,
-                crate::i18n::tr!("plugin-catalog-no-installed-plugins"),
-                crate::i18n::tr!("plugin-catalog-no-installed-plugins"),
+                tr!("No installed plugins"),
+                tr!("No installed plugins"),
             ),
         });
 
@@ -896,20 +804,20 @@ impl ChatWidget {
         let (curated_empty_name, curated_empty_description) =
             if curated_loading && !curated_has_entries {
                 (
-                    crate::i18n::tr!("plugin-catalog-loading-openai-curated-plugins"),
+                    tr!("Loading OpenAI Curated plugins..."),
                     openai_curated_loading_description(),
                 )
             } else if let Some(section_error) = by_openai_section_error
                 && !curated_has_entries
             {
                 (
-                    crate::i18n::tr!("plugin-catalog-openai-curated-unavailable"),
+                    tr!("OpenAI Curated unavailable"),
                     section_error.message.as_str(),
                 )
             } else {
                 (
-                    crate::i18n::tr!("plugin-catalog-no-openai-curated-plugins-available"),
-                    crate::i18n::tr!("plugin-catalog-no-openai-curated-plugins-available"),
+                    tr!("No OpenAI Curated plugins available"),
+                    tr!("No OpenAI Curated plugins available"),
                 )
             };
         let mut curated_items = self.plugin_selection_items(
@@ -921,7 +829,7 @@ impl ChatWidget {
         );
         if curated_loading && curated_has_entries {
             curated_items.push(remote_section_loading_item(
-                crate::i18n::tr!("plugin-catalog-openai-curated"),
+                tr!("OpenAI Curated"),
                 openai_curated_loading_description(),
             ));
         }
@@ -935,11 +843,11 @@ impl ChatWidget {
         }
         tabs.push(SelectionTab {
             id: OPENAI_CURATED_TAB_ID.to_string(),
-            label: crate::i18n::tr!("plugin-catalog-openai-curated").to_string(),
+            label: tr!("OpenAI Curated").to_string(),
             header: plugins_header(
-                crate::i18n::tr!("plugin-catalog-openai-curated-marketplace").to_string(),
-                crate::i18n::tr!(
-                    "plugin-catalog-installed-of-curated",
+                tr!("OpenAI Curated marketplace.").to_string(),
+                tr!(
+                    "Installed {installed} of {total} OpenAI Curated plugins.",
                     installed = curated_installed,
                     total = curated_total
                 ),
@@ -1002,17 +910,17 @@ impl ChatWidget {
             }
             let header = if self.newly_installed_marketplace_tab_id.as_deref() == Some(&tab_id) {
                 plugins_header(
-                    crate::i18n::tr!(
-                        "plugin-catalog-label-installed-successfully",
+                    tr!(
+                        "{label} installed successfully.",
                         label = label.as_str()
                     ),
-                    crate::i18n::tr!("plugin-catalog-select-plugins-to-use").to_string(),
+                    tr!("Select the plugins you want to use and press Enter to install or view details.").to_string(),
                 )
             } else {
                 plugins_header(
-                    crate::i18n::tr!("plugin-catalog-label-period", label = label.as_str()),
-                    crate::i18n::tr!(
-                        "plugin-catalog-installed-of-label",
+                    tr!("{label}.", label = label.as_str()),
+                    tr!(
+                        "Installed {installed} of {total} {label} plugins.",
                         installed = marketplace_installed,
                         total = marketplace_total,
                         label = label.as_str()
@@ -1029,8 +937,8 @@ impl ChatWidget {
                         entries,
                         &preferred_local_sources,
                         /*include_marketplace_names*/ false,
-                        crate::i18n::tr!("plugin-catalog-no-plugins-available-in-this-marketpl"),
-                        crate::i18n::tr!("plugin-catalog-no-plugins-available-in-this-marketpl"),
+                        tr!("No plugins available in this marketplace"),
+                        tr!("No plugins available in this marketplace"),
                     ),
                 },
             ));
@@ -1054,9 +962,7 @@ impl ChatWidget {
             initial_tab_id,
             is_searchable: true,
             search_toggle_key: Some(crate::key_hint::plain(KeyCode::Tab)),
-            search_placeholder: Some(
-                crate::i18n::tr!("plugin-catalog-type-to-search-plugins").to_string(),
-            ),
+            search_placeholder: Some("Type to search plugins".to_string()),
             col_width_mode: ColumnWidthMode::AutoAllRows,
             row_display: SelectionRowDisplay::SingleLine,
             name_column_width,
@@ -1068,19 +974,18 @@ impl ChatWidget {
     fn marketplace_add_tab(&self) -> SelectionTab {
         SelectionTab {
             id: ADD_MARKETPLACE_TAB_ID.to_string(),
-            label: crate::i18n::tr!("plugin-catalog-add-marketplace-2").to_string(),
+            label: tr!("Add Marketplace").to_string(),
             header: plugins_header(
-                crate::i18n::tr!("plugin-catalog-add-a-marketplace-from-a-git").to_string(),
-                crate::i18n::tr!("plugin-catalog-enter-a-source-to-make-its").to_string(),
+                tr!("Add a marketplace from a Git repo or local root.").to_string(),
+                tr!("Enter a source to make its plugins available in this menu.").to_string(),
             ),
             items: vec![SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-add-marketplace").to_string(),
+                name: tr!("Add marketplace").to_string(),
                 description: Some(
-                    crate::i18n::tr!("plugin-catalog-enter-owner-repo-a-git-url").to_string(),
+                    tr!("Enter owner/repo, a Git URL, or a local marketplace path").to_string(),
                 ),
                 selected_description: Some(
-                    crate::i18n::tr!("plugin-catalog-press-enter-to-enter-a-marketplace")
-                        .to_string(),
+                    tr!("Press Enter to enter a marketplace source").to_string(),
                 ),
                 actions: vec![Box::new(|tx| {
                     tx.send(AppEvent::OpenMarketplaceAddPrompt);
@@ -1106,10 +1011,8 @@ impl ChatWidget {
         let detail_status_label = plugin_detail_status_label(&plugin.summary);
         let mut header = ColumnRenderable::new();
         header.push(
-            ratatui::widgets::Paragraph::new(Line::from(
-                crate::i18n::tr!("plugin-catalog-plugins").bold(),
-            ))
-            .wrap(ratatui::widgets::Wrap { trim: false }),
+            ratatui::widgets::Paragraph::new(Line::from(tr!("Plugins").bold()))
+                .wrap(ratatui::widgets::Wrap { trim: false }),
         );
         header.push(
             ratatui::widgets::Paragraph::new(Line::from(
@@ -1120,15 +1023,13 @@ impl ChatWidget {
         if !plugin.summary.installed {
             header.push(PluginDisclosureLine {
                 line: Line::from(vec![
-                    crate::i18n::tr!("plugin-catalog-data-shared-with-this-app-is").into(),
-                    crate::i18n::tr!("plugin-catalog-terms-of-service").bold(),
-                    crate::i18n::tr!("plugin-catalog-and").into(),
-                    crate::i18n::tr!("plugin-catalog-privacy-policy").bold(),
-                    crate::i18n::tr!("plugin-catalog-period-space").into(),
-                    crate::i18n::tr!("plugin-catalog-learn-more")
-                        .cyan()
-                        .underlined(),
-                    crate::i18n::tr!("plugin-catalog-period").into(),
+                    tr!("Data shared with this app is subject to the app's ").into(),
+                    tr!("terms of service").bold(),
+                    tr!(" and ").into(),
+                    tr!("privacy policy").bold(),
+                    tr!(". ").into(),
+                    tr!("Learn more").cyan().underlined(),
+                    tr!(".").into(),
                 ]),
             });
         }
@@ -1142,13 +1043,9 @@ impl ChatWidget {
         let cwd = self.config.cwd.to_path_buf();
         let plugins_response = plugins_response.clone();
         let mut items = vec![SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-back-to-plugins").to_string(),
-            description: Some(
-                crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-            ),
-            selected_description: Some(
-                crate::i18n::tr!("plugin-catalog-return-to-the-plugin-list").to_string(),
-            ),
+            name: "Back to plugins".to_string(),
+            description: Some("Return to the plugin list".to_string()),
+            selected_description: Some("Return to the plugin list".to_string()),
             actions: vec![Box::new(move |tx| {
                 tx.send(AppEvent::OpenPluginsList {
                     cwd: cwd.clone(),
@@ -1161,10 +1058,9 @@ impl ChatWidget {
         if plugin.summary.installed {
             if plugin.summary.install_policy == PluginInstallPolicy::InstalledByDefault {
                 items.push(SelectionItem {
-                    name: crate::i18n::tr!("plugin-catalog-installed-by-admin").to_string(),
+                    name: "Installed by admin".to_string(),
                     description: Some(
-                        crate::i18n::tr!("plugin-catalog-this-plugin-is-installed-by-your")
-                            .to_string(),
+                        "This plugin is installed by your workspace admin".to_string(),
                     ),
                     is_disabled: true,
                     ..Default::default()
@@ -1173,13 +1069,9 @@ impl ChatWidget {
                 let uninstall_cwd = self.config.cwd.to_path_buf();
                 let plugin_display_name = display_name;
                 items.push(SelectionItem {
-                    name: crate::i18n::tr!("plugin-catalog-uninstall-plugin").to_string(),
-                    description: Some(
-                        crate::i18n::tr!("plugin-catalog-remove-this-plugin-now").to_string(),
-                    ),
-                    selected_description: Some(
-                        crate::i18n::tr!("plugin-catalog-remove-this-plugin-now").to_string(),
-                    ),
+                    name: "Uninstall plugin".to_string(),
+                    description: Some("Remove this plugin now".to_string()),
+                    selected_description: Some("Remove this plugin now".to_string()),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::OpenPluginUninstallLoading {
                             plugin_display_name: plugin_display_name.clone(),
@@ -1194,10 +1086,9 @@ impl ChatWidget {
                 });
             } else {
                 items.push(SelectionItem {
-                    name: crate::i18n::tr!("plugin-catalog-uninstall-plugin").to_string(),
+                    name: "Uninstall plugin".to_string(),
                     description: Some(
-                        crate::i18n::tr!("plugin-catalog-this-remote-plugin-did-not-provide")
-                            .to_string(),
+                        "This remote plugin did not provide an uninstall identity".to_string(),
                     ),
                     is_disabled: true,
                     ..Default::default()
@@ -1205,19 +1096,16 @@ impl ChatWidget {
             }
         } else if plugin.summary.availability == PluginAvailability::DisabledByAdmin {
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-install-plugin").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-plugin-is-disabled-by-your").to_string(),
-                ),
+                name: "Install plugin".to_string(),
+                description: Some("This plugin is disabled by your workspace admin".to_string()),
                 is_disabled: true,
                 ..Default::default()
             });
         } else if plugin.summary.install_policy == PluginInstallPolicy::NotAvailable {
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-install-plugin").to_string(),
+                name: "Install plugin".to_string(),
                 description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-plugin-is-not-installable-from")
-                        .to_string(),
+                    "This plugin is not installable from this marketplace".to_string(),
                 ),
                 is_disabled: true,
                 ..Default::default()
@@ -1227,13 +1115,9 @@ impl ChatWidget {
             let plugin_name = plugin_request_name(&plugin.summary);
             let plugin_display_name = display_name;
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-install-plugin").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-install-this-plugin-now").to_string(),
-                ),
-                selected_description: Some(
-                    crate::i18n::tr!("plugin-catalog-install-this-plugin-now").to_string(),
-                ),
+                name: "Install plugin".to_string(),
+                description: Some("Install this plugin now".to_string()),
+                selected_description: Some("Install this plugin now".to_string()),
                 actions: vec![Box::new(move |tx| {
                     tx.send(AppEvent::OpenPluginInstallLoading {
                         plugin_display_name: plugin_display_name.clone(),
@@ -1249,37 +1133,37 @@ impl ChatWidget {
             });
         } else {
             items.push(SelectionItem {
-                name: crate::i18n::tr!("plugin-catalog-install-plugin").to_string(),
-                description: Some(
-                    crate::i18n::tr!("plugin-catalog-this-plugin-did-not-provide-an").to_string(),
-                ),
+                name: "Install plugin".to_string(),
+                description: Some("This plugin did not provide an install location".to_string()),
                 is_disabled: true,
                 ..Default::default()
             });
         }
 
+        // These actions have built-in copy. The rows below display plugin metadata.
+        SelectionItem::translate_options("picker-option", &mut items);
         items.extend(plugin_metadata_items(plugin));
 
         items.push(SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-skills").to_string(),
+            name: tr!("Skills").to_string(),
             description: Some(plugin_skill_summary(plugin)),
             is_disabled: true,
             ..Default::default()
         });
         items.push(SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-hooks").to_string(),
+            name: tr!("Hooks").to_string(),
             description: Some(plugin_hook_summary(plugin)),
             is_disabled: true,
             ..Default::default()
         });
         items.push(SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-apps").to_string(),
+            name: tr!("Apps").to_string(),
             description: Some(plugin_app_summary(plugin)),
             is_disabled: true,
             ..Default::default()
         });
         items.push(SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-mcp-servers").to_string(),
+            name: tr!("MCP Servers").to_string(),
             description: Some(plugin_mcp_summary(plugin)),
             is_disabled: true,
             ..Default::default()
@@ -1329,51 +1213,51 @@ impl ChatWidget {
             let selected_status_label = format!("{status_label:<status_label_width$}");
             let selected_description = if can_toggle_plugin && self.plugin_toggle_key_available() {
                 let toggle_action = if plugin.enabled {
-                    crate::i18n::tr!("plugin-catalog-toggle-disable")
+                    tr!("disable")
                 } else {
-                    crate::i18n::tr!("plugin-catalog-toggle-enable")
+                    tr!("enable")
                 };
                 if can_view_details {
-                    crate::i18n::tr!(
-                        "plugin-catalog-status-tab-to-toggle-enter",
+                    tr!(
+                        "{status}   Tab to {action}; Enter view details",
                         status = selected_status_label,
                         action = toggle_action
                     )
                 } else {
-                    crate::i18n::tr!(
-                        "plugin-catalog-status-tab-to-toggle",
+                    tr!(
+                        "{status}   Tab to {action}",
                         status = selected_status_label,
                         action = toggle_action
                     )
                 }
             } else if disabled_by_admin && can_view_details {
-                crate::i18n::tr!(
-                    "plugin-catalog-status-press-enter-details",
+                tr!(
+                    "{status}   Press Enter to view plugin details",
                     status = selected_status_label
                 )
             } else if disabled_by_admin {
-                crate::i18n::tr!(
-                    "plugin-catalog-status-details-unavailable",
+                tr!(
+                    "{status}   Plugin details are unavailable",
                     status = selected_status_label
                 )
             } else if plugin.installed && can_view_details {
-                crate::i18n::tr!(
-                    "plugin-catalog-status-press-enter-details",
+                tr!(
+                    "{status}   Press Enter to view plugin details",
                     status = selected_status_label
                 )
             } else if plugin.installed {
-                crate::i18n::tr!(
-                    "plugin-catalog-status-details-unavailable",
+                tr!(
+                    "{status}   Plugin details are unavailable",
                     status = selected_status_label
                 )
             } else if can_view_details {
-                crate::i18n::tr!(
-                    "plugin-catalog-status-press-enter-install",
+                tr!(
+                    "{status}   Press Enter to install or view plugin details",
                     status = selected_status_label
                 )
             } else {
-                crate::i18n::tr!(
-                    "plugin-catalog-status-remote-unavailable",
+                tr!(
+                    "{status}   Remote plugin details are not available yet",
                     status = selected_status_label
                 )
             };
@@ -1420,8 +1304,8 @@ impl ChatWidget {
                     Vec::new()
                 };
             let is_disabled = !can_view_details && !plugin.installed;
-            let disabled_reason = is_disabled
-                .then(|| crate::i18n::tr!("plugin-catalog-details-unavailable-reason").to_string());
+            let disabled_reason =
+                is_disabled.then(|| tr!("plugin details are unavailable").to_string());
 
             items.push(SelectionItem {
                 name: display_name,
@@ -1469,45 +1353,33 @@ impl ChatWidget {
         let mut hints = Vec::new();
         if can_upgrade_marketplace {
             let upgrade = crate::key_hint::ctrl(KeyCode::Char('u')).display_label();
-            hints.push(crate::i18n::tr!(
-                "plugin-catalog-hint-upgrade",
-                upgrade = upgrade
-            ));
+            hints.push(tr!("{upgrade} upgrade", upgrade));
         }
         if can_remove_marketplace {
             let remove = crate::key_hint::ctrl(KeyCode::Char('r')).display_label();
-            hints.push(crate::i18n::tr!(
-                "plugin-catalog-hint-remove",
-                remove = remove
-            ));
+            hints.push(tr!("{remove} remove", remove));
         }
         let toggle_key_available = self.plugin_toggle_key_available();
         if (can_remove_marketplace || can_upgrade_marketplace) && toggle_key_available {
-            hints.push(crate::i18n::tr!("plugin-catalog-hint-tab-toggle").to_string());
+            hints.push(tr!("tab toggle").to_string());
         }
-        hints.extend(
-            [
-                crate::i18n::tr!("plugin-catalog-hint-tabs"),
-                crate::i18n::tr!("plugin-catalog-hint-enter-details"),
-            ]
-            .map(str::to_string),
-        );
+        hints.extend([tr!("←/→ tabs"), tr!("enter details")].map(str::to_string));
         if !can_remove_marketplace && !can_upgrade_marketplace && toggle_key_available {
-            hints.push(crate::i18n::tr!("plugin-catalog-hint-tab-toggle").to_string());
+            hints.push(tr!("tab toggle").to_string());
         }
-        hints.push(crate::i18n::tr!("plugin-catalog-hint-esc-close").to_string());
+        hints.push(tr!("esc close").to_string());
         Line::from(hints.join(" · "))
     }
 }
 
 pub(super) fn plugin_detail_hint_line() -> Line<'static> {
-    Line::from(crate::i18n::tr!("plugin-catalog-hint-esc-close"))
+    Line::from(tr!("esc close"))
 }
 
 pub(super) fn plugins_header(subtitle: String, count_line: String) -> Box<dyn Renderable> {
     Box::new(
         Paragraph::new(vec![
-            Line::from(crate::i18n::tr!("plugin-catalog-plugins").bold()),
+            Line::from(tr!("Plugins").bold()),
             Line::from(subtitle.dim()),
             Line::from(count_line.dim()),
         ])
@@ -1597,27 +1469,27 @@ fn preferred_local_plugin_sources(
 
 fn plugin_detail_status_label(plugin: &PluginSummary) -> &'static str {
     if plugin.availability == PluginAvailability::DisabledByAdmin {
-        return crate::i18n::tr!("plugin-catalog-disabled-by-admin");
+        return tr!("Disabled by admin");
     }
     if plugin.install_policy == PluginInstallPolicy::InstalledByDefault {
         return if plugin.installed {
-            crate::i18n::tr!("plugin-catalog-installed-by-admin")
+            tr!("Installed by admin")
         } else {
-            crate::i18n::tr!("plugin-catalog-enabled-by-admin")
+            tr!("Enabled by Admin")
         };
     }
     if plugin.installed {
         if plugin.enabled {
-            crate::i18n::tr!("plugin-catalog-installed")
+            tr!("Installed")
         } else {
-            crate::i18n::tr!("plugin-catalog-disabled")
+            tr!("Disabled")
         }
     } else {
         match plugin.install_policy {
-            PluginInstallPolicy::NotAvailable => crate::i18n::tr!("plugin-catalog-not-installable"),
-            PluginInstallPolicy::Available => crate::i18n::tr!("plugin-catalog-can-be-installed"),
+            PluginInstallPolicy::NotAvailable => tr!("Not installable"),
+            PluginInstallPolicy::Available => tr!("Can be installed"),
             PluginInstallPolicy::InstalledByDefault => {
-                crate::i18n::tr!("plugin-catalog-installed-by-admin")
+                tr!("Installed by admin")
             }
         }
     }
@@ -1626,20 +1498,20 @@ fn plugin_detail_status_label(plugin: &PluginSummary) -> &'static str {
 fn plugin_metadata_items(plugin: &PluginDetail) -> Vec<SelectionItem> {
     let mut items = Vec::new();
     items.push(SelectionItem {
-        name: crate::i18n::tr!("plugin-catalog-source").to_string(),
+        name: tr!("Source").to_string(),
         description: Some(plugin_source_summary(plugin)),
         is_disabled: true,
         ..Default::default()
     });
     items.push(SelectionItem {
-        name: crate::i18n::tr!("plugin-catalog-auth").to_string(),
+        name: tr!("Auth").to_string(),
         description: Some(plugin_auth_policy_summary(plugin.summary.auth_policy)),
         is_disabled: true,
         ..Default::default()
     });
     if let Some(version) = plugin_version_summary(&plugin.summary) {
         items.push(SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-version").to_string(),
+            name: tr!("Version").to_string(),
             description: Some(version),
             is_disabled: true,
             ..Default::default()
@@ -1647,7 +1519,7 @@ fn plugin_metadata_items(plugin: &PluginDetail) -> Vec<SelectionItem> {
     }
     if let Some(share_context) = &plugin.summary.share_context {
         items.push(SelectionItem {
-            name: crate::i18n::tr!("plugin-catalog-sharing").to_string(),
+            name: tr!("Sharing").to_string(),
             description: Some(plugin_share_context_summary(share_context)),
             is_disabled: true,
             ..Default::default()
@@ -1658,7 +1530,7 @@ fn plugin_metadata_items(plugin: &PluginDetail) -> Vec<SelectionItem> {
 
 fn plugin_source_summary(plugin: &PluginDetail) -> String {
     match &plugin.summary.source {
-        PluginSource::Local { .. } => crate::i18n::tr!("plugin-catalog-local").to_string(),
+        PluginSource::Local { .. } => tr!("Local").to_string(),
         PluginSource::Git { url, ref_name, .. } => match ref_name {
             Some(ref_name) => format!("Git · {url}@{ref_name}"),
             None => format!("Git · {url}"),
@@ -1674,37 +1546,29 @@ fn plugin_source_summary(plugin: &PluginDetail) -> String {
                 MarketplaceProduct::from_marketplace_name(&plugin.marketplace_name)
                     .label()
                     .unwrap_or(plugin.marketplace_name.as_str());
-            crate::i18n::tr!("plugin-catalog-source-remote", label = marketplace_label)
+            tr!("Remote · {label}", label = marketplace_label)
         }
     }
 }
 
 fn plugin_auth_policy_summary(auth_policy: PluginAuthPolicy) -> String {
     match auth_policy {
-        PluginAuthPolicy::OnInstall => {
-            crate::i18n::tr!("plugin-catalog-auth-on-install").to_string()
-        }
-        PluginAuthPolicy::OnUse => crate::i18n::tr!("plugin-catalog-auth-on-use").to_string(),
+        PluginAuthPolicy::OnInstall => tr!("Auth on install").to_string(),
+        PluginAuthPolicy::OnUse => tr!("Auth on use").to_string(),
     }
 }
 
 fn plugin_version_summary(plugin: &PluginSummary) -> Option<String> {
     let mut parts = Vec::new();
     if let Some(local_version) = plugin.local_version.as_deref() {
-        parts.push(crate::i18n::tr!(
-            "plugin-catalog-version-local",
-            version = local_version
-        ));
+        parts.push(tr!("local {version}", version = local_version));
     }
     if let Some(remote_version) = plugin
         .share_context
         .as_ref()
         .and_then(|context| context.remote_version.as_deref())
     {
-        parts.push(crate::i18n::tr!(
-            "plugin-catalog-version-remote",
-            version = remote_version
-        ));
+        parts.push(tr!("remote {version}", version = remote_version));
     }
     (!parts.is_empty()).then(|| parts.join(" · "))
 }
@@ -1728,21 +1592,19 @@ fn plugin_share_context_summary(context: &PluginShareContext) -> String {
         parts.push(share_url.to_string());
     }
     if parts.is_empty() {
-        crate::i18n::tr!(
-            "plugin-catalog-remote-id",
-            id = context.remote_plugin_id.as_str()
-        )
+        tr!("Remote ID {id}", id = context.remote_plugin_id.as_str())
     } else {
         parts.join(" · ")
     }
 }
 
 fn plugin_share_discoverability_label(discoverability: PluginShareDiscoverability) -> &'static str {
-    match discoverability {
-        PluginShareDiscoverability::Listed => crate::i18n::tr!("plugin-catalog-listed"),
-        PluginShareDiscoverability::Unlisted => crate::i18n::tr!("plugin-catalog-workspace-link"),
-        PluginShareDiscoverability::Private => crate::i18n::tr!("plugin-catalog-private"),
-    }
+    let label = match discoverability {
+        PluginShareDiscoverability::Listed => "Listed",
+        PluginShareDiscoverability::Unlisted => "Workspace link",
+        PluginShareDiscoverability::Private => "Private",
+    };
+    crate::i18n::translate(label, /*context*/ None)
 }
 
 fn plugin_share_creator_summary(context: &PluginShareContext) -> Option<String> {
@@ -1750,28 +1612,20 @@ fn plugin_share_creator_summary(context: &PluginShareContext) -> Option<String> 
         context.creator_name.as_deref(),
         context.creator_account_user_id.as_deref(),
     ) {
-        (Some(name), Some(account_id)) => Some(crate::i18n::tr!(
-            "plugin-catalog-creator-name-account",
-            name = name,
-            account_id = account_id
-        )),
-        (Some(name), None) => Some(crate::i18n::tr!("plugin-catalog-creator-name", name = name)),
-        (None, Some(account_id)) => Some(crate::i18n::tr!(
-            "plugin-catalog-creator-account",
-            account_id = account_id
-        )),
+        (Some(name), Some(account_id)) => {
+            Some(tr!("creator {name} ({account_id})", name, account_id))
+        }
+        (Some(name), None) => Some(tr!("creator {name}", name)),
+        (None, Some(account_id)) => Some(tr!("creator account {account_id}", account_id)),
         (None, None) => None,
     }
 }
 
 fn plugin_share_principals_summary(principals: &[PluginSharePrincipal]) -> String {
     match principals.len() {
-        0 => crate::i18n::tr!("plugin-catalog-no-explicit-principals").to_string(),
-        1 => crate::i18n::tr!(
-            "plugin-catalog-one-principal",
-            name = principals[0].name.as_str()
-        ),
-        count => crate::i18n::tr!("plugin-catalog-n-principals", count = count),
+        0 => tr!("No explicit principals").to_string(),
+        1 => tr!("1 principal: {name}", name = principals[0].name.as_str()),
+        count => tr!("{count} principals", count),
     }
 }
 
@@ -1920,7 +1774,7 @@ fn is_personal_marketplace_path(marketplace_path: &AbsolutePathBuf) -> bool {
 
 fn remote_section_loading_item(label: &str, description: &str) -> SelectionItem {
     SelectionItem {
-        name: crate::i18n::tr!("plugin-catalog-loading-label-plugins-dots", label = label),
+        name: tr!("Loading {label} plugins...", label),
         description: Some(description.to_string()),
         is_disabled: true,
         ..Default::default()
@@ -1929,7 +1783,7 @@ fn remote_section_loading_item(label: &str, description: &str) -> SelectionItem 
 
 fn remote_section_error_item(label: &str, message: &str) -> SelectionItem {
     SelectionItem {
-        name: crate::i18n::tr!("plugin-catalog-label-unavailable", label = label),
+        name: tr!("{label} unavailable", label),
         description: Some(message.to_string()),
         is_disabled: true,
         ..Default::default()
@@ -1950,8 +1804,8 @@ fn remote_section_loading_tab(id: &str, label: &str, item_description: &str) -> 
         id: format!("{REMOTE_LOADING_TAB_ID_PREFIX}{id}"),
         label: label.to_string(),
         header: plugins_header(
-            crate::i18n::tr!("plugin-catalog-loading-label-plugins", label = label),
-            crate::i18n::tr!("plugin-catalog-local-functionality-available").to_string(),
+            tr!("Loading {label} plugins.", label),
+            tr!("Local plugin functionality is already available.").to_string(),
         ),
         items: vec![remote_section_loading_item(label, item_description)],
     }
@@ -1967,8 +1821,8 @@ fn remote_section_empty_tab(
         id: format!("{REMOTE_EMPTY_TAB_ID_PREFIX}{id}"),
         label: label.to_string(),
         header: plugins_header(
-            crate::i18n::tr!("plugin-catalog-label-period", label = label),
-            crate::i18n::tr!("plugin-catalog-section-loaded").to_string(),
+            tr!("{label}.", label),
+            tr!("This section loaded successfully.").to_string(),
         ),
         items: vec![SelectionItem {
             name: item_name.to_string(),
@@ -1984,11 +1838,8 @@ fn remote_section_error_tab(section_error: &PluginRemoteSectionError) -> Selecti
         id: format!("{REMOTE_ERROR_TAB_ID_PREFIX}{}", section_error.section_id),
         label: section_error.label.clone(),
         header: plugins_header(
-            crate::i18n::tr!(
-                "plugin-catalog-label-unavailable-period",
-                label = section_error.label.as_str()
-            ),
-            crate::i18n::tr!("plugin-catalog-local-functionality-still").to_string(),
+            tr!("{label} unavailable.", label = section_error.label.as_str()),
+            tr!("Local plugin functionality is still available.").to_string(),
         ),
         items: vec![remote_section_error_item(
             &section_error.label,
@@ -2094,22 +1945,22 @@ fn plugin_brief_description_without_marketplace(
 
 fn plugin_status_label(plugin: &PluginSummary) -> &'static str {
     if plugin.availability == PluginAvailability::DisabledByAdmin {
-        return crate::i18n::tr!("plugin-catalog-disabled");
+        return tr!("Disabled");
     }
     if !plugin.installed && plugin.install_policy == PluginInstallPolicy::InstalledByDefault {
-        return crate::i18n::tr!("plugin-catalog-admin-assigned");
+        return tr!("Admin assigned");
     }
     if plugin.installed {
         if plugin.enabled {
-            crate::i18n::tr!("plugin-catalog-installed")
+            tr!("Installed")
         } else {
-            crate::i18n::tr!("plugin-catalog-disabled")
+            tr!("Disabled")
         }
     } else {
         match plugin.install_policy {
-            PluginInstallPolicy::NotAvailable => crate::i18n::tr!("plugin-catalog-not-installable"),
-            PluginInstallPolicy::Available => crate::i18n::tr!("plugin-catalog-available"),
-            PluginInstallPolicy::InstalledByDefault => crate::i18n::tr!("plugin-catalog-installed"),
+            PluginInstallPolicy::NotAvailable => tr!("Not installable"),
+            PluginInstallPolicy::Available => tr!("Available"),
+            PluginInstallPolicy::InstalledByDefault => tr!("Installed"),
         }
     }
 }
@@ -2222,7 +2073,7 @@ fn plugin_detail_description(plugin: &PluginDetail) -> Option<String> {
 
 fn plugin_skill_summary(plugin: &PluginDetail) -> String {
     if plugin.skills.is_empty() {
-        crate::i18n::tr!("plugin-catalog-no-plugin-skills").to_string()
+        tr!("No plugin skills").to_string()
     } else {
         plugin
             .skills
@@ -2235,7 +2086,7 @@ fn plugin_skill_summary(plugin: &PluginDetail) -> String {
 
 fn plugin_app_summary(plugin: &PluginDetail) -> String {
     if plugin.apps.is_empty() {
-        crate::i18n::tr!("plugin-catalog-no-plugin-apps").to_string()
+        tr!("No plugin apps").to_string()
     } else {
         plugin
             .apps
@@ -2248,7 +2099,7 @@ fn plugin_app_summary(plugin: &PluginDetail) -> String {
 
 fn plugin_hook_summary(plugin: &PluginDetail) -> String {
     if plugin.hooks.is_empty() {
-        crate::i18n::tr!("plugin-catalog-no-plugin-hooks").to_string()
+        tr!("No plugin hooks").to_string()
     } else {
         let mut event_counts = Vec::<(codex_app_server_protocol::HookEventName, usize)>::new();
         for hook in &plugin.hooks {
@@ -2271,7 +2122,7 @@ fn plugin_hook_summary(plugin: &PluginDetail) -> String {
 
 fn plugin_mcp_summary(plugin: &PluginDetail) -> String {
     if plugin.mcp_servers.is_empty() {
-        crate::i18n::tr!("plugin-catalog-no-plugin-mcp-servers").to_string()
+        tr!("No plugin MCP servers").to_string()
     } else {
         plugin.mcp_servers.join(", ")
     }

@@ -43,7 +43,9 @@ pub(super) fn on_metadata(chat: &mut ChatWidget, notification: TurnModerationMet
         pending.result = result;
         chat.clear_safety_buffering();
         chat.bottom_pane.ensure_status_indicator();
-        chat.set_status_header(crate::i18n::tr!("safety-recourse-cant-help").into());
+        chat.set_status_header(
+            tr!("I can’t help with this request. Preparing alternative suggestions…").into(),
+        );
     }
 }
 
@@ -110,7 +112,7 @@ pub(super) fn render_failure(
             let notice = chat.cyber_policy_notice();
             if notice == crate::daybreak::Notice::Disabled {
                 items.push(SelectionItem {
-                    name: crate::i18n::tr!("safety-recourse-enable-daybreak").into(),
+                    name: tr!("Enable Daybreak").into(),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::PersistDaybreakSelection {
                             thread_id,
@@ -126,7 +128,7 @@ pub(super) fn render_failure(
     };
     if chat.config.feedback_enabled {
         items.push(SelectionItem {
-            name: crate::i18n::tr!("safety-recourse-give-feedback").into(),
+            name: tr!("Give feedback").into(),
             actions: vec![Box::new(move |tx| {
                 tx.send(AppEvent::OpenFeedbackConsent {
                     category: crate::app_event::FeedbackCategory::SafetyCheck,
@@ -142,7 +144,9 @@ pub(super) fn render_failure(
     if !items.is_empty() {
         chat.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(VIEW_ID),
-            title: Some(crate::i18n::tr!("safety-recourse-choose-rewrite").into()),
+            title: Some(
+                "You can choose a rewrite to start a new chat with your earlier context:".into(),
+            ),
             items,
             ..SelectionViewParams::picker()
         });

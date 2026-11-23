@@ -71,19 +71,19 @@ impl ChatWidget {
             })
             .collect();
         if entries.is_empty() {
-            entries.push(crate::i18n::tr!("quick-dials-none-saved").dim().into());
+            entries.push(tr!("No presets saved. Press n to create one.").dim().into());
         }
         let commands = [
-            ("n", crate::i18n::tr!("quick-dials-hud-new")),
-            ("s", crate::i18n::tr!("quick-dials-hud-from-settings")),
-            ("e", crate::i18n::tr!("quick-dials-hud-edit")),
-            ("d", crate::i18n::tr!("quick-dials-hud-delete")),
-            ("esc", crate::i18n::tr!("quick-dials-hud-close")),
+            ("n", "new"),
+            ("s", "from settings"),
+            ("e", "edit"),
+            ("d", "delete"),
+            ("esc", "close"),
         ]
         .into_iter()
         .map(|(key, label)| ShortcutHud::item(key, label.into()))
         .collect();
-        ShortcutHud::new(crate::i18n::tr!("quick-dials-presets"), entries, commands)
+        ShortcutHud::new("Presets", entries, commands)
     }
 
     fn composer_quick_dial_text(&mut self) -> String {
@@ -91,7 +91,7 @@ impl ChatWidget {
             || !self.bottom_pane.remote_image_urls().is_empty()
         {
             self.add_info_message(
-                crate::i18n::tr!("quick-dials-images-not-copied").into(),
+                tr!("Images cannot be copied into a preset. Starting with empty text.").into(),
                 /*hint*/ None,
             );
             return String::new();
@@ -103,7 +103,8 @@ impl ChatWidget {
             .is_empty()
         {
             self.add_info_message(
-                crate::i18n::tr!("quick-dials-mentions-not-copied").into(),
+                tr!("Linked mentions cannot be copied into a preset. Starting with empty text.")
+                    .into(),
                 /*hint*/ None,
             );
             return String::new();
@@ -119,7 +120,7 @@ impl ChatWidget {
             .find(|model| model.model == self.current_model() && model.show_in_picker)
             .filter(|_| !self.restrict_model_picker_to_luna_reserve())
         else {
-            return Err(crate::i18n::tr!("quick-dials-model-not-recallable"));
+            return Err(tr!("The current model cannot be recalled with /model."));
         };
         let mut input = format!("/model {}", self.current_model());
         if let Some(effort) = self.current_reasoning_effort() {
@@ -132,7 +133,9 @@ impl ChatWidget {
                     .any(|option| option.effort == effort)
             };
             if !supported {
-                return Err(crate::i18n::tr!("quick-dials-choose-reasoning"));
+                return Err(tr!(
+                    "Choose an available reasoning effort with /model before saving."
+                ));
             }
             input.push_str(&format!(" --reasoning={effort}"));
         }
@@ -146,7 +149,7 @@ impl ChatWidget {
                 .iter()
                 .any(|tier| tier.id == speed && self.config.features.service_tier_enabled(&tier.id))
         {
-            return Err(crate::i18n::tr!("quick-dials-choose-speed"));
+            return Err(tr!("Choose an available speed with /model before saving."));
         }
         input.push_str(&format!(" --speed={speed}"));
         let dial = QuickDial { input, label: None };
@@ -159,7 +162,7 @@ impl ChatWidget {
             "/title",
             self.configured_terminal_title_items(),
             /*suffix*/ None,
-            crate::i18n::tr!("quick-dials-choose-title-items"),
+            tr!("Choose available terminal-title items with /title before saving."),
         )
     }
 
@@ -173,7 +176,7 @@ impl ChatWidget {
             "/statusline",
             self.configured_status_line_items(),
             /*suffix*/ Some(colors),
-            crate::i18n::tr!("quick-dials-choose-status-items"),
+            tr!("Choose available status-line items with /statusline before saving."),
         )
     }
 
@@ -182,12 +185,12 @@ impl ChatWidget {
             || self.active_side_conversation
             || !self.bottom_pane.composer_input_enabled()
         {
-            self.add_error_message(crate::i18n::tr!("quick-dials-unavailable").into());
+            self.add_error_message(tr!("Presets are unavailable in this conversation.").into());
             return false;
         }
         if !self.is_session_configured() {
             self.add_info_message(
-                crate::i18n::tr!("quick-dials-after-startup").into(),
+                tr!("Presets are available after startup completes.").into(),
                 /*hint*/ None,
             );
             return false;
@@ -209,11 +212,7 @@ impl ChatWidget {
             return;
         };
         if let Err(reason) = dial.validate() {
-            self.add_error_message(crate::i18n::tr!(
-                "quick-dials-preset-reason",
-                slot = slot,
-                reason = reason
-            ));
+            self.add_error_message(tr!("Preset {slot}: {reason}", slot, reason));
             return;
         }
         self.app_event_tx.send(AppEvent::FollowTranscript);
@@ -256,7 +255,7 @@ impl ChatWidget {
             items.push(SelectionItem {
                 name: saved.map(quick_dial_label).unwrap_or_default(),
                 name_prefix_spans: if saved.is_none() {
-                    vec![crate::i18n::tr!("quick-dials-empty").dim()]
+                    vec![tr!("empty").dim()]
                 } else {
                     Vec::new()
                 },
@@ -297,9 +296,9 @@ impl ChatWidget {
             });
         }
         let title = match mode {
-            QuickDialPickerMode::Save => crate::i18n::tr!("quick-dials-save-to-slot"),
-            QuickDialPickerMode::Edit => crate::i18n::tr!("quick-dials-edit-a-preset"),
-            QuickDialPickerMode::Clear => crate::i18n::tr!("quick-dials-delete-a-preset"),
+            QuickDialPickerMode::Save => tr!("Save preset to slot"),
+            QuickDialPickerMode::Edit => tr!("Edit a preset"),
+            QuickDialPickerMode::Clear => tr!("Delete a preset"),
         };
         let initial_selected_idx = (mode == QuickDialPickerMode::Save).then(|| {
             (1..=9)
@@ -352,19 +351,19 @@ impl ChatWidget {
                     .contains_key(&slot.to_string())
             })
             .map_or_else(
-                || crate::i18n::tr!("quick-dials-new-preset").to_string(),
-                |slot| crate::i18n::tr!("quick-dials-edit-preset-n", slot = slot),
+                || tr!("New preset").to_string(),
+                |slot| tr!("Edit preset {slot}", slot),
             );
         let submit_label = if slot.is_some() {
-            crate::i18n::tr!("quick-dials-review-changes")
+            tr!("review changes")
         } else {
-            crate::i18n::tr!("quick-dials-choose-slot")
+            tr!("choose slot")
         };
         let tx = self.app_event_tx.clone();
         let label = dial.label;
         let view = CustomPromptView::new(
             title,
-            crate::i18n::tr!("quick-dials-write-prompt").to_string(),
+            tr!("Write a prompt or slash command").to_string(),
             dial.input,
             /*context_label*/ None,
             Box::new(move |input| {
@@ -403,12 +402,12 @@ impl ChatWidget {
                     AskForApproval::OnRequest => "on-request".to_string(),
                     AskForApproval::Never => "never".to_string(),
                     granular @ AskForApproval::Granular { .. } => serde_json::to_string(&granular)
-                        .map_err(|_| crate::i18n::tr!("quick-dials-approval-not-recallable"))?,
+                        .map_err(|_| tr!("The approval policy cannot be recalled."))?,
                 };
                 let profile_id = shlex::try_quote(&profile.id)
-                    .map_err(|_| crate::i18n::tr!("quick-dials-profile-not-recallable"))?;
+                    .map_err(|_| tr!("The permission profile name cannot be recalled."))?;
                 let approval_policy = shlex::try_quote(&approval_policy)
-                    .map_err(|_| crate::i18n::tr!("quick-dials-approval-not-recallable"))?;
+                    .map_err(|_| tr!("The approval policy cannot be recalled."))?;
                 let input = format!(
                     "/permissions {profile_id} --approval-policy={approval_policy} --reviewer={}",
                     self.config.approvals_reviewer
@@ -417,23 +416,16 @@ impl ChatWidget {
                 dial.validate()?;
                 Ok(dial)
             })
-            .unwrap_or(Err(crate::i18n::tr!("quick-dials-select-profile")));
+            .unwrap_or(Err(tr!(
+                "Select a named permission profile with /permissions first."
+            )));
         let terminal_title = self.current_terminal_title_quick_dial();
         let status_line = self.current_status_line_quick_dial();
         let items = [
-            (
-                crate::i18n::tr!("quick-dials-current-model"),
-                self.current_model_quick_dial(),
-            ),
-            (
-                crate::i18n::tr!("quick-dials-current-permissions"),
-                permissions,
-            ),
-            (
-                crate::i18n::tr!("quick-dials-current-title"),
-                terminal_title,
-            ),
-            (crate::i18n::tr!("quick-dials-current-status"), status_line),
+            (tr!("Current model"), self.current_model_quick_dial()),
+            (tr!("Current permissions"), permissions),
+            (tr!("Current terminal title"), terminal_title),
+            (tr!("Current status line"), status_line),
         ]
         .into_iter()
         .map(|(name, dial)| {
@@ -463,7 +455,7 @@ impl ChatWidget {
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some("quick-dial-prefills"),
             max_visible_rows: 4,
-            title: Some(crate::i18n::tr!("quick-dials-start-from-settings").into()),
+            title: Some("Start preset from current settings".into()),
             items,
             ..SelectionViewParams::picker()
         });
@@ -489,16 +481,16 @@ impl ChatWidget {
         };
         let (confirm_question, confirm_name) = match action {
             "replace" => (
-                crate::i18n::tr!("quick-dials-replace-question", slot = slot),
-                crate::i18n::tr!("quick-dials-replace-name", slot = slot),
+                tr!("Replace preset {slot}?", slot),
+                tr!("Replace preset {slot}", slot),
             ),
             "delete" => (
-                crate::i18n::tr!("quick-dials-delete-question", slot = slot),
-                crate::i18n::tr!("quick-dials-delete-name", slot = slot),
+                tr!("Delete preset {slot}?", slot),
+                tr!("Delete preset {slot}", slot),
             ),
             _ => (
-                crate::i18n::tr!("quick-dials-save-question", slot = slot),
-                crate::i18n::tr!("quick-dials-save-name", slot = slot),
+                tr!("Save preset {slot}?", slot),
+                tr!("Save preset {slot}", slot),
             ),
         };
         self.bottom_pane.show_selection_view(SelectionViewParams {

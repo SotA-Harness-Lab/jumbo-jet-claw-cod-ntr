@@ -38,26 +38,26 @@ impl App {
         let Some(thread_id) = running_thread_id else {
             return false;
         };
-        let allow_background = running_side_thread_id.is_none()
-            && !self.chat_widget.has_queued_follow_up_messages();
+        let allow_background =
+            running_side_thread_id.is_none() && !self.chat_widget.has_queued_follow_up_messages();
         self.chat_widget.show_selection_view(SelectionViewParams {
-            title: Some(crate::i18n::tr!("input-task-running-title").to_string()),
-            subtitle: Some(crate::i18n::tr!("input-task-running-subtitle").to_string()),
+            title: Some("Task is still running".to_string()),
+            subtitle: Some("Choose what happens to the current task.".to_string()),
             footer_hint: Some(standard_popup_hint_line()),
             items: [
                 (
-                    crate::i18n::tr!("input-cancel-task"),
-                    crate::i18n::tr!("input-cancel-task-desc"),
+                    tr!("Cancel task"),
+                    tr!("Stop the current task and stay in Codex"),
                     RunningTaskExitAction::CancelTask,
                 ),
                 (
-                    crate::i18n::tr!("input-run-background"),
-                    crate::i18n::tr!("input-run-background-desc"),
+                    tr!("Run in background"),
+                    tr!("Exit Codex and leave the task running"),
                     RunningTaskExitAction::RunInBackground,
                 ),
                 (
-                    crate::i18n::tr!("input-exit"),
-                    crate::i18n::tr!("input-exit-desc"),
+                    tr!("Exit"),
+                    tr!("Stop the current task and exit Codex"),
                     RunningTaskExitAction::Exit,
                 ),
             ]
@@ -423,15 +423,18 @@ impl App {
             Err(external_editor::EditorError::MissingEditor) => {
                 self.chat_widget
                     .add_to_history(history_cell::new_error_event(
-                        crate::i18n::tr!("input-no-editor").to_string(),
-                    ));
+                    tr!(
+                        "Cannot open external editor: set $VISUAL or $EDITOR before starting Codex."
+                    )
+                    .to_string(),
+                ));
                 self.reset_external_editor_state(tui);
                 return;
             }
             Err(err) => {
                 self.chat_widget
-                    .add_to_history(history_cell::new_error_event(crate::i18n::tr!(
-                        "input-open-editor-failed",
+                    .add_to_history(history_cell::new_error_event(tr!(
+                        "Failed to open editor: {err}",
                         err = err.to_string()
                     )));
                 self.reset_external_editor_state(tui);
@@ -464,8 +467,8 @@ impl App {
             }
             Err(err) => {
                 self.chat_widget
-                    .add_to_history(history_cell::new_error_event(crate::i18n::tr!(
-                        "input-open-editor-failed",
+                    .add_to_history(history_cell::new_error_event(tr!(
+                        "Failed to open editor: {err}",
                         err = err.to_string()
                     )));
             }
@@ -520,8 +523,8 @@ impl App {
         let terminal_width = tui.terminal.last_known_screen_size.into();
         if let Err(err) = self.reflow_transcript_now(tui, terminal_width) {
             tracing::warn!(error = %err, "failed to reflow transcript after raw output mode toggle");
-            self.chat_widget.add_error_message(crate::i18n::tr!(
-                "input-redraw-failed",
+            self.chat_widget.add_error_message(tr!(
+                "Failed to redraw transcript: {err}",
                 err = err.to_string()
             ));
         }
@@ -619,8 +622,8 @@ impl App {
                         .await
                         .is_ok();
                     if !already_unarchived {
-                        self.chat_widget.add_error_message(crate::i18n::tr!(
-                            "input-unarchive-failed",
+                        self.chat_widget.add_error_message(tr!(
+                            "Failed to unarchive thread: {error}",
                             error = error.to_string()
                         ));
                         return;
@@ -828,8 +831,8 @@ impl App {
                 && crate::key_hint::ctrl(KeyCode::Char('7')).is_press(key_event)
         {
             if let Err(err) = self.toggle_side_conversation(tui, app_server).await {
-                self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "input-switch-side-failed",
+                self.chat_widget.add_error_message(tr!(
+                    "Failed to switch side conversation: {err}",
                     err = err.to_string()
                 ));
             }
@@ -879,8 +882,8 @@ impl App {
             }
             if let Err(err) = self.clear_terminal_ui(tui, /*redraw_header*/ false) {
                 tracing::warn!(error = %err, "failed to clear terminal UI");
-                self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "input-clear-ui-failed",
+                self.chat_widget.add_error_message(tr!(
+                    "Failed to clear terminal UI: {err}",
                     err = err.to_string()
                 ));
             } else {

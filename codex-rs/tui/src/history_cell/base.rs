@@ -43,7 +43,7 @@ pub(crate) struct LabeledToolCell {
 
 impl HistoryCell for LabeledToolCell {
     fn tool_call_labels(&self) -> Vec<String> {
-        vec![self.label.clone()]
+        vec![crate::i18n::translate_in("history-tool-label", &self.label).to_owned()]
     }
 
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {

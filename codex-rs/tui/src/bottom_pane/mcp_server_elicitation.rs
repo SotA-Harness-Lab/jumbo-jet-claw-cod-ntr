@@ -68,10 +68,10 @@ use crate::text_formatting::format_json_compact;
 use crate::text_formatting::truncate_text;
 
 fn answer_placeholder_text() -> &'static str {
-    crate::i18n::tr!("mcp-elicitation-answer-placeholder")
+    tr!("Type your answer")
 }
 fn optional_answer_placeholder_text() -> &'static str {
-    crate::i18n::tr!("mcp-elicitation-answer-placeholder-optional")
+    tr!(in "mcp-server-elicitation", "Type your answer (optional)")
 }
 const FOOTER_SEPARATOR: &str = " | ";
 const MIN_COMPOSER_HEIGHT: u16 = 3;
@@ -247,61 +247,55 @@ impl McpServerElicitationFormRequest {
             (McpServerElicitationResponseMode::FormContent, Vec::new())
         } else if is_message_only_schema {
             let allow_description = if is_tool_approval_action {
-                crate::i18n::tr!("mcp-elicitation-run-tool-continue")
+                tr!("Run the tool and continue")
             } else {
-                crate::i18n::tr!("mcp-elicitation-allow-request-continue")
+                tr!("Allow this request and continue")
             };
             let mut options = vec![McpServerElicitationOption {
-                label: crate::i18n::tr!("mcp-elicitation-allow").to_string(),
+                label: tr!("Allow").to_string(),
                 description: Some(allow_description.to_string()),
                 value: Value::String(APPROVAL_ACCEPT_ONCE_VALUE.to_string()),
             }];
             if approval_supports_persist_mode(meta, APPROVAL_PERSIST_SESSION_VALUE) {
                 let description = if is_tool_approval_action {
-                    crate::i18n::tr!("mcp-elicitation-run-tool-session")
+                    tr!("Run the tool and remember this choice for this session")
                 } else {
-                    crate::i18n::tr!("mcp-elicitation-allow-request-session")
+                    tr!("Allow this request and remember this choice for this session")
                 };
                 options.push(McpServerElicitationOption {
-                    label: crate::i18n::tr!("mcp-elicitation-allow-session").to_string(),
+                    label: tr!("Allow for this session").to_string(),
                     description: Some(description.to_string()),
                     value: Value::String(APPROVAL_ACCEPT_SESSION_VALUE.to_string()),
                 });
             }
             if approval_supports_persist_mode(meta, APPROVAL_PERSIST_ALWAYS_VALUE) {
                 let description = if is_tool_approval_action {
-                    crate::i18n::tr!("mcp-elicitation-run-tool-always")
+                    tr!("Run the tool and remember this choice for future tool calls")
                 } else {
-                    crate::i18n::tr!("mcp-elicitation-allow-request-always")
+                    tr!("Allow this request and remember this choice for future requests")
                 };
                 options.push(McpServerElicitationOption {
-                    label: crate::i18n::tr!("mcp-elicitation-always-allow").to_string(),
+                    label: tr!("Always allow").to_string(),
                     description: Some(description.to_string()),
                     value: Value::String(APPROVAL_ACCEPT_ALWAYS_VALUE.to_string()),
                 });
             }
             if is_tool_approval_action {
                 options.push(McpServerElicitationOption {
-                    label: crate::i18n::tr!("mcp-elicitation-cancel").to_string(),
-                    description: Some(
-                        crate::i18n::tr!("mcp-elicitation-cancel-tool-call").to_string(),
-                    ),
+                    label: tr!("Cancel").to_string(),
+                    description: Some(tr!("Cancel this tool call").to_string()),
                     value: Value::String(APPROVAL_CANCEL_VALUE.to_string()),
                 });
             } else {
                 options.extend([
                     McpServerElicitationOption {
-                        label: crate::i18n::tr!("mcp-elicitation-deny").to_string(),
-                        description: Some(
-                            crate::i18n::tr!("mcp-elicitation-decline-continue").to_string(),
-                        ),
+                        label: tr!("Deny").to_string(),
+                        description: Some(tr!("Decline this request and continue").to_string()),
                         value: Value::String(APPROVAL_DECLINE_VALUE.to_string()),
                     },
                     McpServerElicitationOption {
-                        label: crate::i18n::tr!("mcp-elicitation-cancel").to_string(),
-                        description: Some(
-                            crate::i18n::tr!("mcp-elicitation-cancel-request").to_string(),
-                        ),
+                        label: tr!("Cancel").to_string(),
+                        description: Some(tr!("Cancel this request").to_string()),
                         value: Value::String(APPROVAL_CANCEL_VALUE.to_string()),
                     },
                 ]);
@@ -567,12 +561,7 @@ fn parse_field(
             let options = [true, false]
                 .into_iter()
                 .map(|value| {
-                    let label = if value {
-                        crate::i18n::tr!("mcp-elicitation-true")
-                    } else {
-                        crate::i18n::tr!("mcp-elicitation-false")
-                    }
-                    .to_string();
+                    let label = if value { tr!("True") } else { tr!("False") }.to_string();
                     McpServerElicitationOption {
                         label,
                         description: None,
@@ -967,9 +956,9 @@ impl McpServerElicitationOverlay {
                 &self.request.server_name,
                 self.request.environment_id.as_deref(),
             );
-            request_message = crate::i18n::tr!(
-                "mcp-elicitation-server-message",
-                server = server,
+            request_message = tr!(
+                "Server: {server}\n\n{message}",
+                server,
                 message = request_message
             );
         }
@@ -1008,28 +997,22 @@ impl McpServerElicitationOverlay {
         };
         if let Some(submit_hint) = submit_hint.map(ShortcutHint::display_label) {
             if self.field_count() == 1 {
-                tips.push(shortcut(
-                    &submit_hint,
-                    crate::i18n::tr!("mcp-elicitation-tip-submit"),
-                ));
+                tips.push(shortcut(&submit_hint, tr!("to submit")));
             } else if is_last_field {
                 tips.push(shortcut(
                     &submit_hint,
-                    crate::i18n::tr!("mcp-elicitation-tip-submit-all"),
+                    tr!(in "mcp-server-elicitation", "to submit all"),
                 ));
             } else {
                 tips.push(shortcut(
                     &submit_hint,
-                    crate::i18n::tr!("mcp-elicitation-tip-submit-answer"),
+                    tr!(in "mcp-server-elicitation", "to submit answer"),
                 ));
             }
         }
         if self.field_count() > 1 {
             if self.current_field_is_select() {
-                tips.push(shortcut(
-                    "←/→",
-                    crate::i18n::tr!("mcp-elicitation-tip-navigate-fields"),
-                ));
+                tips.push(shortcut("←/→", tr!("to navigate fields")));
             } else {
                 tips.push(shortcut(
                     &format!(
@@ -1037,14 +1020,11 @@ impl McpServerElicitationOverlay {
                         crate::key_hint::ctrl(KeyCode::Char('p')).display_label(),
                         crate::key_hint::ctrl(KeyCode::Char('n')).display_label()
                     ),
-                    crate::i18n::tr!("mcp-elicitation-tip-change-field"),
+                    tr!("change field"),
                 ));
             }
         }
-        tips.push(shortcut(
-            "esc",
-            crate::i18n::tr!("mcp-elicitation-tip-cancel"),
-        ));
+        tips.push(shortcut("esc", tr!("to cancel")));
         tips
     }
 
@@ -1205,7 +1185,7 @@ impl McpServerElicitationOverlay {
         self.save_current_draft();
         if let Some(idx) = self.first_required_unanswered_index() {
             self.validation_error =
-                Some(crate::i18n::tr!("mcp-elicitation-answer-required").to_string());
+                Some(tr!("Answer required fields before submitting.").to_string());
             self.jump_to_field(idx);
             return;
         }
@@ -1368,7 +1348,7 @@ impl McpServerElicitationOverlay {
                 &rows,
                 &state,
                 rows.len().max(1),
-                crate::i18n::tr!("mcp-elicitation-no-options"),
+                tr!("No options"),
             );
             return;
         }
@@ -1390,12 +1370,7 @@ impl McpServerElicitationOverlay {
             let selected = self.selected_option_index().unwrap_or(0).saturating_add(1);
             let total = self.options_len();
             Some(Line::from(
-                crate::i18n::tr!(
-                    "mcp-elicitation-option-position",
-                    selected = selected,
-                    total = total
-                )
-                .dim(),
+                tr!("option {selected}/{total}", selected, total).dim(),
             ))
         } else {
             None
@@ -1506,13 +1481,13 @@ impl Renderable for McpServerElicitationOverlay {
         let progress_line = if self.field_count() > 0 {
             let idx = self.current_index() + 1;
             let total = self.field_count();
-            let base = crate::i18n::tr!("mcp-elicitation-field-position", idx = idx, total = total);
+            let base = tr!("Field {idx}/{total}", idx, total);
             if unanswered > 0 {
                 Line::from(
-                    crate::i18n::tr!(
-                        "mcp-elicitation-field-position-unanswered",
-                        base = base,
-                        unanswered = unanswered
+                    tr!(
+                        "{base} ({unanswered} required unanswered)",
+                        base,
+                        unanswered
                     )
                     .dim(),
                 )
@@ -1520,7 +1495,7 @@ impl Renderable for McpServerElicitationOverlay {
                 Line::from(base.dim())
             }
         } else {
-            Line::from(crate::i18n::tr!("mcp-elicitation-no-fields").dim())
+            Line::from(tr!("No fields").dim())
         };
         Paragraph::new(progress_line).render(progress_area, buf);
         self.render_prompt(prompt_area, buf);

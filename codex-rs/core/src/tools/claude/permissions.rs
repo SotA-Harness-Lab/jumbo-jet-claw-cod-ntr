@@ -33,7 +33,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::PoisonError;
 
-use codex_claude_compat::CLAUDE_DIR;
 use codex_claude_compat::MAX_LINK_DEPTH;
 use codex_claude_compat::PermissionRules;
 use codex_claude_compat::RuleVerdict;
@@ -54,6 +53,7 @@ use crate::sandboxing::SandboxPermissions;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::tools::context::ToolInvocation;
+use crate::tools::context::ToolPayload;
 use crate::tools::handlers::McpHandler;
 use crate::tools::handlers::selected_executor;
 use crate::tools::registry::ToolRegistry;
@@ -177,9 +177,13 @@ fn rules_for(session: &Session, project_dir: &Path, project_trusted: bool) -> Ar
         return Arc::new(PermissionRules::default());
     }
     let home = dirs::home_dir();
-    let claude_home = home.as_ref().map(|home| home.join(CLAUDE_DIR));
+    let claude_home = codex_claude_compat::user_config_dir();
     // The files `PermissionRules::load` reads.
-    let paths = codex_claude_compat::settings_paths(claude_home.as_deref(), Some(project_dir));
+    let paths = codex_claude_compat::settings_paths(
+        claude_home.as_deref(),
+        home.as_deref(),
+        Some(project_dir),
+    );
     let stamp = codex_claude_compat::settings_stamp(&paths);
     let cache = session
         .services
@@ -192,7 +196,8 @@ fn rules_for(session: &Session, project_dir: &Path, project_trusted: bool) -> Ar
     {
         return Arc::clone(&cached.rules);
     }
-    let (rules, errors) = PermissionRules::load(home.as_deref(), Some(project_dir));
+    let (rules, errors) =
+        PermissionRules::load(claude_home.as_deref(), home.as_deref(), Some(project_dir));
     for (path, err) in errors {
         tracing::warn!(
             "failed to read Claude Code settings {}: {err}",
@@ -368,7 +373,11 @@ pub(crate) async fn check_permission(
     // What a `PreToolUse` hook decided for this call: an ask or the user's yes outranks
     // an allow rule, and the user is not asked twice.
     let hook_decision = CallDecisions::of(&invocation.session).get(&invocation.call_id);
-    match rules.evaluate(tool, tool_input) {
+    let arguments = match &invocation.payload {
+        ToolPayload::Function { arguments } => Some(arguments.as_str()),
+        _ => None,
+    };
+    match rules.evaluate_with_arguments(tool, tool_input, arguments) {
         RuleVerdict::NoMatch => {}
         RuleVerdict::Deny { message, .. } => return Err(failed(message)),
         RuleVerdict::Allow { .. } => {
@@ -380,6 +389,11 @@ pub(crate) async fn check_permission(
             }
         }
         RuleVerdict::Ask { .. } if hook_decision == Some(RuleDecision::Approved) => {}
+        RuleVerdict::Ask { rule } if rules.deny_instead_of_prompting() && !input.codex_asks() => {
+            return Err(failed(format!(
+                "Permission to use {tool} has been denied. Claude Code permission rule `{rule}` asks before this call, and permission prompts are disabled."
+            )));
+        }
         RuleVerdict::Ask { rule } => {
             let reason = format!("Claude Code permission rule `{rule}` asks before this call.");
             if input.codex_asks() {

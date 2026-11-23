@@ -153,10 +153,7 @@ impl ChatWidget {
         });
         self.bottom_pane.set_status_line_enabled(/*enabled*/ true);
         self.set_status_line(Some(
-            UiTree(Some(UiNode::String(
-                crate::i18n::tr!("statusline-reader-initializing").into(),
-            )))
-            .into(),
+            UiTree(Some(UiNode::String(tr!("Initializing…").into()))).into(),
         ));
         if self.thread_id.is_some() {
             StatuslineReadEvent::send(&self.app_event_tx, token, ReadStep::Start(ready));
@@ -210,11 +207,11 @@ impl ChatWidget {
                         tracing::warn!(?failure, "Status line provider stopped");
                         let message = match failure {
                             Failure::Read(ReadIssue::TimedOut) => {
-                                crate::i18n::tr!("statusline-reader-timed-out")
+                                tr!("Status line timed out")
                             }
-                            Failure::Lookup => crate::i18n::tr!("statusline-reader-unavailable"),
+                            Failure::Lookup => tr!("Status line unavailable"),
                             Failure::Snapshot | Failure::Read(_) => {
-                                crate::i18n::tr!("statusline-reader-failed")
+                                tr!("Status line failed")
                             }
                         };
                         UiTree(Some(UiNode::String(format!("{message} · /statusline"))))

@@ -47,10 +47,10 @@ impl SessionLock {
                 Err(error) => Err(error),
             };
             let message = match result {
-                Ok(()) => crate::i18n::tr!("session-lock-voice-stopped"),
+                Ok(()) => tr!("Voice stopped because your session locked."),
                 Err(error) => {
                     tracing::debug!(%error, "session lock observer failed");
-                    crate::i18n::tr!("session-lock-monitoring-failed")
+                    tr!("Voice conversation stopped because session lock monitoring failed.")
                 }
             };
             state_tx.send_replace(State::Stopped(message));

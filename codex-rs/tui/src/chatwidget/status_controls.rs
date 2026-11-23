@@ -288,24 +288,18 @@ impl ChatWidget {
         }
         // Capture the displayed status inputs before later configuration or thread changes.
         let mut copy_targets = vec![
+            (tr!("Model").to_string(), Arc::<str>::from(model)),
             (
-                crate::i18n::tr!("status-controls-copy-model").to_string(),
-                Arc::<str>::from(model),
-            ),
-            (
-                crate::i18n::tr!("status-controls-copy-directory").to_string(),
+                tr!("Directory").to_string(),
                 Arc::from(self.config.cwd.display().to_string()),
             ),
         ];
         if let Some(name) = self.thread_name.as_deref().filter(|name| !name.is_empty()) {
-            copy_targets.push((
-                crate::i18n::tr!("status-controls-copy-thread-name").to_string(),
-                Arc::from(name),
-            ));
+            copy_targets.push((tr!("Thread name").to_string(), Arc::from(name)));
         }
         if let Some(thread_id) = self.thread_id {
             copy_targets.push((
-                crate::i18n::tr!("status-controls-copy-session-id").to_string(),
+                tr!("Session ID").to_string(),
                 Arc::from(thread_id.to_string()),
             ));
         }
@@ -461,9 +455,9 @@ impl ChatWidget {
     ) -> Option<String> {
         let window = window?;
         let remaining = (100.0f64 - window.used_percent).clamp(0.0f64, 100.0f64);
-        Some(crate::i18n::tr!(
-            "status-controls-limit-left",
-            label = label,
+        Some(tr!(
+            "{label} {remaining}% left",
+            label,
             remaining = format!("{remaining:.0}")
         ))
     }
@@ -472,9 +466,7 @@ impl ChatWidget {
         effort: Option<&ReasoningEffortConfig>,
     ) -> String {
         match effort {
-            None | Some(ReasoningEffortConfig::None) => {
-                crate::i18n::tr!("status-controls-effort-default").to_string()
-            }
+            None | Some(ReasoningEffortConfig::None) => tr!("default").to_string(),
             Some(effort) => effort.as_str().to_string(),
         }
     }

@@ -43,15 +43,12 @@ pub(crate) fn reader() -> impl FnMut(Instant) -> Result<String, String> {
                                 }
                                 match child.as_mut() {
                                     Some(child) => runtime.block_on(read_command(child, deadline)),
-                                    None => Err(crate::i18n::tr!(
-                                        "clipboard-text-windows-reader-unavailable"
-                                    )
-                                    .into()),
+                                    None => {
+                                        Err(tr!("Windows clipboard reader is unavailable").into())
+                                    }
                                 }
                             }
-                            Err(_) => {
-                                Err(crate::i18n::tr!("clipboard-text-reader-start-failed").into())
-                            }
+                            Err(_) => Err(tr!("could not start clipboard reader").into()),
                         };
                         // Never mistake a partial response for the next paste.
                         if result.is_err() {
@@ -61,11 +58,11 @@ pub(crate) fn reader() -> impl FnMut(Instant) -> Result<String, String> {
                     }
                 })
                 .map(|_| requests)
-                .map_err(|_| crate::i18n::tr!("clipboard-text-reader-start-failed").to_string())
+                .map_err(|_| tr!("could not start clipboard reader").to_string())
         });
     move |deadline| {
         if crate::clipboard_copy::is_ssh_session() {
-            return Err(crate::i18n::tr!("clipboard-text-unavailable-over-ssh").into());
+            return Err(tr!("clipboard text is unavailable over SSH").into());
         }
         #[cfg(target_os = "linux")]
         if let Some(windows) = &windows {
@@ -74,10 +71,10 @@ pub(crate) fn reader() -> impl FnMut(Instant) -> Result<String, String> {
                 .as_ref()
                 .map_err(Clone::clone)?
                 .try_send((deadline, response))
-                .map_err(|_| crate::i18n::tr!("clipboard-text-windows-reader-busy"))?;
+                .map_err(|_| tr!("Windows clipboard reader is busy or unavailable"))?;
             return result
                 .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                .map_err(|_| crate::i18n::tr!("clipboard-text-read-timed-out"))?;
+                .map_err(|_| tr!("clipboard read timed out"))?;
         }
         #[cfg(not(target_os = "android"))]
         {
@@ -101,16 +98,16 @@ pub(crate) fn native_result(
     let text = match result {
         Ok(text) => text,
         Err(arboard::Error::ContentNotAvailable) => String::new(),
-        Err(_) => return Err(crate::i18n::tr!("clipboard-text-unavailable").into()),
+        Err(_) => return Err(tr!("clipboard text is unavailable").into()),
     };
     validate(text, deadline)
 }
 
 fn validate(text: String, deadline: Instant) -> Result<String, String> {
     if Instant::now() >= deadline {
-        Err(crate::i18n::tr!("clipboard-text-read-timed-out").into())
+        Err(tr!("clipboard read timed out").into())
     } else if text.chars().count() > MAX_USER_INPUT_TEXT_CHARS {
-        Err(crate::i18n::tr!("clipboard-text-too-large").into())
+        Err(tr!("clipboard text exceeds the message size limit").into())
     } else {
         Ok(text)
     }
@@ -123,9 +120,8 @@ fn start_windows_reader(
     use std::process::Stdio;
 
     let _guard = runtime.enter();
-    let executable = codex_utils_path::system_executable("powershell.exe").ok_or(
-        crate::i18n::tr!("clipboard-text-windows-reader-unavailable"),
-    )?;
+    let executable = codex_utils_path::system_executable("powershell.exe")
+        .ok_or(tr!("Windows clipboard reader is unavailable"))?;
     let mut command = tokio::process::Command::new(executable);
     // Length-framed UTF-8 preserves every newline and whitespace, including empty text.
     // Neither the prompt nor clipboard contents are ever evaluated as PowerShell.
@@ -152,7 +148,7 @@ while ($null -ne [Console]::ReadLine()) {
         .stderr(Stdio::null())
         .kill_on_drop(/*kill_on_drop*/ true)
         .spawn()
-        .map_err(|_| crate::i18n::tr!("clipboard-text-windows-reader-start-failed").into())
+        .map_err(|_| tr!("could not start Windows clipboard reader").into())
 }
 
 #[cfg(any(target_os = "linux", all(test, unix)))]
@@ -167,36 +163,35 @@ async fn read_command(
         let stdin = child
             .stdin
             .as_mut()
-            .ok_or(crate::i18n::tr!("clipboard-text-reader-no-input"))?;
+            .ok_or(tr!("clipboard reader has no input"))?;
         stdin
             .write_all(b"\n")
             .await
-            .map_err(|_| crate::i18n::tr!("clipboard-text-read-start-failed"))?;
+            .map_err(|_| tr!("could not start clipboard read"))?;
         stdin
             .flush()
             .await
-            .map_err(|_| crate::i18n::tr!("clipboard-text-read-start-failed"))?;
+            .map_err(|_| tr!("could not start clipboard read"))?;
         let stdout = child
             .stdout
             .as_mut()
-            .ok_or(crate::i18n::tr!("clipboard-text-reader-no-output"))?;
+            .ok_or(tr!("clipboard reader has no output"))?;
         let size = stdout
             .read_u32_le()
             .await
-            .map_err(|_| crate::i18n::tr!("clipboard-text-read-failed"))?
-            as usize;
+            .map_err(|_| tr!("could not read clipboard text"))? as usize;
         if size > MAX_USER_INPUT_TEXT_CHARS * 4 {
-            return Err(crate::i18n::tr!("clipboard-text-too-large"));
+            return Err(tr!("clipboard text exceeds the message size limit"));
         }
         let mut bytes = vec![0; size];
         stdout
             .read_exact(&mut bytes)
             .await
-            .map_err(|_| crate::i18n::tr!("clipboard-text-read-failed"))?;
-        String::from_utf8(bytes).map_err(|_| crate::i18n::tr!("clipboard-text-not-utf8"))
+            .map_err(|_| tr!("could not read clipboard text"))?;
+        String::from_utf8(bytes).map_err(|_| tr!("clipboard text is not UTF-8"))
     })
     .await
-    .unwrap_or(Err(crate::i18n::tr!("clipboard-text-read-timed-out")));
+    .unwrap_or(Err(tr!("clipboard read timed out")));
     validate(result.map_err(str::to_owned)?, deadline)
 }
 

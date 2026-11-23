@@ -41,10 +41,12 @@ pub(crate) enum MisalignmentTurnSource {
 }
 
 fn misalignment_policy_title() -> &'static str {
-    crate::i18n::tr!("misalignment-policy-title")
+    tr!("Chat stopped as a precaution")
 }
 fn misalignment_policy_description() -> &'static str {
-    crate::i18n::tr!("misalignment-policy-description")
+    tr!(
+        "We couldn’t confirm the agent was acting safely and following your instructions. To continue working, start or resume another chat."
+    )
 }
 
 impl ChatWidget {
@@ -136,13 +138,13 @@ impl ChatWidget {
         self.bottom_pane.dismiss_view_by_id(PRECAUTION_VIEW);
         let mut items = vec![
             SelectionItem {
-                name: crate::i18n::tr!("misalignment-policy-new-chat").to_string(),
+                name: tr!("New chat").to_string(),
                 actions: vec![Box::new(|tx| tx.send(AppEvent::NewSession { name: None }))],
                 dismiss_on_select: true,
                 ..Default::default()
             },
             SelectionItem {
-                name: crate::i18n::tr!("misalignment-policy-resume-chat").to_string(),
+                name: tr!("Resume another chat").to_string(),
                 actions: vec![Box::new(|tx| tx.send(AppEvent::OpenResumePicker))],
                 ..Default::default()
             },
@@ -156,7 +158,7 @@ impl ChatWidget {
             items.insert(
                 0,
                 SelectionItem {
-                    name: crate::i18n::tr!("misalignment-policy-review-findings").to_string(),
+                    name: tr!("Review findings").to_string(),
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::ReviewMisalignment(Arc::clone(&review)));
                     })],
@@ -167,7 +169,7 @@ impl ChatWidget {
         items.insert(
             1,
             SelectionItem {
-                name: crate::i18n::tr!("misalignment-policy-command-center").to_string(),
+                name: tr!("Agent command center").to_string(),
                 actions: vec![Box::new(|tx| tx.send(AppEvent::OpenAgentsOverview))],
                 ..Default::default()
             },
@@ -177,13 +179,13 @@ impl ChatWidget {
             header: Box::new(
                 Paragraph::new(vec![
                     Line::from(if review.is_some() {
-                        crate::i18n::tr!("misalignment-policy-paused-title")
+                        tr!("Chat paused as a precaution")
                     } else {
                         misalignment_policy_title()
                     })
                     .bold(),
                     Line::from(if review.is_some() {
-                        crate::i18n::tr!("misalignment-policy-paused-description")
+                        tr!("We couldn’t confirm the agent was interpreting your instructions correctly. Review what we detected before deciding to continue.")
                     } else {
                         misalignment_policy_description()
                     })
@@ -219,10 +221,10 @@ impl ChatWidget {
         self.bottom_pane.dismiss_view_by_id(PRECAUTION_VIEW);
         self.bottom_pane.show_selection_view(SelectionViewParams {
             view_id: Some(PRECAUTION_VIEW),
-            title: Some(crate::i18n::tr!("misalignment-policy-paused-title").to_string()),
+            title: Some("Chat paused as a precaution".to_string()),
             items: vec![
                 SelectionItem {
-                    name: crate::i18n::tr!("misalignment-policy-acknowledge").to_string(),
+                    name: "Acknowledge findings and continue".to_string(),
                     is_disabled: !can_continue,
                     actions: vec![Box::new(move |tx| {
                         tx.send(AppEvent::ContinueMisalignment(Arc::clone(&review)));
@@ -232,7 +234,7 @@ impl ChatWidget {
                     ..Default::default()
                 },
                 SelectionItem {
-                    name: crate::i18n::tr!("misalignment-policy-back").to_string(),
+                    name: "Back".to_string(),
                     actions: vec![Box::new(|tx| tx.send(AppEvent::CloseMisalignmentReview))],
                     ..Default::default()
                 },

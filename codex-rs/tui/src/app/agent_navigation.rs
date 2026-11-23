@@ -458,8 +458,8 @@ impl AgentNavigationState {
     pub(crate) fn picker_subtitle() -> String {
         let previous: Span<'static> = previous_agent_shortcut().into();
         let next: Span<'static> = next_agent_shortcut().into();
-        crate::i18n::tr!(
-            "agent-navigation-picker-subtitle",
+        tr!(
+            "Select an agent to watch. {previous} previous, {next} next.",
             previous = previous.content.to_string(),
             next = next.content.to_string()
         )

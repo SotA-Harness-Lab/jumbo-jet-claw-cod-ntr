@@ -121,7 +121,9 @@ pub(super) fn startup_model(
                 bootstrap.default_model.clone()
             }
         })
-        .wrap_err(crate::i18n::tr!("startup-no-startup-model"))
+        .wrap_err(tr!(
+            "The initial app-server connection did not provide a startup model."
+        ))
 }
 
 impl App {
@@ -677,7 +679,7 @@ impl App {
                         &mut other_backends,
                         color_eyre::eyre::eyre!(
                             "{}",
-                            crate::i18n::tr!("startup-permission-overrides-resuming")
+                            tr!("Permission overrides are not supported when resuming a remote task.")
                         ),
                     )
                     .await;
@@ -830,7 +832,9 @@ impl App {
                         &mut other_backends,
                         color_eyre::eyre::eyre!(
                             "{}",
-                            crate::i18n::tr!("startup-permission-overrides-forking")
+                            tr!(
+                                "Permission overrides are not supported when forking a remote task."
+                            )
                         ),
                     )
                     .await;
@@ -982,7 +986,7 @@ impl App {
             local_settings.workspace_enabled(&config),
         )
         .map_err(|err| {
-            color_eyre::eyre::eyre!("{}", crate::i18n::tr!("startup-invalid-keymap", err = err))
+            color_eyre::eyre::eyre!("{}", tr!("Invalid `tui.keymap` configuration: {err}\nFix the config and retry.\nSee the Codex keymap documentation for supported actions and examples.", err))
         });
         let runtime_keymap = startup_try!(runtime_keymap);
         #[cfg(not(debug_assertions))]
@@ -1393,7 +1397,7 @@ impl App {
                                 crate::terminal_title::TitleEncoding::Unicode,
                             )
                         })
-                        .unwrap_or_else(|| crate::i18n::tr!("startup-default-environment").into())
+                        .unwrap_or_else(|| tr!("Default").into())
                 });
                 app.chat_widget
                     .set_new_backend_control(current_label, environment_name);
@@ -1495,7 +1499,9 @@ impl App {
                             tokio::time::sleep_until(deadline).await;
                             color_eyre::eyre::bail!(
                                 "{}",
-                                crate::i18n::tr!("startup-reconnect-timed-out")
+                                tr!(
+                                    "Automatic reconnect timed out waiting for the server to finish shutting down."
+                                )
                             );
                         }
                         attempt.await
@@ -1548,7 +1554,7 @@ impl App {
                     }, if app.daemon_restart.is_some() => {
                         app.daemon_restart = None;
                         if let Err(err) = result.unwrap_or_else(|err| Err(err.into())) {
-                            app.chat_widget.add_error_message(crate::i18n::tr!("startup-could-not-restart-server", err = format!("{err:#}")));
+                            app.chat_widget.add_error_message(tr!("Could not restart the background server: {err}", err = format!("{err:#}")));
                         }
                         AppRunControl::Continue
                     }
@@ -1775,7 +1781,7 @@ impl App {
                                 app.chat_widget.reconnect_failed();
                                 app.chat_widget.add_error_message(error.to_string());
                                 if let Ok(mut state) = app.agents_overview.view_state.lock() {
-                                    state.connection_notice = Some(crate::i18n::tr!("startup-reconnect-failed-stale"));
+                                    state.connection_notice = Some(tr!("Reconnect failed — agent list is stale; relaunch to retry"));
                                 }
                             }
                         }

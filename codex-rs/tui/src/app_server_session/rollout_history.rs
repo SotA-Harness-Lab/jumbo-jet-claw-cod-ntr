@@ -80,7 +80,9 @@ impl AppServerSession {
                 .await?;
             thread.turns = page.data.into_iter().rev().collect();
             self.history_pagination.remove(&thread_id);
-            history_notice = Some(crate::i18n::tr!("rollout-history-limited-notice"));
+            history_notice = Some(tr!(
+                "Showing up to 100 recent prompts and final replies. Intermediate messages and tool activity are unavailable."
+            ));
         }
         let mut session = thread_session_state_from_thread_response(
             &thread.id,

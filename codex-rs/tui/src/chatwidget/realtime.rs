@@ -270,7 +270,7 @@ impl ChatWidget {
         if self.realtime_conversation.phase == RealtimeConversationPhase::Stopping {
             self.realtime_conversation.startup_retry = StartupRetry::Used;
             self.add_info_message(
-                crate::i18n::tr!("realtime-still-stopping").to_string(),
+                tr!("Voice conversation is still stopping.").to_string(),
                 /*hint*/ None,
             );
             return;
@@ -287,7 +287,7 @@ impl ChatWidget {
         }
 
         if self.side_conversation_active() {
-            self.add_error_message(crate::i18n::tr!("realtime-unavailable-side").to_string());
+            self.add_error_message(tr!("Voice mode is unavailable in side conversations. Return to the main thread first.").to_string());
             return;
         }
 
@@ -297,13 +297,13 @@ impl ChatWidget {
         }
 
         if !RealtimeWebrtcSession::is_supported() {
-            self.add_error_message(crate::i18n::tr!("realtime-unsupported-platform").to_string());
+            self.add_error_message(tr!("Voice requires macOS, an MSVC-based Windows build, or a glibc-based Linux build.").to_string());
             return;
         }
 
         let Some(thread_id) = self.thread_id() else {
             self.add_error_message(
-                crate::i18n::tr!("realtime-start-conversation-first").to_string(),
+                tr!("Start a conversation before using voice mode.").to_string(),
             );
             return;
         };
@@ -422,7 +422,10 @@ impl ChatWidget {
             Ok(offer) => offer,
             Err(error) => {
                 self.on_realtime_error(
-                    crate::i18n::tr!("realtime-failed-start", message = error.message.to_string()),
+                    tr!(
+                        "Failed to start voice mode: {message}",
+                        message = error.message.to_string()
+                    ),
                     error.cause.into(),
                 );
                 return;
@@ -435,11 +438,14 @@ impl ChatWidget {
             offer.handle.close();
             let (message, cause) = match failure {
                 Some((cause, error)) => (
-                    crate::i18n::tr!("realtime-conversation-failed", message = error),
+                    tr!("Voice conversation failed: {message}", message = error),
                     cause.into(),
                 ),
                 None => (
-                    crate::i18n::tr!("realtime-failed-restore-mute", error = error.to_string()),
+                    tr!(
+                        "Failed to restore microphone mute: {error}",
+                        error = error.to_string()
+                    ),
                     RealtimeFailureCause::AudioControls,
                 ),
             };
@@ -539,7 +545,7 @@ impl ChatWidget {
                     self.reset_realtime_conversation();
                 } else {
                     self.add_info_message(
-                        crate::i18n::tr!("realtime-connection-timed-out").into(),
+                        tr!("Voice connection timed out. Retrying once after cleanup.").into(),
                         /*hint*/ None,
                     );
                 }
@@ -552,11 +558,14 @@ impl ChatWidget {
                 .and_then(RealtimeWebrtcSessionHandle::take_error);
             let (message, cause) = match stored_error {
                 Some((cause, message)) => (
-                    crate::i18n::tr!("realtime-conversation-failed", message = message),
+                    tr!("Voice conversation failed: {message}", message),
                     cause.into(),
                 ),
                 None => (
-                    crate::i18n::tr!("realtime-failed-connect", error = error.to_string()),
+                    tr!(
+                        "Failed to connect voice mode: {error}",
+                        error = error.to_string()
+                    ),
                     error.into(),
                 ),
             };
@@ -608,8 +617,8 @@ impl ChatWidget {
         self.frame_requester
             .schedule_frame_in(MICROPHONE_METER_INTERVAL);
         self.add_info_message(
-            crate::i18n::tr!("realtime-conversation-started").to_string(),
-            Some(crate::i18n::tr!("realtime-started-hint").to_string()),
+            tr!("Voice conversation started.").to_string(),
+            Some(tr!("Use /voice mute to mute or /voice to stop.").to_string()),
         );
     }
 
@@ -1092,7 +1101,7 @@ impl ChatWidget {
         }) {
             self.restore_undelivered_realtime_speech(delivery_id);
             self.on_realtime_error(
-                crate::i18n::tr!("realtime-failed-deliver").to_string(),
+                tr!("Failed to deliver the voice response.").to_string(),
                 RealtimeFailureCause::SpeechDelivery,
             );
         } else {
@@ -1815,7 +1824,7 @@ impl ChatWidget {
             self.realtime_conversation.microphone_muted = muted;
             if retry_after_early_close {
                 self.add_info_message(
-                    crate::i18n::tr!("realtime-closed-during-startup").into(),
+                    tr!("Voice connection closed during startup. Retrying once.").into(),
                     /*hint*/ None,
                 );
             }
@@ -1826,8 +1835,10 @@ impl ChatWidget {
             && reason != "error"
             && !(failed && reason == "requested")
         {
-            let message =
-                crate::i18n::tr!("realtime-conversation-ended", reason = reason.to_string());
+            let message = tr!(
+                "Voice conversation ended: {reason}",
+                reason = reason.to_string()
+            );
             if self.app_event_tx.voice_only.load(Ordering::Relaxed) && reason != "requested" {
                 self.add_realtime_error(message);
             } else {

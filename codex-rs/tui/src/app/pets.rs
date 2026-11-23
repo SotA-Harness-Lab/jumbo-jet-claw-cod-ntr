@@ -150,10 +150,8 @@ impl App {
                 tui.frame_requester().schedule_frame();
             }
             Err(err) => {
-                self.chat_widget.add_error_message(crate::i18n::tr!(
-                    "app-pets-disable-failed",
-                    err = err.to_string()
-                ));
+                self.chat_widget
+                    .add_error_message(tr!("Failed to disable pets: {err}", err = err.to_string()));
             }
         }
     }
@@ -196,8 +194,8 @@ impl App {
                             .set_tui_pet_loaded(Some(pet_id), ambient_pet);
                     }
                     Err(err) => {
-                        self.chat_widget.add_error_message(crate::i18n::tr!(
-                            "app-pets-save-failed",
+                        self.chat_widget.add_error_message(tr!(
+                            "Failed to save pet selection: {err}",
                             err = err.to_string()
                         ));
                     }
@@ -205,7 +203,7 @@ impl App {
             }
             Err(err) => {
                 self.chat_widget
-                    .add_error_message(crate::i18n::tr!("app-pets-load-failed", err = err));
+                    .add_error_message(tr!("Failed to load pet: {err}", err));
             }
         }
         tui.frame_requester().schedule_frame();

@@ -34,11 +34,11 @@ impl Confirmation {
         let lines = textwrap::wrap(&self.message, usize::from(body.width));
         let offset = lines.len() + 2;
         let accept = match self.action {
-            Action::CloseTab => crate::i18n::tr!("sidebar-close-button-close"),
-            Action::Archive => crate::i18n::tr!("sidebar-close-button-archive"),
+            Action::CloseTab => tr!(" Close "),
+            Action::Archive => tr!(" Archive "),
         };
         if body.width < 10 + accept.width() as u16 || offset >= usize::from(area.height) {
-            Line::from(crate::i18n::tr!("sidebar-close-resize")).render(body, buf);
+            Line::from(tr!("Resize to review · Esc to cancel")).render(body, buf);
             return Default::default();
         }
         for (line, row) in lines.into_iter().zip(body.rows().skip(1)) {
@@ -49,7 +49,7 @@ impl Confirmation {
             Rect::new(body.x, y, 8, 1).intersection(area),
             Rect::new(body.x.saturating_add(10), y, accept.width() as u16, 1).intersection(area),
         ];
-        for (index, (label, button)) in [crate::i18n::tr!("sidebar-close-button-cancel"), accept]
+        for (index, (label, button)) in [tr!(" Cancel "), accept]
             .into_iter()
             .zip(buttons)
             .enumerate()
@@ -64,9 +64,9 @@ impl Confirmation {
         if let Some(footer) = body.rows().nth(offset + 2) {
             footer_hint::HintLine::new(
                 [
-                    footer_hint::shortcut("←/→", crate::i18n::tr!("sidebar-close-hint-choose")),
-                    footer_hint::shortcut("Enter", crate::i18n::tr!("sidebar-close-hint-confirm")),
-                    footer_hint::shortcut("Esc", crate::i18n::tr!("sidebar-close-hint-cancel")),
+                    footer_hint::shortcut("←/→", tr!("choose")),
+                    footer_hint::shortcut("Enter", tr!("confirm")),
+                    footer_hint::shortcut("Esc", tr!("cancel")),
                 ],
                 footer.width,
             )
@@ -95,7 +95,7 @@ pub(super) async fn request(
     if app.active_turn_id_for_thread(target).await.is_some()
         || (displayed && app.chat_widget.is_agent_turn_running())
     {
-        losses.push(crate::i18n::tr!("sidebar-close-loss-stop-turn"));
+        losses.push(tr!("stop the running turn"));
     }
     let has_unsent_input = side.opening_message.is_some()
         || if displayed {
@@ -112,13 +112,13 @@ pub(super) async fn request(
             false
         };
     if has_unsent_input {
-        losses.push(crate::i18n::tr!("sidebar-close-loss-discard-input"));
+        losses.push(tr!("discard unsent input"));
     }
     if side.storage == SideChatStorage::Temporary {
-        losses.push(crate::i18n::tr!("sidebar-close-loss-temp-history"));
+        losses.push(tr!("lose this temporary chat’s history"));
     }
     if action == Action::Archive {
-        losses.push(crate::i18n::tr!("sidebar-close-loss-remove-side"));
+        losses.push(tr!("remove it from Side chats"));
     }
     if losses.is_empty() {
         return execute(app, tui, server, target, action).await;
@@ -132,21 +132,21 @@ pub(super) async fn request(
     };
     let title = crate::sidebar_chooser::side_chat_label(&tabs.choices[index - 1])
         .map(str::to_owned)
-        .unwrap_or_else(|| crate::i18n::tr!("sidebar-close-side-chat-n", index = index));
+        .unwrap_or_else(|| tr!("Side chat {index}", index));
     app.conversation_frame.close_buttons = Default::default();
     let verb = match action {
-        Action::CloseTab => crate::i18n::tr!("sidebar-close-verb-close"),
-        Action::Archive => crate::i18n::tr!("sidebar-close-verb-archive"),
+        Action::CloseTab => tr!("Close"),
+        Action::Archive => tr!("Archive"),
     };
     let pane = app.sidebar_mut();
     pane.cancel_hidden_document_primary(/*visible*/ false);
     pane.close = Some(Confirmation {
         target,
         action,
-        message: crate::i18n::tr!(
-            "sidebar-close-confirm",
-            losses = losses.join(crate::i18n::tr!("sidebar-close-and")),
-            verb = verb,
+        message: tr!(
+            "This will {losses}. {verb} “{title}”?",
+            losses = losses.join(tr!(in "sidebar-close", " and ")),
+            verb,
             title = crate::line_truncation::truncate_line_with_ellipsis_if_overflow(
                 title.into(),
                 /*max_width*/ 24
@@ -274,8 +274,8 @@ async fn execute(
     tokio::spawn(async move {
         let result = match action {
             Action::Archive => view.thread_archive(target).await.map_err(|err| {
-                crate::i18n::tr!(
-                    "sidebar-close-archive-failed",
+                tr!(
+                    "Failed to archive side conversation {target}: {err}",
                     target = target.to_string(),
                     err = err.to_string()
                 )
@@ -285,15 +285,15 @@ async fn execute(
                     super::side::interrupt_for_close(&mut view, target, turn, attachment)
                         .await
                         .map_err(|err| {
-                            crate::i18n::tr!(
-                                "sidebar-close-interrupt-failed",
+                            tr!(
+                                "Failed to interrupt side conversation {target}: {err}",
                                 target = target.to_string(),
                                 err = err.to_string()
                             )
                         })?;
                     view.thread_unsubscribe(target).await.map_err(|err| {
-                        crate::i18n::tr!(
-                            "sidebar-close-close-failed",
+                        tr!(
+                            "Failed to close side conversation {target}: {err}",
                             target = target.to_string(),
                             err = err.to_string()
                         )

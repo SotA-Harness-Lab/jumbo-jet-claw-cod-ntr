@@ -55,14 +55,8 @@ pub(crate) fn effects_with_toggle_states(
     toggle_states: &[Option<SelectionToggleState>],
 ) -> SelectionViewParams {
     let footer_hint = [
-        (
-            ListAction::Accept,
-            crate::i18n::tr!("config-render-hint-toggle"),
-        ),
-        (
-            ListAction::Cancel,
-            crate::i18n::tr!("config-render-hint-back"),
-        ),
+        (ListAction::Accept, tr!("toggle")),
+        (ListAction::Cancel, tr!("back")),
     ]
     .into_iter()
     .filter_map(|(action, label)| {
@@ -73,13 +67,13 @@ pub(crate) fn effects_with_toggle_states(
     .collect::<Vec<_>>();
     let settings = [
         (
-            crate::i18n::tr!("config-render-animations"),
-            crate::i18n::tr!("config-render-animations-desc"),
+            "Animations",
+            "Animate the welcome screen, working indicator, and transitions",
             ConfigToggle::Animations,
         ),
         (
-            crate::i18n::tr!("config-render-composer-stars"),
-            crate::i18n::tr!("config-render-composer-stars-desc"),
+            "Composer stars",
+            "Show stars briefly for new Astra tasks",
             ConfigToggle::ComposerStars,
         ),
     ];
@@ -91,8 +85,8 @@ pub(crate) fn effects_with_toggle_states(
         .unwrap_or(tui.animations);
     SelectionViewParams {
         view_id: Some(EFFECTS_VIEW_ID),
-        title: Some(crate::i18n::tr!("config-render-effects").to_string()),
-        subtitle: Some(crate::i18n::tr!("config-render-effects-subtitle").to_string()),
+        title: Some("Effects".to_string()),
+        subtitle: Some("Configure visual effects".to_string()),
         footer_hint: Some(footer_hint_items_line(&footer_hint)),
         allow_input_when_disconnected: true,
         items: settings
@@ -121,9 +115,8 @@ pub(crate) fn effects_with_toggle_states(
                     checkbox_toggle: available,
                     toggle_placeholder: (!available).then_some(SELECTION_TOGGLE_UNAVAILABLE_PREFIX),
                     description: available.then(|| description.to_string()),
-                    disabled_reason: (!available).then(|| {
-                        crate::i18n::tr!("config-render-stars-need-animations").to_string()
-                    }),
+                    disabled_reason: (!available)
+                        .then(|| "Turn on Animations to show Astra task stars".to_string()),
                     dismiss_on_select: false,
                     ..Default::default()
                 }
@@ -147,8 +140,8 @@ pub(crate) fn mouse_scroll_speed(
         }
     };
     SelectionViewParams {
-        title: Some(crate::i18n::tr!("config-render-mouse-scroll-speed").to_string()),
-        subtitle: Some(crate::i18n::tr!("config-render-mouse-scroll-speed-desc").to_string()),
+        title: Some("Mouse scroll speed".to_string()),
+        subtitle: Some("Choose a mouse-wheel speed for the fullscreen transcript".to_string()),
         footer_hint: Some(picker_hint_line_for_keymap(keymap)),
         initial_selected_idx: Some(selected),
         allow_input_when_disconnected: true,
@@ -156,7 +149,7 @@ pub(crate) fn mouse_scroll_speed(
             .into_iter()
             .map(|speed| SelectionItem {
                 name: if speed == 1.0 {
-                    crate::i18n::tr!("config-render-speed-default").to_string()
+                    "1× (default)".to_string()
                 } else {
                     format!("{speed}×")
                 },
@@ -170,7 +163,7 @@ pub(crate) fn mouse_scroll_speed(
                 ..Default::default()
             })
             .collect(),
-        ..SelectionViewParams::picker()
+        ..SelectionViewParams::fixed_choices()
     }
 }
 
@@ -182,18 +175,14 @@ pub(crate) fn notification_condition(
 
     let current = tui.notification_settings.condition;
     let conditions = [
-        (
-            crate::i18n::tr!("config-render-unfocused"),
-            NotificationCondition::Unfocused,
-        ),
-        (
-            crate::i18n::tr!("config-render-always"),
-            NotificationCondition::Always,
-        ),
+        ("Unfocused", NotificationCondition::Unfocused),
+        ("Always", NotificationCondition::Always),
     ];
     SelectionViewParams {
-        title: Some(crate::i18n::tr!("config-render-notify-when").to_string()),
-        subtitle: Some(crate::i18n::tr!("config-render-notify-when-desc").to_string()),
+        title: Some("Notify when".to_string()),
+        subtitle: Some(
+            "Notify only while you are away or while this terminal is focused too".to_string(),
+        ),
         footer_hint: Some(picker_hint_line_for_keymap(keymap)),
         initial_selected_idx: conditions
             .iter()
@@ -213,7 +202,7 @@ pub(crate) fn notification_condition(
                 ..Default::default()
             })
             .collect(),
-        ..SelectionViewParams::picker()
+        ..SelectionViewParams::fixed_choices()
     }
 }
 
@@ -225,16 +214,13 @@ pub(crate) fn copy_on_select(
 
     let current = tui.copy_on_select;
     let modes = [
-        (
-            crate::i18n::tr!("config-render-auto-default"),
-            CopyOnSelect::Auto,
-        ),
-        (crate::i18n::tr!("config-render-on"), CopyOnSelect::Always),
-        (crate::i18n::tr!("config-render-off"), CopyOnSelect::Never),
+        ("Auto (default)", CopyOnSelect::Auto),
+        ("On", CopyOnSelect::Always),
+        ("Off", CopyOnSelect::Never),
     ];
     SelectionViewParams {
-        title: Some(crate::i18n::tr!("config-render-copy-on-select").to_string()),
-        subtitle: Some(crate::i18n::tr!("config-render-copy-on-select-desc").to_string()),
+        title: Some("Copy on select".to_string()),
+        subtitle: Some("Copy transcript, footer, and composer selections on release; Auto follows terminal defaults".to_string()),
         footer_hint: Some(picker_hint_line_for_keymap(keymap)),
         initial_selected_idx: modes.iter().position(|(_, mode)| *mode == current),
         allow_input_when_disconnected: true,
@@ -252,7 +238,7 @@ pub(crate) fn copy_on_select(
                 ..Default::default()
             })
             .collect(),
-        ..SelectionViewParams::picker()
+        ..SelectionViewParams::fixed_choices()
     }
 }
 
@@ -264,15 +250,12 @@ pub(crate) fn right_click_paste(
 
     let current = tui.right_click_paste;
     let modes = [
-        (
-            crate::i18n::tr!("config-render-auto-default"),
-            RightClickPaste::Auto,
-        ),
-        (crate::i18n::tr!("config-render-on"), RightClickPaste::On),
-        (crate::i18n::tr!("config-render-off"), RightClickPaste::Off),
+        ("Auto (default)", RightClickPaste::Auto),
+        ("On", RightClickPaste::On),
+        ("Off", RightClickPaste::Off),
     ];
     SelectionViewParams {
-        title: Some(crate::i18n::tr!("config-render-right-click-paste").to_string()),
+        title: Some("Right-click paste".to_string()),
         subtitle: Some(super::RIGHT_CLICK_PASTE_DESCRIPTION.to_string()),
         footer_hint: Some(picker_hint_line_for_keymap(keymap)),
         initial_selected_idx: modes.iter().position(|(_, mode)| *mode == current),
@@ -291,7 +274,7 @@ pub(crate) fn right_click_paste(
                 ..Default::default()
             })
             .collect(),
-        ..SelectionViewParams::picker()
+        ..SelectionViewParams::fixed_choices()
     }
 }
 
@@ -303,18 +286,15 @@ pub(crate) fn session_picker_layout(
 
     let current = tui.session_picker_view.unwrap_or_default();
     let modes = [
-        (
-            crate::i18n::tr!("config-render-dense"),
-            SessionPickerViewMode::Dense,
-        ),
-        (
-            crate::i18n::tr!("config-render-comfortable"),
-            SessionPickerViewMode::Comfortable,
-        ),
+        ("Dense", SessionPickerViewMode::Dense),
+        ("Comfortable", SessionPickerViewMode::Comfortable),
     ];
     SelectionViewParams {
-        title: Some(crate::i18n::tr!("config-render-session-picker-layout").to_string()),
-        subtitle: Some(crate::i18n::tr!("config-render-session-picker-layout-desc").to_string()),
+        title: Some("Session picker layout".to_string()),
+        subtitle: Some(
+            "Choose tighter rows or a roomier list when resuming and forking conversations"
+                .to_string(),
+        ),
         footer_hint: Some(picker_hint_line_for_keymap(keymap)),
         initial_selected_idx: modes.iter().position(|(_, mode)| *mode == current),
         allow_input_when_disconnected: true,
@@ -332,7 +312,7 @@ pub(crate) fn session_picker_layout(
                 ..Default::default()
             })
             .collect(),
-        ..SelectionViewParams::picker()
+        ..SelectionViewParams::fixed_choices()
     }
 }
 
@@ -345,19 +325,13 @@ pub(crate) fn resume_directory(
 
     let current = tui.resume_cwd;
     let modes = [
-        (crate::i18n::tr!("config-render-ask"), None),
-        (
-            crate::i18n::tr!("config-render-current-directory"),
-            Some(ResumeCwdMode::Current),
-        ),
-        (
-            crate::i18n::tr!("config-render-session-directory"),
-            Some(ResumeCwdMode::Session),
-        ),
+        ("Ask", None),
+        ("Current directory", Some(ResumeCwdMode::Current)),
+        ("Session directory", Some(ResumeCwdMode::Session)),
     ];
     SelectionViewParams {
-        title: Some(crate::i18n::tr!("config-render-resume-directory").to_string()),
-        subtitle: Some(crate::i18n::tr!("config-render-resume-directory-desc").to_string()),
+        title: Some("Resume directory".to_string()),
+        subtitle: Some("Choose the working directory when resuming, with --cd taking precedence for this session".to_string()),
         footer_hint: Some(picker_hint_line_for_keymap(keymap)),
         initial_selected_idx: modes.iter().position(|(_, mode)| *mode == current),
         allow_input_when_disconnected: true,
@@ -371,7 +345,7 @@ pub(crate) fn resume_directory(
                         current_availability,
                         ResumeCurrentAvailability::RequiresCwdOverride
                     ) {
-                    Some(crate::i18n::tr!("config-render-requires-cd-remote").to_string())
+                    Some("Requires --cd for remote sessions".to_string())
                 } else {
                     None
                 },
@@ -384,7 +358,7 @@ pub(crate) fn resume_directory(
                 ..Default::default()
             })
             .collect(),
-        ..SelectionViewParams::picker()
+        ..SelectionViewParams::fixed_choices()
     }
 }
 
@@ -405,11 +379,9 @@ impl Renderable for ConfigPanelHeader {
 }
 
 fn header(notice: Option<String>) -> Box<dyn Renderable> {
-    let subtitle = notice.unwrap_or_else(|| {
-        crate::i18n::tr!("config-render-changes-save-automatically").to_string()
-    });
+    let subtitle = notice.unwrap_or_else(|| tr!("Changes save automatically").to_string());
     Box::new(ConfigPanelHeader(vec![
-        Line::from(crate::i18n::tr!("config-render-configuration").bold()),
+        Line::from(tr!("Configuration").bold()),
         Line::from(subtitle.dim()),
     ]))
 }
@@ -433,22 +405,16 @@ fn hint(
         .collect::<Vec<_>>()
         .join("/");
     if !keys.is_empty() {
-        items.push((keys, crate::i18n::tr!("config-render-hint-group").into()));
+        items.push((keys, tr!("group").into()));
     }
     if let Some(search) = search {
-        items.push((
-            search.display_label(),
-            crate::i18n::tr!("config-render-hint-search").into(),
-        ));
+        items.push((search.display_label(), tr!("search").into()));
     }
     items.extend(
         accept_label
             .map(|label| (ListAction::Accept, label))
             .into_iter()
-            .chain([(
-                ListAction::Cancel,
-                crate::i18n::tr!("config-render-hint-clear-search-close"),
-            )])
+            .chain([(ListAction::Cancel, tr!("clear search/close"))])
             .filter_map(|(action, label)| key_label(action).map(|key| (key, label.into()))),
     );
     footer_hint_items_line(&items)
@@ -474,14 +440,10 @@ fn setting_item(
         } => (Some(*unavailable_reason), None),
         ConfigSettingValue::Unavailable { reason } => (Some(*reason), None),
         ConfigSettingValue::Toggle { .. } | ConfigSettingValue::DependentToggle { .. } => {
-            (None, Some(crate::i18n::tr!("config-render-hint-toggle")))
+            (None, Some(tr!("toggle")))
         }
-        ConfigSettingValue::Editor { .. } => {
-            (None, Some(crate::i18n::tr!("config-render-hint-open")))
-        }
-        ConfigSettingValue::NotificationTest => {
-            (None, Some(crate::i18n::tr!("config-render-hint-test")))
-        }
+        ConfigSettingValue::Editor { .. } => (None, Some(tr!("open"))),
+        ConfigSettingValue::NotificationTest => (None, Some(tr!("test"))),
     };
     let value_label = setting.value.label();
     let description = unavailable.unwrap_or(setting.description);
@@ -489,10 +451,7 @@ fn setting_item(
         &accept_label
             .map(|label| ("enter".to_string(), label.to_string()))
             .into_iter()
-            .chain([(
-                "esc".to_string(),
-                crate::i18n::tr!("config-render-hint-clear-search").to_string(),
-            )])
+            .chain([("esc".to_string(), tr!("clear search").to_string())])
             .collect::<Vec<_>>(),
     );
     let description = match context {
@@ -553,7 +512,7 @@ pub(super) fn picker(
         footer_hint: Some(hint(&keymap, search_hint, /*accept_label*/ None)),
         is_searchable: true,
         search_mode: SearchMode::OnDemand(search),
-        search_placeholder: Some(crate::i18n::tr!("config-render-search-placeholder").to_string()),
+        search_placeholder: Some("Type to search settings".to_string()),
         search_items: settings
             .iter()
             .map(|setting| setting_item(setting, &keymap, search_hint, SettingItemContext::Search))

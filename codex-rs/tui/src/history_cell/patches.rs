@@ -34,15 +34,15 @@ impl HistoryCell for PatchHistoryCell {
     fn tool_call_labels(&self) -> Vec<String> {
         let mut paths = self.changes.keys();
         let label = match (paths.next(), paths.next()) {
-            (Some(path), None) => crate::i18n::tr!(
-                "patches-edited-file",
+            (Some(path), None) => tr!(
+                "Edited {name}",
                 name = path
                     .file_name()
                     .unwrap_or(path.as_os_str())
                     .to_string_lossy()
                     .to_string()
             ),
-            _ => crate::i18n::tr!("patches-edited-files").into(),
+            _ => tr!("Edited files").into(),
         };
         vec![label]
     }
@@ -114,7 +114,7 @@ pub(crate) struct PatchFailureCell {
 
 impl HistoryCell for PatchFailureCell {
     fn tool_call_labels(&self) -> Vec<String> {
-        vec![crate::i18n::tr!("patches-failed-to-apply").into()]
+        vec![tr!("Failed to apply patch").into()]
     }
 
     fn activity_ids(&self) -> Vec<String> {
@@ -133,14 +133,14 @@ impl HistoryCell for PatchFailureCell {
     fn transcript_hyperlink_lines(&self, width: u16) -> Vec<HyperlinkLine> {
         let mut lines = vec![
             Line::from(
-                format!("✘ {}", crate::i18n::tr!("patches-failed-to-apply"))
+                format!("✘ {}", tr!("Failed to apply patch"))
                     .magenta()
                     .bold(),
             )
             .into(),
         ];
         let error = if self.stderr.trim().is_empty() {
-            crate::i18n::tr!("patches-error-details-unavailable")
+            tr!("(error details unavailable)")
         } else {
             &self.stderr
         };
@@ -160,7 +160,7 @@ impl HistoryCell for PatchFailureCell {
     }
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
-        let mut lines = vec![Line::from(crate::i18n::tr!("patches-failed-to-apply"))];
+        let mut lines = vec![Line::from(tr!("Failed to apply patch"))];
         lines.extend(plain_lines(ansi_escape(&self.stderr).lines));
         lines
     }
@@ -170,7 +170,7 @@ impl HistoryCell for PatchFailureCell {
 
         // Failure title
         lines.push(Line::from(
-            format!("✘ {}", crate::i18n::tr!("patches-failed-to-apply"))
+            format!("✘ {}", tr!("Failed to apply patch"))
                 .magenta()
                 .bold(),
         ));
@@ -205,7 +205,7 @@ pub(crate) struct ViewImageHistoryCell {
 
 impl ViewImageHistoryCell {
     pub(crate) fn link_local_image(&mut self) {
-        let start = crate::width::display_width(crate::i18n::tr!("patches-viewed-image"));
+        let start = crate::width::display_width(tr!("Viewed image "));
         let end = start + crate::width::display_width(&self.path_label);
         self.link = self
             .image_path()
@@ -215,11 +215,7 @@ impl ViewImageHistoryCell {
 
 impl HistoryCell for ViewImageHistoryCell {
     fn tool_call_labels(&self) -> Vec<String> {
-        vec![format!(
-            "{}{}",
-            crate::i18n::tr!("patches-viewed-image"),
-            self.path_label
-        )]
+        vec![format!("{}{}", tr!("Viewed image "), self.path_label)]
     }
 
     fn activity_ids(&self) -> Vec<String> {
@@ -233,7 +229,7 @@ impl HistoryCell for ViewImageHistoryCell {
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
         let line = vec![
             "• ".dim(),
-            crate::i18n::tr!("patches-viewed-image").bold(),
+            tr!("Viewed image ").bold(),
             self.filename.replace(['\n', '\r', '\t'], " ").dim(),
         ]
         .into();
@@ -247,7 +243,7 @@ impl HistoryCell for ViewImageHistoryCell {
         let mut lines = plain_hyperlink_lines(self.display_lines(width));
         if let ([line], Some(link)) = (lines.as_mut_slice(), &self.link) {
             let start = crate::width::display_width("• ")
-                + crate::width::display_width(crate::i18n::tr!("patches-viewed-image"));
+                + crate::width::display_width(tr!("Viewed image "));
             if start < line.width() {
                 line.hyperlinks.push(link.with_columns(start..line.width()));
             }
@@ -264,7 +260,7 @@ impl HistoryCell for ViewImageHistoryCell {
             return Vec::new();
         }
         let mut line = HyperlinkLine::new(Line::from(vec![
-            crate::i18n::tr!("patches-viewed-image").bold(),
+            tr!("Viewed image ").bold(),
             self.path_label.clone().dim(),
         ]));
         line.hyperlinks.extend(self.link.iter().cloned());
@@ -279,7 +275,7 @@ impl HistoryCell for ViewImageHistoryCell {
     fn raw_lines(&self) -> Vec<Line<'static>> {
         vec![Line::from(format!(
             "{}{}",
-            crate::i18n::tr!("patches-viewed-image"),
+            tr!("Viewed image "),
             self.path_label
         ))]
     }
@@ -310,31 +306,16 @@ pub(crate) fn new_image_generation_call(
     let detail = revised_prompt.unwrap_or_else(|| call_id.clone());
     let failed = status == "failed";
     let heading = if failed {
-        vec![
-            "✗ ".red().bold(),
-            crate::i18n::tr!("patches-image-generation-failed").bold(),
-        ]
-        .into()
+        vec!["✗ ".red().bold(), tr!("Image generation failed").bold()].into()
     } else {
-        vec![
-            "• ".dim(),
-            crate::i18n::tr!("patches-generated-image-heading").bold(),
-        ]
-        .into()
+        vec!["• ".dim(), tr!("Generated Image:").bold()].into()
     };
     let mut lines: Vec<Line<'static>> = vec![heading, vec!["  └ ".dim(), detail.dim()].into()];
     if let Some(saved_path) = &saved_path {
         let saved_path = Url::from_file_path(saved_path.as_path())
             .map(|url| url.to_string())
             .unwrap_or_else(|_| saved_path.display().to_string());
-        lines.push(
-            vec![
-                "  └ ".dim(),
-                crate::i18n::tr!("patches-saved-to").dim(),
-                saved_path.into(),
-            ]
-            .into(),
-        );
+        lines.push(vec!["  └ ".dim(), tr!("Saved to: ").dim(), saved_path.into()].into());
     }
 
     ImageGenerationHistoryCell {
@@ -385,9 +366,9 @@ impl HistoryCell for ImageGenerationHistoryCell {
             return Vec::new();
         }
         let label = if self.failed {
-            crate::i18n::tr!("patches-image-generation-failed")
+            tr!("Image generation failed")
         } else {
-            crate::i18n::tr!("patches-generated-image")
+            tr!("Generated image")
         };
         vec![label.into()]
     }
