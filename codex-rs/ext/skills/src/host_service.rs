@@ -24,6 +24,7 @@ use codex_protocol::protocol::SkillScope;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use codex_utils_plugins::PluginIdentity;
 use codex_utils_plugins::PluginSkillRoot;
+use codex_utils_plugins::SkillDiscoveryMode;
 use tokio::sync::OnceCell;
 use tokio::sync::Semaphore;
 use tracing::info;
@@ -567,6 +568,8 @@ struct ConfigSkillsCacheKey {
 pub(crate) struct ConfigSkillRootCacheKey {
     path: AbsolutePathBuf,
     scope_rank: u8,
+    claude_skill: bool,
+    discovery_mode: SkillDiscoveryMode,
     plugin_identity: Option<PluginIdentity>,
     plugin_namespace: Option<String>,
     access: EnvironmentAccessKey,
@@ -584,7 +587,7 @@ fn push_nested_repository_roots<'a>(
     };
     for path in &input.nested_repository_skill_roots {
         if roots.iter().all(|root| root.path != *path) {
-            roots.push(HostSkillRoot::host(
+            roots.push(HostSkillRoot::claude_skill(
                 path.clone(),
                 SkillScope::Repo,
                 repository,
@@ -620,6 +623,8 @@ pub(crate) fn config_skill_root_cache_key(root: &HostSkillRoot<'_>) -> ConfigSki
     ConfigSkillRootCacheKey {
         path: root.path.clone(),
         scope_rank,
+        claude_skill: root.claude_skill,
+        discovery_mode: root.discovery_mode(),
         plugin_identity: root.plugin_identity().cloned(),
         plugin_namespace: root.plugin_namespace().map(str::to_string),
         access: root.file_system.cache_key(),

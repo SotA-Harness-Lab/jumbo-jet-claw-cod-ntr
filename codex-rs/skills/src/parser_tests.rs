@@ -6,6 +6,7 @@
 use pretty_assertions::assert_eq;
 
 use super::ParsedSkillFrontmatter;
+use super::parse_claude_skill_frontmatter_metadata;
 use super::parse_skill_frontmatter_metadata;
 
 #[test]
@@ -47,6 +48,20 @@ fn uses_default_name_and_requires_description() {
         parse_skill_frontmatter_metadata("---\nname: demo\n---\n", || "fallback".to_string())
             .expect_err("description should be required");
     assert_eq!(error.to_string(), "missing field `description`");
+}
+
+#[test]
+fn empty_delimiters_allow_a_claude_body_but_native_frontmatter_is_still_required() {
+    let contents = "---\n---\n# Read the fixtures\n";
+    let fallback_name = || "review".to_string();
+    let claude = parse_claude_skill_frontmatter_metadata(contents, fallback_name, "Skill")
+        .expect("parse Claude skill");
+    assert_eq!(claude.description, "Read the fixtures");
+    assert!(parse_skill_frontmatter_metadata(contents, fallback_name).is_err());
+    assert!(
+        parse_claude_skill_frontmatter_metadata("---\nname: broken", fallback_name, "Skill")
+            .is_err()
+    );
 }
 
 #[test]

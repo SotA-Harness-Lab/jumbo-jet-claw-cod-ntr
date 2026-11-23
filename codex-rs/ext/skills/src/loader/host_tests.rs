@@ -770,6 +770,9 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
     );
     write("notes.txt", "not a command\n");
     write(".hidden/secret.md", "Hidden command\n");
+    write("git/audit/SKILL.md", "# Review the audit log\n");
+    write("git/audit/reference.md", "Support document\n");
+    write("git/audit/docs/example.md", "Nested support document\n");
 
     let snapshot = load_host_skill_root(HostSkillRoot::commands(
         AbsolutePathBuf::from_absolute_path(root.path()).expect("absolute root"),
@@ -792,6 +795,7 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
                 "bom".to_string(),
                 "Saved with a byte order mark".to_string()
             ),
+            ("git:audit".to_string(), "Review the audit log".to_string()),
             (
                 "git:commit".to_string(),
                 "Commit staged changes".to_string()
@@ -799,6 +803,81 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
             ("review".to_string(), "Review the current diff".to_string()),
         ]
     );
+}
+
+#[tokio::test]
+async fn claude_skill_roots_accept_plain_markdown_and_empty_descriptions() {
+    let access = FileSystemEnvironmentAccessor::unrestricted(&LOCAL_FS);
+    let root = TempDir::new().expect("temp dir");
+    let plain_path = write_skill(&root, "plain", "description: overwrite");
+    fs::write(plain_path, "\u{feff}# Plain skill\n\nUse it.").expect("write plain Markdown");
+    let empty_path = write_skill(&root, "empty", "disable-model-invocation: true");
+    fs::write(empty_path, "---\ndisable-model-invocation: true\n---\n").expect("write empty skill");
+    let native = root_for(&root, SkillScope::User, &access);
+    let claude = HostSkillRoot::claude_skill(native.path.clone(), SkillScope::User, &access);
+    let claude = load_host_skill_root(claude).await;
+    assert!(claude.errors.is_empty());
+    let mut skills = claude
+        .skills
+        .iter()
+        .map(|skill| {
+            (
+                skill.name.as_str(),
+                skill.description.as_str(),
+                skill.allows_implicit_invocation(),
+            )
+        })
+        .collect::<Vec<_>>();
+    skills.sort_unstable();
+    assert_eq!(
+        skills,
+        [("empty", "Skill", false), ("plain", "Plain skill", true)]
+    );
+
+    let native = load_host_skill_root(native).await;
+    assert!(native.skills.is_empty());
+    assert_eq!(native.errors.len(), 2);
+}
+
+#[tokio::test]
+async fn plain_plugin_skills_follow_the_selected_manifest_format() {
+    let access = FileSystemEnvironmentAccessor::unrestricted(&LOCAL_FS);
+    let root = TempDir::new().expect("temp dir");
+    let plugin_root = AbsolutePathBuf::from_absolute_path(root.path()).expect("absolute root");
+    let skill = write_skill(&root, "skills/check", "description: overwrite");
+    fs::write(skill, "Check the receipts").expect("write plain skill");
+    let load_root = || {
+        HostSkillRoot::plugin(
+            PluginSkillRoot {
+                path: plugin_root.join("skills"),
+                plugin_identity: PluginIdentity {
+                    plugin_id: "check@market".to_string(),
+                    remote_plugin_id: None,
+                },
+                plugin_namespace: "check".to_string(),
+                plugin_root: plugin_root.clone(),
+                discovery_mode: SkillDiscoveryMode::Recursive,
+            },
+            &access,
+        )
+    };
+    let write_manifest = |directory: &str| {
+        fs::create_dir_all(plugin_root.join(directory)).expect("create manifest directory");
+        fs::write(
+            plugin_root.join(directory).join("plugin.json"),
+            r#"{"name":"check"}"#,
+        )
+        .expect("write manifest");
+    };
+    write_manifest(".claude-plugin");
+    let claude = load_host_skill_root(load_root()).await;
+    assert!(claude.errors.is_empty());
+    assert_eq!(claude.skills[0].description, "Check the receipts");
+
+    write_manifest(".codex-plugin");
+    let native = load_host_skill_root(load_root()).await;
+    assert!(native.skills.is_empty());
+    assert_eq!(native.errors.len(), 1);
 }
 
 #[tokio::test]
@@ -826,9 +905,10 @@ async fn plugin_command_files_are_named_after_themselves_or_the_manifest_map() {
         "---\ndescription: From the file\n---\nShow it.\n",
     );
     write("extra/run.md", "Run the deployment\n");
+    write("extra/empty.md", "");
 
     let mut skills = Vec::new();
-    for file in ["commands/show-status.md", "extra/run.md"] {
+    for file in ["commands/show-status.md", "extra/run.md", "extra/empty.md"] {
         let snapshot = load_host_skill_root(HostSkillRoot::plugin(
             PluginSkillRoot {
                 path: plugin_root.join(file),
@@ -856,6 +936,7 @@ async fn plugin_command_files_are_named_after_themselves_or_the_manifest_map() {
         vec![
             ("deploy:status".to_string(), "Show the status".to_string()),
             ("deploy:run".to_string(), "Run the deployment".to_string()),
+            ("deploy:empty".to_string(), "Custom command".to_string()),
         ]
     );
 }

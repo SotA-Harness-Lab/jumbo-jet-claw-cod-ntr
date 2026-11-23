@@ -19,6 +19,7 @@ pub use plugin_namespace::AGENT_PLUGIN_SCHEMA_URI;
 pub use plugin_namespace::AgentPluginSchemaStatus;
 pub use plugin_namespace::SUPPORTED_AGENT_PLUGIN_SCHEMA_URIS;
 pub use plugin_namespace::agent_plugin_schema_status;
+pub use plugin_namespace::discoverable_plugin_manifest_uri;
 pub use plugin_namespace::find_plugin_manifest_path;
 pub use plugin_namespace::plugin_namespace_for_root_uri;
 
@@ -27,8 +28,8 @@ pub enum SkillDiscoveryMode {
     #[default]
     Recursive,
     DirectChildren,
-    /// Claude Code's custom slash commands: every Markdown file under the root is a skill,
-    /// named after its path below the root (`git/commit.md` is `git:commit`).
+    /// Claude Code's custom slash commands: Markdown files are named after their relative
+    /// path, and an SKILL.md in a subdirectory makes that directory one command.
     CommandFiles,
 }
 

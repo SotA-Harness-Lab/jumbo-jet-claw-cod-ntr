@@ -5,6 +5,7 @@
 
 use std::collections::HashSet;
 use std::io;
+use std::path::Path;
 use std::sync::Mutex;
 use tokio::sync::oneshot;
 
@@ -186,7 +187,7 @@ fn roots_from_layer_stack<'a>(
                 if let Some(claude_home) = claude_home {
                     // Claude Code compatibility: the user's Claude Code skills are
                     // discovered where they are, after `~/.agents/skills`.
-                    roots.push(HostSkillRoot::host(
+                    roots.push(HostSkillRoot::claude_skill(
                         claude_home.join(SKILLS_DIR_NAME),
                         SkillScope::User,
                         host,
@@ -307,35 +308,36 @@ async fn repo_agents_skill_roots<'a>(
         })
         .buffered(MAX_CONCURRENT_ANCESTOR_PROBES);
     while let Some((agents_skills, command_files, result)) = results.next().await {
+        let root = if command_files {
+            HostSkillRoot::commands(agents_skills, SkillScope::Repo, repository_fs_accessor)
+        } else if agents_skills
+            .as_path()
+            .parent()
+            .and_then(Path::file_name)
+            .is_some_and(|parent| parent == CLAUDE_DIR_NAME)
+        {
+            HostSkillRoot::claude_skill(agents_skills, SkillScope::Repo, repository_fs_accessor)
+        } else {
+            HostSkillRoot::host(agents_skills, SkillScope::Repo, repository_fs_accessor)
+        };
         match result {
-            Ok(metadata) if metadata.is_directory && command_files => roots.push(
-                HostSkillRoot::commands(agents_skills, SkillScope::Repo, repository_fs_accessor),
-            ),
-            Ok(metadata) if metadata.is_directory => roots.push(HostSkillRoot::host(
-                agents_skills,
-                SkillScope::Repo,
-                repository_fs_accessor,
-            )),
+            Ok(metadata) if metadata.is_directory => roots.push(root),
             Ok(_) => complete = false,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {
                 if generation.is_some() {
-                    missing.push(PathUri::from_abs_path(&agents_skills));
+                    missing.push(PathUri::from_abs_path(&root.path));
                 }
             }
             Err(error) if error.kind() == io::ErrorKind::Unsupported => {
                 complete = false;
                 // Let loading report an unsupported sandbox backend instead of hiding this root.
-                roots.push(if command_files {
-                    HostSkillRoot::commands(agents_skills, SkillScope::Repo, repository_fs_accessor)
-                } else {
-                    HostSkillRoot::host(agents_skills, SkillScope::Repo, repository_fs_accessor)
-                });
+                roots.push(root);
             }
             Err(error) => {
                 complete = false;
                 tracing::warn!(
                     "failed to stat repo skills root {}: {error:#}",
-                    agents_skills.display()
+                    root.path.display()
                 );
             }
         }

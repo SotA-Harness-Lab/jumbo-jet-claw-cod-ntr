@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: export the parser of Claude Code skills without frontmatter
+
 mod interface;
 mod invocation;
 mod loading;
@@ -42,6 +47,7 @@ pub use model::SkillToolDependency;
 pub use name_counts::build_skill_name_counts;
 pub use parser::ParsedSkillFrontmatter;
 pub use parser::SkillParseError;
+pub use parser::parse_claude_skill_frontmatter_metadata;
 pub use parser::parse_skill_frontmatter_metadata;
 pub use selection::ExplicitSkillLookup;
 pub use selection::collect_explicit_skill_mentions;
