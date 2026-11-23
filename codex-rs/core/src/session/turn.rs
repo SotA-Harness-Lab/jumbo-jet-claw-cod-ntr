@@ -5,6 +5,7 @@
 // Modified by Tianyu (Sky) Lu in 2026: invoke skills as /name; run more of Claude Code's hooks;
 // read the project instructions again for a compaction
 // stop a subagent at its maxTurns
+// send a turn that stops with its work left back to work
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -614,6 +615,11 @@ pub(crate) async fn run_turn(
     let mut stop_hook_active = false;
     // How many times in a row a Stop hook has kept this turn from ending.
     let mut stop_hook_blocks = 0u32;
+    // How many times in a row this turn was sent back to work it had left unfinished, and
+    // whether any of its requests called a tool.
+    let mut unfinished_continuations = 0u32;
+    let mut unfinished_continuations_total = 0u32;
+    let mut turn_used_tools = false;
     // A steer can reopen sampling within the same turn. Keep its aggregate until the turn ends.
     let turn_diff_tracker = turn_context
         .extension_data
@@ -777,6 +783,7 @@ pub(crate) async fn run_turn(
                     final_answer,
                     trailing_commentary,
                 } = sampling_request_last_agent_message;
+                let ended_on_commentary = trailing_commentary.is_some();
                 let sampling_request_last_agent_message = trailing_commentary.or(final_answer);
                 sampling_requests = sampling_requests.saturating_add(1);
                 let hooks = TurnCompletionHooks {
@@ -792,6 +799,9 @@ pub(crate) async fn run_turn(
                             &turn_context.sub_id,
                         )
                         .await;
+                    // Tools ran: the model is working again, whatever sent it back.
+                    unfinished_continuations = 0;
+                    turn_used_tools = true;
                 }
                 can_drain_pending_input = true;
                 // Process async hooks only after sampling and its tools have finished.
@@ -929,6 +939,39 @@ pub(crate) async fn run_turn(
                 }
 
                 if !needs_follow_up {
+                    // A turn that stopped halfway goes back to work before Stop hooks see it.
+                    if !max_turns_reached
+                        && !cancellation_token.is_cancelled()
+                        && let Some(unfinished) = crate::follow_through::check(
+                            &sess,
+                            &turn_context,
+                            crate::follow_through::TurnEnd {
+                                ended_on_commentary,
+                                last_message: completion_hooks.last_assistant_message.as_deref(),
+                                turn_used_tools,
+                                continued: unfinished_continuations,
+                                continued_total: unfinished_continuations_total,
+                            },
+                        )
+                        .await
+                    {
+                        unfinished_continuations += 1;
+                        unfinished_continuations_total += 1;
+                        crate::follow_through::continue_turn(
+                            &sess,
+                            &step_context,
+                            &unfinished,
+                            unfinished_continuations,
+                        )
+                        .await;
+                        sess.input_queue
+                            .accept_mailbox_delivery_for_current_turn(
+                                &sess.active_turn,
+                                &turn_context.sub_id,
+                            )
+                            .await;
+                        continue;
+                    }
                     last_agent_message.clone_from(&completion_hooks.last_assistant_message);
                     let stop_outcome = completion_hooks
                         .run_stop(&sess, &step_context, stop_hook_active)

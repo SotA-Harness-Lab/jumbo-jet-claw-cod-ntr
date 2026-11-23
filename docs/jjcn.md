@@ -64,6 +64,51 @@ Not covered: with `responses.process_mode = "after_complete_response"`, Codex ho
 response's items until it completes, so a cut-off response leaves nothing to continue from and
 the model starts that step over.
 
+## Finishing the work before the turn ends
+
+A turn ends as soon as a model request brings no tool call. Codex's models often end one that
+way in the middle of a job: a message saying what they will do next, with nothing after it, or
+a progress report while their own plan still has steps open. The user then finds half the
+work done and a promise of the rest. Now the harness looks for that before the turn ends and,
+when it finds it, sends the model back to work:
+
+- **Commentary with nothing after it.** The model labels the text it writes before tool
+  calls as commentary, and its answers as final. A request whose last message is commentary,
+  with no tool call after it, did not do what it announced.
+- **A plan with steps left.** The plan kept with `update_plan` (`TodoWrite` in the Claude tool
+  set), when it was updated in this turn and still has steps that are not completed. Each
+  version of the plan sends the turn back once: a model that answers again without changing
+  the plan (because the step waits on the user, say) ends its turn.
+- **An answer that leaves work.** In a turn that used tools, a model reads the user's latest
+  request, the last answer and the plan's open steps, and says whether the agent stopped with
+  work it could do itself ("Next I'll...", a partial report, asking whether to go on with what
+  was asked), needs the user (a decision, access, an action only the user can take), or is
+  done. It is the model `[hooks.models]` names as `default`, or the session's own, at low
+  effort; it adds one short request at the end of such a turn. If it fails or takes over a
+  minute, the turn ends as before.
+
+When one of these holds, a developer message tells the model what was found and to carry on
+until the request is done, or to say plainly what it needs from the user; a warning tells the
+user. Stop hooks run after this, once the turn is really ending. The model's instructions also
+say, from the start, to carry the request to the end rather than stop to report or announce
+the next step.
+
+This happens up to 3 times in a row, and 12 times in a turn; a request that calls tools starts
+the count in a row again. It is not done for the harness's own sessions (reviews, compaction,
+memory consolidation, hooks), in Plan mode, or for a subagent past its `maxTurns`. To change
+the number, turn the whole of it off with `0`, or keep the first two signs without the judging
+model:
+
+```toml
+# ~/.codex/ccn-config.toml
+[harness]
+continue_unfinished = 3
+unfinished_judge = true
+```
+
+Not covered: a model that sends no phase with its messages (other providers) is caught only
+by its plan and by the judging model.
+
 ## Commands that outlast their timeout
 
 With the Claude tool set on, a `Bash` command that was not started with `run_in_background`

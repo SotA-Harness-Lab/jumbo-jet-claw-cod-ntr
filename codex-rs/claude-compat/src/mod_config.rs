@@ -23,6 +23,8 @@
 //! spill_long_output = true           # command output too long for the model is kept in a file
 //! background_tools = true            # the Monitor, CronCreate, CronList and CronDelete tools
 //! file_checkpoints = true            # keep what edits replace, to put files back on a rewind
+//! continue_unfinished = 3            # how often a turn that stopped before its work was done goes on
+//! unfinished_judge = true            # a model reads the last answer to tell whether work was left
 //! ```
 //!
 //! A missing file means the defaults. A file that does not parse is reported as a startup
@@ -75,6 +77,19 @@ pub struct HarnessModConfig {
     /// `file_checkpoints`: whether what the agent's edits replace is kept, so that rewinding
     /// the conversation can put the files back. On when left out.
     pub file_checkpoints: Option<bool>,
+    /// `continue_unfinished`: how many times in a row a turn that is about to end before its
+    /// work is done is sent back to work: one whose last message was commentary (what the
+    /// model would do next) with no tool call after it, one whose plan still has steps left,
+    /// or one whose last answer `unfinished_judge` finds unfinished. The model is also told,
+    /// in its instructions, to carry on to the end rather than stop to say what comes next.
+    /// `0` turns all of it off; 3 when left out. A tool call in between starts the count
+    /// again.
+    pub continue_unfinished: Option<u32>,
+    /// `unfinished_judge`: whether the last answer of a turn about to end is read by a model
+    /// (the one `[hooks.models]` gives as `default`, or else the session's) to tell whether
+    /// it stopped with work left that it could have done itself. On when left out; nothing
+    /// is judged while `continue_unfinished` is `0`.
+    pub unfinished_judge: Option<bool>,
 }
 
 /// `[hooks]` of `ccn-config.toml`.

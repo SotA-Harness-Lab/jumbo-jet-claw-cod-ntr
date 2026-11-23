@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Tianyu (Sky) Lu in 2026: read Claude Code's configuration in place; run more of Claude Code's hooks; added Claude Code's tool set; load Claude Code plugins;
 // keep estimating context use when a reply reports zero tokens
+// tell the model to finish the work before ending a turn
 
 pub(crate) mod startup;
 
@@ -5216,6 +5217,10 @@ impl Session {
         {
             developer_sections
                 .push(DeveloperInstructions::new(developer_instructions).render_fragment());
+        }
+        if crate::follow_through::gives_guidance(turn_context, &session_source) {
+            developer_sections
+                .push(DeveloperInstructions::new(crate::follow_through::GUIDANCE).render_fragment());
         }
         let step_candidates = step_context.extension_data.get::<ToolSuggestCandidates>();
         // Prompt-only recommendations have no install handler to capture candidates for the step.

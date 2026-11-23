@@ -134,12 +134,19 @@ fn a_valid_file_is_read() {
 
 #[test]
 fn harness_settings_are_read() {
-    let config = ModConfig::parse("[harness]\noutput_limit_continuations = 5\n").expect("parse");
+    let config = ModConfig::parse(
+        "[harness]\noutput_limit_continuations = 5\ncontinue_unfinished = 0\nunfinished_judge = false\n",
+    )
+    .expect("parse");
     assert_eq!(config.harness.output_limit_continuations, Some(5));
+    assert_eq!(config.harness.continue_unfinished, Some(0));
+    assert_eq!(config.harness.unfinished_judge, Some(false));
     assert_eq!(
         ModConfig::default().harness.output_limit_continuations,
         None
     );
+    assert_eq!(ModConfig::default().harness.continue_unfinished, None);
+    assert_eq!(ModConfig::default().harness.unfinished_judge, None);
 }
 
 #[test]

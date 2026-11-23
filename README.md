@@ -32,6 +32,8 @@ What it adds so far, each described in [jjcn refinements](./docs/jjcn.md):
 
 - An idle session goes on by itself when a background command or agent ends.
 - A response cut off at the output token limit is continued instead of failing the turn.
+- A turn that stops with its work half done (announcing the next step without taking it,
+  leaving steps of its plan open) is sent back to finish it.
 - A `Bash` command that runs into its timeout keeps running in the background, and command output
   too long for the model is kept in a file it can read.
 - `Monitor` tells the model what a long-running command writes; `CronCreate`, `CronList` and

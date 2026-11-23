@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 OpenAI
 // SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
 // SPDX-License-Identifier: Apache-2.0
-// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends
+// Modified by Tianyu (Sky) Lu in 2026: wake an idle session when background work ends;
+// send a turn that stops with its work left back to work
 
 //! Context fragments injected into model input.
 
@@ -13,6 +14,7 @@ mod base_instructions;
 mod compaction_summary;
 mod content_filter_guidance;
 mod output_limit_continuation;
+mod unfinished_work_continuation;
 mod contextual_user_message;
 mod current_time_reminder;
 mod developer_instructions;
@@ -84,6 +86,7 @@ pub use codex_prompts::PermissionsInstructions;
 pub(crate) use compaction_summary::CompactionSummary;
 pub(crate) use content_filter_guidance::ContentFilterGuidance;
 pub(crate) use output_limit_continuation::OutputLimitContinuation;
+pub(crate) use unfinished_work_continuation::UnfinishedWorkContinuation;
 pub(crate) use contextual_user_message::is_contextual_user_fragment;
 pub(crate) use contextual_user_message::is_guardian_context_message;
 pub(crate) use contextual_user_message::is_user_authorization_message;

@@ -179,14 +179,65 @@ async fn judge_with(
     if request.agentic {
         judge_with_tools(session, turn, request.prompt.clone(), model).await
     } else {
-        judge_once(session, turn, request.prompt.clone(), model).await
+        judge_once(
+            session,
+            turn,
+            PROMPT_INSTRUCTIONS,
+            verdict_schema(),
+            request.prompt.clone(),
+            model,
+        )
+        .await
     }
 }
 
-/// A `prompt` hook: one request, no tools, nothing recorded in any history.
+/// One request without tools, as a `prompt` hook makes, for the harness's own questions: the
+/// model `[hooks.models]` gives as `default`, or the session's where it has none or that one
+/// cannot be used. `schema` is what the answer must match.
+pub(crate) async fn ask_small_model(
+    session: &Arc<Session>,
+    turn: &Arc<TurnContext>,
+    instructions: &str,
+    schema: Value,
+    prompt: String,
+) -> anyhow::Result<String> {
+    if matches!(
+        &turn.session_source,
+        SessionSource::SubAgent(SubAgentSource::Other(name)) if name == HOOK_JUDGE
+    ) {
+        bail!("the harness asks no model from inside a hook's own session");
+    }
+    let model = turn.config.mod_config.hooks.model_for(/*model*/ None);
+    let answer = judge_once(
+        session,
+        turn,
+        instructions,
+        schema.clone(),
+        prompt.clone(),
+        model,
+    )
+    .await;
+    match (answer, model) {
+        (Err(err), Some(mapped))
+            if falls_back_to_session_model(&err, mapped, &turn.model_info().slug) =>
+        {
+            tracing::warn!(
+                "the {mapped} model of [hooks.models] failed to answer ({err:#}); \
+                 the session's model answers instead"
+            );
+            judge_once(session, turn, instructions, schema, prompt, /*model*/ None).await
+        }
+        (answer, _) => answer,
+    }
+}
+
+/// A `prompt` hook, or another question of the harness: one request, no tools, nothing
+/// recorded in any history.
 async fn judge_once(
     session: &Arc<Session>,
     turn: &Arc<TurnContext>,
+    instructions: &str,
+    schema: Value,
     prompt: String,
     model: Option<&str>,
 ) -> anyhow::Result<String> {
@@ -211,10 +262,10 @@ async fn judge_once(
             internal_chat_message_metadata_passthrough: None,
         }],
         base_instructions: BaseInstructions {
-            text: PROMPT_INSTRUCTIONS.to_string(),
+            text: instructions.to_string(),
             provenance: Some(BaseInstructionsProvenance::Custom),
         },
-        output_schema: Some(verdict_schema()),
+        output_schema: Some(schema),
         output_schema_strict: true,
         ..Default::default()
     });

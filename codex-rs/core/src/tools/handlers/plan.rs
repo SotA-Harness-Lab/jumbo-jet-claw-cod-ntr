@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: Copyright 2025 OpenAI
+// SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Tianyu (Sky) Lu in 2026: keep the plan, to tell a turn that stops with steps left
 use crate::function_tool::FunctionCallError;
 use crate::tools::context::ToolInvocation;
 use crate::tools::context::ToolOutput;
@@ -91,6 +95,7 @@ impl PlanHandler {
         }
 
         let args = parse_update_plan_arguments(&arguments)?;
+        crate::follow_through::record_plan(&session, &turn, &args);
         session
             .send_event(turn.as_ref(), EventMsg::PlanUpdate(args))
             .await;

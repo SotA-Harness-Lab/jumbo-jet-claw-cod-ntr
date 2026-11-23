@@ -271,6 +271,7 @@ mod unified_exec_launch_failure;
 mod unified_exec_process_events;
 mod unified_exec_stdin_approval;
 mod unified_exec_stdin_review_size;
+mod unfinished_work;
 mod unstable_features_warning;
 mod user_notification;
 mod user_shell_cmd;
