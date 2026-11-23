@@ -82,6 +82,7 @@ pub use permissions::RuleVerdict;
 pub use permissions::ToolInput;
 pub use permissions::link_target;
 pub use permissions::parse_rule as parse_permission_rule;
+pub use permissions::permission_rule_warnings;
 pub use plugin_vars::MappedCommand;
 pub use plugin_vars::PluginVariables;
 pub use plugin_vars::mapped_plugin_command;
