@@ -52,31 +52,11 @@ mod guard_limits {
 }
 
 mod prompt_blocks {
-    pub(super) const EXTENSIONS_FOLDER_STRUCTURE: &str = r#"
-Memory extensions (under {{ memory_extensions_root }}/):
+    pub(super) const EXTENSIONS_FOLDER_STRUCTURE: &str =
+        codex_prompt_texts::text!("memories/write/lib/extensions_folder_structure.md");
 
-- <extension_name>/instructions.md
-  - Source-specific guidance for interpreting additional memory signals. If an
-    extension folder exists, you must read its instructions.md to determine how to use this memory
-    source.
-
-If the user has any memory extensions, you MUST read the instructions for each extension to
-determine how to use the memory source. If the workspace diff shows deleted extension resource files,
-remove stale memories derived only from those resources. If it has no extension folders, continue
-with the standard memory inputs only.
-"#;
-
-    pub(super) const EXTENSIONS_PRIMARY_INPUTS: &str = r#"
-Optional source-specific inputs:
-Under `{{ memory_extensions_root }}/`:
-
-- `<extension_name>/instructions.md`
-  - If extension folders exist, read each instructions.md first and follow it when interpreting
-    that extension's memory source.
-
-If the workspace diff shows deleted memory extension resources, use that extension-specific deletion
-signal to remove stale memories derived only from those resources.
-"#;
+    pub(super) const EXTENSIONS_PRIMARY_INPUTS: &str =
+        codex_prompt_texts::text!("memories/write/lib/extensions_primary_inputs.md");
 }
 
 mod stage_one {
@@ -89,7 +69,8 @@ mod stage_one {
     pub(super) const PRUNE_BATCH_SIZE: usize = 200;
 
     /// Prompt used for phase 1 extraction.
-    pub(super) const PROMPT: &str = include_str!("../templates/memories/stage_one_system.md");
+    pub(super) const PROMPT: &str =
+        codex_prompt_texts::text!("memories/write/memories/stage_one_system.md");
 
     /// Fallback stage-1 rollout truncation limit (tokens) when model metadata
     /// does not include a valid context window.

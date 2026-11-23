@@ -36,6 +36,7 @@ clap = { workspace = true, features = ["derive"] }
 codex-ansi-escape = { workspace = true }
 codex-api = { workspace = true }
 codex-claude-compat = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-prompts = { workspace = true }
 codex-app-server-client = { workspace = true }
 codex-app-server-daemon = { workspace = true }

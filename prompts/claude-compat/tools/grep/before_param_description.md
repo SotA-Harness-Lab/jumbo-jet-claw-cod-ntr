@@ -1,0 +1,1 @@
+Number of lines to show before each match (rg -B). Requires output_mode: "content", ignored otherwise.

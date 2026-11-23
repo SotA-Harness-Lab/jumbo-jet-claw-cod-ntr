@@ -1,0 +1,1 @@
+Side conversations cannot retain worktree attachments. Request a new worktree in the main conversation.

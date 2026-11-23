@@ -16,14 +16,18 @@ pub(crate) const CLOUD_SKILLS_WORLD_STATE_ID: &str = "cloud_skills";
 pub(crate) const HOST_SKILLS_WORLD_STATE_ID: &str = "host_skills";
 const NO_EXECUTOR_SKILLS_BODY: &str =
     "\n## Skills update\nNo selected-environment skills are currently available.\n";
-const HIDDEN_EXECUTOR_SKILLS_BODY: &str = "\n## Skills update\nSelected-environment skills are not listed automatically. Explicit skill mentions can still be resolved when available.\n";
+const HIDDEN_EXECUTOR_SKILLS_BODY: &str =
+    codex_prompt_texts::text!("ext/skills/world_state/hidden_executor_skills_body.md");
 const NO_CLOUD_SKILLS_BODY: &str =
     "\n## Cloud skills update\nNo cloud skills are currently available.\n";
-const HIDDEN_CLOUD_SKILLS_BODY: &str = "\n## Cloud skills update\nCloud skills are not listed automatically. Explicit skill mentions can still be resolved when available.\n";
+const HIDDEN_CLOUD_SKILLS_BODY: &str =
+    codex_prompt_texts::text!("ext/skills/world_state/hidden_cloud_skills_body.md");
 const NO_HOST_SKILLS_BODY: &str =
     "\n## Host skills update\nNo host skills are currently available.\n";
-const HIDDEN_HOST_SKILLS_BODY: &str = "\n## Host skills update\nHost skills are not listed automatically. Explicit skill mentions can still be resolved when available.\n";
-const OMITTED_HOST_SKILLS_BODY: &str = "\n## Host skills update\nHost skills are available but omitted from the model-visible skills list because the skills context budget was exceeded.\n";
+const HIDDEN_HOST_SKILLS_BODY: &str =
+    codex_prompt_texts::text!("ext/skills/world_state/hidden_host_skills_body.md");
+const OMITTED_HOST_SKILLS_BODY: &str =
+    codex_prompt_texts::text!("ext/skills/world_state/omitted_host_skills_body.md");
 
 pub(crate) type CatalogRenderCallback = Box<dyn Fn() + Send + Sync>;
 

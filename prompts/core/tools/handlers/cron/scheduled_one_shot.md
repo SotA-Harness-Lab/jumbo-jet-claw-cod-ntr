@@ -1,0 +1,1 @@
+Scheduled one-shot job {} ({}), at {next_run}. Session-only (dies when this session ends). It will fire once then auto-delete.

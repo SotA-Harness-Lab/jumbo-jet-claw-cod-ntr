@@ -25,6 +25,7 @@ codex-http-client = { workspace = true }
 codex-login = { workspace = true }
 codex-message-board = { workspace = true }
 codex-model-provider = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-protocol = { workspace = true }
 codex-state = { workspace = true }
 codex-thread-store = { workspace = true }

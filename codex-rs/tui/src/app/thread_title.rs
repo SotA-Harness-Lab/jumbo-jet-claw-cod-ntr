@@ -335,13 +335,8 @@ pub(super) fn thread_title_output_schema() -> Value {
 
 fn thread_title_instructions() -> String {
     format!(
-        "Generate a concise, single-line task title of at most \
-  {THREAD_TITLE_MAX_CHARS} characters and under five words where possible. \
-  Start with an imperative verb. Capitalize only the first word unless the \
-  user's language, proper nouns, acronyms, or code terms require otherwise. \
-  Preserve ticket references exactly. Write in the user's language. \
-  Do not use quotes, markdown, or trailing punctuation. \
-  Do not answer the request."
+        codex_prompt_texts::text!("tui/app/thread_title/thread_title_instructions.md"),
+        THREAD_TITLE_MAX_CHARS = THREAD_TITLE_MAX_CHARS
     )
 }
 
@@ -494,9 +489,8 @@ where
 pub(super) fn recent_conversation_thread_title_prompt(conversation: &str) -> String {
     let instructions = thread_title_instructions();
     let prefix = format!(
-        "{instructions}\n\
-Prioritize the current task and latest substantive user request.\n\n\
-Recent conversation messages:\n"
+        codex_prompt_texts::text!("tui/app/thread_title/recent_conversation_prompt.md"),
+        instructions = instructions
     );
     let conversation = conversation.trim();
     let remaining_bytes = THREAD_TITLE_PROMPT_MAX_BYTES.saturating_sub(prefix.len());

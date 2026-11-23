@@ -86,7 +86,9 @@ pub(super) async fn handle_message_string_tool(
     let output = match mode {
         MessageDeliveryMode::QueueOnly if receiver_agent_path.is_root() => "Message accepted.",
         MessageDeliveryMode::QueueOnly => {
-            "Message accepted. If the recipient is idle and should act now, use followup_task to ask it to act on the message."
+            codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_v2/message_tool/message_accepted.md"
+            )
         }
         MessageDeliveryMode::TriggerTurn => "",
     };

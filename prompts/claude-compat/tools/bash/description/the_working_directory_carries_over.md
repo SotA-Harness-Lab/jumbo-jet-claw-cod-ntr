@@ -1,0 +1,2 @@
+The working directory carries over to the next command while it stays inside the project directory; a `cd` that leaves the project puts the next command back there, and a `cd` in a command that fails or runs in the background does not carry over. Commands of subagents always start in the project directory. Shell state does not persist. The shell environment is initialized from the user's profile (bash or zsh).
+

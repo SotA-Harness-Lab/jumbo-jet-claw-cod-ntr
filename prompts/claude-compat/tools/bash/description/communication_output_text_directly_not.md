@@ -1,0 +1,1 @@
+Communication: Output text directly (NOT echo/printf)

@@ -41,7 +41,10 @@ pub(crate) fn tools(
 ) -> Vec<Arc<dyn for<'call> ToolExecutor<ToolCall<'call>>>> {
     [
         (MessageBoardTool::Subscribe, SubscriptionChange::Subscribe),
-        (MessageBoardTool::Unsubscribe, SubscriptionChange::Unsubscribe),
+        (
+            MessageBoardTool::Unsubscribe,
+            SubscriptionChange::Unsubscribe,
+        ),
     ]
     .into_iter()
     .map(|(tool, change)| {
@@ -55,8 +58,12 @@ pub(crate) fn tools(
             .retain(|name, _| name == "channel_name");
         function.parameters.required = Some(vec!["channel_name".into()].into_boxed_slice());
         function.description = match change {
-            SubscriptionChange::Subscribe => "Subscribe yourself to an evidence channel in the captured catalog. This changes future evidence selection, without reading posts or authorizing any action.",
-            SubscriptionChange::Unsubscribe => "Unsubscribe yourself from an evidence channel in the captured catalog. Evidence already admitted to the reviewer conversation is retained.",
+            SubscriptionChange::Subscribe => codex_prompt_texts::text!(
+                "ext/guardian-v3/subscription_tools/subscribe_description.md"
+            ),
+            SubscriptionChange::Unsubscribe => codex_prompt_texts::text!(
+                "ext/guardian-v3/subscription_tools/unsubscribe_description.md"
+            ),
         }
         .into();
         let name = ToolName::new(namespace.map(str::to_owned), function.name.clone());

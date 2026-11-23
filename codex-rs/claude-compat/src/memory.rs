@@ -217,7 +217,9 @@ fn cut_memory_index(raw: &str) -> String {
         _ => format!("{} lines and {} bytes", lines.len(), trimmed.len()),
     };
     format!(
-        "{cut}\n\n> WARNING: MEMORY.md is {reason}. Only part of it was loaded. Keep index entries to one line under ~200 chars; move detail into topic files."
+        codex_prompt_texts::text!("claude-compat/memory/memory_index_warning.md"),
+        cut = cut,
+        reason = reason
     )
 }
 

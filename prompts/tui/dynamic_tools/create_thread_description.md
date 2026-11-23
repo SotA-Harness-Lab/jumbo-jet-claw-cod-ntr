@@ -1,0 +1,1 @@
+Create and start a separate Codex task only when the user explicitly asks for a new task. The task inherits the current working directory; omit model to inherit the current model.

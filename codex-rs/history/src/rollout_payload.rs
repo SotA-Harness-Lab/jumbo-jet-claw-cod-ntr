@@ -31,7 +31,8 @@ use serde::Serialize;
 
 const CODE_MODE_DELIVERY_COMPLETE: &str = "codex:code-mode-delivery:v1:complete";
 const CODE_MODE_DELIVERY_INCOMPLETE: &str = "codex:code-mode-delivery:v1:incomplete:";
-const CODE_MODE_DELIVERY_UNAVAILABLE: &str = "The content of a confirmed assistant message is unavailable. Do not infer what was asked or authorized.";
+const CODE_MODE_DELIVERY_UNAVAILABLE: &str =
+    codex_prompt_texts::text!("history/rollout_payload/code_mode_delivery_unavailable.md");
 
 /// Persisted rollout item used by core history and rollout storage.
 #[derive(Serialize, Deserialize, JsonSchema)]

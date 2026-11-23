@@ -22,9 +22,14 @@ impl ResolvedAppsInstructions {
                     || (text.len() <= MAX_USAGE_INSTRUCTIONS_BYTES && !text.trim().is_empty())
             });
         Self {
-            usage_instructions: catalog.map(str::to_owned).unwrap_or_else(|| format!(
-            "\n## Apps (Connectors)\nApps (Connectors) can be explicitly triggered in user messages in the format `[$app-name](app://{{connector_id}})`. Apps can also be implicitly triggered as long as the context suggests usage of available apps.\nAn app is equivalent to a set of MCP tools within the `{mcp_server_name}` MCP.\nAn installed app's MCP tools are either provided to you already, or can be lazy-loaded through the `tool_search` tool. If `tool_search` is available, the apps that are searchable by `tools_search` will be listed by it.\nDo not additionally call list_mcp_resources or list_mcp_resource_templates for apps.\n"
-            )),
+            usage_instructions: catalog.map(str::to_owned).unwrap_or_else(|| {
+                format!(
+                    codex_prompt_texts::text!(
+                        "templates/model_messages/apps/usage_instructions.md"
+                    ),
+                    mcp_server_name = mcp_server_name
+                )
+            }),
             catalog_override: catalog.is_some(),
         }
     }

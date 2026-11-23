@@ -21,17 +21,26 @@ pub const PATH_PARAM_DESCRIPTION: &str =
     "File or directory to search in (rg PATH). Defaults to current working directory.";
 pub const GLOB_PARAM_DESCRIPTION: &str =
     r#"Glob pattern to filter files (e.g. "*.js", "*.{ts,tsx}") - maps to rg --glob"#;
-pub const OUTPUT_MODE_PARAM_DESCRIPTION: &str = r#"Output mode: "content" shows matching lines (supports -A/-B/-C context, -n line numbers, head_limit), "files_with_matches" shows file paths (supports head_limit), "count" shows match counts (supports head_limit). Defaults to "files_with_matches"."#;
-pub const BEFORE_PARAM_DESCRIPTION: &str = r#"Number of lines to show before each match (rg -B). Requires output_mode: "content", ignored otherwise."#;
-pub const AFTER_PARAM_DESCRIPTION: &str = r#"Number of lines to show after each match (rg -A). Requires output_mode: "content", ignored otherwise."#;
+pub const OUTPUT_MODE_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/output_mode_param_description.md");
+pub const BEFORE_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/before_param_description.md");
+pub const AFTER_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/after_param_description.md");
 pub const C_PARAM_DESCRIPTION: &str = "Alias for context.";
-pub const CONTEXT_PARAM_DESCRIPTION: &str = r#"Number of lines to show before and after each match (rg -C). Requires output_mode: "content", ignored otherwise."#;
-pub const LINE_NUMBERS_PARAM_DESCRIPTION: &str = r#"Show line numbers in output (rg -n). Requires output_mode: "content", ignored otherwise. Defaults to true."#;
+pub const CONTEXT_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/context_param_description.md");
+pub const LINE_NUMBERS_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/line_numbers_param_description.md");
 pub const CASE_INSENSITIVE_PARAM_DESCRIPTION: &str = "Case insensitive search (rg -i)";
-pub const TYPE_PARAM_DESCRIPTION: &str = "File type to search (rg --type). Common types: js, py, rust, go, java, etc. More efficient than include for standard file types.";
-pub const HEAD_LIMIT_PARAM_DESCRIPTION: &str = r#"Limit output to first N lines/entries, equivalent to "| head -N". Works across all output modes: content (limits output lines), files_with_matches (limits file paths), count (limits count entries). Defaults to 250 when unspecified. Pass 0 for unlimited (use sparingly — large result sets waste context)."#;
-pub const OFFSET_PARAM_DESCRIPTION: &str = r#"Skip first N lines/entries before applying head_limit, equivalent to "| tail -n +N | head -N". Works across all output modes. Defaults to 0."#;
-pub const MULTILINE_PARAM_DESCRIPTION: &str = "Enable multiline mode where . matches newlines and patterns can span lines (rg -U --multiline-dotall). Default: false.";
+pub const TYPE_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/type_param_description.md");
+pub const HEAD_LIMIT_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/head_limit_param_description.md");
+pub const OFFSET_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/offset_param_description.md");
+pub const MULTILINE_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/grep/multiline_param_description.md");
 
 /// The values of `output_mode`.
 pub const OUTPUT_MODES: &[&str] = &["content", "files_with_matches", "count"];
@@ -40,25 +49,23 @@ pub const OUTPUT_MODES: &[&str] = &["content", "files_with_matches", "count"];
 /// offered, so that the line pointing to the `Agent` tool is there only with it.
 pub fn description(available: &[&str]) -> String {
     let mut text = format!(
-        r#"A powerful search tool built on ripgrep
-
-  Usage:
-  - ALWAYS use {GREP} for search tasks. NEVER invoke `grep` or `rg` as a {BASH} command. The {GREP} tool has been optimized for correct permissions and access.
-  - Supports full regex syntax (e.g., "log.*Error", "function\s+\w+")
-  - Filter files with glob parameter (e.g., "*.js", "**/*.tsx") or type parameter (e.g., "js", "py", "rust")
-  - Output modes: "content" shows matching lines, "files_with_matches" shows only file paths (default), "count" shows match counts
-"#
+        codex_prompt_texts::text!(
+            "claude-compat/tools/grep/description/a_powerful_search_tool_built.md"
+        ),
+        GREP = GREP,
+        BASH = BASH
     );
     if available.contains(&AGENT) {
         text.push_str(&format!(
-            "  - Use {AGENT} tool for open-ended searches requiring multiple rounds\n"
+            codex_prompt_texts::text!(
+                "claude-compat/tools/grep/description/use_agent_tool_for_open.md"
+            ),
+            AGENT = AGENT
         ));
     }
-    text.push_str(
-        r#"  - Pattern syntax: Uses ripgrep (not grep) - literal braces need escaping (use `interface\{\}` to find `interface{}` in Go code)
-  - Multiline matching: By default patterns match within single lines only. For cross-line patterns like `struct \{[\s\S]*?field`, use `multiline: true`
-"#,
-    );
+    text.push_str(codex_prompt_texts::text!(
+        "claude-compat/tools/grep/description/pattern_syntax_uses_ripgrep_not.md"
+    ));
     text
 }
 

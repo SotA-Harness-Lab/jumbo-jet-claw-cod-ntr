@@ -1,0 +1,1 @@
+Image detail hint returned by view_image. Returns `high` for default resized behavior or `original` when original resolution is preserved.

@@ -1,0 +1,1 @@
+Prefer to create a new commit rather than amending an existing commit.

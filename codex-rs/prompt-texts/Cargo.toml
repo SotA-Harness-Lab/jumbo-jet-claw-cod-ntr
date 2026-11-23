@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+edition.workspace = true
+license.workspace = true
+name = "codex-prompt-texts"
+version.workspace = true
+
+[lib]
+doctest = false
+name = "codex_prompt_texts"
+path = "src/lib.rs"
+
+[lints]
+workspace = true

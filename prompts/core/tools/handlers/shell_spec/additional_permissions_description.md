@@ -1,0 +1,1 @@
+Sandboxed filesystem or network access for this command; only with `sandbox_permissions: "with_additional_permissions"`.

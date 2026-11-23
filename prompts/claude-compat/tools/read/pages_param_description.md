@@ -1,0 +1,1 @@
+Page range for PDF files (e.g., "1-5", "3", "10-20"). Only applicable to PDF files. Maximum {PDF_MAX_PAGES_PER_READ} pages per request.

@@ -1,0 +1,1 @@
+true (default): deliver at every match, for up to 7 days. false: deliver once at the next match, then delete the job.

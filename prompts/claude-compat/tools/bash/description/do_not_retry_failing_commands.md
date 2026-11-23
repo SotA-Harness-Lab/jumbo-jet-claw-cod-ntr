@@ -1,0 +1,1 @@
+Do not retry failing commands in a sleep loop — diagnose the root cause.

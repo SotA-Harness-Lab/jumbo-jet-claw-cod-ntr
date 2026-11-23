@@ -24,6 +24,7 @@ codex-guardian-context = { workspace = true }
 codex-history = { workspace = true }
 codex-mcp = { workspace = true }
 codex-otel = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-prompts = { workspace = true }
 codex-protocol = { workspace = true }
 codex-rmcp-client = { workspace = true }

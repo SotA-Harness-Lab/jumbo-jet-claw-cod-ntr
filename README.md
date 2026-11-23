@@ -38,6 +38,8 @@ What it adds so far, each described in [jjcn refinements](./docs/jjcn.md):
   too long for the model is kept in a file it can read.
 - `Monitor` tells the model what a long-running command writes; `CronCreate`, `CronList` and
   `CronDelete` let it schedule prompts for itself.
+- Every prompt, Codex's own included, is a file under [`prompts/`](./prompts/README.md),
+  built into the program, so all of them can be read and edited in one place.
 - Rewinding to an earlier prompt can put back the files the agent's edits changed since.
 
 Each is on by default and has a switch in `~/.codex/ccn-config.toml`, under `[harness]`.
@@ -165,6 +167,8 @@ tools = true
 
 - [**jjcn refinements**](./docs/jjcn.md)
 - [**Claude Code compatibility**](./docs/claude-compat.md)
+- [**Prompts**](./prompts/README.md): every prompt the program sends a model, one file each,
+  built into the binary
 - [**Codex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](./docs/contributing.md)
 - [**Installing & building**](./docs/install.md)

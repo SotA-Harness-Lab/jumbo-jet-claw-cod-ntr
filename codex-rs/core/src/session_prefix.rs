@@ -10,8 +10,10 @@ const COMPLETION_MESSAGE_MAX_TOKENS: usize = 1_000;
 const COMPLETION_MESSAGE_ENVELOPE_TOKEN_RESERVE: usize = 100;
 const ERROR_MAX_TOKENS: usize =
     COMPLETION_MESSAGE_MAX_TOKENS - COMPLETION_MESSAGE_ENVELOPE_TOKEN_RESERVE;
-const ERROR_NEXT_ACTION: &str = "This agent's turn failed. If you still need this agent, use the available collaboration tools to give it another task.";
-const GUARDIAN_NEXT_ACTION: &str = "Tell the user this agent stopped after repeated Guardian denials. Do not resume this agent or retry its blocked work until the user explicitly confirms that it should continue.";
+const ERROR_NEXT_ACTION: &str =
+    codex_prompt_texts::text!("core/session_prefix/error_next_action.md");
+const GUARDIAN_NEXT_ACTION: &str =
+    codex_prompt_texts::text!("core/session_prefix/guardian_next_action.md");
 
 // Helpers for model-visible session state markers that are stored in user-role
 // messages but are not user intent.

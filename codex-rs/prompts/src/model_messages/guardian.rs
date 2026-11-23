@@ -4,9 +4,9 @@
 use codex_protocol::openai_models::AutoReviewMessages;
 use codex_protocol::openai_models::ModelMessages;
 
-const POLICY: &str = include_str!("../../templates/guardian/policy.md");
-const POLICY_TEMPLATE: &str = include_str!("../../templates/guardian/policy_template.md");
-const NODE_REPL_POLICY: &str = include_str!("../../templates/guardian/node_repl_policy.md");
+const POLICY: &str = codex_prompt_texts::text!("templates/guardian/policy.md");
+const POLICY_TEMPLATE: &str = codex_prompt_texts::text!("templates/guardian/policy_template.md");
+const NODE_REPL_POLICY: &str = codex_prompt_texts::text!("templates/guardian/node_repl_policy.md");
 const REJECTION_INSTRUCTIONS: &str = concat!(
     "The agent must not attempt to achieve the same outcome via workaround, ",
     "indirect execution, or policy circumvention. ",
@@ -20,7 +20,7 @@ const TIMEOUT_INSTRUCTIONS: &str = concat!(
     "You may retry once, or ask the user for guidance or explicit approval.",
 );
 const CLASSIFIER_INSTRUCTIONS: &str =
-    include_str!("../../templates/guardian/classifier_instructions.md");
+    codex_prompt_texts::text!("templates/guardian/classifier_instructions.md");
 
 /// Auto-review policy and feedback text before runtime configuration overlays and rendering.
 #[derive(Debug, Clone, Copy)]

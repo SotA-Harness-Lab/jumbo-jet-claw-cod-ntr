@@ -87,7 +87,9 @@ impl ThreadRequestProcessor {
         }
         let continuation = ContextualUserFragment::into(InternalModelContextFragment::new(
             InternalContextSource::from_static("daemon_recovery"),
-            "The server restarted and interrupted the previous turn. Continue the unfinished work from the saved conversation. Check the current state before repeating actions that may already have completed.",
+            codex_prompt_texts::text!(
+                "app-server/request_processors/daemon_continuation/continuation_prompt.md"
+            ),
         ));
         let request = TurnInputRequest::new(TurnInput::ResponseItem(continuation)).on_start(
             TurnStartOptions {

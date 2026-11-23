@@ -109,7 +109,11 @@ impl ManagedWorktreeTools {
         };
         // Keep each injected tool result below the existing task-tools output budget.
         let (text, success) = if text.len() > 999 {
-            ("Worktree result exceeds the display limit. Use the worktree browser to inspect retained checkouts; do not repeat creation.".to_owned(), false)
+            (
+                codex_prompt_texts::text!("tui/managed_worktree_tools/result_too_large.md")
+                    .to_owned(),
+                false,
+            )
         } else {
             (text, success)
         };
@@ -193,7 +197,10 @@ impl ManagedWorktreeTools {
                         Some(ThreadSource::Feature(source)) if source == ATTACHED_SIDE_CHAT_SOURCE
                     )
                 {
-                    return Err("Side conversations cannot retain worktree attachments. Request a new worktree in the main conversation.".to_owned());
+                    return Err(codex_prompt_texts::text!(
+                        "tui/managed_worktree_tools/side_conversation_error.md"
+                    )
+                    .to_owned());
                 }
                 // Verify capability before allocating a checkout, including SQLite availability.
                 attachments(&handle, &thread_id, /*cursor*/ None).await?;
@@ -293,7 +300,7 @@ impl ManagedWorktreeTools {
                                 };
                                 Ok(
                                     json!({"type":if registration.is_ok() {"created"} else {"registrationFailed"}, "worktree":payload,
-                                "message":if registration.is_ok() {"Keep the task cwd. Use the returned workspaceRoot explicitly and request filesystem permissions if needed."} else {"Checkout retained; registration failed. Do not create a duplicate. Inspect the worktree browser to recover."}}),
+                                "message":if registration.is_ok() {codex_prompt_texts::text!("tui/managed_worktree_tools/created_message.md")} else {codex_prompt_texts::text!("tui/managed_worktree_tools/registration_failed_message.md")}}),
                                 )
                             }
                             Ok(Err(error)) => Err(error.to_string()),
@@ -303,7 +310,12 @@ impl ManagedWorktreeTools {
                         }
                     });
                     let result = worker.await.unwrap_or_else(|error| {
-                        Err(format!("Worktree creation outcome is uncertain: {error}. Inspect this task's attachments and managed worktrees before retrying."))
+                        Err(format!(
+                            codex_prompt_texts::text!(
+                                "tui/managed_worktree_tools/creation_uncertain_error.md"
+                            ),
+                            error = error
+                        ))
                     });
                     if let Some(operation) = registry.lock().await.get_mut(&id) {
                         operation.result = Some(result);

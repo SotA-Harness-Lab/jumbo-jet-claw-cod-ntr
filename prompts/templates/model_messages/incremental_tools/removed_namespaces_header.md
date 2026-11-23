@@ -1,0 +1,1 @@
+The following namespaces are no longer available. Do not call tools in them unless those tools are declared in a later update:

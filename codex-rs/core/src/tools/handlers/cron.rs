@@ -29,14 +29,8 @@ const CRON_CREATE: &str = "CronCreate";
 const CRON_LIST: &str = "CronList";
 const CRON_DELETE: &str = "CronDelete";
 
-const CREATE_DESCRIPTION: &str = "Schedule a prompt to be delivered to you at times given by a cron expression, so that you can check on something later or do something regularly without the user asking again.
-
-- `cron` is a standard 5-field expression in the user's local time: minute hour day-of-month month day-of-week. Examples: `*/10 * * * *` every 10 minutes, `0 9 * * 1-5` at 09:00 on weekdays, `30 14 20 11 *` once at 14:30 on November 20.
-- `recurring` (default true): the prompt is delivered at every matching time. With false it is delivered once, at the next matching time, and the job is then deleted. For a one-shot job, pin minute, hour, day and month.
-- Unless the user asked for an exact time, avoid minute 0 and 30, when everything else is scheduled too.
-- A job is only delivered while no turn is running; one that comes due during a turn waits for it to end. It then starts a turn by itself, with the prompt, as if you had been sent it.
-- Jobs live in this session only: they are gone when it ends. A recurring job is delivered one last time 7 days after it was created and is then deleted; tell the user about this limit when you create one.
-- At most 50 jobs. Use CronList to see them and CronDelete to cancel one.";
+const CREATE_DESCRIPTION: &str =
+    codex_prompt_texts::text!("core/tools/handlers/cron/create_description.md");
 
 /// The answer when the arguments are not a function call's.
 fn arguments(payload: ToolPayload, tool: &str) -> Result<String, FunctionCallError> {
@@ -116,7 +110,7 @@ impl ToolExecutor<ToolInvocation> for CronCreateHandler {
                 (
                     "recurring".to_string(),
                     JsonSchema::boolean(Some(
-                        "true (default): deliver at every match, for up to 7 days. false: deliver once at the next match, then delete the job."
+                        codex_prompt_texts::text!("core/tools/handlers/cron/recurring_description.md")
                             .to_string(),
                     )),
                 ),
@@ -151,13 +145,17 @@ impl ToolExecutor<ToolInvocation> for CronCreateHandler {
             let next_run = describe_next_run(&job);
             Ok(text(if job.recurring {
                 format!(
-                    "Scheduled recurring job {} ({}), next at {next_run}. Session-only (dies when this session ends). Auto-expires after 7 days. Use CronDelete to cancel sooner.",
-                    job.id, job.cron
+                    codex_prompt_texts::text!("core/tools/handlers/cron/scheduled_recurring.md"),
+                    job.id,
+                    job.cron,
+                    next_run = next_run
                 )
             } else {
                 format!(
-                    "Scheduled one-shot job {} ({}), at {next_run}. Session-only (dies when this session ends). It will fire once then auto-delete.",
-                    job.id, job.cron
+                    codex_prompt_texts::text!("core/tools/handlers/cron/scheduled_one_shot.md"),
+                    job.id,
+                    job.cron,
+                    next_run = next_run
                 )
             }))
         })

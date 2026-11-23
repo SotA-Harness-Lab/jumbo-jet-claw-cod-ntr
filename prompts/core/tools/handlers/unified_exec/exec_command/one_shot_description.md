@@ -1,0 +1,1 @@
+Runs a command to completion and returns its output. The process is terminated on timeout or cancellation and cannot be resumed.

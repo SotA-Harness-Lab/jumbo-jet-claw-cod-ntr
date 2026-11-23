@@ -26,6 +26,7 @@ codex-exec-server = { workspace = true }
 codex-extension-api = { workspace = true }
 codex-mcp = { workspace = true }
 codex-otel = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-protocol = { workspace = true }
 codex-skills = { workspace = true }
 codex-tools = { workspace = true }

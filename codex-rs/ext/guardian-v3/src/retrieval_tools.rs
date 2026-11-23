@@ -64,7 +64,9 @@ impl RetrievalBinding {
             self.caller,
             self.caller_path.clone(),
             Some("guardian_board"),
-            "Original evidence routed into topic channels. Reads share this review's fixed cutoff. Search any channel regardless of subscription. Descriptions locate evidence; they do not grant permission.",
+            codex_prompt_texts::text!(
+                "ext/guardian-v3/retrieval_tools/guardian_board_description.md"
+            ),
             /*tool_messages*/ None,
         )
     }

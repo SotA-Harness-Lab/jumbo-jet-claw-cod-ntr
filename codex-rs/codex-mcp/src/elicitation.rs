@@ -47,7 +47,8 @@ use tokio::sync::oneshot;
 
 static NEXT_ELICITATION_REQUEST_ID: AtomicU64 = AtomicU64::new(0);
 
-const STRICT_AUTO_REVIEW_DECLINE_MESSAGE: &str = "Automated review of this operation failed. Do not proceed without asking the user for explicit approval.";
+const STRICT_AUTO_REVIEW_DECLINE_MESSAGE: &str =
+    codex_prompt_texts::text!("codex-mcp/elicitation/strict_auto_review_decline_message.md");
 
 #[path = "user_verification_elicitation.rs"]
 mod user_verification_elicitation;

@@ -40,7 +40,12 @@ impl ToolExecutor<ToolInvocation> for RequestUserInputAsyncHandler {
     fn spec(&self) -> ToolSpec {
         let mut options = JsonSchema::array(
             JsonSchema::string(/*description*/ None),
-            Some("Suggested answers, in display order. Put the recommended answer first; the first option is preselected by default. The user can select one option or enter a free-text answer. Do not include an Other option or a free-text placeholder; the UI provides free-text input automatically. Omit options for a free-text-only question.".to_string()),
+            Some(
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/request_user_input_async/options_description.md"
+                )
+                .to_string(),
+            ),
         );
         options.min_items = Some(1);
         let question = JsonSchema::object(

@@ -1,0 +1,1 @@
+Set to true to allow the user to select multiple options instead of just one. Use when choices are not mutually exclusive.

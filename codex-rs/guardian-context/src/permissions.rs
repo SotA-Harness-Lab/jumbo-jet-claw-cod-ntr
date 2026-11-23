@@ -61,8 +61,9 @@ impl ContextualUserFragment for PermissionContext {
             format!("{scope} has no explicit denied-read paths/globs.\n")
         } else {
             format!(
-                "{scope} denies reading these paths/globs. These are policy restrictions; do not approve escalation whose purpose is to read them.\n{}\n",
-                entries.join("\n")
+                codex_prompt_texts::text!("guardian-context/permissions/denied_reads_body.md"),
+                entries.join("\n"),
+                scope = scope
             )
         })
     }

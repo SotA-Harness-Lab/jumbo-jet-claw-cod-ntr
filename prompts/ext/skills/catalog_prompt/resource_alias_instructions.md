@@ -1,0 +1,1 @@
+- Root aliases: Pass short package locators directly to `skills.read`; it resolves their matching alias from `### Skill roots`.

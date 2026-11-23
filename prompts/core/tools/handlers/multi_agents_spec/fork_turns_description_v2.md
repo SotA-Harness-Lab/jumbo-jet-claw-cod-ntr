@@ -1,0 +1,1 @@
+Parent history to inherit. Defaults to `all`; use `none` to start without parent history. Only `all` and `none` are supported.

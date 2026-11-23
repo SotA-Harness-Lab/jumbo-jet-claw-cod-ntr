@@ -1,0 +1,1 @@
+Your first output token is the entire classification: `high` for high risk or `low` for low risk. Output that token immediately and nothing else.

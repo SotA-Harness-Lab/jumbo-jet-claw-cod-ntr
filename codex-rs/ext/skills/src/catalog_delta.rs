@@ -33,8 +33,10 @@ const ROOTS_HEADING: &str =
     "### Skill roots\nThese mappings replace earlier mappings for the same aliases.\n";
 const SKILLS_HEADING: &str = "### Added or updated skills:\n";
 
-const REVALIDATE_SKILLS: &str = "Some previously listed skills are no longer available. Verify current access before relying on a skill from this source.\n";
-const RESTORED_SKILLS: &str = "Some previously unavailable skills are available again. Verify current access before relying on a skill from this source.\n";
+const REVALIDATE_SKILLS: &str =
+    codex_prompt_texts::text!("ext/skills/catalog_delta/revalidate_skills.md");
+const RESTORED_SKILLS: &str =
+    codex_prompt_texts::text!("ext/skills/catalog_delta/restored_skills.md");
 
 #[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -52,7 +52,7 @@ where
     fn spec(&self) -> ToolSpec {
         memory_function_tool::<AddAdHocNoteArgs, AddAdHocMemoryNoteResponse>(
             ADD_AD_HOC_NOTE_TOOL_NAME,
-            "Create one append-only ad-hoc memory note after the user explicitly asks Codex to remember, forget, or update something.",
+            codex_prompt_texts::text!("ext/memories/tools/ad_hoc_note/description.md"),
         )
     }
 

@@ -18,6 +18,7 @@ workspace = true
 [dependencies]
 codex-claude-compat = { workspace = true }
 codex-extension-api = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-utils-absolute-path = { workspace = true }
 dirs = { workspace = true }
 tokio = { workspace = true, features = ["fs"] }

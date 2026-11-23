@@ -70,8 +70,10 @@ const MAX_EDIT_IMAGES: usize = 5;
 const MAX_EXECUTOR_GENERATED_IMAGE_BYTES: usize = 32 * 1024 * 1024;
 const MAX_EXECUTOR_GENERATED_IMAGE_BASE64_BYTES: usize =
     MAX_EXECUTOR_GENERATED_IMAGE_BYTES.div_ceil(3) * 4;
-const IMAGEGEN_DESCRIPTION: &str = include_str!("../imagegen_description.md");
-const IMAGEGEN_GIF_DESCRIPTION: &str = include_str!("../imagegen_gif_description.md");
+const IMAGEGEN_DESCRIPTION: &str =
+    codex_prompt_texts::text!("ext/image-generation/imagegen_description.md");
+const IMAGEGEN_GIF_DESCRIPTION: &str =
+    codex_prompt_texts::text!("ext/image-generation/imagegen_gif_description.md");
 
 #[derive(Clone)]
 pub(crate) struct ImageGenerationTool {

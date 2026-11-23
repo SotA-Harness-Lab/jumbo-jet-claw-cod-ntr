@@ -1,0 +1,1 @@
+Create one append-only ad-hoc memory note after the user explicitly asks Codex to remember, forget, or update something.

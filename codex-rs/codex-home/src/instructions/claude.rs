@@ -14,12 +14,7 @@ use codex_claude_compat::render_instruction_files;
 use codex_claude_compat::user_instructions;
 use codex_utils_absolute_path::AbsolutePathBuf;
 
-const PREAMBLE: &str = "\
-The instructions below come from Claude Code's configuration and are shared with Codex, \
-binding here as well. They are maintained for Claude Code: do not edit those files unless \
-the user asks. Where they name Claude Code features, `/<name>` and the Skill tool mean the \
-skill of that name; the hooks and `settings.json` entries they describe may not all run in \
-Codex, so follow the rules those would have enforced yourself.";
+const PREAMBLE: &str = codex_prompt_texts::text!("codex-home/instructions/claude/preamble.md");
 
 /// Returns the user's Claude Code configuration directory, `~/.claude`, or nothing when
 /// `CCN_CLAUDE_COMPAT=0` turns the compatibility mode off.

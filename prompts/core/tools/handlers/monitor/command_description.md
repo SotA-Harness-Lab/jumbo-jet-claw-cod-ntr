@@ -1,0 +1,1 @@
+The shell command to run and watch. It should keep running and write a line when there is something to report.

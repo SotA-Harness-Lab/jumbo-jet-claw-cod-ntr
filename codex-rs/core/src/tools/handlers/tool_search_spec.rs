@@ -91,7 +91,9 @@ pub(crate) fn create_tool_search_tool(
     };
 
     let description = format!(
-        "# Tool discovery\n\nSearches over deferred tool metadata with BM25 and exposes matching tools for the next model call.{source_section}Some of the tools may not have been provided to you upfront, and you should use this tool (`{TOOL_SEARCH_TOOL_NAME}`) to search for the required tools. For MCP tool discovery, always use `{TOOL_SEARCH_TOOL_NAME}` instead of `list_mcp_resources` or `list_mcp_resource_templates`."
+        codex_prompt_texts::text!("core/tools/handlers/tool_search_spec/description.md"),
+        source_section = source_section,
+        TOOL_SEARCH_TOOL_NAME = TOOL_SEARCH_TOOL_NAME
     );
 
     ToolSpec::ToolSearch {

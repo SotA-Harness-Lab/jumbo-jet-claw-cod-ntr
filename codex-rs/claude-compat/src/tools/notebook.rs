@@ -141,7 +141,9 @@ fn process_cell(cell: Cell, index: usize, language: &str) -> NotebookCell {
             vec![CellOutput {
                 output_type: "stream".to_string(),
                 text: format!(
-                    "Outputs are too large to include. Use {BASH} with: cat <notebook_path> | jq '.cells[{index}].outputs'"
+                    codex_prompt_texts::text!("claude-compat/tools/notebook/outputs_too_large.md"),
+                    BASH = BASH,
+                    index = index
                 ),
                 image: None,
             }]
@@ -248,7 +250,11 @@ pub fn render(cells: &[NotebookCell]) -> Vec<NotebookPart> {
 /// Claude Code's refusal of a notebook too large to read at once.
 pub fn too_large_message(size: &str, max_size: &str, file_path: &str) -> String {
     format!(
-        "Notebook content ({size}) exceeds maximum allowed size ({max_size}). Use {BASH} with jq to read specific portions:\n  cat \"{file_path}\" | jq '.cells[:20]' # First 20 cells\n  cat \"{file_path}\" | jq '.cells[100:120]' # Cells 100-120\n  cat \"{file_path}\" | jq '.cells | length' # Count total cells\n  cat \"{file_path}\" | jq '.cells[] | select(.cell_type==\"code\") | .source' # All code sources"
+        codex_prompt_texts::text!("claude-compat/tools/notebook/too_large_message.md"),
+        size = size,
+        max_size = max_size,
+        BASH = BASH,
+        file_path = file_path
     )
 }
 

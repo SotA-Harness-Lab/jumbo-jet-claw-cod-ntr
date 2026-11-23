@@ -29,7 +29,9 @@ const DEFAULT_REVIEW_THRESHOLD: f64 = 0.5;
 const LEGACY_REVIEW_THRESHOLD: f64 = 0.8;
 const DEFAULT_MAX_TOOL_CALL_LAG: usize = 2;
 const DEFAULT_ASYNC_CLASSIFIER_CONVERSATION_TOKEN_LIMIT: usize = 100_000;
-pub(crate) const CLASSIFICATION_OUTPUT_INSTRUCTIONS: &str = "Your first output token is the entire classification: `high` for high risk or `low` for low risk. Output that token immediately and nothing else.";
+pub(crate) const CLASSIFICATION_OUTPUT_INSTRUCTIONS: &str = codex_prompt_texts::text!(
+    "ext/guardian-v2/async_scorer/config/classification_output_instructions.md"
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct GuardianV2Config {

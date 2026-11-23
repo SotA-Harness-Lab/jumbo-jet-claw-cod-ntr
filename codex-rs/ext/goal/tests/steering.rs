@@ -20,7 +20,7 @@ use pretty_assertions::assert_eq;
 #[test]
 fn enabled_checklist_preserves_the_original_continuation_prompt() {
     let goal = test_goal("Finish the feature.");
-    let original = Template::parse(include_str!("../templates/goals/continuation.md"))
+    let original = Template::parse(codex_prompt_texts::text!("ext/goal/goals/continuation.md"))
         .expect("original continuation template")
         .render([
             ("tokens_used", "100"),

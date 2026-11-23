@@ -29,6 +29,8 @@ impl ContextualUserFragment for GuardianBudgetOmission {
     }
 
     fn body(&self) -> ContentItem {
-        input_text("Conversation evidence, tool descriptions, or images were omitted or shortened to fit the review input budget. User instructions and prior approvals may be incomplete where marked. Do not infer authorization from missing evidence or treat a partial grant as overriding an omitted restriction.".to_owned())
+        input_text(
+            codex_prompt_texts::text!("core/context/guardian_budget_omission/body.md").to_owned(),
+        )
     }
 }

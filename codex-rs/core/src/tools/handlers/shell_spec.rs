@@ -14,7 +14,9 @@ use std::collections::BTreeMap;
 pub(crate) fn create_exec_command_tool(options: ExecCommandHandlerOptions) -> ToolSpec {
     // WINDOWS-REMNANT
     let yield_time_ms_description = if cfg!(windows) {
-        "Maximum time to wait before returning a session ID for a still-running command. Commands that finish sooner return immediately. For ordinary commands, omit this parameter to use the 10000 ms default. Effective range on Windows is 10000-30000 ms."
+        codex_prompt_texts::text!(
+            "core/tools/handlers/shell_spec/yield_time_description_windows.md"
+        )
     } else {
         "Wait before yielding output. Defaults to 10000 ms; effective range is 250-30000 ms."
     };
@@ -58,7 +60,9 @@ pub(crate) fn create_exec_command_tool(options: ExecCommandHandlerOptions) -> To
         "login".to_string(),
         JsonSchema::boolean(Some(
             if options.has_powershell {
-                "Login-shell startup. In PowerShell, false skips profiles. Keep them enabled for profile-defined commands, even unattended. Omit to inherit."
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/shell_spec/login_description_powershell.md"
+                )
             } else {
                 "Request login-shell startup. Omit to inherit."
             }
@@ -117,7 +121,7 @@ pub fn create_write_stdin_tool() -> ToolSpec {
         (
             "yield_time_ms".to_string(),
             JsonSchema::number(Some(
-                "Wait before yielding output. Non-empty writes default to 250 ms and cap at 30000 ms; empty polls wait 5000-300000 ms by default.".to_string(),
+                codex_prompt_texts::text!("core/tools/handlers/shell_spec/write_stdin_yield_time_description.md").to_string(),
             )),
         ),
         (
@@ -177,7 +181,7 @@ pub fn create_request_permissions_tool(description: String) -> ToolSpec {
 }
 
 pub fn request_permissions_tool_description() -> String {
-    "Request additional filesystem or network permissions from the user and wait for the client to grant a subset of the requested permission profile. Use environment_id to target a specific attached environment; omit it to use the primary environment. Relative filesystem paths resolve against the selected environment cwd. Granted permissions apply automatically to later shell-like commands in the current turn, or for the rest of the session if the client approves them at session scope."
+    codex_prompt_texts::text!("core/tools/handlers/shell_spec/request_permissions_description.md")
         .to_string()
 }
 
@@ -224,9 +228,13 @@ fn create_approval_parameters(
     }
     sandbox_permission_values.push(json!("require_escalated"));
     let sandbox_permissions_description = if exec_permission_approvals_enabled {
-        "Per-command sandbox override. Defaults to `use_default`; use `with_additional_permissions` with `additional_permissions`, or `require_escalated` for unsandboxed execution."
+        codex_prompt_texts::text!(
+            "core/tools/handlers/shell_spec/sandbox_permissions_description_additional.md"
+        )
     } else {
-        "Per-command sandbox override. Defaults to `use_default`; use `require_escalated` for unsandboxed execution."
+        codex_prompt_texts::text!(
+            "core/tools/handlers/shell_spec/sandbox_permissions_description.md"
+        )
     };
 
     let mut properties = BTreeMap::from([
@@ -240,22 +248,31 @@ fn create_approval_parameters(
         (
             "justification".to_string(),
             JsonSchema::string(Some(
-                "User-facing approval question for `require_escalated`; omit otherwise.".to_string(),
+                "User-facing approval question for `require_escalated`; omit otherwise."
+                    .to_string(),
             )),
         ),
         (
             "prefix_rule".to_string(),
-            JsonSchema::array(JsonSchema::string(/*description*/ None), Some(
-                    r#"Reusable approval prefix for `cmd`, only with `sandbox_permissions: "require_escalated"`; for example ["git", "pull"]."#.to_string(),
-                )),
+            JsonSchema::array(
+                JsonSchema::string(/*description*/ None),
+                Some(
+                    codex_prompt_texts::text!(
+                        "core/tools/handlers/shell_spec/prefix_rule_description.md"
+                    )
+                    .to_string(),
+                ),
+            ),
         ),
     ]);
 
     if exec_permission_approvals_enabled {
         let mut additional_permissions = permission_profile_schema();
         additional_permissions.description = Some(
-            "Sandboxed filesystem or network access for this command; only with `sandbox_permissions: \"with_additional_permissions\"`."
-                .into(),
+            codex_prompt_texts::text!(
+                "core/tools/handlers/shell_spec/additional_permissions_description.md"
+            )
+            .into(),
         );
         properties.insert("additional_permissions".to_string(), additional_permissions);
     }
@@ -323,10 +340,7 @@ fn file_system_permissions_schema() -> JsonSchema {
 }
 
 fn windows_shell_guidance() -> &'static str {
-    r#"Windows safety rules:
-- Do not compose destructive filesystem commands across shells. Do not enumerate paths in PowerShell and then pass them to `cmd /c`, batch builtins, or another shell for deletion or moving. Use one shell end-to-end, prefer native PowerShell cmdlets such as `Remove-Item` / `Move-Item` with `-LiteralPath`, and avoid string-built shell commands for file operations.
-- Before any recursive delete or move on Windows, verify the resolved absolute target paths stay within the intended workspace or explicitly named target directory. Never issue a recursive delete or move against a computed path if the final target has not been checked.
-- When using `Start-Process` to launch a background helper or service, pass `-WindowStyle Hidden` unless the user explicitly asked for a visible interactive window. Use visible windows only for interactive tools the user needs to see or control."#
+    codex_prompt_texts::text!("core/tools/handlers/shell_spec/windows_shell_guidance.md")
 }
 
 #[cfg(test)]

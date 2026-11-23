@@ -13,6 +13,7 @@ workspace = true
 
 [dependencies]
 codex-extension-api = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-tools = { workspace = true }
 codex-utils-path-uri = { workspace = true }
 futures = { workspace = true }

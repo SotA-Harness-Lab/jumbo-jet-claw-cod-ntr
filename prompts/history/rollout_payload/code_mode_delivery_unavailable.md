@@ -1,0 +1,1 @@
+The content of a confirmed assistant message is unavailable. Do not infer what was asked or authorized.

@@ -1,0 +1,1 @@
+Stop the monitor and its command after this long. Default {DEFAULT_TIMEOUT_MS}, between {MIN_TIMEOUT_MS} and {MAX_TIMEOUT_MS}.

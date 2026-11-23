@@ -29,12 +29,8 @@ impl ContextualUserFragment for EnvironmentsInstructions {
     }
 
     fn body(&self) -> ContentItem {
-        input_text("\n## Execution environments\n\
-Execution environments are separate machines or workspaces with their own files, shell, and installed capabilities. `<environment_context>` lists the environments selected for this task.\n\
-\n\
-An environment marked `starting` is not yet usable. Its files, commands, AGENTS.md instructions, skills, plugins, and MCP tools may become available when startup completes.\n\
-\n\
-Wait only when the current task needs that environment. Continue using tools that are already available for unrelated work.\n"
-            .to_string())
+        input_text(
+            codex_prompt_texts::text!("core/context/environments_instructions/body.md").to_string(),
+        )
     }
 }

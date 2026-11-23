@@ -1,0 +1,2 @@
+Startup context from Codex.
+This is background context about recent work and machine/workspace layout. It may be incomplete or stale. Use it to inform responses, and do not repeat it back unless relevant.

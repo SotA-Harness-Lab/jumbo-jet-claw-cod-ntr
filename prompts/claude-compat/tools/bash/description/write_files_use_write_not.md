@@ -1,0 +1,1 @@
+Write files: Use {WRITE} (NOT echo >/cat <<EOF)

@@ -1,0 +1,1 @@
+Worktree creation outcome is uncertain: {error}. Inspect this task's attachments and managed worktrees before retrying.

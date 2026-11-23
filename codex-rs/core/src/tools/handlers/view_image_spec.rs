@@ -41,11 +41,17 @@ pub fn create_view_image_tool(options: ViewImageToolOptions) -> ToolSpec {
 
     ToolSpec::Function(ResponsesApiTool {
         name: VIEW_IMAGE_TOOL_NAME.to_string(),
-        description: "View a local image file from the filesystem when visual inspection is needed. Use this for images already available on disk."
-            .to_string(),
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/view_image_spec/description.md"
+        )
+        .to_string(),
         strict: false,
         defer_loading: None,
-        parameters: JsonSchema::object(properties, Some(vec!["path".to_string()]), Some(false.into())),
+        parameters: JsonSchema::object(
+            properties,
+            Some(vec!["path".to_string()]),
+            Some(false.into()),
+        ),
         output_schema: Some(view_image_output_schema(options).into()),
     })
 }
@@ -66,7 +72,7 @@ fn view_image_output_schema(options: ViewImageToolOptions) -> Value {
         schema["properties"]["detail"] = json!({
             "type": "string",
             "enum": ["high", "original"],
-            "description": "Image detail hint returned by view_image. Returns `high` for default resized behavior or `original` when original resolution is preserved."
+            "description": codex_prompt_texts::text!("core/tools/handlers/view_image_spec/detail_output_description.md")
         });
         schema["required"] = json!(["image_url", "detail"]);
     }

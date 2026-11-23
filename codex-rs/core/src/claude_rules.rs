@@ -255,9 +255,7 @@ fn too_large_note(files: &[TooLarge]) -> String {
         .iter()
         .map(|file| {
             format!(
-                "Not shown: the instructions in {} apply to the files worked on, but they take \
-                 about {} tokens and only about {} are left in the context. They are shown when \
-                 a file they cover is worked on after the conversation is compacted.",
+                codex_prompt_texts::text!("core/claude_rules/too_large_note.md"),
                 file.path.display(),
                 file.tokens,
                 file.tokens_left

@@ -1,0 +1,1 @@
+The following user instructions were recovered from legacy history without acceptance-order metadata. Their ordering relative to the retained evidence below is unknown. Do not infer authorization from unresolved conflicts or ambiguous ordering.

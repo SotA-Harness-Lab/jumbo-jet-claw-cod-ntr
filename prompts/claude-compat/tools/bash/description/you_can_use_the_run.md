@@ -1,0 +1,1 @@
+You can use the `run_in_background` parameter to run the command in the background. Only use this if you don't need the result immediately. The result gives the command's ID: read its output later with write_stdin, passing that ID as session_id and empty chars. You do not need to use '&' at the end of the command when using this parameter.

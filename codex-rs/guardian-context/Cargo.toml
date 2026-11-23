@@ -15,6 +15,7 @@ workspace = true
 [dependencies]
 codex-context-fragments = { workspace = true }
 codex-history = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-protocol = { workspace = true }
 codex-utils-output-truncation = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

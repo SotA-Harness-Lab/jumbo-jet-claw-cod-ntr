@@ -1,0 +1,1 @@
+Maximum characters; further capped by output budget. Defaults: limit_chars 20000, max_chars_per_post 1000.

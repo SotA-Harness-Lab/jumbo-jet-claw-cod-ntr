@@ -1,0 +1,1 @@
+Not shown: the instructions in {} apply to the files worked on, but they take about {} tokens and only about {} are left in the context. They are shown when a file they cover is worked on after the conversation is compacted.

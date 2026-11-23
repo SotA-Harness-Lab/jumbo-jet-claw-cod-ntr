@@ -26,6 +26,7 @@ NTR 在这里是 Next-Tier Refined 的缩写：朝着下一代这个目标，一
 - 一轮活干到一半就停下（只说下一步要做什么却不做、计划里还有没做完的步骤）时，送回去让模型接着做完。
 - `Bash` 命令到了超时会留在后台继续运行；模型看不全的超长命令输出会存成文件供它读取。
 - `Monitor` 把长时间运行的命令输出的内容告诉模型；`CronCreate`、`CronList`、`CronDelete` 让模型给自己安排定时提示。
+- 所有提示词（包括 Codex 原有的）都是 [`prompts/`](../prompts/README.md) 下的文件，编译时嵌入程序，集中在一处查看和修改。
 - 回退到更早的提示时，可以把此后被代理的编辑改动的文件一并恢复。
 
 每一项默认开启，在 `~/.codex/ccn-config.toml` 的 `[harness]` 下各有开关。
@@ -121,6 +122,7 @@ tools = true
 
 - [**jjcn refinements**](../docs/jjcn.md)
 - [**Claude Code compatibility**](../docs/claude-compat.md)
+- [**Prompts**](../prompts/README.md)：程序发给模型的全部提示词，一个文件一段，编译时嵌入
 - [**Codex Documentation**](https://developers.openai.com/codex)
 - [**Contributing**](../docs/contributing.md)
 - [**Installing & building**](../docs/install.md)

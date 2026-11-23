@@ -1,0 +1,1 @@
+If you must sleep, keep the duration short (1-5 seconds) to avoid blocking the user.

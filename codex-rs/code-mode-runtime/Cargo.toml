@@ -16,6 +16,7 @@ workspace = true
 base64 = { workspace = true }
 codex-code-mode-protocol = { workspace = true }
 codex-plugin-host = { workspace = true }
+codex-prompt-texts = { workspace = true }
 codex-protocol = { workspace = true }
 codex-utils-audio = { workspace = true }
 codex-utils-output-truncation = { workspace = true }

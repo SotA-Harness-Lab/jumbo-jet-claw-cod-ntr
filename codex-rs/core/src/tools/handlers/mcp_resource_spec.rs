@@ -27,7 +27,10 @@ pub fn create_list_mcp_resources_tool(
 
     let tool = ResponsesApiTool {
         name: "list_mcp_resources".to_string(),
-        description: "Lists resources provided by MCP servers. Resources allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information. Prefer resources over web search when possible.".to_string(),
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/mcp_resource_spec/list_mcp_resources_description.md"
+        )
+        .to_string(),
         strict: false,
         defer_loading: None,
         parameters: JsonSchema::object(properties, /*required*/ None, Some(false.into())),
@@ -59,7 +62,10 @@ pub fn create_list_mcp_resource_templates_tool(
 
     let tool = ResponsesApiTool {
         name: "list_mcp_resource_templates".to_string(),
-        description: "Lists resource templates provided by MCP servers. Parameterized resource templates allow servers to share data that takes parameters and provides context to language models, such as files, database schemas, or application-specific information. Prefer resource templates over web search when possible.".to_string(),
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/mcp_resource_spec/list_mcp_resource_templates_description.md"
+        )
+        .to_string(),
         strict: false,
         defer_loading: None,
         parameters: JsonSchema::object(properties, /*required*/ None, Some(false.into())),
@@ -76,8 +82,10 @@ pub fn create_read_mcp_resource_tool(
         (
             "server".to_string(),
             JsonSchema::string(Some(
-                "MCP server name exactly as configured. Must match the 'server' field returned by list_mcp_resources."
-                    .to_string(),
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/mcp_resource_spec/server_description.md"
+                )
+                .to_string(),
             )),
         ),
         (
@@ -114,15 +122,15 @@ fn resource_tool_spec(
     let mut tool = with_catalog_tool_message(tool, messages);
     if include_environment_id {
         // Catalog schemas can replace the parameters, but cannot remove environment selection.
-        tool.parameters
-            .properties
-            .get_or_insert_default()
-            .insert(
-                "environment_id".to_string(),
-                JsonSchema::string(Some(
-                    "Environment ID from resource listings or environment context. Use with a server name. Required for environment-owned servers when multiple environments are attached. Omit for shared servers.".to_string(),
-                )),
-            );
+        tool.parameters.properties.get_or_insert_default().insert(
+            "environment_id".to_string(),
+            JsonSchema::string(Some(
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/mcp_resource_spec/environment_id_description.md"
+                )
+                .to_string(),
+            )),
+        );
     }
     ToolSpec::Function(tool)
 }

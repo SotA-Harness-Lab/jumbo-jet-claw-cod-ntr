@@ -1,0 +1,1 @@
+Show line numbers in output (rg -n). Requires output_mode: "content", ignored otherwise. Defaults to true.

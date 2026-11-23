@@ -330,7 +330,8 @@ impl ChatWidget {
                 self.show_managed_worktree_picker();
             }
             SlashCommand::Init => {
-                const INIT_PROMPT: &str = include_str!("../../assets/prompt_for_init_command.md");
+                const INIT_PROMPT: &str =
+                    codex_prompt_texts::text!("tui/assets/prompt_for_init_command.md");
                 self.submit_user_message(INIT_PROMPT.to_string().into());
             }
             SlashCommand::Compact => {

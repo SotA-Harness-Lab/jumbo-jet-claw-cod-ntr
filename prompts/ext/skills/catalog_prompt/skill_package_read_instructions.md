@@ -1,0 +1,1 @@
+Read a skill package directly with `skills.read({"package":"<package>"})` to read its `SKILL.md`; root aliases are resolved automatically. To read another file from that skill, use the same `package` and pass the file's complete `skill://` identifier as `resource`. If the package is not provided, use `skills.list` to find it.

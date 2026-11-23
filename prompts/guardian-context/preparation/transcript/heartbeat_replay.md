@@ -1,0 +1,1 @@
+Scheduled automation {automation_id} ran at {timestamp}. Instructions unchanged from transcript entry [{previous}]; this is a replay of that earlier instruction, not a new human instruction. If the referenced instructions are unavailable, do not infer authorization from this reference.

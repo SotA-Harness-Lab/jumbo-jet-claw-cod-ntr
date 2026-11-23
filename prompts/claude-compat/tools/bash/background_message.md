@@ -1,0 +1,1 @@
+Command running in background with ID: {id}. Read its output with write_stdin, passing session_id {id} and empty chars.

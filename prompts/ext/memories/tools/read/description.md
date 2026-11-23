@@ -1,0 +1,1 @@
+Read a Codex memory file by relative path, optionally starting at a 1-indexed line offset and limiting the number of lines returned.

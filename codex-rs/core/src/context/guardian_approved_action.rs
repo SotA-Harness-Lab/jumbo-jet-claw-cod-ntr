@@ -40,13 +40,9 @@ impl ContextualUserFragment for GuardianApprovedAction {
         let approval_prefix = AUTO_REVIEW_DENIED_ACTION_APPROVAL_DEVELOPER_PREFIX;
         let approved_action_json = &self.approved_action_json;
         input_text(format!(
-            r#"{approval_prefix}
-
-Treat this as approval to perform that exact action in the same context in which it was originally requested.
-Do not assume this also authorizes similar operations with different payloads.
-
-Approved action:
-{approved_action_json}"#
+            codex_prompt_texts::text!("core/context/guardian_approved_action/body.md"),
+            approval_prefix = approval_prefix,
+            approved_action_json = approved_action_json
         ))
     }
 }

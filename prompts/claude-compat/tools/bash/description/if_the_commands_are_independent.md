@@ -1,0 +1,1 @@
+If the commands are independent and can run in parallel, make multiple {BASH} tool calls in a single message. Example: if you need to run "git status" and "git diff", send a single message with two {BASH} tool calls in parallel.

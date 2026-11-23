@@ -1,0 +1,2710 @@
+# Where each text of this directory was taken from, kept by scripts/prompt_texts/migrate.py
+# and merge.py: see scripts/prompt_texts/manifest.py. Do not edit by hand.
+
+[[text]]
+path = "app-server/request_processors/daemon_continuation/continuation_prompt.md"
+origin = "upstream"
+source = "codex-rs/app-server/src/request_processors/daemon_continuation.rs"
+item = "continue_daemon_turn"
+synced = "33a086d940e7898c"
+
+[[text]]
+path = "claude-compat/instructions/instructions_header.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/instructions.rs"
+item = "INSTRUCTIONS_HEADER"
+synced = "d767b78a7be81d8e"
+
+[[text]]
+path = "claude-compat/memory/memory_index_warning.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/memory.rs"
+item = "cut_memory_index"
+synced = "18470feb32346855"
+
+[[text]]
+path = "claude-compat/memory_instructions/instructions_template.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/memory_instructions.rs"
+item = "INSTRUCTIONS_TEMPLATE"
+synced = "c12dfd4ccac02009"
+
+[[text]]
+path = "claude-compat/tools/agent/async_launched.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/agent.rs"
+item = "async_launched_text"
+synced = "9a618e091cb7ffee"
+
+[[text]]
+path = "claude-compat/tools/agent/description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/agent.rs"
+item = "description"
+synced = "4dd466a4d3a95774"
+
+[[text]]
+path = "claude-compat/tools/agent/general_purpose_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/agent.rs"
+item = "GENERAL_PURPOSE_DESCRIPTION"
+synced = "5d73f8e4a5b39204"
+
+[[text]]
+path = "claude-compat/tools/agent/model_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/agent.rs"
+item = "MODEL_PARAM_DESCRIPTION"
+synced = "97d4b89dbfa9a886"
+
+[[text]]
+path = "claude-compat/tools/agent/zero_tools_message.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/agent.rs"
+item = "zero_tools_message"
+synced = "3092d191104a3568"
+
+[[text]]
+path = "claude-compat/tools/ask_user_question/description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/ask_user_question.rs"
+item = "description"
+synced = "cdff5fad49abfa52"
+
+[[text]]
+path = "claude-compat/tools/ask_user_question/header_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/ask_user_question.rs"
+item = "HEADER_PARAM_DESCRIPTION"
+synced = "290c53a18cac8508"
+
+[[text]]
+path = "claude-compat/tools/ask_user_question/label_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/ask_user_question.rs"
+item = "LABEL_PARAM_DESCRIPTION"
+synced = "599be8d70f8d2096"
+
+[[text]]
+path = "claude-compat/tools/ask_user_question/multi_select_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/ask_user_question.rs"
+item = "MULTI_SELECT_PARAM_DESCRIPTION"
+synced = "4e68d0abd7f292c0"
+
+[[text]]
+path = "claude-compat/tools/ask_user_question/option_description_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/ask_user_question.rs"
+item = "OPTION_DESCRIPTION_PARAM_DESCRIPTION"
+synced = "a7f9510f1d161a36"
+
+[[text]]
+path = "claude-compat/tools/ask_user_question/options_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/ask_user_question.rs"
+item = "OPTIONS_PARAM_DESCRIPTION"
+synced = "2e37ed75f395fe83"
+
+[[text]]
+path = "claude-compat/tools/ask_user_question/question_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/ask_user_question.rs"
+item = "QUESTION_PARAM_DESCRIPTION"
+synced = "edf66067879af7cf"
+
+[[text]]
+path = "claude-compat/tools/bash/background_cwd_note.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "background_cwd_note"
+synced = "ed1791fa7a88baa3"
+
+[[text]]
+path = "claude-compat/tools/bash/background_message.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "background_message"
+synced = "df39de146da8cdf5"
+
+[[text]]
+path = "claude-compat/tools/bash/commit_and_pr_instructions.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "commit_and_pr_instructions"
+synced = "3d5027a2f562bbf3"
+
+[[text]]
+path = "claude-compat/tools/bash/description/always_quote_file_paths_that.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "f909cbc68d599a30"
+
+[[text]]
+path = "claude-compat/tools/bash/description/avoid_unnecessary_sleep_commands.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "74e07347ec3ed622"
+
+[[text]]
+path = "claude-compat/tools/bash/description/before_running_destructive_operations_e.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "869a65ae9bf80157"
+
+[[text]]
+path = "claude-compat/tools/bash/description/cat_head_tail_sed_awk.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "58addaa376302c5b"
+
+[[text]]
+path = "claude-compat/tools/bash/description/command_sandbox_by_default_your.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "8a777bc68f4a737a"
+
+[[text]]
+path = "claude-compat/tools/bash/description/communication_output_text_directly_not.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "0a4f76800bf6019d"
+
+[[text]]
+path = "claude-compat/tools/bash/description/content_search_use_grep_not.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "0d0ab16429f40c09"
+
+[[text]]
+path = "claude-compat/tools/bash/description/do_not_retry_failing_commands.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "1c0de30279ad84bb"
+
+[[text]]
+path = "claude-compat/tools/bash/description/do_not_sleep_between_commands.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "58c64223d1c22683"
+
+[[text]]
+path = "claude-compat/tools/bash/description/do_not_use_newlines_to.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "81b65fc746110f18"
+
+[[text]]
+path = "claude-compat/tools/bash/description/edit_files_use_edit_not.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "035945cd5b0afb1a"
+
+[[text]]
+path = "claude-compat/tools/bash/description/executes_a_given_bash_command.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "7281e1e6bb938096"
+
+[[text]]
+path = "claude-compat/tools/bash/description/file_search_use_glob_not.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "9eece9ca6b914590"
+
+[[text]]
+path = "claude-compat/tools/bash/description/find_grep_cat_head_tail.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "ddf775a66cb0b972"
+
+[[text]]
+path = "claude-compat/tools/bash/description/for_long_running_commands_use.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "a5e96ee10e71e32c"
+
+[[text]]
+path = "claude-compat/tools/bash/description/if_the_commands_are_independent.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "fdf404e9ac61a6ed"
+
+[[text]]
+path = "claude-compat/tools/bash/description/if_the_commands_depend_on.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "c80873b3307a01bc"
+
+[[text]]
+path = "claude-compat/tools/bash/description/if_you_must_sleep_keep.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "16a78954950b919b"
+
+[[text]]
+path = "claude-compat/tools/bash/description/if_your_command_will_create.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "34f5bd0cc6a9a90e"
+
+[[text]]
+path = "claude-compat/tools/bash/description/important_avoid_using_this_tool.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "1f33ef7fa2a8079c"
+
+[[text]]
+path = "claude-compat/tools/bash/description/never_skip_hooks_no_verify.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "98829a645f845af6"
+
+[[text]]
+path = "claude-compat/tools/bash/description/prefer_to_create_a_new.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "0292e78eaadd3be8"
+
+[[text]]
+path = "claude-compat/tools/bash/description/read_files_use_read_not.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "f5498e753bfcb5f2"
+
+[[text]]
+path = "claude-compat/tools/bash/description/the_working_directory_carries_over.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "37b13e175df2dd84"
+
+[[text]]
+path = "claude-compat/tools/bash/description/try_to_maintain_your_current.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "f7ec31b93902ed48"
+
+[[text]]
+path = "claude-compat/tools/bash/description/use_only_when_you_need.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "e955ed0cded94d6f"
+
+[[text]]
+path = "claude-compat/tools/bash/description/when_issuing_multiple_commands.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "52b879f8b012207a"
+
+[[text]]
+path = "claude-compat/tools/bash/description/while_the_bash_tool_can.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "26756edaed074e72"
+
+[[text]]
+path = "claude-compat/tools/bash/description/write_files_use_write_not.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "4073cb4bded92de3"
+
+[[text]]
+path = "claude-compat/tools/bash/description/you_can_use_the_run.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "b4cf05fcdaa09785"
+
+[[text]]
+path = "claude-compat/tools/bash/description/you_may_specify_an_optional.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "description"
+synced = "c0d8ce60adb2a864"
+
+[[text]]
+path = "claude-compat/tools/bash/description_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "DESCRIPTION_PARAM_DESCRIPTION"
+synced = "a0dae6c6e0e6b013"
+
+[[text]]
+path = "claude-compat/tools/bash/moved_to_background_message.md"
+origin = "jjcn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "moved_to_background_message"
+synced = "045e0ce0f8f9c165"
+
+[[text]]
+path = "claude-compat/tools/bash/run_in_background_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/bash.rs"
+item = "RUN_IN_BACKGROUND_PARAM_DESCRIPTION"
+synced = "4c6da6c4e9a8adfb"
+
+[[text]]
+path = "claude-compat/tools/edit/description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/edit.rs"
+item = "description"
+synced = "5e58b88815455b94"
+
+[[text]]
+path = "claude-compat/tools/glob/description/fast_file_pattern_matching_tool.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/glob.rs"
+item = "description"
+synced = "8d68eeedfe6649a1"
+
+[[text]]
+path = "claude-compat/tools/glob/description/when_you_are_doing_an.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/glob.rs"
+item = "description"
+synced = "4d3e8bba793ae1ab"
+
+[[text]]
+path = "claude-compat/tools/glob/path_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/glob.rs"
+item = "PATH_PARAM_DESCRIPTION"
+synced = "a16520cd828fae5a"
+
+[[text]]
+path = "claude-compat/tools/grep/after_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "AFTER_PARAM_DESCRIPTION"
+synced = "8c29700505d182b1"
+
+[[text]]
+path = "claude-compat/tools/grep/before_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "BEFORE_PARAM_DESCRIPTION"
+synced = "111f6225495ad05d"
+
+[[text]]
+path = "claude-compat/tools/grep/context_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "CONTEXT_PARAM_DESCRIPTION"
+synced = "90dd4e908c03c3ec"
+
+[[text]]
+path = "claude-compat/tools/grep/description/a_powerful_search_tool_built.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "description"
+synced = "fddf5473ab946094"
+
+[[text]]
+path = "claude-compat/tools/grep/description/pattern_syntax_uses_ripgrep_not.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "description"
+synced = "3136420b3413023b"
+
+[[text]]
+path = "claude-compat/tools/grep/description/use_agent_tool_for_open.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "description"
+synced = "400b286109c90382"
+
+[[text]]
+path = "claude-compat/tools/grep/head_limit_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "HEAD_LIMIT_PARAM_DESCRIPTION"
+synced = "f4cd600be28eadb5"
+
+[[text]]
+path = "claude-compat/tools/grep/line_numbers_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "LINE_NUMBERS_PARAM_DESCRIPTION"
+synced = "e43ff5d5360f77c2"
+
+[[text]]
+path = "claude-compat/tools/grep/multiline_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "MULTILINE_PARAM_DESCRIPTION"
+synced = "8e218885c3d2a619"
+
+[[text]]
+path = "claude-compat/tools/grep/offset_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "OFFSET_PARAM_DESCRIPTION"
+synced = "7ee96042384e6800"
+
+[[text]]
+path = "claude-compat/tools/grep/output_mode_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "OUTPUT_MODE_PARAM_DESCRIPTION"
+synced = "36093f297083305d"
+
+[[text]]
+path = "claude-compat/tools/grep/type_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/grep.rs"
+item = "TYPE_PARAM_DESCRIPTION"
+synced = "e1ce7d60879342a2"
+
+[[text]]
+path = "claude-compat/tools/notebook/outputs_too_large.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/notebook.rs"
+item = "process_cell"
+synced = "1457579bd1e4e2f1"
+
+[[text]]
+path = "claude-compat/tools/notebook/too_large_message.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/notebook.rs"
+item = "too_large_message"
+synced = "0b881d281c9db775"
+
+[[text]]
+path = "claude-compat/tools/read/description/reads_a_file_from_the.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/read.rs"
+item = "description"
+synced = "0edaa7f83dc87cfe"
+
+[[text]]
+path = "claude-compat/tools/read/description/this_tool_allows_you_to.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/read.rs"
+item = "description"
+synced = "91a9d34c9d1ab90b"
+
+[[text]]
+path = "claude-compat/tools/read/description/this_tool_can_only_read.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/read.rs"
+item = "description"
+synced = "dbd82b2e010f9e1b"
+
+[[text]]
+path = "claude-compat/tools/read/description/this_tool_can_read_pdf.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/read.rs"
+item = "description"
+synced = "7b3239642398e6d7"
+
+[[text]]
+path = "claude-compat/tools/read/offset_beyond_end_reminder.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/read.rs"
+item = "render"
+synced = "600562767ee8cfcb"
+
+[[text]]
+path = "claude-compat/tools/read/pages_param_description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/read.rs"
+item = "pages_param_description"
+synced = "d3ad04041fe3f171"
+
+[[text]]
+path = "claude-compat/tools/skill/description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/skill.rs"
+item = "DESCRIPTION"
+synced = "9e213f47cf580e36"
+
+[[text]]
+path = "claude-compat/tools/todo_write/description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/todo_write.rs"
+item = "description"
+synced = "8287197d02dd840c"
+
+[[text]]
+path = "claude-compat/tools/todo_write/result_message.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/todo_write.rs"
+item = "RESULT_MESSAGE"
+synced = "924963303f3a9457"
+
+[[text]]
+path = "claude-compat/tools/web_fetch/description/for_github_urls_prefer_using.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/web_fetch.rs"
+item = "description"
+synced = "bbe2c0db44c36ec2"
+
+[[text]]
+path = "claude-compat/tools/web_fetch/description/important_webfetch_will_fail_for.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/web_fetch.rs"
+item = "description"
+synced = "8a02662e360679e3"
+
+[[text]]
+path = "claude-compat/tools/web_fetch/redirect_message.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/web_fetch.rs"
+item = "redirect_message"
+synced = "de2c1ecae4a9249d"
+
+[[text]]
+path = "claude-compat/tools/web_fetch/secondary_model_guidelines.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/web_fetch.rs"
+item = "secondary_model_prompt"
+synced = "9ff921df6794e4ec"
+
+[[text]]
+path = "claude-compat/tools/web_fetch/secondary_model_guidelines_preapproved.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/web_fetch.rs"
+item = "secondary_model_prompt"
+synced = "b1a440d974f0dfd1"
+
+[[text]]
+path = "claude-compat/tools/web_search/description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/web_search.rs"
+item = "description"
+synced = "438a3e22d10b677b"
+
+[[text]]
+path = "claude-compat/tools/web_search/search_results.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/web_search.rs"
+item = "render"
+synced = "2f9dc7a7f45c6587"
+
+[[text]]
+path = "claude-compat/tools/write/description.md"
+origin = "ccn"
+source = "codex-rs/claude-compat/src/tools/write.rs"
+item = "description"
+synced = "8097577e535f452a"
+
+[[text]]
+path = "code-mode-protocol/description/deferred_nested_tools_guidance.md"
+origin = "upstream"
+source = "codex-rs/code-mode-protocol/src/description.rs"
+item = "DEFERRED_NESTED_TOOLS_GUIDANCE"
+synced = "ce2ea8379654c412"
+
+[[text]]
+path = "code-mode-protocol/description/exec_description_template.md"
+origin = "upstream"
+source = "codex-rs/code-mode-protocol/src/description.rs"
+item = "EXEC_DESCRIPTION_TEMPLATE"
+synced = "dbba75ba8af8cb8e"
+
+[[text]]
+path = "code-mode-protocol/description/legacy_image_helper_description.md"
+origin = "upstream"
+source = "codex-rs/code-mode-protocol/src/description.rs"
+item = "LEGACY_IMAGE_HELPER_DESCRIPTION"
+synced = "8316436a33e40907"
+
+[[text]]
+path = "code-mode-protocol/description/mcp_typescript_preamble.md"
+origin = "upstream"
+source = "codex-rs/code-mode-protocol/src/description.rs"
+item = "MCP_TYPESCRIPT_PREAMBLE"
+synced = "e02beca462bb4b39"
+
+[[text]]
+path = "code-mode-protocol/description/tool_search_guidance.md"
+origin = "upstream"
+source = "codex-rs/code-mode-protocol/src/description.rs"
+item = "TOOL_SEARCH_GUIDANCE"
+synced = "2bc693f65084add0"
+
+[[text]]
+path = "code-mode-protocol/description/unified_image_helper_description.md"
+origin = "upstream"
+source = "codex-rs/code-mode-protocol/src/description.rs"
+item = "UNIFIED_IMAGE_HELPER_DESCRIPTION"
+synced = "caaf29accae2de38"
+
+[[text]]
+path = "code-mode-protocol/description/wait_description_template.md"
+origin = "upstream"
+source = "codex-rs/code-mode-protocol/src/description.rs"
+item = "WAIT_DESCRIPTION_TEMPLATE"
+synced = "b87a941906aa8bc9"
+
+[[text]]
+path = "code-mode-runtime/output/output_render/loss_notice.md"
+origin = "upstream"
+source = "codex-rs/code-mode-runtime/src/output/output_render.rs"
+item = "insert_loss_notices"
+synced = "a8404b58ed780221"
+
+[[text]]
+path = "codex-api/endpoint/realtime_websocket/methods_v2/realtime_v2_background_agent_tool_description.md"
+origin = "upstream"
+source = "codex-rs/codex-api/src/endpoint/realtime_websocket/methods_v2.rs"
+item = "REALTIME_V2_BACKGROUND_AGENT_TOOL_DESCRIPTION"
+synced = "0e8b8f0e6e764dee"
+
+[[text]]
+path = "codex-api/endpoint/realtime_websocket/methods_v2/realtime_v2_silence_tool_description.md"
+origin = "upstream"
+source = "codex-rs/codex-api/src/endpoint/realtime_websocket/methods_v2.rs"
+item = "REALTIME_V2_SILENCE_TOOL_DESCRIPTION"
+synced = "b0c556b5bd1aaa29"
+
+[[text]]
+path = "codex-home/instructions/claude/preamble.md"
+origin = "ccn"
+source = "codex-rs/codex-home/src/instructions/claude.rs"
+item = "PREAMBLE"
+synced = "39a1404fb905ec82"
+
+[[text]]
+path = "codex-mcp/codex_apps/file_params/local_file_path_guidance.md"
+origin = "upstream"
+source = "codex-rs/codex-mcp/src/codex_apps/file_params.rs"
+item = "rewrite_input_property_schema_as_local_file_path"
+synced = "762159a0ab17feef"
+
+[[text]]
+path = "codex-mcp/elicitation/strict_auto_review_decline_message.md"
+origin = "upstream"
+source = "codex-rs/codex-mcp/src/elicitation.rs"
+item = "STRICT_AUTO_REVIEW_DECLINE_MESSAGE"
+synced = "3a777efd50562a60"
+
+[[text]]
+path = "collaboration-mode-templates/default.md"
+origin = "upstream"
+source = "codex-rs/collaboration-mode-templates/src/lib.rs"
+item = "DEFAULT"
+moved_from = "codex-rs/collaboration-mode-templates/templates/default.md"
+synced = "1042cc643eb0147c"
+
+[[text]]
+path = "collaboration-mode-templates/plan.md"
+origin = "upstream"
+source = "codex-rs/collaboration-mode-templates/src/lib.rs"
+item = "PLAN"
+moved_from = "codex-rs/collaboration-mode-templates/templates/plan.md"
+synced = "d6d46c2d460a9d91"
+
+[[text]]
+path = "context-fragments/recap_prompt/prompt_prefix.md"
+origin = "upstream"
+source = "codex-rs/context-fragments/src/recap_prompt.rs"
+item = "PROMPT_PREFIX"
+synced = "3fd6c8f1520ff6e7"
+
+[[text]]
+path = "context-fragments/side_conversation/side_boundary_prompt.md"
+origin = "upstream"
+source = "codex-rs/context-fragments/src/side_conversation.rs"
+item = "SIDE_BOUNDARY_PROMPT"
+synced = "63dca8bc25743e0b"
+
+[[text]]
+path = "context-fragments/side_conversation/side_developer_instructions.md"
+origin = "upstream"
+source = "codex-rs/context-fragments/src/side_conversation.rs"
+item = "SIDE_DEVELOPER_INSTRUCTIONS"
+synced = "fd19836beb9629f1"
+
+[[text]]
+path = "context-fragments/side_conversation/temporary_worktree_notice.md"
+origin = "upstream"
+source = "codex-rs/context-fragments/src/side_conversation.rs"
+item = "instructions"
+synced = "7d495d156d3a8767"
+
+[[text]]
+path = "core-plugins/command_migration/command_skill.md"
+origin = "upstream"
+source = "codex-rs/core-plugins/src/command_migration.rs"
+item = "render_command_skill"
+synced = "f2fa9fa5db245a2f"
+
+[[text]]
+path = "core/agent/history/forked_child_notice.md"
+origin = "upstream"
+source = "codex-rs/core/src/agent/history.rs"
+item = "prepare_forked_history"
+synced = "069f28d5f895e0bf"
+
+[[text]]
+path = "core/agent/role/explorer_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/agent/role.rs"
+item = "CONFIG"
+synced = "7088961161be90a0"
+
+[[text]]
+path = "core/agent/role/model_and_effort_note.md"
+origin = "upstream"
+source = "codex-rs/core/src/agent/role.rs"
+item = "format_role"
+synced = "5913f7b2bf9f65f1"
+
+[[text]]
+path = "core/agent/role/worker_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/agent/role.rs"
+item = "CONFIG"
+synced = "73076f1748e752e5"
+
+[[text]]
+path = "core/claude_rules/too_large_note.md"
+origin = "ccn"
+source = "codex-rs/core/src/claude_rules.rs"
+item = "too_large_note"
+synced = "e669591c000845ca"
+
+[[text]]
+path = "core/context/background_command_notification/body.md"
+origin = "jjcn"
+source = "codex-rs/core/src/context/background_command_notification.rs"
+item = "body"
+synced = "ca64e3cdbaa81caf"
+
+[[text]]
+path = "core/context/environments_instructions/body.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/environments_instructions.rs"
+item = "body"
+synced = "7f940dfdacd7a290"
+
+[[text]]
+path = "core/context/guardian_approved_action/body.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/guardian_approved_action.rs"
+item = "body"
+synced = "4ac2c641a2a29648"
+
+[[text]]
+path = "core/context/guardian_budget_omission/body.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/guardian_budget_omission.rs"
+item = "body"
+synced = "add04b8f1689baea"
+
+[[text]]
+path = "core/context/guardian_sender_messages/body/host_no_sender_user_messages.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/guardian_sender_messages.rs"
+item = "body"
+synced = "ff5658b368024b11"
+
+[[text]]
+path = "core/context/guardian_sender_messages/body/host_read_from_persisted_sender.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/guardian_sender_messages.rs"
+item = "body"
+synced = "c381776f158ecda9"
+
+[[text]]
+path = "core/context/guardian_sender_messages/body/received_message_source_thread_source.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/guardian_sender_messages.rs"
+item = "body"
+synced = "1f98f2ccdbd466b7"
+
+[[text]]
+path = "core/context/guardian_sender_messages/sender_unavailable.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/guardian_sender_messages.rs"
+item = "body"
+synced = "95c32e4689f7aa28"
+
+[[text]]
+path = "core/context/model_switch_instructions/body.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/model_switch_instructions.rs"
+item = "body"
+synced = "afd453512b032c1c"
+
+[[text]]
+path = "core/context/output_limit_continuation/body.md"
+origin = "jjcn"
+source = "codex-rs/core/src/context/output_limit_continuation.rs"
+item = "body"
+synced = "0210fdc33128ffc3"
+
+[[text]]
+path = "core/context/turn_aborted/interrupted_guidance.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/turn_aborted.rs"
+item = "INTERRUPTED_GUIDANCE"
+synced = "1202140aaa5ec1dd"
+
+[[text]]
+path = "core/context/turn_aborted/interrupted_neutral_guidance.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/turn_aborted.rs"
+item = "INTERRUPTED_NEUTRAL_GUIDANCE"
+synced = "6affeaeb74b0f13b"
+
+[[text]]
+path = "core/context/unfinished_work_continuation/body.md"
+origin = "jjcn"
+source = "codex-rs/core/src/context/unfinished_work_continuation.rs"
+item = "body"
+synced = "42ad00039b7cdefb"
+
+[[text]]
+path = "core/context/world_state/command_sessions/body/current_command_sessions_for_this.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/world_state/command_sessions.rs"
+item = "body"
+synced = "45414ee8f1257054"
+
+[[text]]
+path = "core/context/world_state/command_sessions/body/omitted_additional_sessions_omitted_this.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/world_state/command_sessions.rs"
+item = "body"
+synced = "20337c735ca8e78a"
+
+[[text]]
+path = "core/context/world_state/command_sessions/body/write_stdin_is_unavailable_with.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/world_state/command_sessions.rs"
+item = "body"
+synced = "6d1ee2585eacd539"
+
+[[text]]
+path = "core/context/world_state/managed_developer_instructions/replacement_notice.md"
+origin = "upstream"
+source = "codex-rs/core/src/context/world_state/managed_developer_instructions.rs"
+item = "REPLACEMENT_NOTICE"
+synced = "7f3e68ab47a172dc"
+
+[[text]]
+path = "core/follow_through/guidance.md"
+origin = "jjcn"
+source = "codex-rs/core/src/follow_through.rs"
+item = "GUIDANCE"
+synced = "ca55966cccd6ae0d"
+
+[[text]]
+path = "core/follow_through/judge_instructions.md"
+origin = "jjcn"
+source = "codex-rs/core/src/follow_through.rs"
+item = "JUDGE_INSTRUCTIONS"
+synced = "9d7fa6f97826cf3e"
+
+[[text]]
+path = "core/follow_through/judged_reason.md"
+origin = "jjcn"
+source = "codex-rs/core/src/follow_through.rs"
+item = "reason"
+synced = "9603a4bd5cc9e9f9"
+
+[[text]]
+path = "core/follow_through/plan_steps_reason.md"
+origin = "jjcn"
+source = "codex-rs/core/src/follow_through.rs"
+item = "reason"
+synced = "ac74b7b0cf490b81"
+
+[[text]]
+path = "core/hook_judge/agent_instructions/when_you_are_done_your.md"
+origin = "ccn"
+source = "codex-rs/core/src/hook_judge.rs"
+item = "AGENT_INSTRUCTIONS"
+synced = "8f1520762b776773"
+
+[[text]]
+path = "core/hook_judge/agent_instructions/you_are_verifying_a_hook.md"
+origin = "ccn"
+source = "codex-rs/core/src/hook_judge.rs"
+item = "AGENT_INSTRUCTIONS"
+synced = "5b8051c71e1ee9a3"
+
+[[text]]
+path = "core/hook_judge/hook_text_kinds.md"
+origin = "ccn"
+source = "codex-rs/core/src/hook_judge.rs"
+synced = "67921bf750c47474"
+
+[[text]]
+path = "core/hook_judge/prompt_instructions/you_are_evaluating_a_hook.md"
+origin = "ccn"
+source = "codex-rs/core/src/hook_judge.rs"
+item = "PROMPT_INSTRUCTIONS"
+synced = "c309e1ca1c3fe681"
+
+[[text]]
+path = "core/hook_judge/prompt_instructions/your_answer_must_be_a.md"
+origin = "ccn"
+source = "codex-rs/core/src/hook_judge.rs"
+item = "PROMPT_INSTRUCTIONS"
+synced = "908260f48789ec1c"
+
+[[text]]
+path = "core/realtime_context/notes_section.md"
+origin = "upstream"
+source = "codex-rs/core/src/realtime_context.rs"
+item = "build_realtime_startup_context"
+synced = "12ad42bc463eca46"
+
+[[text]]
+path = "core/realtime_context/startup_context_header.md"
+origin = "upstream"
+source = "codex-rs/core/src/realtime_context.rs"
+item = "STARTUP_CONTEXT_HEADER"
+synced = "07b33de1029fedd7"
+
+[[text]]
+path = "core/realtime_conversation/realtime_session_ended_handoff_instruction.md"
+origin = "upstream"
+source = "codex-rs/core/src/realtime_conversation.rs"
+item = "REALTIME_SESSION_ENDED_HANDOFF_INSTRUCTION"
+synced = "d03a21cc68eefea7"
+
+[[text]]
+path = "core/session/multi_agents/hosted_multi_agent_skill_guidance.md"
+origin = "upstream"
+source = "codex-rs/core/src/session/multi_agents.rs"
+item = "HOSTED_MULTI_AGENT_SKILL_GUIDANCE"
+synced = "2aecf62d1eb4b221"
+
+[[text]]
+path = "core/session_prefix/error_next_action.md"
+origin = "upstream"
+source = "codex-rs/core/src/session_prefix.rs"
+item = "ERROR_NEXT_ACTION"
+synced = "d81f1c1cafaf9cd0"
+
+[[text]]
+path = "core/session_prefix/guardian_next_action.md"
+origin = "upstream"
+source = "codex-rs/core/src/session_prefix.rs"
+item = "GUARDIAN_NEXT_ACTION"
+synced = "7be566285379ec15"
+
+[[text]]
+path = "core/tools/claude/permissions/reject_message.md"
+origin = "ccn"
+source = "codex-rs/core/src/tools/claude/permissions.rs"
+item = "REJECT_MESSAGE"
+synced = "8621ef054998d150"
+
+[[text]]
+path = "core/tools/code_mode/execute_spec/code_mode_freeform_grammar.lark"
+origin = "upstream"
+source = "codex-rs/core/src/tools/code_mode/execute_spec.rs"
+item = "CODE_MODE_FREEFORM_GRAMMAR"
+synced = "8eead048e20069c1"
+
+[[text]]
+path = "core/tools/handlers/apply_patch_spec/description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/apply_patch_spec.rs"
+item = "create_apply_patch_freeform_tool"
+synced = "1d2e0992b289d938"
+
+[[text]]
+path = "core/tools/handlers/cron/create_description.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/cron.rs"
+item = "CREATE_DESCRIPTION"
+synced = "da7852c4e7672dc2"
+
+[[text]]
+path = "core/tools/handlers/cron/recurring_description.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/cron.rs"
+item = "spec"
+synced = "84aae9106d77cbe3"
+
+[[text]]
+path = "core/tools/handlers/cron/scheduled_one_shot.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/cron.rs"
+item = "handle"
+synced = "cb47c3a8670c8aca"
+
+[[text]]
+path = "core/tools/handlers/cron/scheduled_recurring.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/cron.rs"
+item = "handle"
+synced = "1f0efe60c7c3f0c0"
+
+[[text]]
+path = "core/tools/handlers/list_available_plugins_to_install_spec/description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/list_available_plugins_to_install_spec.rs"
+item = "create_list_available_plugins_to_install_tool"
+synced = "9ba95bc8b601f954"
+
+[[text]]
+path = "core/tools/handlers/mcp_resource_spec/environment_id_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/mcp_resource_spec.rs"
+item = "resource_tool_spec"
+synced = "0f9a64eba7f43f0e"
+
+[[text]]
+path = "core/tools/handlers/mcp_resource_spec/list_mcp_resource_templates_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/mcp_resource_spec.rs"
+item = "create_list_mcp_resource_templates_tool"
+synced = "d526b412c36fa13f"
+
+[[text]]
+path = "core/tools/handlers/mcp_resource_spec/list_mcp_resources_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/mcp_resource_spec.rs"
+item = "create_list_mcp_resources_tool"
+synced = "1aa9c29d996c2467"
+
+[[text]]
+path = "core/tools/handlers/mcp_resource_spec/server_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/mcp_resource_spec.rs"
+item = "create_read_mcp_resource_tool"
+synced = "845fb0813f20e141"
+
+[[text]]
+path = "core/tools/handlers/monitor/command_description.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/monitor.rs"
+item = "spec"
+synced = "66722f11c35012e4"
+
+[[text]]
+path = "core/tools/handlers/monitor/description.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/monitor.rs"
+item = "DESCRIPTION"
+synced = "8abc0ef7443a149b"
+
+[[text]]
+path = "core/tools/handlers/monitor/output_not_followed.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/monitor.rs"
+item = "handle_call"
+synced = "e5b70127cf4ca5fa"
+
+[[text]]
+path = "core/tools/handlers/monitor/started.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/monitor.rs"
+item = "handle_call"
+synced = "06ded8402b446cae"
+
+[[text]]
+path = "core/tools/handlers/monitor/timeout_description.md"
+origin = "jjcn"
+source = "codex-rs/core/src/tools/handlers/monitor.rs"
+item = "spec"
+synced = "2cf7e7f9125ef0ce"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/agent_role_usage_hint.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_tool_description"
+synced = "df75dbfc80bfc8a9"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/agent_type_description_v2.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_common_properties_v2"
+synced = "b5e9f057f89d4aeb"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/close_agent_description_v1.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_close_agent_tool_v1"
+synced = "4800ade915f6f7dc"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/collab_input_path_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_collab_input_items_schema"
+synced = "988067ced9379ca8"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/followup_task_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_followup_task_tool"
+synced = "fb29da0ce679f089"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/fork_context_description_v1.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_common_properties_v1"
+synced = "9d2cd440d5da5221"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/fork_turns_description_v2.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_common_properties_v2"
+synced = "6dce37fe87379529"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/interrupt_agent_description_v2.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_interrupt_agent_tool_v2"
+synced = "07f744a6e4727f0d"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/send_input_description_v1.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_send_input_tool_v1"
+synced = "e12fce53640b22ae"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/send_message_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_send_message_tool"
+synced = "e0cae526e53d940e"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_description_v1.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_tool_description"
+synced = "1202bd35cf11ef66"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_description_v2.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_tool_description_v2"
+synced = "0792d0a14af2d043"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_inherited_model_guidance.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "SPAWN_AGENT_INHERITED_MODEL_GUIDANCE"
+synced = "55afc233c8d65356"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_inherited_model_guidance_v2.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "SPAWN_AGENT_INHERITED_MODEL_GUIDANCE_V2"
+synced = "7549e3524e20761e"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_tool_description/tool_description_usage_hint_text.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_tool_description"
+synced = "3e07432afe6bb291"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_tool_description_catalog.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_tool_description"
+synced = "34454fc7c5c06399"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_tool_description_models.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "spawn_agent_tool_description"
+synced = "e8946941ed142356"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/spawn_agent_type_override_description_v1.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "SPAWN_AGENT_TYPE_OVERRIDE_DESCRIPTION_V1"
+synced = "071cfcea212f078e"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/wait_agent_description_v1.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_wait_agent_tool_v1"
+synced = "4ee4cd26ef64f726"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/wait_agent_description_v2.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "create_wait_agent_tool_v2"
+synced = "6efad2e8999e3516"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_spec/wait_timeout_description_v1.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_spec.rs"
+item = "wait_agent_tool_parameters_v1"
+synced = "040f5fd8649d086a"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_v2/message_tool/message_accepted.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs"
+item = "handle_message_string_tool"
+synced = "9afdbd28eca3fb88"
+
+[[text]]
+path = "core/tools/handlers/multi_agents_v2/wait/timeout_clamped.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs"
+item = "from_outcome"
+synced = "3ed43f0c09bd9841"
+
+[[text]]
+path = "core/tools/handlers/plan_spec/update_plan_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/plan_spec.rs"
+item = "create_update_plan_tool"
+synced = "3a8105e2fa071dde"
+
+[[text]]
+path = "core/tools/handlers/request_plugin_install_spec/request_plugin_install_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/request_plugin_install_spec.rs"
+item = "create_request_plugin_install_tool"
+synced = "a4c439102b1268bc"
+
+[[text]]
+path = "core/tools/handlers/request_plugin_install_spec/suggest_recommended_plugin_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/request_plugin_install_spec.rs"
+item = "create_request_plugin_install_tool"
+synced = "0a5a700b9c59def4"
+
+[[text]]
+path = "core/tools/handlers/request_user_input_async/options_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/request_user_input_async.rs"
+item = "spec"
+synced = "87ff8a281fd73104"
+
+[[text]]
+path = "core/tools/handlers/request_user_input_spec/description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/request_user_input_spec.rs"
+item = "request_user_input_tool_description"
+synced = "9286bdcdd1b8109c"
+
+[[text]]
+path = "core/tools/handlers/request_user_input_spec/options_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/request_user_input_spec.rs"
+item = "create_request_user_input_tool"
+synced = "56f25e7ff41b6679"
+
+[[text]]
+path = "core/tools/handlers/send_message_to_user_async/description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/send_message_to_user_async.rs"
+item = "spec"
+synced = "be3cbbe88b008d78"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/additional_permissions_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "create_approval_parameters"
+synced = "55fba089e27602db"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/login_description_powershell.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "create_exec_command_tool"
+synced = "0fbe5a3259e1d255"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/prefix_rule_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "create_approval_parameters"
+synced = "a93d5b90daa5e454"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/request_permissions_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "request_permissions_tool_description"
+synced = "b981699c21dc2129"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/sandbox_permissions_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "create_approval_parameters"
+synced = "8087f2b355ed22b2"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/sandbox_permissions_description_additional.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "create_approval_parameters"
+synced = "c4c9f5cc642485e1"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/windows_shell_guidance.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "windows_shell_guidance"
+synced = "446712aec4d72a52"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/write_stdin_yield_time_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "create_write_stdin_tool"
+synced = "6c59c5590994e993"
+
+[[text]]
+path = "core/tools/handlers/shell_spec/yield_time_description_windows.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/shell_spec.rs"
+item = "create_exec_command_tool"
+synced = "37dc53078a214047"
+
+[[text]]
+path = "core/tools/handlers/sleep/description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/sleep.rs"
+item = "create_sleep_tool"
+synced = "f98e2360897313bc"
+
+[[text]]
+path = "core/tools/handlers/tool_search_spec/description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/tool_search_spec.rs"
+item = "create_tool_search_tool"
+synced = "9060f6b10473fc9c"
+
+[[text]]
+path = "core/tools/handlers/unified_exec/exec_command/one_shot_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs"
+item = "one_shot_exec_command_spec"
+synced = "7d21536a03a6aa25"
+
+[[text]]
+path = "core/tools/handlers/view_image_spec/description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/view_image_spec.rs"
+item = "create_view_image_tool"
+synced = "0a5b48aa388ff040"
+
+[[text]]
+path = "core/tools/handlers/view_image_spec/detail_output_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/view_image_spec.rs"
+item = "view_image_output_schema"
+synced = "258ec0e6aaa217a0"
+
+[[text]]
+path = "core/tools/handlers/wait_for_environment/default_tool_description.md"
+origin = "upstream"
+source = "codex-rs/core/src/tools/handlers/wait_for_environment.rs"
+item = "DEFAULT_TOOL_DESCRIPTION"
+synced = "05ba05bd7a40d772"
+
+[[text]]
+path = "ext/git-attribution/world_state/disabled_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/git-attribution/src/world_state.rs"
+item = "DISABLED_INSTRUCTIONS"
+synced = "026478127db066b9"
+
+[[text]]
+path = "ext/git-attribution/world_state/enabled_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/git-attribution/src/world_state.rs"
+item = "ENABLED_INSTRUCTIONS"
+synced = "17e0fbb149727494"
+
+[[text]]
+path = "ext/git-attribution/world_state/legacy_commit_attribution_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/git-attribution/src/world_state.rs"
+item = "LEGACY_COMMIT_ATTRIBUTION_INSTRUCTIONS"
+synced = "dbda1a02f37583f6"
+
+[[text]]
+path = "ext/goal/goals/budget_limit.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/steering.rs"
+item = "BUDGET_LIMIT_PROMPT_TEMPLATE"
+moved_from = "codex-rs/ext/goal/templates/goals/budget_limit.md"
+synced = "ebac90ff1fc825ba"
+
+[[text]]
+path = "ext/goal/goals/continuation.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/steering.rs"
+item = "CONTINUATION_PROMPT_TEMPLATE"
+moved_from = "codex-rs/ext/goal/templates/goals/continuation.md"
+synced = "b7bffaa7c13d8b6a"
+
+[[text]]
+path = "ext/goal/goals/continuation.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/steering.rs"
+item = "CONTINUATION_PROMPT_WITHOUT_UPDATE_PLAN"
+moved_from = "codex-rs/ext/goal/templates/goals/continuation.md"
+synced = "b7bffaa7c13d8b6a"
+
+[[text]]
+path = "ext/goal/goals/objective_updated.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/steering.rs"
+item = "OBJECTIVE_UPDATED_PROMPT_TEMPLATE"
+moved_from = "codex-rs/ext/goal/templates/goals/objective_updated.md"
+synced = "a9752da8f38e7a8f"
+
+[[text]]
+path = "ext/goal/spec/create_goal_description.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/spec.rs"
+item = "create_create_goal_tool"
+synced = "b702e621ff649fde"
+
+[[text]]
+path = "ext/goal/spec/create_goal_objective_param_description.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/spec.rs"
+item = "create_create_goal_tool"
+synced = "b4280c5595308821"
+
+[[text]]
+path = "ext/goal/spec/get_goal_description.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/spec.rs"
+item = "create_get_goal_tool"
+synced = "d86378be07531f8a"
+
+[[text]]
+path = "ext/goal/spec/update_goal_description.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/spec.rs"
+item = "create_update_goal_tool"
+synced = "5d7192dc91754c25"
+
+[[text]]
+path = "ext/goal/spec/update_goal_status_param_description.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/spec.rs"
+item = "create_update_goal_tool"
+synced = "04973a4e19e0e73f"
+
+[[text]]
+path = "ext/goal/tool/completion_budget_report.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/tool.rs"
+item = "completion_budget_report"
+synced = "c448463ea7be9f21"
+
+[[text]]
+path = "ext/goal/tool/update_goal_status_error.md"
+origin = "upstream"
+source = "codex-rs/ext/goal/src/tool.rs"
+item = "handle_update"
+synced = "e4faffb1d4f11f52"
+
+[[text]]
+path = "ext/guardian-reviewer/assessment/guardian_output_contract_prompt.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-reviewer/src/assessment.rs"
+item = "guardian_output_contract_prompt"
+synced = "671f628da7434b81"
+
+[[text]]
+path = "ext/guardian-reviewer/instructions/guardian_conversation_history_prompt.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-reviewer/src/instructions.rs"
+item = "GUARDIAN_CONVERSATION_HISTORY_PROMPT"
+synced = "c92b0bfe7cd917d5"
+
+[[text]]
+path = "ext/guardian-v2/async_scorer/config/classification_output_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-v2/src/async_scorer/config.rs"
+item = "CLASSIFICATION_OUTPUT_INSTRUCTIONS"
+synced = "47b235b0feb64ba4"
+
+[[text]]
+path = "ext/guardian-v3/housekeeper/housekeeper_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-v3/src/housekeeper.rs"
+item = "HOUSEKEEPER_INSTRUCTIONS"
+synced = "dfe5bc290226f972"
+
+[[text]]
+path = "ext/guardian-v3/retrieval_tools/guardian_board_description.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-v3/src/retrieval_tools.rs"
+item = "tools"
+synced = "e60318d1f13b1a94"
+
+[[text]]
+path = "ext/guardian-v3/selection/channel_selection_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-v3/src/selection.rs"
+item = "CHANNEL_SELECTION_INSTRUCTIONS"
+synced = "1c3ce49a31145482"
+
+[[text]]
+path = "ext/guardian-v3/subscription_tools/subscribe_description.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-v3/src/subscription_tools.rs"
+item = "tools"
+synced = "d2d10c1622e1388f"
+
+[[text]]
+path = "ext/guardian-v3/subscription_tools/unsubscribe_description.md"
+origin = "upstream"
+source = "codex-rs/ext/guardian-v3/src/subscription_tools.rs"
+item = "tools"
+synced = "faffb0d25aaaef73"
+
+[[text]]
+path = "ext/history-notes/requests/history.md"
+origin = "upstream"
+source = "codex-rs/ext/history-notes/src/requests.rs"
+item = "HISTORY"
+synced = "2c7920c139c8a348"
+
+[[text]]
+path = "ext/history-notes/requests/notes.md"
+origin = "upstream"
+source = "codex-rs/ext/history-notes/src/requests.rs"
+item = "NOTES"
+synced = "984753fe9bb5ac36"
+
+[[text]]
+path = "ext/image-generation/artifact/image_generation_output_hint.md"
+origin = "upstream"
+source = "codex-rs/ext/image-generation/src/artifact.rs"
+item = "image_generation_output_hint"
+synced = "894208e3180989a1"
+
+[[text]]
+path = "ext/image-generation/imagegen_description.md"
+origin = "upstream"
+source = "codex-rs/ext/image-generation/src/tool.rs"
+item = "IMAGEGEN_DESCRIPTION"
+moved_from = "codex-rs/ext/image-generation/imagegen_description.md"
+synced = "ee89dd3b9df94cc8"
+
+[[text]]
+path = "ext/image-generation/imagegen_gif_description.md"
+origin = "upstream"
+source = "codex-rs/ext/image-generation/src/tool.rs"
+item = "IMAGEGEN_GIF_DESCRIPTION"
+moved_from = "codex-rs/ext/image-generation/imagegen_gif_description.md"
+synced = "9f4932762ecc35db"
+
+[[text]]
+path = "ext/memories/memories/read_path.md"
+origin = "upstream"
+source = "codex-rs/ext/memories/src/prompts.rs"
+item = "MEMORY_TOOL_DEVELOPER_INSTRUCTIONS_TEMPLATE"
+moved_from = "codex-rs/ext/memories/templates/memories/read_path.md"
+synced = "2bc7736029884b71"
+
+[[text]]
+path = "ext/memories/memories/read_path_v2.md"
+origin = "upstream"
+source = "codex-rs/ext/memories/src/prompts.rs"
+item = "MEMORY_V2_TEMPLATE"
+moved_from = "codex-rs/ext/memories/templates/memories/read_path_v2.md"
+synced = "2f81fa2e89f341a1"
+
+[[text]]
+path = "ext/memories/tools/ad_hoc_note/description.md"
+origin = "upstream"
+source = "codex-rs/ext/memories/src/tools/ad_hoc_note.rs"
+item = "spec"
+synced = "e2744d5e2c4032d1"
+
+[[text]]
+path = "ext/memories/tools/read/description.md"
+origin = "upstream"
+source = "codex-rs/ext/memories/src/tools/read.rs"
+item = "spec"
+synced = "a581ba97c2ac5a50"
+
+[[text]]
+path = "ext/memories/tools/search/description.md"
+origin = "upstream"
+source = "codex-rs/ext/memories/src/tools/search.rs"
+item = "spec"
+synced = "7e0ccce9701717ad"
+
+[[text]]
+path = "ext/multi-env-copy-file/tool/tool_description.md"
+origin = "upstream"
+source = "codex-rs/ext/multi-env-copy-file/src/tool.rs"
+item = "TOOL_DESCRIPTION"
+synced = "96ead1bbca8cf94f"
+
+[[text]]
+path = "ext/skills/catalog_delta/restored_skills.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_delta.rs"
+item = "RESTORED_SKILLS"
+synced = "9c3370b22c832bcb"
+
+[[text]]
+path = "ext/skills/catalog_delta/revalidate_skills.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_delta.rs"
+item = "REVALIDATE_SKILLS"
+synced = "c15785a82762ead7"
+
+[[text]]
+path = "ext/skills/catalog_prompt/resource_alias_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "RESOURCE_ALIAS_INSTRUCTIONS"
+synced = "46d19e8a88c6baba"
+
+[[text]]
+path = "ext/skills/catalog_prompt/skill_package_read_instructions.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "render_available_skills_body"
+synced = "8b4a77415ed72d05"
+
+[[text]]
+path = "ext/skills/catalog_prompt/skill_roots_mapping_note.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "render_available_skills_body"
+synced = "cfc6202c85983d85"
+
+[[text]]
+path = "ext/skills/catalog_prompt/skills_how_to_use_with_host_aliases.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "SKILLS_HOW_TO_USE_WITH_HOST_ALIASES"
+synced = "a542ff08e01add36"
+
+[[text]]
+path = "ext/skills/catalog_prompt/skills_how_to_use_with_source_locators.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "SKILLS_HOW_TO_USE_WITH_SOURCE_LOCATORS"
+synced = "57619bb7be4fd6a9"
+
+[[text]]
+path = "ext/skills/catalog_prompt/skills_intro_with_host_aliases.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "SKILLS_INTRO_WITH_HOST_ALIASES"
+synced = "1e24ced81a2ad9e9"
+
+[[text]]
+path = "ext/skills/catalog_prompt/skills_intro_with_resource_aliases.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "SKILLS_INTRO_WITH_RESOURCE_ALIASES"
+synced = "0b1879e639891c69"
+
+[[text]]
+path = "ext/skills/catalog_prompt/skills_intro_with_source_locators.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/catalog_prompt.rs"
+item = "SKILLS_INTRO_WITH_SOURCE_LOCATORS"
+synced = "fbbf22e992dd5c52"
+
+[[text]]
+path = "ext/skills/tools/installations/description.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/tools/installations.rs"
+item = "spec"
+synced = "a1acd704b0da4a7d"
+
+[[text]]
+path = "ext/skills/tools/list/description.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/tools/list.rs"
+item = "spec"
+synced = "4f5d7d953f9aaced"
+
+[[text]]
+path = "ext/skills/tools/read/description.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/tools/read.rs"
+item = "spec"
+synced = "0c3a016e19fb5fb2"
+
+[[text]]
+path = "ext/skills/tools/read/description_v2.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/tools/read.rs"
+item = "spec"
+synced = "0ad9252987831651"
+
+[[text]]
+path = "ext/skills/world_state/hidden_cloud_skills_body.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/world_state.rs"
+item = "HIDDEN_CLOUD_SKILLS_BODY"
+synced = "8cda23f12653b00d"
+
+[[text]]
+path = "ext/skills/world_state/hidden_executor_skills_body.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/world_state.rs"
+item = "HIDDEN_EXECUTOR_SKILLS_BODY"
+synced = "aab98e69e3bb5fde"
+
+[[text]]
+path = "ext/skills/world_state/hidden_host_skills_body.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/world_state.rs"
+item = "HIDDEN_HOST_SKILLS_BODY"
+synced = "9e3a7f2294da5b81"
+
+[[text]]
+path = "ext/skills/world_state/omitted_host_skills_body.md"
+origin = "upstream"
+source = "codex-rs/ext/skills/src/world_state.rs"
+item = "OMITTED_HOST_SKILLS_BODY"
+synced = "602b6843c64a191f"
+
+[[text]]
+path = "ext/web-search/web_run_description.md"
+origin = "upstream"
+source = "codex-rs/ext/web-search/src/tool.rs"
+item = "WEB_RUN_DESCRIPTION"
+moved_from = "codex-rs/ext/web-search/web_run_description.md"
+synced = "1f3879b44690eb7a"
+
+[[text]]
+path = "external-agent-migration/memory_import/extension_instructions.md"
+origin = "upstream"
+source = "codex-rs/external-agent-migration/src/memory_import.rs"
+item = "EXTENSION_INSTRUCTIONS"
+synced = "13384bc70a7fe72d"
+
+[[text]]
+path = "guardian-context/action/native_tool_call_notice.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/action.rs"
+item = "render_content"
+synced = "b19963a9e2c0896c"
+
+[[text]]
+path = "guardian-context/action/network_no_trigger_notice.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/action.rs"
+item = "render_content"
+synced = "2004519605e7ef79"
+
+[[text]]
+path = "guardian-context/action/network_trigger_notice.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/action.rs"
+item = "render_content"
+synced = "7c4ef7a36ce1eabe"
+
+[[text]]
+path = "guardian-context/action/terminal_input_scope.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/action.rs"
+item = "render_content"
+synced = "261ca4edec850b85"
+
+[[text]]
+path = "guardian-context/authorization/incomplete_assistant_context.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/authorization.rs"
+item = "render"
+synced = "0ec6e9cf0212761a"
+
+[[text]]
+path = "guardian-context/authorization/incomplete_root_instructions.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/authorization.rs"
+item = "render"
+synced = "21211ac78680a2e0"
+
+[[text]]
+path = "guardian-context/authorization/incomplete_verified_answers.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/authorization.rs"
+item = "render"
+synced = "815a6390b15fd2bf"
+
+[[text]]
+path = "guardian-context/authorization/legacy_context_scope.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/authorization.rs"
+item = "render"
+synced = "c6faa50e138e1fce"
+
+[[text]]
+path = "guardian-context/authorization/retained_context_scope.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/authorization.rs"
+item = "render"
+synced = "dad2a5d34825f971"
+
+[[text]]
+path = "guardian-context/authorization/root_conversation_scope.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/authorization.rs"
+item = "root_conversation_items"
+synced = "fc6351e9ab3f6771"
+
+[[text]]
+path = "guardian-context/composition/async_delta_intro.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/composition.rs"
+item = "compose_prepared"
+synced = "970f4f5f0b9252b4"
+
+[[text]]
+path = "guardian-context/composition/sync_delta_intro.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/composition.rs"
+item = "compose_prepared"
+synced = "360af6123925136e"
+
+[[text]]
+path = "guardian-context/composition/sync_full_intro.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/composition.rs"
+item = "compose_prepared"
+synced = "f3c2bf52924ce6ca"
+
+[[text]]
+path = "guardian-context/permissions/denied_reads_body.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/permissions.rs"
+item = "body"
+synced = "a90ce21a15603463"
+
+[[text]]
+path = "guardian-context/preparation/elastic/sender_evidence_context_start.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/preparation/elastic.rs"
+item = "prepare_elastic_entries"
+synced = "21084461af5052ba"
+
+[[text]]
+path = "guardian-context/preparation/transcript/heartbeat_replay.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/preparation/transcript.rs"
+item = "prepare_heartbeats"
+synced = "c131142e00ed63c6"
+
+[[text]]
+path = "guardian-context/preparation/untrusted_descriptions.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/preparation/mod.rs"
+item = "prepare_sections"
+synced = "bf7edd12c4721c0a"
+
+[[text]]
+path = "guardian-context/retained_instructions/availability_changed.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/retained_instructions.rs"
+item = "AVAILABILITY_CHANGED"
+synced = "94134da187fbf844"
+
+[[text]]
+path = "guardian-context/retained_instructions/legacy_start.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/retained_instructions.rs"
+item = "LEGACY_START"
+synced = "567c842a52bf4a27"
+
+[[text]]
+path = "guardian-context/retained_instructions/start.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/retained_instructions.rs"
+item = "START"
+synced = "8104e4c49956cfb4"
+
+[[text]]
+path = "guardian-context/retained_instructions/user_omission.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/retained_instructions.rs"
+item = "USER_OMISSION"
+synced = "8fe14c65e4865f31"
+
+[[text]]
+path = "guardian-context/reviews/review_evidence.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/reviews.rs"
+item = "render_review_evidence"
+synced = "e85a67a314a8a5c9"
+
+[[text]]
+path = "guardian-context/reviews/trusted_reviews_intro.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/reviews.rs"
+item = "into_annotated_message"
+synced = "9904e3b5875adbd5"
+
+[[text]]
+path = "guardian-context/transcript_record/transcript_json_instructions.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/transcript_record.rs"
+item = "TRANSCRIPT_JSON_INSTRUCTIONS"
+synced = "796674fc93092053"
+
+[[text]]
+path = "guardian-context/trusted_tool/trusted_tool_scope.md"
+origin = "upstream"
+source = "codex-rs/guardian-context/src/trusted_tool.rs"
+item = "TRUSTED_TOOL_SCOPE"
+synced = "0d5a822a660bed28"
+
+[[text]]
+path = "history/rollout_payload/code_mode_delivery_unavailable.md"
+origin = "upstream"
+source = "codex-rs/history/src/rollout_payload.rs"
+item = "CODE_MODE_DELIVERY_UNAVAILABLE"
+synced = "b6ff23b9557e1f67"
+
+[[text]]
+path = "memories/write/extensions/ad_hoc/instructions.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/extensions/ad_hoc.rs"
+item = "INSTRUCTIONS"
+moved_from = "codex-rs/memories/write/templates/extensions/ad_hoc/instructions.md"
+synced = "d36a36083d92f9d4"
+
+[[text]]
+path = "memories/write/lib/extensions_folder_structure.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/lib.rs"
+item = "EXTENSIONS_FOLDER_STRUCTURE"
+synced = "fb89c0fd6ebcd821"
+
+[[text]]
+path = "memories/write/lib/extensions_primary_inputs.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/lib.rs"
+item = "EXTENSIONS_PRIMARY_INPUTS"
+synced = "c09dfe0c976b421a"
+
+[[text]]
+path = "memories/write/memories/consolidation.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/prompts.rs"
+item = "CONSOLIDATION_PROMPT_TEMPLATE"
+moved_from = "codex-rs/memories/write/templates/memories/consolidation.md"
+synced = "1450e24f84c03375"
+
+[[text]]
+path = "memories/write/memories/consolidation_v2.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/prompts.rs"
+item = "CONSOLIDATION_V2_TEMPLATE"
+moved_from = "codex-rs/memories/write/templates/memories/consolidation_v2.md"
+synced = "7334fdb4aa5d958b"
+
+[[text]]
+path = "memories/write/memories/stage_one_input.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/prompts.rs"
+item = "STAGE_ONE_INPUT_TEMPLATE"
+moved_from = "codex-rs/memories/write/templates/memories/stage_one_input.md"
+synced = "2e54c74909238022"
+
+[[text]]
+path = "memories/write/memories/stage_one_input_v2.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/prompts.rs"
+item = "STAGE_ONE_INPUT_V2_TEMPLATE"
+moved_from = "codex-rs/memories/write/templates/memories/stage_one_input_v2.md"
+synced = "8fd4bb25fe6bd746"
+
+[[text]]
+path = "memories/write/memories/stage_one_system.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/lib.rs"
+item = "PROMPT"
+moved_from = "codex-rs/memories/write/templates/memories/stage_one_system.md"
+synced = "cf795e8a2f5f52d3"
+
+[[text]]
+path = "memories/write/memories/stage_one_system_v2.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/phase1.rs"
+item = "sample"
+moved_from = "codex-rs/memories/write/templates/memories/stage_one_system_v2.md"
+synced = "334c0d51a2c63bd3"
+
+[[text]]
+path = "memories/write/prompts/consolidation_fallback.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/prompts.rs"
+item = "build_consolidation_prompt_for_version"
+synced = "09e376d735ebcaaf"
+
+[[text]]
+path = "memories/write/workspace/workspace_diff_header.md"
+origin = "upstream"
+source = "codex-rs/memories/write/src/workspace.rs"
+item = "render_workspace_diff_file"
+synced = "9736c626c438b5ef"
+
+[[text]]
+path = "message-board/tools/output_budget_exceeded.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools.rs"
+item = "handle"
+synced = "746318624c6465fb"
+
+[[text]]
+path = "message-board/tools/spec/append_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "f9fca2a91fd3f7b0"
+
+[[text]]
+path = "message-board/tools/spec/create_channel_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "5c4a9e8bf9e307b0"
+
+[[text]]
+path = "message-board/tools/spec/cursor_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "5cc2793a69f8b143"
+
+[[text]]
+path = "message-board/tools/spec/get_channels_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "66827c0012e22cf9"
+
+[[text]]
+path = "message-board/tools/spec/limit_chars_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "6caa93e4f3f56b0e"
+
+[[text]]
+path = "message-board/tools/spec/list_threads_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "c247a6ce8de62daa"
+
+[[text]]
+path = "message-board/tools/spec/post_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "00403774c56f062c"
+
+[[text]]
+path = "message-board/tools/spec/read_post_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "09c6fe24859ef6ff"
+
+[[text]]
+path = "message-board/tools/spec/read_thread_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "ed400bf3f3b00ed4"
+
+[[text]]
+path = "message-board/tools/spec/search_posts_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "a0614e44847ab91b"
+
+[[text]]
+path = "message-board/tools/spec/subscribe_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "b4aaacde53062adc"
+
+[[text]]
+path = "message-board/tools/spec/unsubscribe_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "3773f0208e51165a"
+
+[[text]]
+path = "message-board/tools/spec/upsert_channel_description.md"
+origin = "upstream"
+source = "codex-rs/message-board/src/tools/spec.rs"
+item = "tool"
+synced = "451973e60c956670"
+
+[[text]]
+path = "models-manager/prompt.md"
+origin = "upstream"
+source = "codex-rs/models-manager/src/model_info.rs"
+item = "BASE_INSTRUCTIONS"
+moved_from = "codex-rs/models-manager/prompt.md"
+synced = "ac8ae107a0d72fe3"
+
+[[text]]
+path = "protocol/prompts/base_instructions/default.md"
+origin = "upstream"
+source = "codex-rs/protocol/src/models.rs"
+item = "BASE_INSTRUCTIONS_DEFAULT"
+moved_from = "codex-rs/protocol/src/prompts/base_instructions/default.md"
+synced = "ac8ae107a0d72fe3"
+
+[[text]]
+path = "templates/compact/prompt.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/compact.rs"
+item = "SUMMARIZATION_PROMPT"
+moved_from = "codex-rs/prompts/templates/compact/prompt.md"
+synced = "ab0c334d4faca17e"
+
+[[text]]
+path = "templates/compact/summary_prefix.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/compact.rs"
+item = "SUMMARY_PREFIX"
+moved_from = "codex-rs/prompts/templates/compact/summary_prefix.md"
+synced = "e9b088e794a6bb90"
+
+[[text]]
+path = "templates/guardian/classifier_instructions.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/guardian.rs"
+item = "CLASSIFIER_INSTRUCTIONS"
+moved_from = "codex-rs/prompts/templates/guardian/classifier_instructions.md"
+synced = "52485dcc1856e6d3"
+
+[[text]]
+path = "templates/guardian/node_repl_policy.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/guardian.rs"
+item = "NODE_REPL_POLICY"
+moved_from = "codex-rs/prompts/templates/guardian/node_repl_policy.md"
+synced = "e5d12bc240464051"
+
+[[text]]
+path = "templates/guardian/policy.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/guardian.rs"
+item = "POLICY"
+moved_from = "codex-rs/prompts/templates/guardian/policy.md"
+synced = "e6b0cf0a2e1c4cab"
+
+[[text]]
+path = "templates/guardian/policy_template.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/guardian.rs"
+item = "POLICY_TEMPLATE"
+moved_from = "codex-rs/prompts/templates/guardian/policy_template.md"
+synced = "14cdb20e67bff950"
+
+[[text]]
+path = "templates/model_messages/apps/usage_instructions.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/apps.rs"
+item = "new"
+synced = "bfefacec0b401f15"
+
+[[text]]
+path = "templates/model_messages/content_filter_guidance.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages.rs"
+item = "CONTENT_FILTER_GUIDANCE"
+synced = "e4629166bfd44c36"
+
+[[text]]
+path = "templates/model_messages/incremental_tools/exec_tools_removed_definitions_header.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/incremental_tools.rs"
+item = "new"
+synced = "3dd326173a4a3005"
+
+[[text]]
+path = "templates/model_messages/incremental_tools/exec_tools_update_hint.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/incremental_tools.rs"
+item = "new"
+synced = "74e64c74a5f8ef1f"
+
+[[text]]
+path = "templates/model_messages/incremental_tools/removed_namespaces_header.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/incremental_tools.rs"
+item = "new"
+synced = "f402b3d878c02d6b"
+
+[[text]]
+path = "templates/model_messages/incremental_tools/tool_update_hint.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/incremental_tools.rs"
+item = "new"
+synced = "e98dbfeea364b183"
+
+[[text]]
+path = "templates/model_messages/multi_agent/default_multi_agent_v2_root_agent_usage_hint_text.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/multi_agent.rs"
+item = "DEFAULT_MULTI_AGENT_V2_ROOT_AGENT_USAGE_HINT_TEXT"
+synced = "3aacea142162bf64"
+
+[[text]]
+path = "templates/model_messages/multi_agent/default_multi_agent_v2_subagent_usage_hint_text.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/multi_agent.rs"
+item = "DEFAULT_MULTI_AGENT_V2_SUBAGENT_USAGE_HINT_TEXT"
+synced = "80768121f7cb5827"
+
+[[text]]
+path = "templates/model_messages/multi_agent/explicit_request_only_multi_agent_mode_text.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/multi_agent.rs"
+item = "EXPLICIT_REQUEST_ONLY_MULTI_AGENT_MODE_TEXT"
+synced = "759e7194f58447d9"
+
+[[text]]
+path = "templates/model_messages/multi_agent/proactive_multi_agent_mode_text.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/multi_agent.rs"
+item = "PROACTIVE_MULTI_AGENT_MODE_TEXT"
+synced = "d8fc778b064ebe51"
+
+[[text]]
+path = "templates/model_messages/plugins/generic_usage.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/plugins.rs"
+item = "GENERIC_USAGE"
+synced = "8f43d3e3c6e00b8b"
+
+[[text]]
+path = "templates/model_messages/reminder_message_template.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages.rs"
+item = "REMINDER_MESSAGE_TEMPLATE"
+synced = "e1094d3166f6653b"
+
+[[text]]
+path = "templates/model_messages/request_user_input_async_description.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages.rs"
+item = "REQUEST_USER_INPUT_ASYNC_DESCRIPTION"
+synced = "f7f47603a91513a7"
+
+[[text]]
+path = "templates/multi_agent_instructions/concurrency_slots/base_shared_wait_agent_guidance.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/multi_agent_instructions.rs"
+item = "body"
+synced = "a481fab153d44b2f"
+
+[[text]]
+path = "templates/multi_agent_instructions/concurrency_slots/default_multi_agent_v2_wait.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/multi_agent_instructions.rs"
+item = "body"
+synced = "c4cfcf25bea7744f"
+
+[[text]]
+path = "templates/multi_agent_instructions/default_multi_agent_v2_model_override_usage_hint_text.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/multi_agent_instructions.rs"
+item = "DEFAULT_MULTI_AGENT_V2_MODEL_OVERRIDE_USAGE_HINT_TEXT"
+synced = "9fc962249fe96f11"
+
+[[text]]
+path = "templates/multi_agent_instructions/default_multi_agent_v2_shared_usage_hint_text.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/multi_agent_instructions.rs"
+item = "DEFAULT_MULTI_AGENT_V2_SHARED_USAGE_HINT_TEXT"
+synced = "33396c4271dc7246"
+
+[[text]]
+path = "templates/permissions/approval_policy/never.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/permissions.rs"
+item = "APPROVAL_POLICY_NEVER"
+moved_from = "codex-rs/prompts/templates/permissions/approval_policy/never.md"
+synced = "41c7931bac2391a2"
+
+[[text]]
+path = "templates/permissions/approval_policy/on_request.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/permissions.rs"
+item = "APPROVAL_POLICY_ON_REQUEST"
+moved_from = "codex-rs/prompts/templates/permissions/approval_policy/on_request.md"
+synced = "85541a9738741407"
+
+[[text]]
+path = "templates/permissions/approval_policy/on_request_rule_request_permission.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/permissions_instructions.rs"
+item = "REQUEST_PERMISSION_RULE"
+moved_from = "codex-rs/prompts/templates/permissions/approval_policy/on_request_rule_request_permission.md"
+synced = "98e8a78ac869d64f"
+
+[[text]]
+path = "templates/permissions/approval_policy/unless_trusted.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/permissions.rs"
+item = "APPROVAL_POLICY_UNLESS_TRUSTED"
+moved_from = "codex-rs/prompts/templates/permissions/approval_policy/unless_trusted.md"
+synced = "fadec1a060a758b8"
+
+[[text]]
+path = "templates/permissions/approved_prefixes.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/permissions.rs"
+item = "new"
+moved_from = "codex-rs/prompts/templates/permissions/approved_prefixes.md"
+synced = "2d37f635b9800903"
+
+[[text]]
+path = "templates/permissions/sandbox_mode/danger_full_access.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/permissions.rs"
+item = "DANGER_FULL_ACCESS_TEMPLATE"
+moved_from = "codex-rs/prompts/templates/permissions/sandbox_mode/danger_full_access.md"
+synced = "0d887cb1eaba21a6"
+
+[[text]]
+path = "templates/permissions/sandbox_mode/read_only.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/permissions.rs"
+item = "READ_ONLY_TEMPLATE"
+moved_from = "codex-rs/prompts/templates/permissions/sandbox_mode/read_only.md"
+synced = "509b39f88e6a4f5c"
+
+[[text]]
+path = "templates/permissions/sandbox_mode/workspace_write.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages/permissions.rs"
+item = "WORKSPACE_WRITE_TEMPLATE"
+moved_from = "codex-rs/prompts/templates/permissions/sandbox_mode/workspace_write.md"
+synced = "763661195d613a48"
+
+[[text]]
+path = "templates/permissions_instructions/auto_review_suffix.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/permissions_instructions.rs"
+item = "AUTO_REVIEW_SUFFIX"
+synced = "80a4cc431920a164"
+
+[[text]]
+path = "templates/permissions_instructions/granular_intro.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/permissions_instructions.rs"
+item = "GRANULAR_INTRO"
+synced = "6a32bc2c8715ae4e"
+
+[[text]]
+path = "templates/permissions_instructions/path_warnings/denied_reads_policy.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/permissions_instructions/path_warnings.rs"
+item = "DENIED_READS_POLICY"
+synced = "4f827ccb6ea82afe"
+
+[[text]]
+path = "templates/permissions_instructions/path_warnings/omitted_permission_paths.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/permissions_instructions/path_warnings.rs"
+item = "OMITTED_PERMISSION_PATHS"
+synced = "cbcde96936b087b2"
+
+[[text]]
+path = "templates/permissions_instructions/request_permissions_tool.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/permissions_instructions.rs"
+item = "REQUEST_PERMISSIONS_TOOL"
+synced = "1657bbb3bfa7a576"
+
+[[text]]
+path = "templates/persistent_mode.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/model_messages.rs"
+item = "PERSISTENT_INSTRUCTIONS"
+moved_from = "codex-rs/prompts/templates/persistent_mode.md"
+synced = "03ff9da48abb8542"
+
+[[text]]
+path = "templates/realtime/backend_prompt.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/realtime.rs"
+item = "BACKEND_PROMPT"
+moved_from = "codex-rs/prompts/templates/realtime/backend_prompt.md"
+synced = "94c279f8b40900e5"
+
+[[text]]
+path = "templates/realtime/realtime_end.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/realtime.rs"
+item = "END_INSTRUCTIONS"
+moved_from = "codex-rs/prompts/templates/realtime/realtime_end.md"
+synced = "95dbde1501871117"
+
+[[text]]
+path = "templates/realtime/realtime_start.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/realtime.rs"
+item = "START_INSTRUCTIONS"
+moved_from = "codex-rs/prompts/templates/realtime/realtime_start.md"
+synced = "424ebda35f115edf"
+
+[[text]]
+path = "templates/review/exit_interrupted.xml"
+origin = "upstream"
+source = "codex-rs/prompts/src/review_exit.rs"
+item = "REVIEW_EXIT_INTERRUPTED_TEMPLATE_TEXT"
+moved_from = "codex-rs/prompts/templates/review/exit_interrupted.xml"
+synced = "034191c75f153388"
+
+[[text]]
+path = "templates/review/exit_success.xml"
+origin = "upstream"
+source = "codex-rs/prompts/src/review_exit.rs"
+item = "REVIEW_EXIT_SUCCESS_TEMPLATE_TEXT"
+moved_from = "codex-rs/prompts/templates/review/exit_success.xml"
+synced = "87ce1bcbc0f1aee3"
+
+[[text]]
+path = "templates/review/rubric.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/review_request.rs"
+item = "REVIEW_PROMPT"
+moved_from = "codex-rs/prompts/templates/review/rubric.md"
+synced = "ec60e7f36a1d1c26"
+
+[[text]]
+path = "templates/review_request/base_branch_prompt.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/review_request.rs"
+item = "BASE_BRANCH_PROMPT"
+synced = "5535c7ed088961da"
+
+[[text]]
+path = "templates/review_request/base_branch_prompt_backup.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/review_request.rs"
+item = "BASE_BRANCH_PROMPT_BACKUP"
+synced = "8674d04e682a06fa"
+
+[[text]]
+path = "templates/review_request/commit_prompt_with_title.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/review_request.rs"
+item = "COMMIT_PROMPT_WITH_TITLE"
+synced = "63a6921bfc2795d4"
+
+[[text]]
+path = "templates/review_request/uncommitted_prompt.md"
+origin = "upstream"
+source = "codex-rs/prompts/src/review_request.rs"
+item = "UNCOMMITTED_PROMPT"
+synced = "60d2696672405cf4"
+
+[[text]]
+path = "tui/app/thread_title/recent_conversation_prompt.md"
+origin = "upstream"
+source = "codex-rs/tui/src/app/thread_title.rs"
+item = "recent_conversation_thread_title_prompt"
+synced = "cf3344c00ca59228"
+
+[[text]]
+path = "tui/app/thread_title/thread_title_instructions.md"
+origin = "upstream"
+source = "codex-rs/tui/src/app/thread_title.rs"
+item = "thread_title_instructions"
+synced = "efbaae36b568d377"
+
+[[text]]
+path = "tui/assets/prompt_for_init_command.md"
+origin = "upstream"
+source = "codex-rs/tui/src/chatwidget/slash_dispatch.rs"
+item = "INIT_PROMPT"
+moved_from = "codex-rs/tui/assets/prompt_for_init_command.md"
+synced = "70dfe903081ca894"
+
+[[text]]
+path = "tui/dynamic_tools/create_thread_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/dynamic_tools.rs"
+item = "tool_specs"
+synced = "dc05256946bcf541"
+
+[[text]]
+path = "tui/dynamic_tools/fork_continuation.md"
+origin = "upstream"
+source = "codex-rs/tui/src/dynamic_tools.rs"
+item = "execute_inner"
+synced = "b2363264b97655d1"
+
+[[text]]
+path = "tui/dynamic_tools/list_threads_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/dynamic_tools.rs"
+item = "tool_specs"
+synced = "f3c2482c2b35da0a"
+
+[[text]]
+path = "tui/dynamic_tools/read_thread_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/dynamic_tools.rs"
+item = "tool_specs"
+synced = "a5f244ff4c77ff67"
+
+[[text]]
+path = "tui/dynamic_tools/send_message_to_thread_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/dynamic_tools.rs"
+item = "tool_specs"
+synced = "539af8cc06d79f93"
+
+[[text]]
+path = "tui/dynamic_tools/set_thread_archived_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/dynamic_tools.rs"
+item = "tool_specs"
+synced = "89df8b66ce02cfd3"
+
+[[text]]
+path = "tui/dynamic_tools/wait_threads_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/dynamic_tools.rs"
+item = "tool_specs"
+synced = "bf52ba48dd2cee64"
+
+[[text]]
+path = "tui/managed_worktree_tool_specs/create_worktree_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tool_specs.rs"
+item = "specs"
+synced = "9b2591499248bb3c"
+
+[[text]]
+path = "tui/managed_worktree_tool_specs/get_worktree_creation_status_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tool_specs.rs"
+item = "specs"
+synced = "c6c8c1a8eb8e39e8"
+
+[[text]]
+path = "tui/managed_worktree_tool_specs/list_worktrees_description.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tool_specs.rs"
+item = "specs"
+synced = "8d2daf102cf418a9"
+
+[[text]]
+path = "tui/managed_worktree_tools/created_message.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tools.rs"
+item = "execute_inner"
+synced = "92a21f4078351adf"
+
+[[text]]
+path = "tui/managed_worktree_tools/creation_uncertain_error.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tools.rs"
+item = "execute_inner"
+synced = "4255139d6158ad2b"
+
+[[text]]
+path = "tui/managed_worktree_tools/registration_failed_message.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tools.rs"
+item = "execute_inner"
+synced = "6728f9f2556916b2"
+
+[[text]]
+path = "tui/managed_worktree_tools/result_too_large.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tools.rs"
+item = "execute"
+synced = "e2650a97b158bd4e"
+
+[[text]]
+path = "tui/managed_worktree_tools/side_conversation_error.md"
+origin = "upstream"
+source = "codex-rs/tui/src/managed_worktree_tools.rs"
+item = "execute_inner"
+synced = "16a09b0bcb78c38b"
+
+[[text]]
+path = "tui/task_mentions/referenced_chats.md"
+origin = "upstream"
+source = "codex-rs/tui/src/task_mentions.rs"
+item = "apply_task_references"
+synced = "d9e1e9581b82ef82"
+
+[[text]]
+path = "tui/terminal_visualization_instructions/terminal_visualization_instructions.md"
+origin = "upstream"
+source = "codex-rs/tui/src/terminal_visualization_instructions.rs"
+item = "TERMINAL_VISUALIZATION_INSTRUCTIONS"
+synced = "7656a6c9eb07c817"
+
+[[text]]
+path = "utils/output-truncation/lib/truncated_output_header.md"
+origin = "upstream"
+source = "codex-rs/utils/output-truncation/src/lib.rs"
+item = "format_truncated_text"
+synced = "4cd71c21a2c7d486"

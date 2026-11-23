@@ -1,0 +1,1 @@
+MCP server name exactly as configured. Must match the 'server' field returned by list_mcp_resources.

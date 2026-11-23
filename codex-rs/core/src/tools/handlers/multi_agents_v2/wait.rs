@@ -162,7 +162,12 @@ impl WaitAgentResult {
         };
         let message = match requested_timeout_ms {
             Some(requested_timeout_ms) if requested_timeout_ms < timeout_ms => format!(
-                "{message}\n\nRequested timeout of {requested_timeout_ms}ms was clamped to the minimum of {timeout_ms}ms."
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/multi_agents_v2/wait/timeout_clamped.md"
+                ),
+                message = message,
+                requested_timeout_ms = requested_timeout_ms,
+                timeout_ms = timeout_ms
             ),
             Some(_) | None => message.to_string(),
         };

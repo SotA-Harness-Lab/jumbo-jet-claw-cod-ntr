@@ -289,7 +289,9 @@ fn one_shot_exec_command_spec(spec: ToolSpec) -> ToolSpec {
     };
     spec.description = spec.description.replacen(
         "Runs a command in a PTY, returning output or a session ID for ongoing interaction.",
-        "Runs a command to completion and returns its output. The process is terminated on timeout or cancellation and cannot be resumed.",
+        codex_prompt_texts::text!(
+            "core/tools/handlers/unified_exec/exec_command/one_shot_description.md"
+        ),
         1,
     );
     let properties = spec.parameters.properties.get_or_insert_default();

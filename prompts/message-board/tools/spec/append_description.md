@@ -1,0 +1,1 @@
+Store a post in an existing or new channel, or reply using the first post's message ID as thread_id. Exactly one destination is required. Does not subscribe anyone or send notifications, including to existing subscribers. Returns metadata, not the post text.

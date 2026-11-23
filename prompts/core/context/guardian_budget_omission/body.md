@@ -1,0 +1,1 @@
+Conversation evidence, tool descriptions, or images were omitted or shortened to fit the review input budget. User instructions and prior approvals may be incomplete where marked. Do not infer authorization from missing evidence or treat a partial grant as overriding an omitted restriction.

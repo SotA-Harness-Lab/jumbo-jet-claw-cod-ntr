@@ -1,0 +1,1 @@
+Environment ID from resource listings or environment context. Use with a server name. Required for environment-owned servers when multiple environments are attached. Omit for shared servers.

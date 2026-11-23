@@ -307,7 +307,9 @@ mod job {
         prompt.base_instructions = BaseInstructions {
             text: match config.memories.version {
                 MemoryVersion::V1 => crate::stage_one::PROMPT,
-                MemoryVersion::V2 => include_str!("../templates/memories/stage_one_system_v2.md"),
+                MemoryVersion::V2 => {
+                    codex_prompt_texts::text!("memories/write/memories/stage_one_system_v2.md")
+                }
             }
             .to_string(),
             provenance: None,

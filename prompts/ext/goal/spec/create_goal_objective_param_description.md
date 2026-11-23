@@ -1,0 +1,1 @@
+Required. The concrete objective to start pursuing. This starts a new active goal when no goal exists or replaces the current goal when it is complete.

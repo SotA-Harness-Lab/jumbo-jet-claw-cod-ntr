@@ -1,0 +1,1 @@
+You may specify an optional timeout in milliseconds (up to {MAX_TIMEOUT_MS}ms / {} minutes). By default, your command will timeout after {DEFAULT_TIMEOUT_MS}ms ({} minutes).

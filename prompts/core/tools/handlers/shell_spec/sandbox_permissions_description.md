@@ -1,0 +1,1 @@
+Per-command sandbox override. Defaults to `use_default`; use `require_escalated` for unsandboxed execution.

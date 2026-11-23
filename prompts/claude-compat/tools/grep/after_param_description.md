@@ -1,0 +1,1 @@
+Number of lines to show after each match (rg -A). Requires output_mode: "content", ignored otherwise.

@@ -35,7 +35,7 @@ impl ContextualUserFragment for ModelSwitchInstructions {
 
     fn body(&self) -> ContentItem {
         input_text(format!(
-            "\nThe user was previously using a different model. Please continue the conversation according to the following instructions:\n\n{}\n",
+            codex_prompt_texts::text!("core/context/model_switch_instructions/body.md"),
             self.model_instructions
         ))
     }

@@ -1,0 +1,3 @@
+
+- This tool can read PDF files (.pdf). For large PDFs (more than {PDF_INLINE_MAX_PAGES} pages), you MUST provide the pages parameter to read specific page ranges (e.g., pages: "1-5"). Reading a large PDF without the pages parameter will fail. Maximum {PDF_MAX_PAGES_PER_READ} pages per request.
+- This tool can read Jupyter notebooks (.ipynb files) and returns all cells with their outputs, combining code, text, and visualizations.

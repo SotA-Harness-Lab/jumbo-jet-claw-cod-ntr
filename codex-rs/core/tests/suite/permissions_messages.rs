@@ -242,7 +242,7 @@ async fn catalog_approval_instruction_parts_are_sent_in_initial_permissions(
     submit_text_turn(&test, "hello").await?;
 
     let request = req.single_request();
-    let bundled_rule = include_str!("../../../prompts/templates/permissions/approval_policy/on_request_rule_request_permission.md").replace("\r\n", "\n");
+    let bundled_rule = codex_prompt_texts::text!("templates/permissions/approval_policy/on_request_rule_request_permission.md").replace("\r\n", "\n");
     let bundled_approval = format!(
         "{bundled_rule}\n\n# request_permissions Tool\n\n{REQUEST_TOOL_BODY}\n\n{AUTO_REVIEW_BODY}"
     );

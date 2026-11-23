@@ -1,0 +1,1 @@
+Content search: Use {GREP} (NOT grep or rg)

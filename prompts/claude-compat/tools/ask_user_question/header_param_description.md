@@ -1,0 +1,1 @@
+Very short label displayed as a chip/tag (max 12 chars). Examples: "Auth method", "Library", "Approach".

@@ -162,6 +162,7 @@ members = [
     "utils/fuzzy-match",
     "utils/stream-parser",
     "utils/template",
+    "prompt-texts",
     "codex-client",
     "codex-api",
     "state",
@@ -343,6 +344,7 @@ codex-utils-sleep-inhibitor = { path = "utils/sleep-inhibitor" }
 codex-utils-stream-parser = { path = "utils/stream-parser" }
 codex-utils-string = { path = "utils/string" }
 codex-utils-template = { path = "utils/template" }
+codex-prompt-texts = { path = "prompt-texts" }
 codex-user-input = { path = "user-input" }
 codex-user-verification = { path = "user-verification" }
 codex-workload-identity = { path = "workload-identity" }

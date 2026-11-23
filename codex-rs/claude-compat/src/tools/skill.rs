@@ -6,28 +6,7 @@
 
 /// The tool's description, Claude Code's, with the place of the skill list named as it is
 /// here.
-pub const DESCRIPTION: &str = r#"Execute a skill within the main conversation
-
-When users ask you to perform tasks, check if any of the available skills match. Skills provide specialized capabilities and domain knowledge.
-
-When users reference a "slash command" or "/<something>" (e.g., "/commit", "/review-pr"), they are referring to a skill. Use this tool to invoke it.
-
-How to invoke:
-- Use this tool with the skill name and optional arguments
-- Examples:
-  - `skill: "pdf"` - invoke the pdf skill
-  - `skill: "commit", args: "-m 'Fix bug'"` - invoke with arguments
-  - `skill: "review-pr", args: "123"` - invoke with arguments
-  - `skill: "ms-office-suite:pdf"` - invoke using fully qualified name
-
-Important:
-- Available skills are listed in the skills section of your instructions
-- When a skill matches the user's request, this is a BLOCKING REQUIREMENT: invoke the relevant Skill tool BEFORE generating any other response about the task
-- NEVER mention a skill without actually calling this tool
-- Do not invoke a skill that is already running
-- Do not use this tool for built-in CLI commands (like /help, /clear, etc.)
-- If the skill's instructions were already given to you in the current turn, the skill has ALREADY been loaded - follow the instructions directly instead of calling this tool again
-"#;
+pub const DESCRIPTION: &str = codex_prompt_texts::text!("claude-compat/tools/skill/description.md");
 
 pub const SKILL_PARAM_DESCRIPTION: &str =
     r#"The skill name. E.g., "commit", "review-pr", or "pdf""#;

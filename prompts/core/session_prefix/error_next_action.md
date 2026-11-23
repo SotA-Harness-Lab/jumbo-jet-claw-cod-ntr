@@ -1,0 +1,1 @@
+This agent's turn failed. If you still need this agent, use the available collaboration tools to give it another task.

@@ -1,0 +1,1 @@
+Host notice: retained source availability has changed. Omission notices in this section replace earlier retained user-instruction and assistant-context notices; separate request-budget omissions still apply.

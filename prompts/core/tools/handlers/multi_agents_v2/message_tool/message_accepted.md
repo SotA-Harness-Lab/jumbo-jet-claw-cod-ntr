@@ -1,0 +1,1 @@
+Message accepted. If the recipient is idle and should act now, use followup_task to ask it to act on the message.

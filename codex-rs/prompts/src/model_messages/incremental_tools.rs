@@ -30,7 +30,9 @@ impl ResolvedIncrementalToolMessages {
         Self {
             tool_update_hint: resolve(
                 messages.and_then(|m| m.tool_update_hint.as_ref()),
-                "This is an incremental tools update. Previously declared tools remain available for direct calls unless explicitly marked unavailable. If a tool is redefined here, its latest definition replaces the earlier one.",
+                codex_prompt_texts::text!(
+                    "templates/model_messages/incremental_tools/tool_update_hint.md"
+                ),
             ),
             removed_tools_header: resolve(
                 messages.and_then(|m| m.removed_tools_header.as_ref()),
@@ -38,7 +40,9 @@ impl ResolvedIncrementalToolMessages {
             ),
             removed_namespaces_header: resolve(
                 messages.and_then(|m| m.removed_namespaces_header.as_ref()),
-                "The following namespaces are no longer available. Do not call tools in them unless those tools are declared in a later update:",
+                codex_prompt_texts::text!(
+                    "templates/model_messages/incremental_tools/removed_namespaces_header.md"
+                ),
             ),
             namespace_instructions_prefix: resolve(
                 messages.and_then(|m| m.namespace_instructions_prefix.as_ref()),
@@ -50,11 +54,15 @@ impl ResolvedIncrementalToolMessages {
             ),
             exec_tools_update_hint: resolve(
                 messages.and_then(|m| m.exec_tools_update_hint.as_ref()),
-                "Use these definitions and namespace instructions with `functions.exec`. Each replaces its earlier version in full. Unlisted tools keep their latest definitions and `tools` methods.",
+                codex_prompt_texts::text!(
+                    "templates/model_messages/incremental_tools/exec_tools_update_hint.md"
+                ),
             ),
             exec_tools_removed_definitions_header: resolve(
                 messages.and_then(|m| m.exec_tools_removed_definitions_header.as_ref()),
-                "Listed `Tool:` entries are unavailable until redefined or rediscovered. `Namespace instructions:` removes guidance only. Unlisted entries are unchanged.",
+                codex_prompt_texts::text!(
+                    "templates/model_messages/incremental_tools/exec_tools_removed_definitions_header.md"
+                ),
             ),
         }
     }

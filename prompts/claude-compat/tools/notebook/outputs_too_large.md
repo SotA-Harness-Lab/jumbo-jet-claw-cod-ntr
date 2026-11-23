@@ -1,0 +1,1 @@
+Outputs are too large to include. Use {BASH} with: cat <notebook_path> | jq '.cells[{index}].outputs'

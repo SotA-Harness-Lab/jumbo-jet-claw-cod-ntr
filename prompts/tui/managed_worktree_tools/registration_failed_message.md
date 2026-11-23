@@ -1,0 +1,1 @@
+Checkout retained; registration failed. Do not create a duplicate. Inspect the worktree browser to recover.

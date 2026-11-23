@@ -1,11 +1,9 @@
 use crate::legacy_core::config::Config;
 use codex_features::Feature;
 
-pub(crate) const TERMINAL_VISUALIZATION_INSTRUCTIONS: &str = "\
-- This surface is a terminal. When the formatting rules require a visual, include one in the final answer using compact ASCII diagrams, trees, timelines, or tables.
-- Use tables for exact mappings or comparisons rather than collapsing known mappings into prose.
-- Use trees for hierarchy or one-to-many relationships, and diagrams or timelines for sequence, change, or state transferred between records across event order.
-- Use only ASCII characters in visuals.";
+pub(crate) const TERMINAL_VISUALIZATION_INSTRUCTIONS: &str = codex_prompt_texts::text!(
+    "tui/terminal_visualization_instructions/terminal_visualization_instructions.md"
+);
 
 pub(crate) fn with_terminal_visualization_instructions(
     config: &Config,

@@ -102,17 +102,7 @@ pub fn guardian_output_schema() -> Value {
 /// Prompt fragment that describes the exact JSON contract paired with
 /// `guardian_output_schema()`.
 pub fn guardian_output_contract_prompt() -> &'static str {
-    r#"You may use read-only tool checks to gather any additional context you need before deciding. When you are ready to answer, your final message must be strict JSON.
-
-For low-risk actions, give the final answer directly: {"outcome":"allow"}.
-
-For anything else, use this JSON schema:
-{
-  "risk_level": "low" | "medium" | "high" | "critical",
-  "user_authorization": "unknown" | "low" | "medium" | "high",
-  "outcome": "allow" | "deny",
-  "rationale": string
-}"#
+    codex_prompt_texts::text!("ext/guardian-reviewer/assessment/guardian_output_contract_prompt.md")
 }
 
 #[cfg(test)]

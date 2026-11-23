@@ -11,7 +11,8 @@ use codex_protocol::protocol::MultiAgentVersion;
 use codex_protocol::protocol::SessionSource;
 use codex_protocol::protocol::SubAgentSource;
 
-const HOSTED_MULTI_AGENT_SKILL_GUIDANCE: &str = "Before calling any multi-agent tool, read the full multi-agent skill using its listed package locator. Skip the read only if the full skill text is already in your current context. If the read fails, make note of the blocker.";
+const HOSTED_MULTI_AGENT_SKILL_GUIDANCE: &str =
+    codex_prompt_texts::text!("core/session/multi_agents/hosted_multi_agent_skill_guidance.md");
 
 pub(super) fn usage_hint_text(step_context: &StepContext) -> Option<MultiAgentRoleInstructions> {
     let turn_context = step_context.turn.as_ref();

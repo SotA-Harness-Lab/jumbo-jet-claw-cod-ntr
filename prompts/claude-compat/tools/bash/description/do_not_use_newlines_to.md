@@ -1,0 +1,1 @@
+DO NOT use newlines to separate commands (newlines are ok in quoted strings).

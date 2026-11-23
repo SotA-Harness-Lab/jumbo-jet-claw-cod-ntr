@@ -153,11 +153,12 @@ fn insert_loss_notices(
         }
         reversed.push(OutputItem::InputText {
             text: format!(
-                "[Code Mode session output limit reached: {scope}omitted {} text bytes; discarded {} text segments, {} images, {} audio items]",
+                codex_prompt_texts::text!("code-mode-runtime/output/output_render/loss_notice.md"),
                 omission.text_bytes,
                 omission.text_items,
                 omission.image_items,
-                omission.audio_items
+                omission.audio_items,
+                scope = scope
             ),
         });
     }

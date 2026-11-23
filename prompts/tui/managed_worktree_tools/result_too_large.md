@@ -1,0 +1,1 @@
+Worktree result exceeds the display limit. Use the worktree browser to inspect retained checkouts; do not repeat creation.

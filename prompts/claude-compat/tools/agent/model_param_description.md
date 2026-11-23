@@ -1,0 +1,1 @@
+Optional model override for this agent, by the name of a model this session can use. Takes precedence over the agent definition's model. If omitted, uses the agent definition's model, or inherits from the parent.

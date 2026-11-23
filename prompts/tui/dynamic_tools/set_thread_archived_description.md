@@ -1,0 +1,1 @@
+Archive a Codex task and its descendants, or restore only the selected task. Omit threadId to update the calling task.

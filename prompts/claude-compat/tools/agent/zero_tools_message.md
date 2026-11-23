@@ -1,0 +1,1 @@
+Agent '{agent_type}' would be spawned with zero tools — refusing. Its tools list resolved to nothing: {}. Fix the agent's tools frontmatter or pass a different subagent_type.

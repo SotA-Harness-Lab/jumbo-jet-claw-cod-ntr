@@ -1,0 +1,1 @@
+Enable multiline mode where . matches newlines and patterns can span lines (rg -U --multiline-dotall). Default: false.

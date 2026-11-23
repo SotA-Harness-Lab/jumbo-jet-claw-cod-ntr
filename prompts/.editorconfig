@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Tianyu (Sky) Lu
+# SPDX-License-Identifier: Apache-2.0
+
+# A text is built in byte for byte: an editor must not add or take away a final line break
+# or trailing spaces.
+[*]
+insert_final_newline = false
+trim_trailing_whitespace = false

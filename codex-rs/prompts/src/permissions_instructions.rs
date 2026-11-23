@@ -37,11 +37,15 @@ mod approval_instructions;
 mod path_warnings;
 mod writable_roots;
 
-const REQUEST_PERMISSION_RULE: &str =
-    include_str!("../templates/permissions/approval_policy/on_request_rule_request_permission.md");
-const REQUEST_PERMISSIONS_TOOL: &str = "# request_permissions Tool\n\nThe built-in `request_permissions` tool is available in this session. Invoke it when you need to request additional `network` or `file_system` permissions before later shell-like commands need them. Request only the specific permissions required for the task.";
-const AUTO_REVIEW_SUFFIX: &str = "`approvals_reviewer` is `auto_review`: Sandbox escalations with require_escalated will be reviewed for compliance with the policy. If a rejection happens, you should proceed only with a materially safer alternative, or inform the user of the risk and send a final message to ask for approval.";
-const GRANULAR_INTRO: &str = "# Approval Requests\n\nApproval policy is `granular`. Categories set to `false` are automatically rejected instead of prompting the user.";
+const REQUEST_PERMISSION_RULE: &str = codex_prompt_texts::text!(
+    "templates/permissions/approval_policy/on_request_rule_request_permission.md"
+);
+const REQUEST_PERMISSIONS_TOOL: &str =
+    codex_prompt_texts::text!("templates/permissions_instructions/request_permissions_tool.md");
+const AUTO_REVIEW_SUFFIX: &str =
+    codex_prompt_texts::text!("templates/permissions_instructions/auto_review_suffix.md");
+const GRANULAR_INTRO: &str =
+    codex_prompt_texts::text!("templates/permissions_instructions/granular_intro.md");
 const GRANULAR_PROMPTED_CATEGORIES: &str =
     "These approval categories may still prompt the user when needed:";
 const GRANULAR_REJECTED_CATEGORIES: &str =

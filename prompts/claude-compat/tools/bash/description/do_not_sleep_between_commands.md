@@ -1,0 +1,1 @@
+Do not sleep between commands that can run immediately — just run them.

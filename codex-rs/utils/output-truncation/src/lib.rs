@@ -39,7 +39,9 @@ fn format_truncated_text(
     let original_token_count = approx_token_count(content);
     let total_lines = content.lines().count();
     let header = format!(
-        "Warning: truncated output (original token count: {original_token_count})\nTotal output lines: {total_lines}\n\n"
+        codex_prompt_texts::text!("utils/output-truncation/lib/truncated_output_header.md"),
+        original_token_count = original_token_count,
+        total_lines = total_lines
     );
     let (snippet, edit) = truncate_text_with_plan(content, policy);
     if let Some(edit) = edit {

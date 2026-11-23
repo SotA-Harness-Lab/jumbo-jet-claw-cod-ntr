@@ -1,0 +1,1 @@
+Unsubscribe yourself from an evidence channel in the captured catalog. Evidence already admitted to the reviewer conversation is retained.

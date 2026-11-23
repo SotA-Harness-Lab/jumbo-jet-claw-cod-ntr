@@ -1,0 +1,1 @@
+Always quote file paths that contain spaces with double quotes in your command (e.g., cd "path with spaces/file.txt")

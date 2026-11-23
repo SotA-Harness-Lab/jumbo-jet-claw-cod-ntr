@@ -2063,6 +2063,7 @@ dependencies = [
  "chrono",
  "codex-client",
  "codex-http-client",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-utils-rustls-provider",
  "codex-utils-string",
@@ -2146,6 +2147,7 @@ dependencies = [
  "codex-network-proxy",
  "codex-otel",
  "codex-plugin",
+ "codex-prompt-texts",
  "codex-prompts",
  "codex-protocol",
  "codex-queue-extension",
@@ -2567,6 +2569,7 @@ name = "codex-claude-compat"
 version = "0.0.0"
 dependencies = [
  "chrono",
+ "codex-prompt-texts",
  "futures",
  "htmd",
  "ignore",
@@ -2881,6 +2884,7 @@ dependencies = [
 name = "codex-code-mode-protocol"
 version = "0.0.0"
 dependencies = [
+ "codex-prompt-texts",
  "codex-protocol",
  "glob",
  "pretty_assertions",
@@ -2902,6 +2906,7 @@ dependencies = [
  "base64 0.22.1",
  "codex-code-mode-protocol",
  "codex-plugin-host",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-utils-audio",
  "codex-utils-output-truncation",
@@ -2920,6 +2925,9 @@ dependencies = [
 [[package]]
 name = "codex-collaboration-mode-templates"
 version = "0.0.0"
+dependencies = [
+ "codex-prompt-texts",
+]
 
 [[package]]
 name = "codex-config"
@@ -3023,6 +3031,7 @@ dependencies = [
 name = "codex-context-fragments"
 version = "0.0.0"
 dependencies = [
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-protocol-test-support",
  "codex-utils-string",
@@ -3090,6 +3099,7 @@ dependencies = [
  "codex-network-proxy",
  "codex-otel",
  "codex-plugin",
+ "codex-prompt-texts",
  "codex-prompts",
  "codex-protocol",
  "codex-protocol-test-support",
@@ -3243,6 +3253,7 @@ dependencies = [
  "codex-model-provider",
  "codex-otel",
  "codex-plugin",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-runtime-agent-instance",
  "codex-shell-command",
@@ -3578,6 +3589,7 @@ dependencies = [
  "codex-memories-write",
  "codex-otel",
  "codex-plugin",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-rollout",
  "codex-thread-store",
@@ -3687,6 +3699,7 @@ dependencies = [
  "codex-http-client",
  "codex-login",
  "codex-model-provider",
+ "codex-prompt-texts",
  "codex-runtime-agent-instance",
  "serde_json",
  "tokio",
@@ -3731,6 +3744,7 @@ dependencies = [
  "codex-core",
  "codex-extension-api",
  "codex-otel",
+ "codex-prompt-texts",
  "codex-prompts",
  "codex-protocol",
  "codex-rollout",
@@ -3752,6 +3766,7 @@ version = "0.0.0"
 dependencies = [
  "codex-context-fragments",
  "codex-history",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-protocol-test-support",
  "codex-utils-output-truncation",
@@ -3776,6 +3791,7 @@ dependencies = [
  "codex-mcp",
  "codex-models-manager",
  "codex-otel",
+ "codex-prompt-texts",
  "codex-prompts",
  "codex-protocol",
  "codex-protocol-test-support",
@@ -3818,6 +3834,7 @@ dependencies = [
  "codex-login",
  "codex-model-provider",
  "codex-model-provider-info",
+ "codex-prompt-texts",
  "codex-prompts",
  "codex-protocol",
  "codex-protocol-test-support",
@@ -3860,6 +3877,7 @@ dependencies = [
  "codex-login",
  "codex-message-board",
  "codex-model-provider",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-state",
  "codex-thread-store",
@@ -3886,6 +3904,7 @@ name = "codex-history"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-protocol-test-support",
  "codex-utils-absolute-path",
@@ -3909,6 +3928,7 @@ dependencies = [
  "codex-login",
  "codex-model-provider",
  "codex-model-provider-info",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-tools",
  "codex-utils-output-truncation",
@@ -3930,6 +3950,7 @@ version = "0.0.0"
 dependencies = [
  "codex-claude-compat",
  "codex-extension-api",
+ "codex-prompt-texts",
  "codex-utils-absolute-path",
  "dirs",
  "pretty_assertions",
@@ -4038,6 +4059,7 @@ dependencies = [
  "codex-login",
  "codex-model-provider",
  "codex-model-provider-info",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-tools",
  "codex-utils-absolute-path",
@@ -4202,6 +4224,7 @@ dependencies = [
  "codex-network-proxy",
  "codex-otel",
  "codex-plugin",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-rmcp-client",
  "codex-runtime-agent-instance",
@@ -4271,6 +4294,7 @@ dependencies = [
  "codex-extension-api",
  "codex-features",
  "codex-otel",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-tools",
  "codex-utils-absolute-path",
@@ -4312,6 +4336,7 @@ dependencies = [
  "codex-model-provider-info",
  "codex-models-manager",
  "codex-otel",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-rollout",
  "codex-rollout-trace",
@@ -4352,6 +4377,7 @@ dependencies = [
  "chrono",
  "codex-attachment-store",
  "codex-message-board-mcp",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-state",
  "codex-tools",
@@ -4476,6 +4502,7 @@ dependencies = [
  "codex-http-client",
  "codex-login",
  "codex-otel",
+ "codex-prompt-texts",
  "codex-prompts",
  "codex-protocol",
  "codex-utils-output-truncation",
@@ -4498,6 +4525,7 @@ dependencies = [
  "codex-extension-api",
  "codex-features",
  "codex-models-manager",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-tools",
  "codex-utils-absolute-path",
@@ -4675,6 +4703,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "codex-prompt-texts"
+version = "0.0.0"
+
+[[package]]
 name = "codex-prompts"
 version = "0.0.0"
 dependencies = [
@@ -4684,6 +4716,7 @@ dependencies = [
  "codex-execpolicy",
  "codex-git-utils",
  "codex-guardian-context",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-protocol-test-support",
  "codex-utils-absolute-path",
@@ -4705,6 +4738,7 @@ dependencies = [
  "codex-extension-items",
  "codex-http-client",
  "codex-network-proxy",
+ "codex-prompt-texts",
  "codex-utils-absolute-path",
  "codex-utils-image",
  "codex-utils-model-facing-id",
@@ -5061,6 +5095,7 @@ dependencies = [
  "codex-mcp",
  "codex-models-manager",
  "codex-otel",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-protocol-test-support",
  "codex-skills",
@@ -5282,6 +5317,7 @@ dependencies = [
  "codex-models-manager",
  "codex-otel",
  "codex-plugin",
+ "codex-prompt-texts",
  "codex-prompts",
  "codex-protocol",
  "codex-protocol-test-support",
@@ -5589,6 +5625,7 @@ dependencies = [
 name = "codex-utils-output-truncation"
 version = "0.0.0"
 dependencies = [
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-utils-string",
  "pretty_assertions",
@@ -5781,6 +5818,7 @@ dependencies = [
  "codex-model-provider",
  "codex-model-provider-info",
  "codex-otel",
+ "codex-prompt-texts",
  "codex-protocol",
  "codex-tools",
  "http 1.4.0",

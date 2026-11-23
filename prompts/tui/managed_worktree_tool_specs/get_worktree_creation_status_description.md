@@ -1,0 +1,1 @@
+Check a pending create_worktree operation. Returns immediately. Continue independent work between checks and space checks farther apart while progress is unchanged. Status is retained only for a limited time while this TUI session remains open. After restart, inspect list_worktrees and the worktree browser before retrying creation.

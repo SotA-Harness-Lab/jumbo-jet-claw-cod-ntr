@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use std::sync::LazyLock;
 
 const REVIEW_EXIT_SUCCESS_TEMPLATE_TEXT: &str =
-    include_str!("../templates/review/exit_success.xml");
+    codex_prompt_texts::text!("templates/review/exit_success.xml");
 const REVIEW_EXIT_INTERRUPTED_TEMPLATE_TEXT: &str =
-    include_str!("../templates/review/exit_interrupted.xml");
+    codex_prompt_texts::text!("templates/review/exit_interrupted.xml");
 
 static REVIEW_EXIT_SUCCESS_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     let normalized = normalize_review_template_line_endings(REVIEW_EXIT_SUCCESS_TEMPLATE_TEXT);

@@ -1,0 +1,1 @@
+Copy a file between two different environments without loading it into context. Returns bytes copied after completion. Interrupted copies may leave files partially written.

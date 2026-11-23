@@ -1,0 +1,1 @@
+Search Codex memory files for substring matches, optionally normalizing separators or requiring all query substrings on the same line or within a line window.

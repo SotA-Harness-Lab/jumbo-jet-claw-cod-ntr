@@ -460,9 +460,10 @@ pub(super) async fn prepare_forked_history(
     });
     if preserve_fork_prefix {
         forked_rollout_items.push(RolloutItem::ResponseItem(
-            ContextualUserFragment::into(MultiAgentUsageHint::new(
-                "You are now a newly spawned child agent. The preceding conversation is inherited parent context. Follow your own role, identity, and task below; earlier identities, tasks, and action-specific approvals belong to your ancestors. Inherited tool calls are historical records; live tool sessions and process handles are not inherited. Report your result to your parent.",
-            )).into(),
+            ContextualUserFragment::into(MultiAgentUsageHint::new(codex_prompt_texts::text!(
+                "core/agent/history/forked_child_notice.md"
+            )))
+            .into(),
         ));
     }
     // Full forks reuse the parent's reference context instead of rebuilding it. If that

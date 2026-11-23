@@ -1,0 +1,1 @@
+True forks the current thread history into the new agent; false or omitted starts with only the initial prompt.

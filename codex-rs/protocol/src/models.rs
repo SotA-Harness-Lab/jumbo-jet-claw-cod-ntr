@@ -1802,7 +1802,8 @@ impl ResponseItem {
     }
 }
 
-pub const BASE_INSTRUCTIONS_DEFAULT: &str = include_str!("prompts/base_instructions/default.md");
+pub const BASE_INSTRUCTIONS_DEFAULT: &str =
+    codex_prompt_texts::text!("protocol/prompts/base_instructions/default.md");
 
 /// Describes whether persisted base instructions were supplied by the user or generated for a model.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema, TS)]

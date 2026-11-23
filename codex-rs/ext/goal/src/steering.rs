@@ -13,28 +13,30 @@ use std::sync::LazyLock;
 
 static CONTINUATION_PROMPT_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/goals/continuation.md"),
+        codex_prompt_texts::text!("ext/goal/goals/continuation.md"),
         "goals/continuation.md",
     )
 });
 
 static CONTINUATION_PROMPT_WITHOUT_UPDATE_PLAN: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        &without_update_plan_instructions(include_str!("../templates/goals/continuation.md")),
+        &without_update_plan_instructions(codex_prompt_texts::text!(
+            "ext/goal/goals/continuation.md"
+        )),
         "goals/continuation.md",
     )
 });
 
 static BUDGET_LIMIT_PROMPT_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/goals/budget_limit.md"),
+        codex_prompt_texts::text!("ext/goal/goals/budget_limit.md"),
         "goals/budget_limit.md",
     )
 });
 
 static OBJECTIVE_UPDATED_PROMPT_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/goals/objective_updated.md"),
+        codex_prompt_texts::text!("ext/goal/goals/objective_updated.md"),
         "goals/objective_updated.md",
     )
 });

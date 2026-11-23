@@ -19,7 +19,8 @@ use crate::rules::load_rules;
 use crate::source::FileSource;
 
 /// The line Claude Code puts above the instruction files.
-pub const INSTRUCTIONS_HEADER: &str = "Codebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.";
+pub const INSTRUCTIONS_HEADER: &str =
+    codex_prompt_texts::text!("claude-compat/instructions/instructions_header.md");
 
 const CLAUDE_MD: &str = "CLAUDE.md";
 const CLAUDE_LOCAL_MD: &str = "CLAUDE.local.md";

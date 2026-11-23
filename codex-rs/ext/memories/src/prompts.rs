@@ -9,14 +9,14 @@ use tokio::fs;
 
 static MEMORY_TOOL_DEVELOPER_INSTRUCTIONS_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/memories/read_path.md"),
+        codex_prompt_texts::text!("ext/memories/memories/read_path.md"),
         "memories/read_path.md",
     )
 });
 
 static MEMORY_V2_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/memories/read_path_v2.md"),
+        codex_prompt_texts::text!("ext/memories/memories/read_path_v2.md"),
         "memories/read_path_v2.md",
     )
 });

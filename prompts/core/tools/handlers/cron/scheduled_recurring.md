@@ -1,0 +1,1 @@
+Scheduled recurring job {} ({}), next at {next_run}. Session-only (dies when this session ends). Auto-expires after 7 days. Use CronDelete to cancel sooner.

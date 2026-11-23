@@ -42,7 +42,7 @@ impl ContextualUserFragment for BackgroundCommandNotification {
 
     fn body(&self) -> ContentItem {
         input_text(format!(
-            "\n{}\nThe command left running in the background has ended. Output it wrote that you have not read yet is returned by write_stdin with this session_id and empty chars.\n",
+            codex_prompt_texts::text!("core/context/background_command_notification/body.md"),
             serde_json::json!({
                 "session_id": &self.session_id,
                 "command": &self.command,

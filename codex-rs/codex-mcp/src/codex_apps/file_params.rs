@@ -195,7 +195,8 @@ fn rewrite_input_property_schema_as_local_file_path(schema: &mut JsonValue) {
         .and_then(JsonValue::as_str)
         .map(str::to_string)
         .unwrap_or_default();
-    let guidance = "This parameter expects an absolute local file path. If you want to upload a file, provide the absolute path to that file here.";
+    let guidance =
+        codex_prompt_texts::text!("codex-mcp/codex_apps/file_params/local_file_path_guidance.md");
     if description.is_empty() {
         description = guidance.to_string();
     } else if !description.contains(guidance) {

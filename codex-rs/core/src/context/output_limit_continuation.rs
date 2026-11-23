@@ -33,13 +33,8 @@ impl ContextualUserFragment for OutputLimitContinuation {
     }
 
     fn body(&self) -> ContentItem {
-        input_text(
-            "\nYour previous response reached the output token limit before it was complete. \
-             What it had finished is kept above: complete tool calls ran and their results are \
-             recorded, and any text you had begun is kept as written, cut off where the limit \
-             fell. A tool call or reasoning that was cut off is gone. Continue from there with a \
-             shorter response: do not repeat text or tool calls that are already above, and \
-             break large changes into smaller tool calls.\n",
-        )
+        input_text(codex_prompt_texts::text!(
+            "core/context/output_limit_continuation/body.md"
+        ))
     }
 }

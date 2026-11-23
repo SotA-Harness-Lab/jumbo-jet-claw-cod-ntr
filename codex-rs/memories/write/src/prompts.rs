@@ -10,25 +10,25 @@ use tracing::warn;
 
 static CONSOLIDATION_PROMPT_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/memories/consolidation.md"),
+        codex_prompt_texts::text!("memories/write/memories/consolidation.md"),
         "memories/consolidation.md",
     )
 });
 static CONSOLIDATION_V2_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/memories/consolidation_v2.md"),
+        codex_prompt_texts::text!("memories/write/memories/consolidation_v2.md"),
         "memories/consolidation_v2.md",
     )
 });
 static STAGE_ONE_INPUT_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/memories/stage_one_input.md"),
+        codex_prompt_texts::text!("memories/write/memories/stage_one_input.md"),
         "memories/stage_one_input.md",
     )
 });
 static STAGE_ONE_INPUT_V2_TEMPLATE: LazyLock<Template> = LazyLock::new(|| {
     parse_embedded_template(
-        include_str!("../templates/memories/stage_one_input_v2.md"),
+        codex_prompt_texts::text!("memories/write/memories/stage_one_input_v2.md"),
         "memories/stage_one_input_v2.md",
     )
 });
@@ -86,7 +86,8 @@ pub(crate) fn build_consolidation_prompt_for_version(
         MemoryVersion::V1 => &CONSOLIDATION_PROMPT_TEMPLATE,
         MemoryVersion::V2 => &CONSOLIDATION_V2_TEMPLATE,
     };
-    template.render([
+    template
+        .render([
             ("memory_root", memory_root.as_str()),
             (
                 "memory_extensions_folder_structure",
@@ -104,7 +105,9 @@ pub(crate) fn build_consolidation_prompt_for_version(
         .unwrap_or_else(|err| {
             warn!("failed to render memories consolidation prompt template: {err}");
             format!(
-                "## Memory Phase 2 (Consolidation)\nConsolidate Codex memories in: {memory_root}\n\nRead {phase2_workspace_diff_file} first."
+                codex_prompt_texts::text!("memories/write/prompts/consolidation_fallback.md"),
+                memory_root = memory_root,
+                phase2_workspace_diff_file = phase2_workspace_diff_file
             )
         })
 }

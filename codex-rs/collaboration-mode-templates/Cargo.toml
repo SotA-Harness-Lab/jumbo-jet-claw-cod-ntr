@@ -12,3 +12,7 @@ test = false
 
 [lints]
 workspace = true
+
+
+[dependencies]
+codex-prompt-texts = { workspace = true }

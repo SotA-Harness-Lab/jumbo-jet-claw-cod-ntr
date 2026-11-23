@@ -41,10 +41,9 @@ pub fn create_update_plan_tool() -> ToolSpec {
 
     ToolSpec::Function(ResponsesApiTool {
         name: "update_plan".to_string(),
-        description: r#"Updates the task plan.
-Provide an optional explanation and a list of plan items, each with a step and status.
-At most one step can be in_progress at a time.
-"#
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/plan_spec/update_plan_description.md"
+        )
         .to_string(),
         strict: false,
         defer_loading: None,

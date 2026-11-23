@@ -1,6 +1,7 @@
-pub const BACKEND_PROMPT: &str = include_str!("../templates/realtime/backend_prompt.md");
-pub const END_INSTRUCTIONS: &str = include_str!("../templates/realtime/realtime_end.md");
-pub const START_INSTRUCTIONS: &str = include_str!("../templates/realtime/realtime_start.md");
+pub const BACKEND_PROMPT: &str = codex_prompt_texts::text!("templates/realtime/backend_prompt.md");
+pub const END_INSTRUCTIONS: &str = codex_prompt_texts::text!("templates/realtime/realtime_end.md");
+pub const START_INSTRUCTIONS: &str =
+    codex_prompt_texts::text!("templates/realtime/realtime_start.md");
 
 const DEFAULT_USER_FIRST_NAME: &str = "there";
 const USER_FIRST_NAME_PLACEHOLDER: &str = "{{ user_first_name }}";

@@ -1,0 +1,1 @@
+Keep the task cwd. Use the returned workspaceRoot explicitly and request filesystem permissions if needed.

@@ -14,11 +14,17 @@ use std::collections::BTreeMap;
 pub const MULTI_AGENT_V1_NAMESPACE: &str = "multi_agent_v1";
 const MULTI_AGENT_V1_NAMESPACE_DESCRIPTION: &str = "Tools for spawning and managing sub-agents.";
 
-const SPAWN_AGENT_INHERITED_MODEL_GUIDANCE: &str = "Spawned agents inherit your current model by default. Omit `model` to use that preferred default; set `model` only when an explicit override is needed.";
-const SPAWN_AGENT_INHERITED_MODEL_GUIDANCE_V2: &str = "Spawned agents inherit your current model by default. Do not set the `model` field unless the user explicitly asks for a different model.";
+const SPAWN_AGENT_INHERITED_MODEL_GUIDANCE: &str = codex_prompt_texts::text!(
+    "core/tools/handlers/multi_agents_spec/spawn_agent_inherited_model_guidance.md"
+);
+const SPAWN_AGENT_INHERITED_MODEL_GUIDANCE_V2: &str = codex_prompt_texts::text!(
+    "core/tools/handlers/multi_agents_spec/spawn_agent_inherited_model_guidance_v2.md"
+);
 const SPAWN_AGENT_MODEL_CATALOG_GUIDANCE: &str =
     "Pick model overrides from the latest <model_catalog> listing.";
-const SPAWN_AGENT_TYPE_OVERRIDE_DESCRIPTION_V1: &str = "Agent type override for the new agent. Omit to inherit the parent agent type with a full-history fork; otherwise, `default` is used.";
+const SPAWN_AGENT_TYPE_OVERRIDE_DESCRIPTION_V1: &str = codex_prompt_texts::text!(
+    "core/tools/handlers/multi_agents_spec/spawn_agent_type_override_description_v1.md"
+);
 const SPAWN_AGENT_MODEL_OVERRIDE_DESCRIPTION: &str =
     "Model override for the new agent. Omit unless an explicit override is needed.";
 const MAX_REASONING_EFFORT_CHARS_IN_SPAWN_AGENT_DESCRIPTION: usize = 64;
@@ -191,11 +197,17 @@ pub fn create_send_input_tool_v1() -> ToolSpec {
         description: MULTI_AGENT_V1_NAMESPACE_DESCRIPTION.to_string(),
         tools: vec![ResponsesApiNamespaceTool::Function(ResponsesApiTool {
             name: "send_input".to_string(),
-            description: "Send a message to an existing agent. Use interrupt=true to redirect work immediately. You should reuse the agent by send_input if you believe your assigned task is highly dependent on the context of a previous task."
-                .to_string(),
+            description: codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_spec/send_input_description_v1.md"
+            )
+            .to_string(),
             strict: false,
             defer_loading: None,
-            parameters: JsonSchema::object(properties, Some(vec!["target".to_string()]), Some(false.into())),
+            parameters: JsonSchema::object(
+                properties,
+                Some(vec!["target".to_string()]),
+                Some(false.into()),
+            ),
             output_schema: Some(send_input_output_schema().into()),
         })],
     })
@@ -220,8 +232,10 @@ pub fn create_send_message_tool() -> ToolSpec {
 
     ToolSpec::Function(ResponsesApiTool {
         name: "send_message".to_string(),
-        description: "Send a message to an existing agent. The message will be delivered promptly. Does not trigger a new turn."
-            .to_string(),
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/multi_agents_spec/send_message_description.md"
+        )
+        .to_string(),
         strict: false,
         defer_loading: None,
         parameters: JsonSchema::object(
@@ -253,11 +267,17 @@ pub fn create_followup_task_tool() -> ToolSpec {
 
     ToolSpec::Function(ResponsesApiTool {
         name: "followup_task".to_string(),
-        description: "Send a follow-up task to an existing non-root target agent and trigger a turn if it is idle. If the target is already running, deliver the task promptly at message boundaries while sampling, or after the pending tool call completes."
-            .to_string(),
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/multi_agents_spec/followup_task_description.md"
+        )
+        .to_string(),
         strict: false,
         defer_loading: None,
-        parameters: JsonSchema::object(properties, Some(vec!["target".to_string(), "message".to_string()]), Some(false.into())),
+        parameters: JsonSchema::object(
+            properties,
+            Some(vec!["target".to_string(), "message".to_string()]),
+            Some(false.into()),
+        ),
         output_schema: None,
     })
 }
@@ -290,8 +310,10 @@ pub fn create_wait_agent_tool_v1(options: WaitAgentTimeoutOptions) -> ToolSpec {
         description: MULTI_AGENT_V1_NAMESPACE_DESCRIPTION.to_string(),
         tools: vec![ResponsesApiNamespaceTool::Function(ResponsesApiTool {
             name: "wait_agent".to_string(),
-            description: "Wait for agents to reach a final status. Completed statuses may include the agent's final message. Returns empty status when timed out. Once the agent reaches a final status, a notification message will be received containing the same completed status."
-                .to_string(),
+            description: codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_spec/wait_agent_description_v1.md"
+            )
+            .to_string(),
             strict: false,
             defer_loading: None,
             parameters: wait_agent_tool_parameters_v1(options),
@@ -303,8 +325,10 @@ pub fn create_wait_agent_tool_v1(options: WaitAgentTimeoutOptions) -> ToolSpec {
 pub fn create_wait_agent_tool_v2(options: WaitAgentTimeoutOptions) -> ToolSpec {
     ToolSpec::Function(ResponsesApiTool {
         name: "wait_agent".to_string(),
-        description: "Wait for a mailbox update from any live agent, including queued messages and final-status notifications. The wait also ends early when new user input is steered into the active turn. Does not return the content; returns either a summary of which agents have updates (if any), an interruption summary for steered input, or a timeout summary if no activity arrives before the deadline."
-            .to_string(),
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/multi_agents_spec/wait_agent_description_v2.md"
+        )
+        .to_string(),
         strict: false,
         defer_loading: None,
         parameters: wait_agent_tool_parameters_v2(options),
@@ -344,10 +368,17 @@ pub fn create_close_agent_tool_v1() -> ToolSpec {
         description: MULTI_AGENT_V1_NAMESPACE_DESCRIPTION.to_string(),
         tools: vec![ResponsesApiNamespaceTool::Function(ResponsesApiTool {
             name: "close_agent".to_string(),
-            description: "Close an agent and any open descendants when they are no longer needed, and return the target agent's previous status before shutdown was requested. Completed agents remain open and count toward the concurrency limit until closed. Don't keep agents open for too long if they are not needed anymore.".to_string(),
+            description: codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_spec/close_agent_description_v1.md"
+            )
+            .to_string(),
             strict: false,
             defer_loading: None,
-            parameters: JsonSchema::object(properties, Some(vec!["target".to_string()]), Some(false.into())),
+            parameters: JsonSchema::object(
+                properties,
+                Some(vec!["target".to_string()]),
+                Some(false.into()),
+            ),
             output_schema: Some(
                 agent_previous_status_output_schema(
                     "The agent status observed before shutdown was requested.",
@@ -368,10 +399,17 @@ pub fn create_interrupt_agent_tool_v2() -> ToolSpec {
 
     ToolSpec::Function(ResponsesApiTool {
         name: "interrupt_agent".to_string(),
-        description: "Interrupt an agent's current turn, if any, and return its previous status. The agent remains available for messages and follow-up tasks.".to_string(),
+        description: codex_prompt_texts::text!(
+            "core/tools/handlers/multi_agents_spec/interrupt_agent_description_v2.md"
+        )
+        .to_string(),
         strict: false,
         defer_loading: None,
-        parameters: JsonSchema::object(properties, Some(vec!["target".to_string()]), Some(false.into())),
+        parameters: JsonSchema::object(
+            properties,
+            Some(vec!["target".to_string()]),
+            Some(false.into()),
+        ),
         output_schema: Some(
             agent_previous_status_output_schema(
                 "The agent status observed before the interrupt request was handled.",
@@ -591,13 +629,17 @@ fn create_collab_input_items_schema() -> JsonSchema {
         (
             "path".to_string(),
             JsonSchema::string(Some(
-                "Path when type is local_image/local_audio/skill, or structured mention target such as app://<connector-id> or plugin://<plugin-name>@<marketplace-name> when type is mention."
-                    .to_string(),
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/multi_agents_spec/collab_input_path_description.md"
+                )
+                .to_string(),
             )),
         ),
         (
             "name".to_string(),
-            JsonSchema::string(Some("Display name when type is skill or mention.".to_string())),
+            JsonSchema::string(Some(
+                "Display name when type is skill or mention.".to_string(),
+            )),
         ),
     ]);
 
@@ -626,15 +668,15 @@ fn spawn_agent_common_properties_v1(agent_type_description: &str) -> BTreeMap<St
         (
             "fork_context".to_string(),
             JsonSchema::boolean(Some(
-                "True forks the current thread history into the new agent; false or omitted starts with only the initial prompt."
-                    .to_string(),
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/multi_agents_spec/fork_context_description_v1.md"
+                )
+                .to_string(),
             )),
         ),
         (
             "model".to_string(),
-            JsonSchema::string(Some(
-                SPAWN_AGENT_MODEL_OVERRIDE_DESCRIPTION.to_string(),
-            )),
+            JsonSchema::string(Some(SPAWN_AGENT_MODEL_OVERRIDE_DESCRIPTION.to_string())),
         ),
         (
             "reasoning_effort".to_string(),
@@ -658,20 +700,24 @@ fn spawn_agent_common_properties_v2(agent_type_description: &str) -> BTreeMap<St
         (
             "agent_type".to_string(),
             JsonSchema::string(Some(format!(
-                "Agent type override for the new agent. Omit unless explicitly asked. The selected role applies regardless of how much parent history is inherited.\n{agent_type_description}"
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/multi_agents_spec/agent_type_description_v2.md"
+                ),
+                agent_type_description = agent_type_description
             ))),
         ),
         (
             "fork_turns".to_string(),
             JsonSchema::string(Some(
-                "Parent history to inherit. Defaults to `all`; use `none` to start without parent history. Only `all` and `none` are supported.".to_string(),
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/multi_agents_spec/fork_turns_description_v2.md"
+                )
+                .to_string(),
             )),
         ),
         (
             "model".to_string(),
-            JsonSchema::string(Some(
-                SPAWN_AGENT_MODEL_OVERRIDE_DESCRIPTION.to_string(),
-            )),
+            JsonSchema::string(Some(SPAWN_AGENT_MODEL_OVERRIDE_DESCRIPTION.to_string())),
         ),
         (
             "reasoning_effort".to_string(),
@@ -703,69 +749,47 @@ fn spawn_agent_tool_description(
 
     let tool_description = if model_catalog_in_context {
         format!(
-            r#"
-        Spawn a sub-agent for a well-scoped task. {return_value_description} {inherited_model_guidance}
-{model_catalog_guidance}"#
+            codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_spec/spawn_agent_tool_description_catalog.md"
+            ),
+            return_value_description = return_value_description,
+            inherited_model_guidance = inherited_model_guidance,
+            model_catalog_guidance = model_catalog_guidance
         )
     } else {
         let available_models_description = available_models_description.unwrap_or_default();
         format!(
-            r#"
-        {available_models_description}
-        Spawn a sub-agent for a well-scoped task. {return_value_description} {inherited_model_guidance}"#
+            codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_spec/spawn_agent_tool_description_models.md"
+            ),
+            available_models_description = available_models_description,
+            return_value_description = return_value_description,
+            inherited_model_guidance = inherited_model_guidance
         )
     };
 
     if let Some(usage_hint_text) = usage_hint_text {
         return format!(
-            r#"
-        {tool_description}
-{usage_hint_text}"#
+            codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_spec/spawn_agent_tool_description/tool_description_usage_hint_text.md"
+            ),
+            tool_description = tool_description,
+            usage_hint_text = usage_hint_text
         );
     }
     let agent_role_usage_hint = if model_catalog_in_context {
         ""
     } else if available_models_description.is_some() {
-        "\nAgent-role guidance below only helps choose which agent to use after spawning is already authorized; it never authorizes spawning by itself."
+        codex_prompt_texts::text!("core/tools/handlers/multi_agents_spec/agent_role_usage_hint.md")
     } else {
         "\n"
     };
     format!(
-        r#"
-        {tool_description}
-This spawn_agent tool provides you access to sub-agents that inherit your current model by default. Do not set the `model` field unless the user explicitly asks for a different model. You should follow the rules and guidelines below to use this tool.
-
-Do not spawn sub-agents unless the user or applicable AGENTS.md/skill instructions explicitly ask for sub-agents, delegation, or parallel agent work.
-Requests for depth, thoroughness, research, investigation, or detailed codebase analysis do not count as permission to spawn.{agent_role_usage_hint}
-
-### When to delegate vs. do the subtask yourself
-- First, quickly analyze the overall user task and form a succinct high-level plan. Identify which tasks are immediate blockers on the critical path, and which tasks are sidecar tasks that are needed but can run in parallel without blocking the next local step. As part of that plan, explicitly decide what immediate task you should do locally right now. Do this planning step before delegating to agents so you do not hand off the immediate blocking task to a submodel and then waste time waiting on it.
-- Use a subagent when a subtask is easy enough for it to handle and can run in parallel with your local work. Prefer delegating concrete, bounded sidecar tasks that materially advance the main task without blocking your immediate next local step.
-- Do not delegate urgent blocking work when your immediate next step depends on that result. If the very next action is blocked on that task, the main rollout should usually do it locally to keep the critical path moving.
-- Keep work local when the subtask is too difficult to delegate well and when it is tightly coupled, urgent, or likely to block your immediate next step.
-
-### Designing delegated subtasks
-- Subtasks must be concrete, well-defined, and self-contained.
-- Delegated subtasks must materially advance the main task.
-- Do not duplicate work between the main rollout and delegated subtasks.
-- Avoid issuing multiple delegate calls on the same unresolved thread unless the new delegated task is genuinely different and necessary.
-- Narrow the delegated ask to the concrete output you need next.
-- For coding tasks, prefer delegating concrete code-change worker subtasks over read-only explorer analysis when the subagent can make a bounded patch in a clear write scope.
-- When delegating coding work, instruct the submodel to edit files directly in its forked workspace and list the file paths it changed in the final answer.
-- For code-edit subtasks, decompose work so each delegated task has a disjoint write set.
-
-### After you delegate
-- Call wait_agent very sparingly. Only call wait_agent when you need the result immediately for the next critical-path step and you are blocked until it returns.
-- Do not redo delegated subagent tasks yourself; focus on integrating results or tackling non-overlapping work.
-- While the subagent is running in the background, do meaningful non-overlapping work immediately.
-- Do not repeatedly wait by reflex.
-- When a delegated coding task returns, quickly review the uploaded changes, then integrate or refine them.
-
-### Parallel delegation patterns
-- Run multiple independent information-seeking subtasks in parallel when you have distinct questions that can be answered independently.
-- Split implementation into disjoint codebase slices and spawn multiple agents for them in parallel when the write scopes do not overlap.
-- Delegate verification only when it can run in parallel with ongoing implementation and is likely to catch a concrete risk before final integration.
-- The key is to find opportunities to spawn multiple independent subtasks in parallel within the same round, while ensuring each subtask is well-defined, self-contained, and materially advances the main task."#
+        codex_prompt_texts::text!(
+            "core/tools/handlers/multi_agents_spec/spawn_agent_description_v1.md"
+        ),
+        tool_description = tool_description,
+        agent_role_usage_hint = agent_role_usage_hint
     )
 }
 
@@ -797,15 +821,12 @@ fn spawn_agent_tool_description_v2(
         )
     } else {
         format!(
-            r#"
-{catalog_prefix}        Spawns an agent to work on the specified task. If your current task is `/root/task1` and you spawn_agent with task_name "task_3" the agent will have canonical task name `/root/task1/task_3`.
-You are then able to refer to this agent as `task_3` or `/root/task1/task_3` interchangeably. However an agent `/root/task2/task_3` would only be able to communicate with this agent via its canonical name `/root/task1/task_3`.
-The spawned agent will have the same tools as you and the ability to spawn its own subagents.
-{inherited_model_guidance}{catalog_suffix}
-It will be able to send you and other running agents messages, and its final answer will be provided to you when it finishes.
-The new agent's canonical task name will be provided to it along with the message.
-
-Note that passing `fork_turns="none"` will not pass any surrounding context to the spawned subagent, which may cause the agent to lack the context it needs to complete its task, whereas `fork_turns="all"` will provide the subagent with all surrounding context."#
+            codex_prompt_texts::text!(
+                "core/tools/handlers/multi_agents_spec/spawn_agent_description_v2.md"
+            ),
+            catalog_prefix = catalog_prefix,
+            inherited_model_guidance = inherited_model_guidance,
+            catalog_suffix = catalog_suffix
         )
     };
 
@@ -901,7 +922,9 @@ fn wait_agent_tool_parameters_v1(options: WaitAgentTimeoutOptions) -> JsonSchema
         (
             "timeout_ms".to_string(),
             JsonSchema::number(Some(format!(
-                "Timeout in milliseconds. Defaults to {}, min {}, max {}. Prefer longer waits (minutes) to avoid busy polling.",
+                codex_prompt_texts::text!(
+                    "core/tools/handlers/multi_agents_spec/wait_timeout_description_v1.md"
+                ),
                 options.default_timeout_ms, options.min_timeout_ms, options.max_timeout_ms,
             ))),
         ),

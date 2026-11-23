@@ -86,3 +86,10 @@ path = [
 ]
 SPDX-FileCopyrightText = "2026 Tianyu (Sky) Lu"
 SPDX-License-Identifier = "Apache-2.0"
+
+# The texts given to models, moved out of the source of upstream Codex, ccn and jjcn, cannot
+# carry a comment: what came from which is in prompts/manifest.toml.
+[[annotations]]
+path = ["prompts/**"]
+SPDX-FileCopyrightText = ["Copyright 2025 OpenAI", "2026 Tianyu (Sky) Lu"]
+SPDX-License-Identifier = "Apache-2.0"

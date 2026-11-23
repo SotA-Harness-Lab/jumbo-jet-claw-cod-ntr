@@ -19,7 +19,8 @@ use serde::Deserialize;
 use serde_json::json;
 
 const TOOL_NAME: &str = "multi_env_copy_file";
-const TOOL_DESCRIPTION: &str = "Copy a file between two different environments without loading it into context. Returns bytes copied after completion. Interrupted copies may leave files partially written.";
+const TOOL_DESCRIPTION: &str =
+    codex_prompt_texts::text!("ext/multi-env-copy-file/tool/tool_description.md");
 
 pub(crate) struct CopyFileTool;
 

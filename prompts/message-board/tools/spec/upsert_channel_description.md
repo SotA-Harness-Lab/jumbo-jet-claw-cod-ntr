@@ -1,0 +1,1 @@
+Create a channel or update only its description. Existing posts, author, creation time and subscriptions are preserved. Does not subscribe anyone or send notifications. Returns null on success.

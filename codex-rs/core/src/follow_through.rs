@@ -62,42 +62,10 @@ const JUDGE_TIMEOUT: Duration = Duration::from_secs(60);
 const JUDGE_TEXT_LIMIT: usize = 6_000;
 
 /// Added to the model's developer instructions while this is on.
-pub(crate) const GUIDANCE: &str = "# Finishing the work
+pub(crate) const GUIDANCE: &str = codex_prompt_texts::text!("core/follow_through/guidance.md");
 
-- Carry the user's request through to the end in this turn. The turn ends as soon as you send \
-a message without a tool call, and nothing more happens until the user writes again, so never \
-end a message by saying what you will do next: do it.
-- Do not stop to report progress, to sum up a part that is done, or to ask whether to go on \
-with work the user already asked for. Keep going until everything asked for is done and \
-checked.
-- End the turn only when the request is complete, or when you cannot go on without the user: \
-a decision that is theirs to make, information, credentials or access only they have, or an \
-action only they can take. Then say exactly what you need from them.
-- A plan you keep is finished only when every step is completed: before ending the turn, mark \
-each step done, or drop it, or say it waits on the user.";
-
-const JUDGE_INSTRUCTIONS: &str = "You review the last message a coding agent wrote before its \
-turn ended, to tell whether it stopped before finishing work it could have done on its own. The \
-user message gives the user's latest request, the agent's last message, and any steps of the \
-agent's own plan that are not completed. Once the turn ends, the agent does nothing until the \
-user writes again.
-
-Answer \"unfinished\" when:
-- the message says or implies the agent is about to do more (\"Next I'll...\", \"Now let me...\", \
-\"I'll then...\", \"接下来我会...\"), or lists remaining steps that the agent could carry out \
-itself without the user;
-- it reports partial progress on a request that asked for the whole job;
-- it asks whether to go on with work the user's request already asked for.
-
-Answer \"needs_user\" when the agent cannot go on without the user: a decision that is the user's \
-to make, information, credentials or access it lacks, an approval, an action only the user can \
-take, or the user asked it to stop at this point or to check in first.
-
-Answer \"done\" when the request is fulfilled, the message answers a question, or the steps it \
-mentions are suggestions or follow-ups the user did not ask for.
-
-In `remaining`, say in one sentence, addressed to the agent, what is left for it to do when the \
-verdict is \"unfinished\"; otherwise null.";
+const JUDGE_INSTRUCTIONS: &str =
+    codex_prompt_texts::text!("core/follow_through/judge_instructions.md");
 
 /// The answer the judge must give.
 fn judge_schema() -> Value {
@@ -172,7 +140,10 @@ pub(crate) fn record_plan(sess: &Session, turn: &TurnContext, args: &UpdatePlanA
         .services
         .thread_extension_data
         .get_or_init(LatestPlan::default);
-    let mut state = plan.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut state = plan
+        .0
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     state.turn_id.clone_from(&turn.sub_id);
     state.version += 1;
     state.unfinished = unfinished_steps(args);
@@ -190,7 +161,10 @@ fn unfinished_steps(args: &UpdatePlanArgs) -> Vec<String> {
 /// The unfinished steps of a plan updated in this turn, with its version.
 fn plan_left_in_turn(sess: &Session, turn: &TurnContext) -> Option<(u64, Vec<String>)> {
     let plan = sess.services.thread_extension_data.get::<LatestPlan>()?;
-    let state = plan.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let state = plan
+        .0
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     (state.turn_id == turn.sub_id && !state.unfinished.is_empty())
         .then(|| (state.version, state.unfinished.clone()))
 }
@@ -254,14 +228,12 @@ impl Unfinished {
                     .collect::<Vec<_>>()
                     .join("\n");
                 format!(
-                    "your plan still has steps that are not completed:\n{steps}\nCarry them out; \
-                     a step that is done, no longer needed or waiting on the user is marked so \
-                     in the plan."
+                    codex_prompt_texts::text!("core/follow_through/plan_steps_reason.md"),
+                    steps = steps
                 )
             }
             Unfinished::Judged(remaining) => format!(
-                "a review of your last message against the user's request found work left that \
-                 you can do yourself. {}",
+                codex_prompt_texts::text!("core/follow_through/judged_reason.md"),
                 remaining.trim()
             ),
         }
@@ -301,8 +273,18 @@ pub(crate) async fn check(
         mark_plan_continued(sess, *version);
         return Some(Unfinished::Plan(steps.clone()));
     }
-    let last_message = end.last_message.map(str::trim).filter(|text| !text.is_empty())?;
-    if !end.turn_used_tools || !turn.config.mod_config.harness.unfinished_judge.unwrap_or(true) {
+    let last_message = end
+        .last_message
+        .map(str::trim)
+        .filter(|text| !text.is_empty())?;
+    if !end.turn_used_tools
+        || !turn
+            .config
+            .mod_config
+            .harness
+            .unfinished_judge
+            .unwrap_or(true)
+    {
         return None;
     }
     let plan_steps = plan.map(|(_, steps)| steps).unwrap_or_default();
@@ -366,14 +348,15 @@ fn parse_verdict(answer: &str) -> Option<String> {
 /// The text of the user's latest message in the thread's history.
 async fn latest_user_request(sess: &Session) -> Option<String> {
     let history = sess.clone_history().await;
-    history.raw_items().rev().find_map(|item| {
-        match crate::event_mapping::parse_turn_item(item)? {
+    history
+        .raw_items()
+        .rev()
+        .find_map(|item| match crate::event_mapping::parse_turn_item(item)? {
             TurnItem::UserMessage(message) => {
                 Some(message.message()).filter(|text| !text.trim().is_empty())
             }
             _ => None,
-        }
-    })
+        })
 }
 
 fn judge_prompt(request: Option<&str>, last_message: &str, plan_steps: &[String]) -> String {

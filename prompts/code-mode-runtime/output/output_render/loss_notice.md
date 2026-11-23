@@ -1,0 +1,1 @@
+[Code Mode session output limit reached: {scope}omitted {} text bytes; discarded {} text segments, {} images, {} audio items]

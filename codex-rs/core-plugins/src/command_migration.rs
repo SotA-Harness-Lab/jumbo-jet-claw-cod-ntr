@@ -409,9 +409,12 @@ fn render_command_skill(
         body
     };
     format!(
-        "---\nname: {}\ndescription: {}\n---\n\n# {name}\n\nUse this skill when the user asks to run the migrated source command `{source_name}`.\n\n## Command Template\n\n{template_body}\n",
+        codex_prompt_texts::text!("core-plugins/command_migration/command_skill.md"),
         yaml_string(name),
         yaml_string(&rewrite_terms(description, rewrite_profile)),
+        name = name,
+        source_name = source_name,
+        template_body = template_body,
     )
 }
 

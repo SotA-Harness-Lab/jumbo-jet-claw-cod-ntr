@@ -299,8 +299,8 @@ pub(crate) mod spawn_tool_spec {
                         .and_then(TomlValue::as_str);
                     match (model, reasoning_effort) {
                         (Some(model), Some(reasoning_effort)) => format!(
-                            "\n- This role's model is set to `{model}` and its reasoning effort is set to `{reasoning_effort}`. These settings cannot be changed."
-                        ),
+                            codex_prompt_texts::text!("core/agent/role/model_and_effort_note.md")
+                        , model = model, reasoning_effort = reasoning_effort),
                         (Some(model), None) => {
                             format!(
                                 "\n- This role's model is set to `{model}` and cannot be changed."
@@ -335,55 +335,48 @@ mod built_in {
                         description: Some("Default agent.".to_string()),
                         config_file: None,
                         nickname_candidates: None,
-                    }
+                    },
                 ),
                 (
                     "explorer".to_string(),
                     AgentRoleConfig {
-                        description: Some(r#"Use `explorer` for specific codebase questions.
-Explorers are fast and authoritative.
-They must be used to ask specific, well-scoped questions on the codebase.
-Rules:
-- In order to avoid redundant work, you should avoid exploring the same problem that explorers have already covered. Typically, you should trust the explorer results without additional verification. You are still allowed to inspect the code yourself to gain the needed context!
-- You are encouraged to spawn up multiple explorers in parallel when you have multiple distinct questions to ask about the codebase that can be answered independently. This allows you to get more information faster without waiting for one question to finish before asking the next. While waiting for the explorer results, you can continue working on other local tasks that do not depend on those results. This parallelism is a key advantage of delegation, so use it whenever you have multiple questions to ask.
-- Reuse existing explorers for related questions."#.to_string()),
+                        description: Some(
+                            codex_prompt_texts::text!("core/agent/role/explorer_description.md")
+                                .to_string(),
+                        ),
                         config_file: Some("explorer.toml".to_string().parse().unwrap_or_default()),
                         nickname_candidates: None,
-                    }
+                    },
                 ),
                 (
                     "worker".to_string(),
                     AgentRoleConfig {
-                        description: Some(r#"Use for execution and production work.
-Typical tasks:
-- Implement part of a feature
-- Fix tests or bugs
-- Split large refactors into independent chunks
-Rules:
-- Explicitly assign **ownership** of the task (files / responsibility). When the subtask involves code changes, you should clearly specify which files or modules the worker is responsible for. This helps avoid merge conflicts and ensures accountability. For example, you can say "Worker 1 is responsible for updating the authentication module, while Worker 2 will handle the database layer." By defining clear ownership, you can delegate more effectively and reduce coordination overhead.
-- Always tell workers they are **not alone in the codebase**, and they should not revert the edits made by others, and they should adjust their implementation to accommodate the changes made by others. This is important because there may be multiple workers making changes in parallel, and they need to be aware of each other's work to avoid conflicts and ensure a cohesive final product."#.to_string()),
+                        description: Some(
+                            codex_prompt_texts::text!("core/agent/role/worker_description.md")
+                                .to_string(),
+                        ),
                         config_file: None,
                         nickname_candidates: None,
-                    }
+                    },
                 ),
                 // Awaiter is temp removed
-//                 (
-//                     "awaiter".to_string(),
-//                     AgentRoleConfig {
-//                         description: Some(r#"Use an `awaiter` agent EVERY TIME you must run a command that will take some very long time.
-// This includes, but not only:
-// * testing
-// * monitoring of a long running process
-// * explicit ask to wait for something
-//
-// Rules:
-// - When an awaiter is running, you can work on something else. If you need to wait for its completion, use the largest possible timeout.
-// - Be patient with the `awaiter`.
-// - Do not use an awaiter for every compilation/test if it won't take time. Only use if for long running commands.
-// - Close the awaiter when you're done with it."#.to_string()),
-//                         config_file: Some("awaiter.toml".to_string().parse().unwrap_or_default()),
-//                     }
-//                 )
+                //                 (
+                //                     "awaiter".to_string(),
+                //                     AgentRoleConfig {
+                //                         description: Some(r#"Use an `awaiter` agent EVERY TIME you must run a command that will take some very long time.
+                // This includes, but not only:
+                // * testing
+                // * monitoring of a long running process
+                // * explicit ask to wait for something
+                //
+                // Rules:
+                // - When an awaiter is running, you can work on something else. If you need to wait for its completion, use the largest possible timeout.
+                // - Be patient with the `awaiter`.
+                // - Do not use an awaiter for every compilation/test if it won't take time. Only use if for long running commands.
+                // - Close the awaiter when you're done with it."#.to_string()),
+                //                         config_file: Some("awaiter.toml".to_string().parse().unwrap_or_default()),
+                //                     }
+                //                 )
             ])
         });
         &CONFIG

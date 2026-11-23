@@ -1,0 +1,1 @@
+Session cwd remains {cwd}; directory changes made by the backgrounded command do not apply to subsequent commands.

@@ -1,0 +1,1 @@
+Monitor started for session_id {session_id} ({}). Lines it writes{} arrive as <monitor_event> messages. It stops after {}s, after {MAX_EVENTS} events, or when the command ends.{}

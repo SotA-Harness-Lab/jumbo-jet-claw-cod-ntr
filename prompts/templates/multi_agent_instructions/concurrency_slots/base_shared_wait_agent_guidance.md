@@ -1,0 +1,3 @@
+{base}
+{shared}
+{wait_agent_guidance}There are {max_concurrency} available concurrency slots, meaning that up to {max_concurrency} agents can be active at once, including you.

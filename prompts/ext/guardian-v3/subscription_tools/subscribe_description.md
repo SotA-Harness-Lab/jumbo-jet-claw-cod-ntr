@@ -1,0 +1,1 @@
+Subscribe yourself to an evidence channel in the captured catalog. This changes future evidence selection, without reading posts or authorizing any action.

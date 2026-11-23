@@ -1,0 +1,1 @@
+Send a follow-up prompt to an existing Codex task in the background. Omit model unless the user explicitly requests an override.

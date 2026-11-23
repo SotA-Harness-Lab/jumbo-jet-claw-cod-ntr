@@ -121,11 +121,13 @@ impl ContextualUserFragment for CommandSessionsState {
     fn body(&self) -> ContentItem {
         // Only harness-assigned IDs and fixed lifecycle labels belong in this
         // developer fragment. At most 16 entries keep it below 2 KiB.
-        let mut text = String::from(
-            "Current command sessions for this thread (supersedes earlier snapshots). Exited sessions retain results for write_stdin. In-use sessions are temporarily busy with a tool interaction or result finalization.\n",
-        );
+        let mut text = String::from(codex_prompt_texts::text!(
+            "core/context/world_state/command_sessions/body/current_command_sessions_for_this.md"
+        ));
         if self.polling_unavailable {
-            text.push_str("write_stdin is unavailable with the current tool set.\n");
+            text.push_str(codex_prompt_texts::text!(
+                "core/context/world_state/command_sessions/body/write_stdin_is_unavailable_with.md"
+            ));
         }
         if self.sessions.is_empty() && self.omitted == 0 {
             text.push_str("None.");
@@ -142,8 +144,8 @@ impl ContextualUserFragment for CommandSessionsState {
         if self.omitted > 0 {
             let omitted = self.omitted;
             text.push_str(&format!(
-                "{omitted} additional sessions omitted; this snapshot is incomplete."
-            ));
+                codex_prompt_texts::text!("core/context/world_state/command_sessions/body/omitted_additional_sessions_omitted_this.md")
+            , omitted = omitted));
         }
         input_text(format!("\n{}\n", text.trim_end()))
     }

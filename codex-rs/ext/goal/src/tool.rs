@@ -272,8 +272,7 @@ impl GoalToolExecutor {
             ThreadGoalStatus::Complete | ThreadGoalStatus::Blocked | ThreadGoalStatus::Paused
         ) {
             return Err(FunctionCallError::RespondToModel(
-                "update_goal can only mark the existing goal complete, blocked, or paused at the user's explicit request; resume, budget-limited, and usage-limited status changes are controlled by the user or system"
-                    .to_string(),
+                codex_prompt_texts::text!("ext/goal/tool/update_goal_status_error.md").to_string(),
             ));
         }
 
@@ -548,9 +547,6 @@ fn completion_budget_report(goal: &ThreadGoal) -> Option<String> {
     if goal.token_budget.is_none() && goal.time_used_seconds <= 0 {
         None
     } else {
-        Some(
-            "Goal achieved. Report final usage from this tool result's structured goal fields. If `goal.tokenBudget` is present, include token usage from `goal.tokensUsed` and `goal.tokenBudget`. If `goal.timeUsedSeconds` is greater than 0, summarize elapsed time in a concise, human-friendly form appropriate to the response language."
-                .to_string(),
-        )
+        Some(codex_prompt_texts::text!("ext/goal/tool/completion_budget_report.md").to_string())
     }
 }

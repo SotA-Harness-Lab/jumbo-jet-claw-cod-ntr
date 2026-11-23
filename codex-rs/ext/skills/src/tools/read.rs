@@ -104,12 +104,12 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ReadTool {
         if !self.context.step_state.discovery_v2 {
             return skill_function_tool::<ReadArgs, ReadResponse<LegacyReadMetadata>>(
                 TOOL_NAME,
-                "Read one page from a skill. Pass its provided package directly; root aliases are resolved automatically. Omit resource to read SKILL.md; to read another file, use the same package and pass the file's complete skill:// identifier as resource. For executor-backed skills, skill_root is the skill's absolute directory in the executor filesystem and can be used to locate bundled scripts. If the package is not provided, use skills.list to find it. Pass next_cursor back as cursor to continue the same snapshot while it is cached; omit cursor to read again.",
+                codex_prompt_texts::text!("ext/skills/tools/read/description.md"),
             );
         }
         skill_function_tool::<ReadInstallationArgs, ReadResponse<InstallationReadMetadata>>(
             TOOL_NAME,
-            "Read one page from a skill. Pass its provided package directly; root aliases are resolved automatically. Omit resource to read SKILL.md; to read another file, use the same package and pass the file's complete skill:// identifier as resource. Use source {kind: cloud} for Cloud or {kind: executor, environment_id: ...} for one environment. Omit source to read the first matching location. The installations list contains Cloud locators (package and resource, passed directly to skills.read) or executor locations (environment_id and skill_root, the absolute directory containing instructions and supporting files such as scripts). If installations_truncated is true, use skills.installations with the same package to retrieve all locations. If the package is not provided, use skills.list to find it. Pass next_cursor back as cursor with the same package, source, and resource to continue the same snapshot while it is cached; omit cursor to read again.",
+            codex_prompt_texts::text!("ext/skills/tools/read/description_v2.md"),
         )
     }
 

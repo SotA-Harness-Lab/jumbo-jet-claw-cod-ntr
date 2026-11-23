@@ -16,7 +16,8 @@ use super::ripgrep::relative_to;
 pub const MAX_RESULTS: usize = 100;
 
 pub const PATTERN_PARAM_DESCRIPTION: &str = "The glob pattern to match files against";
-pub const PATH_PARAM_DESCRIPTION: &str = r#"The directory to search in. If not specified, the current working directory will be used. IMPORTANT: Omit this field to use the default directory. DO NOT enter "undefined" or "null" - simply omit it for the default behavior. Must be a valid directory path if provided."#;
+pub const PATH_PARAM_DESCRIPTION: &str =
+    codex_prompt_texts::text!("claude-compat/tools/glob/path_param_description.md");
 
 pub const TRUNCATED_NOTE: &str =
     "(Results are truncated. Consider using a more specific path or pattern.)";
@@ -24,15 +25,15 @@ pub const TRUNCATED_NOTE: &str =
 /// The tool description, after Claude Code's. `available` lists the Claude Code tools
 /// offered, so that the line pointing to the `Agent` tool is there only with it.
 pub fn description(available: &[&str]) -> String {
-    let mut text = String::from(
-        r#"- Fast file pattern matching tool that works with any codebase size
-- Supports glob patterns like "**/*.js" or "src/**/*.ts"
-- Returns matching file paths sorted by modification time
-- Use this tool when you need to find files by name patterns"#,
-    );
+    let mut text = String::from(codex_prompt_texts::text!(
+        "claude-compat/tools/glob/description/fast_file_pattern_matching_tool.md"
+    ));
     if available.contains(&AGENT) {
         text.push_str(&format!(
-            "\n- When you are doing an open ended search that may require multiple rounds of globbing and grepping, use the {AGENT} tool instead"
+            codex_prompt_texts::text!(
+                "claude-compat/tools/glob/description/when_you_are_doing_an.md"
+            ),
+            AGENT = AGENT
         ));
     }
     text

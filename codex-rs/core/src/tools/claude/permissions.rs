@@ -60,7 +60,8 @@ use crate::tools::registry::ToolRegistry;
 use crate::tools::sandboxing::ExecApprovalRequirement;
 
 /// Claude Code's answer to the model when the user declines a tool call.
-const REJECT_MESSAGE: &str = "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed.";
+const REJECT_MESSAGE: &str =
+    codex_prompt_texts::text!("core/tools/claude/permissions/reject_message.md");
 
 /// What a Claude tool call is checked on.
 #[derive(Clone, Copy, Debug)]

@@ -7,18 +7,18 @@ use codex_protocol::openai_models::ApprovalMessages;
 use codex_protocol::openai_models::PermissionMessages;
 
 const APPROVAL_POLICY_NEVER: &str =
-    include_str!("../../templates/permissions/approval_policy/never.md");
+    codex_prompt_texts::text!("templates/permissions/approval_policy/never.md");
 const APPROVAL_POLICY_UNLESS_TRUSTED: &str =
-    include_str!("../../templates/permissions/approval_policy/unless_trusted.md");
+    codex_prompt_texts::text!("templates/permissions/approval_policy/unless_trusted.md");
 const APPROVAL_POLICY_ON_REQUEST: &str =
-    include_str!("../../templates/permissions/approval_policy/on_request.md");
+    codex_prompt_texts::text!("templates/permissions/approval_policy/on_request.md");
 
 pub(crate) const DANGER_FULL_ACCESS_TEMPLATE: &str =
-    include_str!("../../templates/permissions/sandbox_mode/danger_full_access.md");
+    codex_prompt_texts::text!("templates/permissions/sandbox_mode/danger_full_access.md");
 pub(crate) const WORKSPACE_WRITE_TEMPLATE: &str =
-    include_str!("../../templates/permissions/sandbox_mode/workspace_write.md");
+    codex_prompt_texts::text!("templates/permissions/sandbox_mode/workspace_write.md");
 pub(crate) const READ_ONLY_TEMPLATE: &str =
-    include_str!("../../templates/permissions/sandbox_mode/read_only.md");
+    codex_prompt_texts::text!("templates/permissions/sandbox_mode/read_only.md");
 pub(crate) const WRITABLE_ROOT_TEMPLATE: &str = " The writable root is {{ roots }}.";
 pub(crate) const WRITABLE_ROOTS_TEMPLATE: &str = " The writable roots are {{ roots }}.";
 pub(crate) const DENIED_READS_TEMPLATE: &str = "## Denied filesystem reads\n{{ denied_reads }}";
@@ -78,7 +78,7 @@ impl<'a> ResolvedPermissionMessages<'a> {
                 .and_then(|m| m.approved_command_prefix_saved.as_deref()),
             approved_prefixes: ResolvedMessage::new(
                 messages.and_then(|m| m.approved_prefixes.as_deref()),
-                include_str!("../../templates/permissions/approved_prefixes.md").trim_end(),
+                codex_prompt_texts::text!("templates/permissions/approved_prefixes.md").trim_end(),
             ),
             danger_full_access: ResolvedMessage::new(
                 messages.and_then(|m| m.danger_full_access.as_deref()),

@@ -1,0 +1,1 @@
+Spawned agents inherit your current model by default. Do not set the `model` field unless the user explicitly asks for a different model.

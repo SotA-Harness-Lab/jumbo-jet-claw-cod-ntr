@@ -1,0 +1,1 @@
+Agent type override for the new agent. Omit to inherit the parent agent type with a full-history fork; otherwise, `default` is used.

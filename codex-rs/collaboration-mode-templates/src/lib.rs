@@ -1,2 +1,2 @@
-pub const PLAN: &str = include_str!("../templates/plan.md");
-pub const DEFAULT: &str = include_str!("../templates/default.md");
+pub const PLAN: &str = codex_prompt_texts::text!("collaboration-mode-templates/plan.md");
+pub const DEFAULT: &str = codex_prompt_texts::text!("collaboration-mode-templates/default.md");

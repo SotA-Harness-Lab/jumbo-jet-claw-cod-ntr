@@ -33,7 +33,8 @@ pub const PDF_MAX_EXTRACT_SIZE: u64 = 100 * 1024 * 1024;
 
 pub fn pages_param_description() -> String {
     format!(
-        "Page range for PDF files (e.g., \"1-5\", \"3\", \"10-20\"). Only applicable to PDF files. Maximum {PDF_MAX_PAGES_PER_READ} pages per request."
+        codex_prompt_texts::text!("claude-compat/tools/read/pages_param_description.md"),
+        PDF_MAX_PAGES_PER_READ = PDF_MAX_PAGES_PER_READ
     )
 }
 
@@ -89,26 +90,24 @@ impl ReadInput {
 /// to the model.
 pub fn description(images: bool) -> String {
     let mut text = format!(
-        "Reads a file from the local filesystem. You can access any file directly by using this tool.
-Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
-
-Usage:
-- The file_path parameter must be an absolute path, not a relative path
-- By default, it reads up to {MAX_LINES_TO_READ} lines starting from the beginning of the file
-- You can optionally specify a line offset and limit (especially handy for long files), but it's recommended to read the whole file by not providing these parameters
-- Results are returned using cat -n format, with line numbers starting at 1"
+        codex_prompt_texts::text!("claude-compat/tools/read/description/reads_a_file_from_the.md"),
+        MAX_LINES_TO_READ = MAX_LINES_TO_READ
     );
     if images {
-        text.push_str("\n- This tool allows you to read images (eg PNG, JPG, etc). When reading an image file the contents are presented visually.");
+        text.push_str(codex_prompt_texts::text!(
+            "claude-compat/tools/read/description/this_tool_allows_you_to.md"
+        ));
     }
     text.push_str(&format!(
-        "\n- This tool can read PDF files (.pdf). For large PDFs (more than {PDF_INLINE_MAX_PAGES} pages), you MUST provide the pages parameter to read specific page ranges (e.g., pages: \"1-5\"). Reading a large PDF without the pages parameter will fail. Maximum {PDF_MAX_PAGES_PER_READ} pages per request.
-- This tool can read Jupyter notebooks (.ipynb files) and returns all cells with their outputs, combining code, text, and visualizations."
+        codex_prompt_texts::text!("claude-compat/tools/read/description/this_tool_can_read_pdf.md"),
+        PDF_INLINE_MAX_PAGES = PDF_INLINE_MAX_PAGES,
+        PDF_MAX_PAGES_PER_READ = PDF_MAX_PAGES_PER_READ
     ));
     text.push_str(&format!(
-        "\n- This tool can only read files, not directories. To read a directory, use an ls command via the {BASH} tool.
-- You will regularly be asked to read screenshots. If the user provides a path to a screenshot, ALWAYS use this tool to view the file at the path. This tool will work with all temporary file paths.
-- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents."
+        codex_prompt_texts::text!(
+            "claude-compat/tools/read/description/this_tool_can_only_read.md"
+        ),
+        BASH = BASH
     ));
     text
 }
@@ -449,7 +448,7 @@ pub fn render(slice: &TextSlice) -> String {
             .to_string()
     } else {
         format!(
-            "<system-reminder>Warning: the file exists but is shorter than the provided offset ({}). The file has {} lines.</system-reminder>",
+            codex_prompt_texts::text!("claude-compat/tools/read/offset_beyond_end_reminder.md"),
             slice.start_line, slice.total_lines
         )
     }

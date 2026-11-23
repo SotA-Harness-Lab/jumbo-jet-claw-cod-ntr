@@ -13,6 +13,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+codex-prompt-texts = { workspace = true }
 codex-protocol = { workspace = true }
 codex-utils-string = { workspace = true }
 serde_json = { workspace = true }

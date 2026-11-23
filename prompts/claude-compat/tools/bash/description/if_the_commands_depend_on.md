@@ -1,0 +1,1 @@
+If the commands depend on each other and must run sequentially, use a single {BASH} call with '&&' to chain them together.

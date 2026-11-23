@@ -175,9 +175,9 @@ impl<'call> ToolExecutor<ToolCall<'call>> for BoardTool {
                 }
             };
             if result.to_string().len() > budget {
-                return Err(model_error(
-                    "Result exceeds the output budget. Reduce limit or max_chars_per_post; use read_post with a smaller limit_chars for long posts.",
-                ));
+                return Err(model_error(codex_prompt_texts::text!(
+                    "message-board/tools/output_budget_exceeded.md"
+                )));
             }
             Ok(
                 Box::new(

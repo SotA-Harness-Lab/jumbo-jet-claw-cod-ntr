@@ -75,7 +75,7 @@ impl<'call> ToolExecutor<ToolCall<'call>> for ListTool {
     fn spec(&self) -> ToolSpec {
         skill_function_tool::<ListArgs, ListResponse>(
             TOOL_NAME,
-            "List skills owned by the requested authority. Returns each skill's authority, package, and main_resource. Pass the package to skills.read, and pass next_cursor back as cursor to continue.",
+            codex_prompt_texts::text!("ext/skills/tools/list/description.md"),
         )
     }
 

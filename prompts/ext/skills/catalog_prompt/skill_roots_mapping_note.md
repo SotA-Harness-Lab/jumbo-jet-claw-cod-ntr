@@ -1,0 +1,1 @@
+For each alias listed below, this mapping replaces any earlier mapping for that alias. Use it for subsequent skill calls.
