@@ -106,6 +106,12 @@ static ASSIGNMENT: LazyLock<Regex> =
 const SAFE_BUILTIN_WRAPPERS: &[&str] = &["command", "builtin", "noglob"];
 
 /// Claude Code requires an exact rule for these wrappers, which execute another command.
+/// The wrappers `strip_exec_wrapper` knows.
+const EXEC_WRAPPERS: &[&str] = &[
+    "!", "builtin", "noglob", "nohup", "time", "setsid", "command", "exec", "sudo", "doas", "env",
+    "nice", "timeout", "stdbuf", "watch", "ionice", "flock",
+];
+
 const EXEC_WRAPPERS_REQUIRING_EXACT_ALLOW: &[&str] = &[
     "watch",
     "ionice",
@@ -1331,12 +1337,45 @@ fn first_match<'r>(
 fn requires_exact_allow(command: &str) -> bool {
     let command = strip_output_redirections(command);
     let raw = words(&command);
+    // A word the shell expands may become an action of find that the words as written do
+    // not show (`${X:--delete}`, `-{delete,print}`, `$'-\x64elete'`, a glob).
+    let expands = raw.iter().any(|word| may_expand(&word.text));
     let argv = raw
         .into_iter()
         .skip_while(|word| ASSIGNMENT.is_match(&word.text))
         .map(|word| unquote(&word.text))
         .collect::<Vec<_>>();
-    argv_requires_exact_allow(argv, /*find_use_unknown*/ false)
+    argv_requires_exact_allow(argv, /*find_use_unknown*/ expands)
+}
+
+/// Whether the shell may make something else of `word` than what it spells with its quotes
+/// removed: a parameter, command or arithmetic expansion, a brace or tilde expansion, a
+/// glob, or the escapes of `$'...'`. Text in single quotes, and a glob or brace in double
+/// quotes, stay as written.
+fn may_expand(word: &str) -> bool {
+    let mut chars = word.chars().peekable();
+    let mut quote = None;
+    let mut first = true;
+    while let Some(c) = chars.next() {
+        let at_start = std::mem::replace(&mut first, false);
+        match (quote, c) {
+            (Some('\''), '\'') | (Some('"'), '"') => quote = None,
+            (Some('\''), _) => {}
+            (_, '$' | '`') => return true,
+            (Some(_), '\\') => {
+                chars.next();
+            }
+            (Some(_), _) => {}
+            (None, '\'' | '"') => quote = Some(c),
+            (None, '\\') => {
+                chars.next();
+            }
+            (None, '*' | '?' | '[' | '{') => return true,
+            (None, '~') if at_start => return true,
+            (None, _) => {}
+        }
+    }
+    false
 }
 
 fn argv_requires_exact_allow(mut argv: Vec<String>, find_use_unknown: bool) -> bool {
@@ -1378,9 +1417,37 @@ fn find_has_restricted_action(arguments: &[String]) -> bool {
 }
 
 /// Native exec-policy imports every supported rule as a prefix. Leave restrictions that
-/// need the full command to the Claude Bash adapter.
+/// need the full command to the Claude Bash adapter: a prefix that names a restricted
+/// command, and one that ends in a wrapper (`nice`, `timeout 30`, `xargs`), which as a
+/// prefix would approve whatever command follows it, the restricted ones included.
 pub(crate) fn can_import_allow_prefix(prefix: &[String]) -> bool {
     !argv_requires_exact_allow(prefix.to_vec(), /*find_use_unknown*/ true)
+        && !ends_in_exec_wrapper(prefix)
+}
+
+/// Whether nothing but wrappers and their options make up `prefix`.
+fn ends_in_exec_wrapper(prefix: &[String]) -> bool {
+    let mut argv = prefix.to_vec();
+    loop {
+        let Some(program) = argv.first() else {
+            return true;
+        };
+        let name = Path::new(program)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or(program);
+        if name == "xargs" {
+            // Options of xargs may take a value: what follows is not known to be a command.
+            return true;
+        }
+        if !EXEC_WRAPPERS.contains(&name) {
+            return false;
+        }
+        match strip_exec_wrapper(&argv) {
+            Some(inner) if !inner.is_empty() => argv = inner,
+            _ => return true,
+        }
+    }
 }
 
 /// The `Bash` rule contents of each behaviour.

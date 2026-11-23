@@ -71,6 +71,44 @@ fn exec_policy_does_not_import_approvals_that_need_the_full_command() {
 }
 
 #[test]
+fn exec_policy_does_not_import_a_prefix_that_ends_in_a_wrapper() {
+    let settings = json!({
+        "permissions": {
+            "allow": [
+                "Bash(nice *)",
+                "Bash(timeout 30 *)",
+                "Bash(sudo -u build env *)",
+                "Bash(xargs *)",
+                "Bash(xargs -n 1 echo *)",
+                "Bash(nice make *)",
+                "Bash(env FOO=1 cargo test *)"
+            ]
+        }
+    });
+    let (rules, unsupported) = bash_prefix_rules(&settings);
+    assert_eq!(
+        rules,
+        vec![
+            rule(&["nice", "make"], PermissionDecision::Allow),
+            rule(
+                &["env", "FOO=1", "cargo", "test"],
+                PermissionDecision::Allow
+            ),
+        ]
+    );
+    assert_eq!(
+        unsupported,
+        vec![
+            "Bash(nice *)",
+            "Bash(timeout 30 *)",
+            "Bash(sudo -u build env *)",
+            "Bash(xargs *)",
+            "Bash(xargs -n 1 echo *)"
+        ]
+    );
+}
+
+#[test]
 fn reply_language_accepts_language_names_and_ignores_empty_or_non_string_values() {
     assert_eq!(
         settings_reply_language(&json!({"language": " 简体中文 "})),

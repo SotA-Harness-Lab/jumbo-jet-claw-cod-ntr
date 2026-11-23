@@ -450,6 +450,25 @@ fn broad_bash_rules_do_not_preapprove_exec_wrappers_or_find_actions() {
         bash(&rules, "find build -name '-delete' -print"),
         allow("Bash(find *)")
     );
+    // An action the shell would only make while expanding the words is not seen, so a word
+    // that expands is not covered by the broad rule either.
+    for command in [
+        "find build ${Z:--delete}",
+        "find build -{delete,print}",
+        "find build $'-\\x64elete'",
+        "find build $(echo -delete)",
+        "find build -name *.tmp",
+        "find \"$DIR\" -print",
+    ] {
+        assert_eq!(bash(&rules, command), RuleVerdict::NoMatch, "{command}");
+    }
+    for command in [
+        "find build -name '*.tmp' -print",
+        "find build -name \"*.tmp\" -print",
+        "find build -name \\*.tmp -print",
+    ] {
+        assert_eq!(bash(&rules, command), allow("Bash(find *)"), "{command}");
+    }
     assert_eq!(
         bash(&rules, "find build -type f -delete"),
         allow("Bash(find build -type f -delete)")
@@ -964,6 +983,34 @@ fn allow_rules_never_cover_sensitive_files() {
     assert_eq!(
         edit(&rules, "Edit", "/work/project/.claude/worktrees/x/src/a.rs"),
         allow("Edit(**)")
+    );
+}
+
+#[test]
+fn allow_rules_never_cover_a_claude_directory_under_another_name() {
+    let settings = [(
+        RuleSource::User,
+        json!({ "permissions": { "allow": ["Edit(//profiles/**)", "Edit"] } }),
+    )];
+    let rules = PermissionRules::new(
+        &settings,
+        Some(Path::new("/profiles/work")),
+        Some(Path::new(HOME)),
+        Some(Path::new(PROJECT)),
+    );
+    for path in [
+        "/profiles/work/settings.json",
+        "/profiles/work/rules/style.md",
+    ] {
+        assert_eq!(edit(&rules, "Edit", path), RuleVerdict::NoMatch, "{path}");
+    }
+    assert_eq!(
+        edit(&rules, "Edit", "/profiles/work/worktrees/x/src/a.rs"),
+        allow("Edit(//profiles/**)")
+    );
+    assert_eq!(
+        edit(&rules, "Edit", "/profiles/other/notes.md"),
+        allow("Edit(//profiles/**)")
     );
 }
 

@@ -453,7 +453,7 @@ impl PermissionRules {
         // Claude Code asks about these files before it looks at a rule allowing the whole
         // tool, so such a rule does not cover them either.
         if let ToolInput::Edit { paths, .. } = &input
-            && paths.iter().any(|path| is_dangerous_to_edit(path))
+            && paths.iter().any(|path| self.asks_before_editing(path))
         {
             return RuleVerdict::NoMatch;
         }
@@ -672,6 +672,17 @@ impl PermissionRules {
         first
     }
 
+    /// Whether no allow rule covers editing `path`: a file `is_dangerous_to_edit` names,
+    /// or one in the user's Claude directory when `CLAUDE_CONFIG_DIR` puts it somewhere
+    /// not named `.claude`, where the settings, hooks and rules it holds would otherwise
+    /// be open to a broad `Edit` rule.
+    fn asks_before_editing(&self, path: &Path) -> bool {
+        is_dangerous_to_edit(path)
+            || self.claude_home.as_deref().is_some_and(|claude_home| {
+                path.starts_with(claude_home) && !path.starts_with(claude_home.join("worktrees"))
+            })
+    }
+
     fn edit(&self, paths: &[PathBuf], cwd: &Path) -> RuleVerdict {
         let Some(path) = paths.first() else {
             return RuleVerdict::NoMatch;
@@ -694,7 +705,7 @@ impl PermissionRules {
         }
         // Claude Code asks before editing these whatever the allow rules say; the asking is
         // left to Codex.
-        if paths.iter().any(|path| is_dangerous_to_edit(path)) {
+        if paths.iter().any(|path| self.asks_before_editing(path)) {
             return RuleVerdict::NoMatch;
         }
         match self.allow_rule_for_all(FILE_EDIT_TOOL, paths, cwd) {
