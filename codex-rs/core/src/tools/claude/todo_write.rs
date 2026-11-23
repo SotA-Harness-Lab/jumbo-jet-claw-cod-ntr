@@ -174,17 +174,19 @@ impl TodoWriteHandler {
             .services
             .session_extension_data
             .get_or_init::<SessionTodos>(SessionTodos::default);
-        let mut previous = session_todos.0.lock().await;
         let next = todo_write::retained_todos(&todos);
         let arguments = todo_write::update_plan_arguments(next).to_string();
         self.update_plan
             .handle(delegated(&invocation, ToolPayload::Function { arguments }))
             .await?;
+        let new_todos = todo_write::todos_json(&todos);
+        let stored = if next.is_empty() { Vec::new() } else { todos };
+        // The lock is taken only after the plan was updated: a guard is never held across an await.
+        let previous = std::mem::replace(&mut *session_todos.0.lock().await, stored);
         let response = json!({
             "oldTodos": todo_write::todos_json(&previous),
-            "newTodos": todo_write::todos_json(&todos),
+            "newTodos": new_todos,
         });
-        *previous = if next.is_empty() { Vec::new() } else { todos };
         Ok(boxed_tool_output(ClaudeToolOutput::new(
             todo_write::RESULT_MESSAGE.to_string(),
             response,
