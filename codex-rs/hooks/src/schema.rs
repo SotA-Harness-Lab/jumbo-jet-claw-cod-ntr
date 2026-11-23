@@ -379,6 +379,9 @@ pub(crate) struct PostCompactCommandInput {
     pub model: String,
     #[schemars(schema_with = "compaction_trigger_schema")]
     pub trigger: String,
+    /// Plaintext summary for local Claude Code hooks, when the compactor provides it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compact_summary: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

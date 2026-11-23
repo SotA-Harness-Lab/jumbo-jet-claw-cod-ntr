@@ -263,7 +263,8 @@ async fn run_remote_compact_task_inner(
     let codex_error = result.as_ref().err();
     if result.is_ok() && !interrupted {
         crate::claude_rules::forget_shown_files(sess).await;
-        let post_compact_outcome = run_post_compact_hooks(sess, turn_context, trigger).await;
+        let post_compact_outcome =
+            run_post_compact_hooks(sess, turn_context, trigger, /*compact_summary*/ None).await;
         if let PostCompactHookOutcome::Stopped = post_compact_outcome {
             attempt
                 .track(sess.as_ref(), status, codex_error, analytics_details)
