@@ -493,9 +493,10 @@ impl PermissionRules {
             if field.is_empty() || is_primary_parameter(tool, field) {
                 continue;
             }
-            // For the shell tools `name:*` is the prefix rule `name *` and nothing else: a rule such as
-            // `Bash(timeout:*)` is about the program, not about calls that set the `timeout` field.
-            if matches!(tool, "Bash" | "PowerShell") && pattern.trim() == "*" {
+            // For the shell tools `name:*` is also the prefix rule `name *`, and Claude Code 2.1.331
+            // applies both readings. `timeout` is the one field that is a program too, and models set
+            // it on ordinary calls, so `Bash(timeout:*)` stays about the program alone.
+            if matches!(tool, "Bash" | "PowerShell") && field == "timeout" && pattern.trim() == "*" {
                 continue;
             }
             let Some(fact) = decoded

@@ -573,8 +573,12 @@ fn parameter_rules_match_explicit_scalar_values_before_normalization() {
 }
 
 #[test]
-fn a_shell_rule_ending_in_colon_star_is_a_prefix_rule_only() {
-    let rules = local_rules(&["Bash"], &[], &["Bash(timeout:*)"]);
+fn a_shell_rule_ending_in_colon_star_is_a_prefix_rule_and_a_parameter_rule() {
+    let rules = local_rules(
+        &["Bash"],
+        &[],
+        &["Bash(timeout:*)", "Bash(run_in_background:*)"],
+    );
     let bash = |command: &'static str, arguments| {
         rules.evaluate_with_arguments(
             "Bash",
@@ -585,6 +589,7 @@ fn a_shell_rule_ending_in_colon_star_is_a_prefix_rule_only() {
             Some(arguments),
         )
     };
+    // `timeout` is a program as well as a field: the rule is about the program alone.
     assert_eq!(
         bash("git status", r#"{"command":"git status","timeout":5000}"#),
         allow("Bash")
@@ -593,6 +598,50 @@ fn a_shell_rule_ending_in_colon_star_is_a_prefix_rule_only() {
         bash("timeout 5 make", r#"{"command":"timeout 5 make"}"#),
         RuleVerdict::Deny { .. }
     ));
+    // Any other field is matched too, whatever its value.
+    for arguments in [
+        r#"{"command":"git status","run_in_background":true}"#,
+        r#"{"command":"git status","run_in_background":false}"#,
+    ] {
+        assert!(matches!(
+            bash("git status", arguments),
+            RuleVerdict::Deny { .. }
+        ));
+    }
+    assert!(matches!(
+        bash(
+            "run_in_background now",
+            r#"{"command":"run_in_background now"}"#
+        ),
+        RuleVerdict::Deny { .. }
+    ));
+    assert_eq!(
+        bash("git status", r#"{"command":"git status"}"#),
+        allow("Bash")
+    );
+}
+
+#[test]
+fn a_time_limit_of_one_value_is_still_a_parameter_rule() {
+    let rules = local_rules(&["Bash"], &[], &["Bash(timeout:5000)"]);
+    let bash = |command: &'static str, arguments| {
+        rules.evaluate_with_arguments(
+            "Bash",
+            ToolInput::Command {
+                command,
+                cwd: Path::new(PROJECT),
+            },
+            Some(arguments),
+        )
+    };
+    assert!(matches!(
+        bash("git status", r#"{"command":"git status","timeout":5000}"#),
+        RuleVerdict::Deny { .. }
+    ));
+    assert_eq!(
+        bash("timeout 5 make", r#"{"command":"timeout 5 make"}"#),
+        allow("Bash")
+    );
 }
 
 #[test]
