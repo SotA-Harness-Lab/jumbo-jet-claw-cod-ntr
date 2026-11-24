@@ -997,3 +997,7 @@ async fn drain_to_completed(
 #[cfg(test)]
 #[path = "compact_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "compact_claude_hook_tests.rs"]
+mod claude_hook_tests;
