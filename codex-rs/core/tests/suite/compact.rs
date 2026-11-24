@@ -1833,7 +1833,8 @@ async fn manual_compact_records_durable_and_local_token_usage() {
     })
     .await;
 
-    // First TokenCount: from the compact API call (usage.total_tokens = 0).
+    // First TokenCount: after the compact API call, whose usage of zero tokens counts as none
+    // reported, so the last usage is still the first turn's.
     let first = wait_for_event_match(&codex, |ev| match ev {
         EventMsg::TokenCount(tc) => tc
             .info
@@ -1857,8 +1858,8 @@ async fn manual_compact_records_durable_and_local_token_usage() {
     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
 
     assert_eq!(
-        first, 0,
-        "expected first TokenCount from compact API usage to be zero"
+        first, 1_000,
+        "expected a compact API usage of zero tokens to leave the last usage as it was"
     );
     assert!(
         last > 0,
