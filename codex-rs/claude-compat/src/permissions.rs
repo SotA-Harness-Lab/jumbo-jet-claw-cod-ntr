@@ -493,6 +493,11 @@ impl PermissionRules {
             if field.is_empty() || is_primary_parameter(tool, field) {
                 continue;
             }
+            // For the shell tools `name:*` is the prefix rule `name *` and nothing else: a rule such as
+            // `Bash(timeout:*)` is about the program, not about calls that set the `timeout` field.
+            if matches!(tool, "Bash" | "PowerShell") && pattern.trim() == "*" {
+                continue;
+            }
             let Some(fact) = decoded
                 .get_or_init(|| serde_json::from_str::<Value>(arguments).ok())
                 .as_ref()

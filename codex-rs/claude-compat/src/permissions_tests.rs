@@ -573,6 +573,29 @@ fn parameter_rules_match_explicit_scalar_values_before_normalization() {
 }
 
 #[test]
+fn a_shell_rule_ending_in_colon_star_is_a_prefix_rule_only() {
+    let rules = local_rules(&["Bash"], &[], &["Bash(timeout:*)"]);
+    let bash = |command: &'static str, arguments| {
+        rules.evaluate_with_arguments(
+            "Bash",
+            ToolInput::Command {
+                command,
+                cwd: Path::new(PROJECT),
+            },
+            Some(arguments),
+        )
+    };
+    assert_eq!(
+        bash("git status", r#"{"command":"git status","timeout":5000}"#),
+        allow("Bash")
+    );
+    assert!(matches!(
+        bash("timeout 5 make", r#"{"command":"timeout 5 make"}"#),
+        RuleVerdict::Deny { .. }
+    ));
+}
+
+#[test]
 fn allow_rules_meet_blanks_and_builtin_wrappers_but_not_unquoted_words() {
     let rules = local_rules(&["Bash(git commit:*)", "Bash(npm test *)"], &[], &[]);
     assert_eq!(

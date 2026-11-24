@@ -8,6 +8,8 @@
 //! Use `contexts` for distinct senses of the same English text and for labels
 //! translated by a shared component before measuring or wrapping.
 //! A context entry set to `null` uses the matching translation in `messages`.
+//! A test compares the catalog with the texts in the code: it fails on a text passed to `tr!`
+//! that has no entry, and on an entry whose English text the code no longer has.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
