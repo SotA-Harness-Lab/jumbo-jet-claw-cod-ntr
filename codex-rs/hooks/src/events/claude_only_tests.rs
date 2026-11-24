@@ -525,3 +525,51 @@ fn claude_entrypoint_follows_the_session_source() {
     );
     assert_eq!(crate::claude_entrypoint(&SessionSource::Mcp), None);
 }
+
+/// The summary travels from the request to the standard input of a hook in Claude Code's
+/// settings: the pieces in between are tested one by one elsewhere.
+#[tokio::test]
+async fn post_compact_hooks_of_claude_settings_get_the_summary() {
+    let tmp = TempDir::new().expect("temp dir");
+    fs::create_dir_all(tmp.path().join("home/.claude")).expect("create");
+    fs::create_dir_all(tmp.path().join("project")).expect("create");
+    let saved = tmp.path().join("post_compact.json");
+    let settings = json!({
+        "hooks": {
+            "PostCompact": [{"matcher": "manual", "hooks": [
+                {"type": "command", "command": format!("cat > '{}'", saved.display())}
+            ]}],
+        }
+    });
+    fs::write(
+        tmp.path().join("home/.claude/settings.json"),
+        settings.to_string(),
+    )
+    .expect("write settings");
+    let engine = engine(&tmp, /*bypass_hook_trust*/ false);
+    let request = |compact_summary: Option<&str>| crate::events::compact::PostCompactRequest {
+        session_id: ThreadId::new(),
+        turn_id: "turn-1".to_string(),
+        subagent: None,
+        cwd: absolute(tmp.path()),
+        transcript_path: None,
+        model: "gpt-test".to_string(),
+        trigger: "manual".to_string(),
+        compact_summary: compact_summary.map(str::to_string),
+    };
+
+    let outcome = engine
+        .run_post_compact(request(Some("The user asked for a parser.")))
+        .await;
+
+    assert_eq!(outcome.hook_events.len(), 1);
+    let input = read_when_written(&saved).await;
+    assert_eq!(input["hook_event_name"], "PostCompact");
+    assert_eq!(input["trigger"], "manual");
+    assert_eq!(input["compact_summary"], "The user asked for a parser.");
+
+    fs::remove_file(&saved).expect("remove the saved input");
+    engine.run_post_compact(request(None)).await;
+    let input = read_when_written(&saved).await;
+    assert!(input.get("compact_summary").is_none());
+}
