@@ -772,7 +772,7 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
     write(".hidden/secret.md", "Hidden command\n");
     write("git/audit/SKILL.md", "# Review the audit log\n");
     write("git/audit/reference.md", "Support document\n");
-    write("git/audit/docs/example.md", "Nested support document\n");
+    write("git/audit/docs/example.md", "A command of its own\n");
 
     let snapshot = load_host_skill_root(HostSkillRoot::commands(
         AbsolutePathBuf::from_absolute_path(root.path()).expect("absolute root"),
@@ -796,6 +796,10 @@ async fn command_root_loads_markdown_files_named_after_their_path() {
                 "Saved with a byte order mark".to_string()
             ),
             ("git:audit".to_string(), "Review the audit log".to_string()),
+            (
+                "git:audit:docs:example".to_string(),
+                "A command of its own".to_string()
+            ),
             (
                 "git:commit".to_string(),
                 "Commit staged changes".to_string()

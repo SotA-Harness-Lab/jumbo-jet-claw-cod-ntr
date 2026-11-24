@@ -230,23 +230,18 @@ pub(super) async fn discover_skills(
     }
 }
 
-/// A commands subdirectory with a SKILL.md is one command. Its other files are resources.
+/// A commands subdirectory with a SKILL.md is one command, and the other files of that directory
+/// are its resources. Files of directories further down are commands again, as in Claude Code,
+/// which groups command files by the directory they are in.
 fn is_command_package_support_file(
     path: &PathUri,
     root: &PathUri,
     files: &HashSet<PathUri>,
 ) -> bool {
-    let mut parent = path.parent();
-    while let Some(directory) = parent.filter(|directory| directory != root) {
-        if let Ok(entry) = directory.join(SKILLS_FILENAME)
-            && &entry != path
-            && files.contains(&entry)
-        {
-            return true;
-        }
-        parent = directory.parent();
-    }
-    false
+    path.parent()
+        .filter(|directory| directory != root)
+        .and_then(|directory| directory.join(SKILLS_FILENAME).ok())
+        .is_some_and(|entry| &entry != path && files.contains(&entry))
 }
 
 fn has_hidden_ancestor_below_root(path: &PathUri, root: &PathUri) -> bool {
